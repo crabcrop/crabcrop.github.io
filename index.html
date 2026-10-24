@@ -330,6 +330,7 @@ fieldset[disabled] .ctl,fieldset[disabled] .frow{opacity:.45}
 .fmt-row.head .fmt-name{font-size:12px}
 .fmt-name{font-family:ui-monospace,Menlo,Consolas,monospace;font-weight:700;font-size:16.5px}
 .fmt-yes{display:inline-flex;align-items:center;gap:8px;font-weight:800;font-size:14.5px;color:var(--tide-deep)}
+.fmt-no{display:inline-flex;align-items:center;gap:8px;font-weight:800;font-size:14.5px;color:var(--ink-2)}
 .fmt-yes .claw{width:16px;height:16px;flex:0 0 auto}
 .fmt-yes .claw path{stroke:var(--tide)}
 .fmt-qual{display:block;font-size:12.5px;color:var(--ink-2);margin-top:3px;max-width:180px}
@@ -1053,6 +1054,12 @@ srcset = build_srcset(..., widths=[400, 800, 1200])</pre></div>
         <span class="fmt-enc"><span class="fmt-yes"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg>Yes</span></span>
         <span class="fmt-note"><code>quality(auto)</code> is verified perceptually for it, like JPEG.</span>
       </div>
+      <div class="fmt-row">
+        <span class="fmt-name">HEIC / HEIF</span>
+        <span class="fmt-dec"><span class="fmt-yes"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg>Yes</span><span class="fmt-qual">decoded in pure Rust</span></span>
+        <span class="fmt-enc"><span class="fmt-no">No</span></span>
+        <span class="fmt-note">What phone cameras shoot. It comes in, and goes back out as any of the six output formats.</span>
+      </div>
     </div>
 
     <div class="grid3" style="margin-top:26px">
@@ -1062,14 +1069,14 @@ srcset = build_srcset(..., widths=[400, 800, 1200])</pre></div>
       <div class="specimen span2 reveal-r"><div class="iconring coral"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg></div><h3>Every format, one pipeline</h3><p>EXIF orientation is applied at decode, so phone photos come out upright, and ICC profiles are converted to sRGB before any operation runs. SVG originals join the same pipeline too: sanitized first, with scripts and external references stripped, then rasterized.</p><span class="opname">EXIF upright · ICC to sRGB · SVG sanitized</span></div>
     </div>
 
-    <p class="honest reveal-l" style="margin-top:22px">One honest exception: HEIC/HEIF originals are not decoded today. They are rejected cleanly with a <code>502</code>, never half-served.</p>
+    <p class="honest reveal-l" style="margin-top:22px">One honest note: HEIC decodes in pure Rust, with no external tools. The first load of a phone photo is slower than other formats, then it caches like everything else.</p>
 
     <div class="reveal-l" style="margin-top:34px;display:flex;gap:22px;align-items:center;flex-wrap:wrap">
       <figure class="frame" style="max-width:230px;margin:0;flex:0 0 auto">
         <img src="crabcrop-mascot-magician.webp" alt="Snap the crab dressed as a magician, waving a star-tipped wand at the photo in his claw as its mountain scene transforms into a castle" width="400" height="400" loading="lazy">
         <figcaption><span>Snap, converting with a flourish.</span></figcaption>
       </figure>
-      <div class="bubble">Six formats in. Any of the six back out.</div>
+      <div class="bubble">Seven formats in. Six back out.</div>
       <p style="font-size:19px;font-weight:800;letter-spacing:-.01em;max-width:660px">Fetch, resize, crop, filter, convert, cache, purge, meta, and AI, in a single Rust binary. That is all you need for image serving.</p>
     </div>
   </div>
@@ -1359,7 +1366,7 @@ const ANA = {
       [["Bucket source","s3://photos/photo.jpg"]],
       [["File source","file:///images/photo.jpg"]]
     ],
-    watch:"Fetch limits for every kind: 10 seconds, 10 MiB max (larger is 502), at most 5 redirects for http sources. <code>file://</code> must stay under the configured file root; unset root disables it. Bucket sources are gated by the bucket allowlist, not the host policy. HEIC sources fail with 502. AVIF sources decode in the Docker image, the release binaries, and the Homebrew install; a source build without the <code>avif-decode</code> feature answers 502 and names the feature.",
+    watch:"Fetch limits for every kind: 10 seconds, 10 MiB max (larger is 502), at most 5 redirects for http sources. <code>file://</code> must stay under the configured file root; unset root disables it. Bucket sources are gated by the bucket allowlist, not the host policy. HEIC sources decode in pure Rust. AVIF sources decode in the Docker image, the release binaries, and the Homebrew install; a source build without the <code>avif-decode</code> feature answers 502 and names the feature.",
     bubble:"Everything after the operations is the address."}
 };
 let anaLock = "sig", srcCycle = 0, hoverTimer = null;
