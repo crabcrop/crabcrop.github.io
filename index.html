@@ -401,6 +401,8 @@ fieldset[disabled] .ctl,fieldset[disabled] .frow{opacity:.45}
 .ring{position:absolute;border:3px solid rgba(255,255,255,.22);border-radius:50%}
 .dockerstrip{margin-top:30px;background:var(--abyss);border-radius:14px;padding:15px 18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
 .dockerstrip code{color:#DCE9F2;font-size:14px;overflow-wrap:anywhere}
+.cmdstrip{background:var(--abyss);border-radius:10px;padding:12px 14px;margin-top:14px}
+.cmdstrip code{color:#DCE9F2;font-size:13px;overflow-wrap:anywhere}
 .dockerstrip .copybtn{margin-left:auto}
 /* Footer */
 footer{background:var(--tide-deep);color:#CFE8E6;padding:46px 0 40px;position:relative}
@@ -582,7 +584,7 @@ footer a{color:var(--sea-glass)}
     <a class="logo" href="#top"><span class="pebble" id="navCrab" aria-hidden="true"><svg class="claw"><use href="#clawmark"/></svg></span> crabcrop</a>
     <nav class="nav-links" aria-label="Sections">
       <a href="#anatomy">Anatomy</a><a href="#playground">Playground</a><a href="#sign">Sign it</a>
-      <a href="#features">Features</a><a href="#formats">Formats</a><a href="#ai">AI</a><a href="#libraries">Libraries</a>
+      <a href="#features">Features</a><a href="#formats">Formats</a><a href="#ai">AI</a><a href="#libraries">Libraries</a><a href="#install">Install</a>
     </nav>
     <a class="btn" style="padding:10px 18px" href="#playground">Start building</a>
   </div>
@@ -1005,7 +1007,7 @@ srcset = build_srcset(..., widths=[400, 800, 1200])</pre></div>
       <div class="tidemark"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg> Beyond the snap</div>
       <h2>Small URL. Long <span class="coral">reach.</span></h2>
       <p class="lede">The transform is only the first tide. Caching, metadata, negotiation, and purging are built into the same URL.</p>
-      <p style="margin-top:12px;font-size:16.5px;color:var(--ink-2)">41 filters and encoding directives, chained inside one <span class="mono">filters:</span> segment in the order you write them.</p>
+      <p style="margin-top:12px;font-size:16.5px;color:var(--ink-2)">42 filters and encoding directives, chained inside one <span class="mono">filters:</span> segment in the order you write them.</p>
       </div>
       <figure class="frame" style="max-width:210px;margin:0;flex:0 0 auto">
         <img src="snap-features.webp" alt="Snap the crochet crab at a small barbecue grill, flipping photo prints like patties with a spatula" width="400" height="400" loading="lazy">
@@ -1236,6 +1238,23 @@ srcset = build_srcset(..., widths=[400, 800, 1200])</pre></div>
   </div>
 </section>
 
+<section id="install">
+  <div class="foam" style="--fc:#FBF0D9" aria-hidden="true"></div>
+  <div class="wrap">
+    <div class="reveal-l">
+      <div class="tidemark"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg> Install</div>
+      <h2>Running in <span class="coral">a minute.</span></h2>
+      <p class="lede">crabcrop 0.1.0 is published. Pick a route: an installer script, Homebrew, a container image, or a prebuilt binary.</p>
+    </div>
+    <div class="grid3" style="margin-top:40px">
+      <div class="specimen reveal-l"><div class="iconring"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg></div><h3>Shell installer</h3><p>macOS and Linux, on x86_64 and arm64. Installs the latest release binary.</p><div class="cmdstrip"><code>curl --proto '=https' --tlsv1.2 -LsSf https://github.com/dayvson/crabcrop/releases/latest/download/crabcrop-installer.sh | sh</code></div></div>
+      <div class="specimen reveal-r d1"><div class="iconring coral"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg></div><h3>Homebrew</h3><p>Download <code>crabcrop.rb</code> from the <a href="https://github.com/dayvson/crabcrop/releases/latest" target="_blank" rel="noopener">latest release</a>, then install it as a formula.</p><div class="cmdstrip"><code>brew install --formula ./crabcrop.rb</code></div></div>
+      <div class="specimen reveal-l d2"><div class="iconring"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg></div><h3>Release binaries</h3><p>Prebuilt tarballs for macOS and Linux, on x86_64 and arm64, with checksums, on the <a href="https://github.com/dayvson/crabcrop/releases" target="_blank" rel="noopener">releases page</a>. The signing library is on crates.io as <code>crabcrop-url</code>.</p></div>
+      <div class="specimen span2 reveal-r"><div class="iconring coral"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg></div><h3>Docker</h3><p>The base image is on GHCR. The <code>crabcrop-ai</code> variant adds background removal and face detection, with the models layered in.</p><div class="cmdstrip"><code>docker run -p 3000:3000 -e CRABCROP_SECRET=your-secret ghcr.io/dayvson/crabcrop:0.1.0</code></div></div>
+    </div>
+  </div>
+</section>
+
 <!-- CTA -->
 <section style="padding-top:0">
   <div class="foam" style="--fc:#F3DFB4" aria-hidden="true"></div>
@@ -1258,7 +1277,7 @@ srcset = build_srcset(..., widths=[400, 800, 1200])</pre></div>
         <a class="mono-link" style="color:#fff" href="https://github.com/crabcrop" target="_blank" rel="noopener">github.com/crabcrop</a>
       </div>
       <div class="dockerstrip">
-        <code>docker run -p 3000:3000 -e CRABCROP_SECRET=your-secret crabcrop serve</code>
+        <code>docker run -p 3000:3000 -e CRABCROP_SECRET=your-secret ghcr.io/dayvson/crabcrop:0.1.0</code>
         <button class="copybtn" type="button" id="copyDocker">Copy</button>
       </div>
     </div>
