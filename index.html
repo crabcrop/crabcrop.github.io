@@ -322,6 +322,26 @@ fieldset[disabled] .ctl,fieldset[disabled] .frow{opacity:.45}
 .iconring.coral{border-color:var(--coral)}
 .span2{grid-column:span 2}
 @media(max-width:620px){.span2{grid-column:span 1}}
+/* Formats matrix */
+.fmt-card{background:var(--foam);border:1.5px solid var(--ink);border-radius:var(--shell);box-shadow:var(--shadow-lg);overflow:hidden;margin-top:38px}
+.fmt-row{display:grid;grid-template-columns:1fr .55fr .55fr 1.9fr;gap:8px 18px;align-items:center;padding:17px 26px}
+.fmt-row+.fmt-row{border-top:1.5px dashed var(--sand-300)}
+.fmt-row.head{background:var(--sand-200);padding-top:13px;padding-bottom:13px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--tide-deep)}
+.fmt-row.head .fmt-name{font-size:12px}
+.fmt-name{font-family:ui-monospace,Menlo,Consolas,monospace;font-weight:700;font-size:16.5px}
+.fmt-yes{display:inline-flex;align-items:center;gap:8px;font-weight:800;font-size:14.5px;color:var(--tide-deep)}
+.fmt-yes .claw{width:16px;height:16px;flex:0 0 auto}
+.fmt-yes .claw path{stroke:var(--tide)}
+.fmt-qual{display:block;font-size:12.5px;color:var(--ink-2);margin-top:3px;max-width:180px}
+.fmt-note{font-size:14.5px;color:var(--ink-2)}
+.fmt-note code{background:rgba(20,40,50,.06);padding:1px 5px;border-radius:5px;font-size:13px;color:var(--coral-deep)}
+@media(max-width:640px){
+  .fmt-row{grid-template-columns:1fr auto auto;grid-template-areas:"name dec enc" "note note note";padding:15px 18px}
+  .fmt-row.head{grid-template-areas:"name dec enc"}
+  .fmt-row.head .fmt-note{display:none}
+  .fmt-name{grid-area:name}.fmt-dec{grid-area:dec}.fmt-enc{grid-area:enc}.fmt-note{grid-area:note}
+  .fmt-qual{max-width:130px}
+}
 /* AI */
 .ai-intro{display:flex;gap:28px;align-items:flex-start;flex-wrap:wrap}
 .ai-crab{display:flex;flex-direction:column;align-items:center;gap:10px}
@@ -561,7 +581,7 @@ footer a{color:var(--sea-glass)}
     <a class="logo" href="#top"><span class="pebble" id="navCrab" aria-hidden="true"><svg class="claw"><use href="#clawmark"/></svg></span> crabcrop</a>
     <nav class="nav-links" aria-label="Sections">
       <a href="#anatomy">Anatomy</a><a href="#playground">Playground</a><a href="#sign">Sign it</a>
-      <a href="#features">Features</a><a href="#ai">AI</a><a href="#libraries">Libraries</a>
+      <a href="#features">Features</a><a href="#formats">Formats</a><a href="#ai">AI</a><a href="#libraries">Libraries</a>
     </nav>
     <a class="btn" style="padding:10px 18px" href="#playground">Start building</a>
   </div>
@@ -670,7 +690,7 @@ footer a{color:var(--sea-glass)}
       <span class="bchip">filters:grayscale</span><span class="bchip">filters:format(avif)</span><span class="bchip">filters:quality(auto)</span><span class="bchip">filters:radius(24)</span><span class="bchip">filters:watermark(...)</span><span class="bchip">filters:removebg</span><span class="bchip">filters:upscale(2)</span><span class="bchip">filters:blurclass(person)</span>
     </div></div>
     <div class="cluster"><div class="clabel">Control</div><div class="chips">
-      <span class="bchip">preset:og-card</span><span class="bchip">exp:1893456000</span><span class="bchip">filters:dpr(2)</span>
+      <span class="bchip">preset:og-card</span><span class="bchip">exp:1893456000</span><span class="bchip">maxage:3600</span><span class="bchip">filters:dpr(2)</span>
     </div></div>
   </div>
 </div>
@@ -766,6 +786,10 @@ footer a{color:var(--sea-glass)}
               <option value="bottom">bottom</option>
               <option value="left">left</option>
               <option value="right">right</option>
+              <option value="top-left">top-left</option>
+              <option value="top-right">top-right</option>
+              <option value="bottom-left">bottom-left</option>
+              <option value="bottom-right">bottom-right</option>
               <option value="face">face (largest detected face)</option>
             </select>
             <p class="hint" id="pgFaceNote" hidden>face needs a face model on the server; with none found it falls back to the smart window.</p>
@@ -781,7 +805,7 @@ footer a{color:var(--sea-glass)}
             <p class="hint">Scales size and crop targets before any no_upscale cap. An explicit dpr in the URL beats the DPR client hint header.</p>
           </div>
           <div id="pgFilters"></div>
-          <p class="fnote">Each toggle joins the same filters: chain, in the order you switch it on. Also in the grammar, but needing coordinates, images, or server configuration a generic builder cannot set honestly: rgb, trim, rotate, flip, monochrome, mask, blur_region, pixelate_region, watermark, overlay, text, blurfaces, pixelatefaces, blurclass, pixelateclass, facepad, keep_profile.</p>
+          <p class="fnote">Each toggle joins the same filters: chain, in the order you switch it on. Also in the grammar, but needing coordinates, images, or server configuration a generic builder cannot set honestly: rgb, curve, convolution, trim, rotate, flip, monochrome, mask, blur_region, pixelate_region, watermark, overlay, text, blurfaces, pixelatefaces, blurclass, pixelateclass, facepad, keep_profile.</p>
         </fieldset>
       </div>
 
@@ -955,7 +979,7 @@ srcset = build_srcset(..., widths=[400, 800, 1200])</pre></div>
       <div class="tidemark"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg> Beyond the snap</div>
       <h2>Small URL. Long <span class="coral">reach.</span></h2>
       <p class="lede">The transform is only the first tide. Caching, metadata, negotiation, and purging are built into the same URL.</p>
-      <p style="margin-top:12px;font-size:16.5px;color:var(--ink-2)">39 filters and encoding directives, chained inside one <span class="mono">filters:</span> segment in the order you write them.</p>
+      <p style="margin-top:12px;font-size:16.5px;color:var(--ink-2)">41 filters and encoding directives, chained inside one <span class="mono">filters:</span> segment in the order you write them.</p>
     </div>
     <figure class="filter-figure reveal-l">
       <div class="frame filter-frame"><img src="crabcrop-mascot.webp" alt="Snap, the crochet crab mascot, shown cycling through filter looks"></div>
@@ -965,12 +989,15 @@ srcset = build_srcset(..., widths=[400, 800, 1200])</pre></div>
       </figcaption>
     </figure>
     <div class="grid3" style="margin-top:40px">
-      <div class="specimen reveal-l"><div class="iconring"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg></div><h3>Canonical keys, two-tier cache</h3><p>Signed URLs are content addressed, and entries key on the canonical form of the parsed operations, so equivalent spellings share one entry. A byte-bounded in-memory LRU sits in front, with an optional disk tier underneath that survives restarts and promotes hits back into memory. Only 200 responses are cached. Errors never are.</p><span class="opname">Cache-Control: immutable</span></div>
+      <div class="specimen reveal-l"><div class="iconring"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg></div><h3>Canonical keys, three-tier cache</h3><p>Signed URLs are content addressed, and entries key on the canonical form of the parsed operations, so equivalent spellings share one entry. A byte-bounded in-memory LRU sits in front, an optional disk tier underneath survives restarts and promotes hits back into memory, and an optional shared S3 tier behind both lets every replica serve the same stored results. Only 200 responses are cached. Errors never are.</p><span class="opname">Cache-Control: immutable</span></div>
       <div class="specimen reveal-r d1"><div class="iconring coral"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg></div><h3>Presets that stay put</h3><p>A preset names an operation string on the server, so templates stay short and the transform menu stays under operator control. Treat a preset as a stable template and never edit one in place: roll a change out under a new name, because signed responses travel with a one-year immutable cache header that no purge can reach downstream.</p><span class="opname">preset:og-card</span></div>
-      <div class="specimen reveal-l d2"><div class="iconring"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg></div><h3>Purge one, or purge the group</h3><p><code>/purge</code> invalidates every stored variant of one result in both cache tiers, and <code>/purge-group</code> clears a whole preset output set named in the <code>Cache-Group</code> header. Purge signatures are HMACs under a subkey derived from your secret, a separate domain from image signatures, so an image signature can never be replayed as a purge.</p><span class="opname">POST /purge-group/&lt;signature&gt;/small</span></div>
+      <div class="specimen reveal-l d2"><div class="iconring"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg></div><h3>Purge one, or purge the group</h3><p><code>/purge</code> invalidates every stored variant of one result across every cache tier, and <code>/purge-group</code> clears a whole preset output set named in the <code>Cache-Group</code> header. Purge signatures are HMACs under a subkey derived from your secret, a separate domain from image signatures, so an image signature can never be replayed as a purge.</p><span class="opname">POST /purge-group/&lt;signature&gt;/small</span></div>
       <div class="specimen reveal-r"><div class="iconring coral"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg></div><h3>Meta JSON and placeholders</h3><p>Send <code>Accept: application/json</code> on any image URL and get dimensions, format, byte size, and source size instead of image bytes. Ask for placeholders and the same response adds the dominant color, a five-color palette, a tiny blurred JPEG preview, and a ThumbHash string your client decodes into an aspect-correct blur while the real image loads.</p><span class="opname">Accept: application/json; placeholders=1</span></div>
       <div class="specimen reveal-l d1"><div class="iconring"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg></div><h3>quality(auto), verified</h3><p><code>quality(auto)</code> picks a quality per image, from 50 for flat images to 95 for detailed ones. For JPEG and JPEG XL, crabcrop then encodes, decodes, and scores the result against the processed source with SSIMULACRA2, adjusting quality until it lands on target, and reports the achieved score back in meta.</p><span class="opname">filters:quality(auto)</span></div>
       <div class="specimen reveal-r d2"><div class="iconring coral"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg></div><h3>Format negotiation that listens</h3><p>Name no format and the <code>Accept</code> header decides: among AVIF, JPEG XL, and WebP, the highest q-value wins, ties break by server preference in that order, and a format refused with <code>q=0</code> is never picked. An explicit <code>format(...)</code> in the URL always wins, and wildcards do not count as an offer.</p><span class="opname">Accept: image/avif;q=0.5, image/webp</span></div>
+      <div class="specimen reveal-l"><div class="iconring"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg></div><h3>Steer the crop: focal and corners</h3><p>A <code>focal:</code> segment names the source rectangle the next crop must keep, and center and smart crops position their window on it, so the region the caller cares about stays in frame; a smart crop with a focal rectangle pending skips detection entirely. Or pin a corner: <code>top-left</code>, <code>top-right</code>, <code>bottom-left</code>, and <code>bottom-right</code> keep that corner's edges on whichever axis the crop cuts.</p><span class="opname">focal:100x50:700x450/crop:800x600:smart</span></div>
+      <div class="specimen reveal-r d1"><div class="iconring coral"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg></div><h3>Pro colour tools: curve and convolution</h3><p><code>filters:curve(...)</code> remaps tones per channel, <code>rgb</code>, <code>r</code>, <code>g</code>, or <code>b</code>, through 2 to 16 control points you set: the fine tone control the additive filters only approximate. <code>filters:convolution(...)</code> applies your own kernel, 9 values (3x3) or 25 (5x5), with optional normalization, for the sharpen, blur, and edge styles the built-ins do not cover.</p><span class="opname">filters:curve(r,0,64,255,255)</span></div>
+      <div class="specimen reveal-l d2"><div class="iconring"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg></div><h3>A cache lifetime per request</h3><p>Responses normally ride a one-year immutable cache header. A <code>maxage:</code> segment overrides the max-age for that response only: it changes the header and never the cache key, so URLs differing only in <code>maxage</code> share one stored image. Presets stay immutable, unless a preset URL carries <code>maxage</code> itself, which is the caller's explicit choice for that response.</p><span class="opname">maxage:3600</span></div>
       <div class="specimen reveal-l"><div class="iconring"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg></div><h3>Client hints, DPR, and Save-Data</h3><p>A URL that sizes nothing can take its width from client hints, quantized so nearby viewports share one cache entry, with <code>dpr</code> scaling the same template for retina displays. A request carrying <code>Save-Data: on</code> gets the default quality stepped down one notch, from 80 to 70, and stepped responses are cached separately.</p><span class="opname">filters:dpr(2)</span></div>
       <div class="specimen reveal-r d1"><div class="iconring coral"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg></div><h3>Sources, where they already live</h3><p>Fetch originals over HTTP and HTTPS under a source policy, from S3 or S3-compatible stores, from Google Cloud Storage, or from a local file root that refuses path escapes. Every fetch is bounded at 10 seconds and 10 MiB, and EXIF orientation is applied at decode, so phone photos come out upright.</p><span class="opname">s3://bucket/key · gs://bucket/key · file:///path</span></div>
       <div class="specimen reveal-l d2"><div class="iconring"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg></div><h3>Graceful by design</h3><p>An optional fallback image serves through the same operations when a source cannot be fetched or decoded, marked with <code>X-Crabcrop-Fallback: 1</code>. Signature and parse failures never fall back, and fallback responses are never cached, so a recovered origin is picked up on the next request.</p><span class="opname">X-Crabcrop-Fallback: 1</span></div>
@@ -978,6 +1005,71 @@ srcset = build_srcset(..., widths=[400, 800, 1200])</pre></div>
   </div>
 </section>
 
+<!-- FORMATS -->
+<section id="formats">
+  <div class="foam" style="--fc:#FBF0D9" aria-hidden="true"></div>
+  <div class="wrap">
+    <div class="reveal-l">
+      <div class="tidemark"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg> Formats</div>
+      <h2>Every major format. <span class="coral">In and out.</span></h2>
+      <p class="lede">Originals arrive in whatever format they arrive in, and every visitor's browser does best with a different one. crabcrop takes any of them in and serves the right one back out, so it is the only image service you run: no separate thumbnail pipeline, no format-specific tooling, no build step.</p>
+    </div>
+
+    <div class="fmt-card reveal-r">
+      <div class="fmt-row head"><span class="fmt-name">Format</span><span class="fmt-dec">Decode</span><span class="fmt-enc">Encode</span><span class="fmt-note">Notes</span></div>
+      <div class="fmt-row">
+        <span class="fmt-name">JPEG</span>
+        <span class="fmt-dec"><span class="fmt-yes"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg>Yes</span></span>
+        <span class="fmt-enc"><span class="fmt-yes"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg>Yes</span></span>
+        <span class="fmt-note">Universal, and <code>quality(auto)</code> is verified perceptually for it.</span>
+      </div>
+      <div class="fmt-row">
+        <span class="fmt-name">PNG</span>
+        <span class="fmt-dec"><span class="fmt-yes"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg>Yes</span></span>
+        <span class="fmt-enc"><span class="fmt-yes"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg>Yes</span></span>
+        <span class="fmt-note">Lossless, and carries alpha.</span>
+      </div>
+      <div class="fmt-row">
+        <span class="fmt-name">WebP</span>
+        <span class="fmt-dec"><span class="fmt-yes"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg>Yes</span><span class="fmt-qual">still and animated</span></span>
+        <span class="fmt-enc"><span class="fmt-yes"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg>Yes</span><span class="fmt-qual">still and animated; animated out is lossless</span></span>
+        <span class="fmt-note">The modern default.</span>
+      </div>
+      <div class="fmt-row">
+        <span class="fmt-name">GIF</span>
+        <span class="fmt-dec"><span class="fmt-yes"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg>Yes</span><span class="fmt-qual">animated</span></span>
+        <span class="fmt-enc"><span class="fmt-yes"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg>Yes</span><span class="fmt-qual">animated</span></span>
+        <span class="fmt-note">Animation survives: frames, delays, and loop count are preserved.</span>
+      </div>
+      <div class="fmt-row">
+        <span class="fmt-name">AVIF</span>
+        <span class="fmt-dec"><span class="fmt-yes"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg>Yes</span><span class="fmt-qual">in the Docker image, the release binaries, and the Homebrew install</span></span>
+        <span class="fmt-enc"><span class="fmt-yes"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg>Yes</span></span>
+        <span class="fmt-note">The smallest files, and the first choice in negotiation. Source builds opt in to decoding with the <code>avif-decode</code> feature.</span>
+      </div>
+      <div class="fmt-row">
+        <span class="fmt-name">JPEG XL</span>
+        <span class="fmt-dec"><span class="fmt-yes"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg>Yes</span></span>
+        <span class="fmt-enc"><span class="fmt-yes"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg>Yes</span></span>
+        <span class="fmt-note"><code>quality(auto)</code> is verified perceptually for it, like JPEG.</span>
+      </div>
+    </div>
+
+    <div class="grid3" style="margin-top:26px">
+      <div class="specimen reveal-l"><div class="iconring"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg></div><h3>Negotiation picks per visitor</h3><p>Name no format and the <code>Accept</code> header decides by q-value: AVIF first, then JPEG XL, then WebP. An explicit <code>format(...)</code> in the URL always wins over the header.</p><span class="opname">filters:format(webp) always wins</span></div>
+      <div class="specimen reveal-r d1"><div class="iconring coral"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg></div><h3>Animation survives the trip</h3><p>Animated GIF and WebP sources keep their frames, delays, and loop count when the output carries animation. Ask for a still and you get the first frame, and an animated AVIF source decodes its first frame too.</p><span class="opname">GIF in, GIF out · WebP in, WebP out</span></div>
+      <div class="specimen reveal-l d2"><div class="iconring"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg></div><h3>Alpha, end to end</h3><p>The <code>radius</code>, <code>mask</code>, and <code>removebg</code> chains end in transparency, so the output has to carry alpha: <code>png</code>, <code>webp</code>, <code>jxl</code>, and <code>avif</code> all do.</p><span class="opname">filters:mask(circle):format(png)</span></div>
+      <div class="specimen span2 reveal-r"><div class="iconring coral"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg></div><h3>Every format, one pipeline</h3><p>EXIF orientation is applied at decode, so phone photos come out upright, and ICC profiles are converted to sRGB before any operation runs. SVG originals join the same pipeline too: sanitized first, with scripts and external references stripped, then rasterized.</p><span class="opname">EXIF upright · ICC to sRGB · SVG sanitized</span></div>
+    </div>
+
+    <p class="honest reveal-l" style="margin-top:22px">One honest exception: HEIC/HEIF originals are not decoded today. They are rejected cleanly with a <code>502</code>, never half-served.</p>
+
+    <div class="reveal-l" style="margin-top:34px;display:flex;gap:22px;align-items:center;flex-wrap:wrap">
+      <div class="bubble">Six formats in. Any of the six back out.</div>
+      <p style="font-size:19px;font-weight:800;letter-spacing:-.01em;max-width:660px">Fetch, resize, crop, filter, convert, cache, purge, meta, and AI, in a single Rust binary. That is all you need for image serving.</p>
+    </div>
+  </div>
+</section>
 
 <!-- AI -->
 <section id="ai">
@@ -1239,7 +1331,7 @@ const ANA = {
     bubble:"I fill the gaps so the box is exact."},
   crop:{spell:"crop:",name:"Crop",color:"var(--sea-glass)",pose:"snap",
     def:"The snap. Crop to an aspect ratio, then resize to exact size.",
-    grammar:["<code>crop:&lt;width&gt;x&lt;height&gt;[:&lt;align&gt;]</code> crops to the width:height aspect ratio, then resizes to exactly that width and height.","<code>align</code> chooses which part survives: <code>center</code> by default, or <code>top</code>, <code>bottom</code>, <code>left</code>, <code>right</code>, <code>smart</code> for a window on the focal point, and <code>face</code> for a window around the largest detected face.","<code>smart</code> centers on a detected face when a face model is configured, else on the point of greatest local detail. <code>face</code> falls back to the smart window when no face is found."],
+    grammar:["<code>crop:&lt;width&gt;x&lt;height&gt;[:&lt;align&gt;]</code> crops to the width:height aspect ratio, then resizes to exactly that width and height.","<code>align</code> chooses which part survives: <code>center</code> by default, or <code>top</code>, <code>bottom</code>, <code>left</code>, <code>right</code>, a corner such as <code>top-left</code> or <code>bottom-right</code> that keeps that corner's edges on whichever axis is cut, <code>smart</code> for a window on the focal point, and <code>face</code> for a window around the largest detected face.","<code>smart</code> centers on a detected face when a face model is configured, else on the point of greatest local detail. <code>face</code> falls back to the smart window when no face is found.","A <code>focal:&lt;l&gt;x&lt;t&gt;:&lt;r&gt;x&lt;b&gt;</code> segment before the crop names the source rectangle a center or smart crop must keep: the window positions on it, clamped so a rectangle that fits stays fully inside, and a smart crop with one pending skips detection entirely."],
     ex:[["crop:1200x630:smart",""],["crop:800x800:face",""]],
     watch:"<code>crop:</code> needs both dimensions in pixels. A <code>0</code> axis, <code>orig</code>, and flipped sizes are rejected when the URL is parsed, and crop ignores flips entirely. Proportional boxes belong to <code>fit-in:</code>.",
     bubble:"This is literally my job."},
@@ -1263,7 +1355,7 @@ const ANA = {
       [["Bucket source","s3://photos/photo.jpg"]],
       [["File source","file:///images/photo.jpg"]]
     ],
-    watch:"Fetch limits for every kind: 10 seconds, 10 MiB max (larger is 502), at most 5 redirects for http sources. <code>file://</code> must stay under the configured file root; unset root disables it. Bucket sources are gated by the bucket allowlist, not the host policy. HEIC sources and AVIF sources fail with 502 (AVIF is output only here).",
+    watch:"Fetch limits for every kind: 10 seconds, 10 MiB max (larger is 502), at most 5 redirects for http sources. <code>file://</code> must stay under the configured file root; unset root disables it. Bucket sources are gated by the bucket allowlist, not the host policy. HEIC sources fail with 502. AVIF sources decode in the Docker image, the release binaries, and the Homebrew install; a source build without the <code>avif-decode</code> feature answers 502 and names the feature.",
     bubble:"Everything after the operations is the address."}
 };
 let anaLock = "sig", srcCycle = 0, hoverTimer = null;
@@ -1359,7 +1451,7 @@ const PG = {
   order:["quality"], sel:{ quality:true }
 };
 const PRESETS = { "og-card":"crop:1200x630:smart/filters:format(webp):quality(80)", "thumb":"300x200" };
-const N1 = "Cache key: the canonical form of these parsed operations plus the source. Equivalent spellings share one entry. Only 200 responses are cached, in memory first (256 MB default) with an optional disk tier. Responses carry Cache-Control: public, max-age=31536000, immutable.";
+const N1 = "Cache key: the canonical form of these parsed operations plus the source. Equivalent spellings share one entry. Only 200 responses are cached, in memory first (256 MB default), with an optional disk tier underneath and an optional shared S3 tier behind both. Responses carry Cache-Control: public, max-age=31536000, immutable.";
 const N1H = " Because this URL sizes nothing, a width client hint can size it; hinted widths are quantized up to a multiple of 100 px and join the cache key, and Save-Data: on steps default quality from 80 to 70 unless the URL sets quality itself.";
 const CATALOG = [
   {id:"grayscale", g:"Look", label:"grayscale", kind:"toggle"},
@@ -1552,7 +1644,7 @@ function pgNotes(parts){
     notes.push(["Preset", "The server expands preset:"+PG.presetName+" after verifying the signature, and cache entries key on the expanded operations. A purge sent with the preset URL expands the same way, and purge-group clears the preset's whole output set."]);
   } else {
     const fv = PG.sel.format ? fmtVal() : "auto";
-    if(!PG.sel.format || fv==="auto") notes.push(["Negotiation", "Format: no format(...) in the URL, so the Accept header decides. Highest q value among AVIF, JPEG XL, and WebP wins; ties break AVIF, then JPEG XL, then WebP. A format refused with q=0 is never picked, wildcards do not count, and an animated GIF source keeps GIF instead of negotiating to JPEG XL."]);
+    if(!PG.sel.format || fv==="auto") notes.push(["Negotiation", "Format: no format(...) in the URL, so the Accept header decides. Highest q value among AVIF, JPEG XL, and WebP wins; ties break AVIF, then JPEG XL, then WebP. A format refused with q=0 is never picked, wildcards do not count, and an animated GIF or WebP source keeps its own format instead of negotiating to JPEG XL, so its frames survive."]);
     else notes.push(["Negotiation", "Format: format("+fv+") in the URL wins over Accept negotiation."]);
     if(PG.expOn) notes.push(["Expiry", "This URL is valid strictly before "+new Date(PG.expAt*1000).toUTCString()+". After that: 403 signature expired, never served from cache."]);
     if(PG.sel.quality && document.getElementById("pgqauto").getAttribute("aria-pressed")==="true")
