@@ -620,10 +620,16 @@ footer a{color:var(--sea-glass)}
       <div class="aim">Our aim: the fastest image service on the planet.</div>
     </div>
 
-    <div class="reveal-r">
+    <div class="reveal-r" style="display:flex;gap:28px;align-items:center;flex-wrap:wrap">
+      <div style="flex:1 1 430px;min-width:min(430px,100%)">
       <div class="tidemark" style="margin-top:44px"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg> URL anatomy</div>
       <h2>One URL. Every instruction inside it.</h2>
       <p class="lede">Every request is <span class="mono" style="font-size:.92em">GET /&lt;signature&gt;/&lt;operations&gt;/&lt;source-url&gt;</span>. Click a segment. Learn what it does, what it hides, and where it bites.</p>
+      </div>
+      <figure class="frame" style="max-width:210px;margin:0;flex:0 0 auto">
+        <img src="snap-anatomy.webp" alt="Snap the crochet crab at a small workbench, clicking chunky colored blocks into a row and tightening the last block with a wrench" width="400" height="400" loading="lazy">
+        <figcaption><span>Snap, building the URL.</span></figcaption>
+      </figure>
     </div>
 
     <div class="anatomy reveal-l" id="anatomyPanel">
@@ -700,10 +706,16 @@ footer a{color:var(--sea-glass)}
 <section id="playground">
   <div class="foam" style="--fc:#FBF0D9" aria-hidden="true"></div>
   <div class="wrap">
-    <div class="reveal-l">
+    <div class="reveal-l" style="display:flex;gap:28px;align-items:center;flex-wrap:wrap">
+      <div style="flex:1 1 430px;min-width:min(430px,100%)">
       <div class="tidemark"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg> Playground</div>
       <h2>The playground. <span class="coral">Snap</span> a URL together.</h2>
       <p class="lede">Flip the controls. Watch a real crabcrop URL assemble, segment by segment, in the exact grammar the server parses. Runs entirely in your browser. Nothing you type leaves the page.</p>
+      </div>
+      <figure class="frame" style="max-width:210px;margin:0;flex:0 0 auto">
+        <img src="snap-playground.webp" alt="Snap the crochet crab pushing big sliders and a lever on a friendly control panel while the photo print in its claw grows larger and more vivid" width="400" height="400" loading="lazy">
+        <figcaption><span>Snap, working the controls.</span></figcaption>
+      </figure>
     </div>
 
     <div class="pg-grid">
@@ -838,11 +850,17 @@ footer a{color:var(--sea-glass)}
 <section id="toy" class="band-200">
   <div class="foam" style="--fc:#F3DFB4" aria-hidden="true"></div>
   <div class="wrap">
-    <div class="reveal-l">
+    <div class="reveal-l" style="display:flex;gap:28px;align-items:center;flex-wrap:wrap">
+      <div style="flex:1 1 430px;min-width:min(430px,100%)">
       <div class="tidemark"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg> Transformation toy</div>
       <h2>Before, after, and a little <span class="coral">sideways.</span></h2>
       <p class="lede">Drag the crop window by its claws. Stack filters in any order and watch the order change the picture. Crop coordinates are source pixels, and filter order is meaning.</p>
       <p class="honest" style="max-width:760px">CSS preview. Your browser approximates the look with CSS filters. A running crabcrop server applies the real operations to the actual pixels, in this order. Blur strength and brighten do not map one to one.</p>
+      </div>
+      <figure class="frame" style="max-width:210px;margin:0;flex:0 0 auto">
+        <img src="snap-toy.webp" alt="Snap the crochet crab sliding a glowing divider across a big photo print, dull and faded on one side, bright and vivid on the other" width="400" height="400" loading="lazy">
+        <figcaption><span>Snap, sliding before into after.</span></figcaption>
+      </figure>
     </div>
     <div class="scene-picker" role="group" aria-label="Toy scene">
       <span class="sp-label" aria-hidden="true">Scene</span>
@@ -905,11 +923,17 @@ footer a{color:var(--sea-glass)}
 <section id="sign">
   <div class="foam" style="--fc:#FBF0D9" aria-hidden="true"></div>
   <div class="wrap">
-    <div class="reveal-l">
+    <div class="reveal-l" style="display:flex;gap:28px;align-items:center;flex-wrap:wrap">
+      <div style="flex:1 1 430px;min-width:min(430px,100%)">
       <div class="tidemark"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg> Sign it</div>
       <h2>Sign it in your <span class="coral">stack.</span></h2>
       <p class="lede">One signing scheme, specified once, with a canonical set of test vectors that every implementation runs as its test suite. The server verifies with the same Rust crate your app can build with, so client and server cannot drift.</p>
       <p style="margin-top:14px;font-size:16.5px;color:var(--ink-2);max-width:720px">Compute HMAC-SHA256 over the remainder of the path, the operations and the source URL exactly as they appear with no leading slash, keyed with your secret. Hex encode the result. Use it as the first path segment.</p>
+      </div>
+      <figure class="frame" style="max-width:210px;margin:0;flex:0 0 auto">
+        <img src="snap-sign.webp" alt="Snap the crochet crab wearing a notary sash, stamping a coral-red wax seal onto a paper scroll" width="400" height="400" loading="lazy">
+        <figcaption><span>Snap, stamping it official.</span></figcaption>
+      </figure>
     </div>
     <div class="reveal-r" style="margin-top:38px">
       <div class="tabs" role="tablist" aria-label="Signing examples by language">
@@ -976,11 +1000,17 @@ srcset = build_srcset(..., widths=[400, 800, 1200])</pre></div>
 <section id="features" class="band-200">
   <div class="foam" style="--fc:#F3DFB4" aria-hidden="true"></div>
   <div class="wrap">
-    <div class="reveal-l">
+    <div class="reveal-l" style="display:flex;gap:28px;align-items:center;flex-wrap:wrap">
+      <div style="flex:1 1 430px;min-width:min(430px,100%)">
       <div class="tidemark"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg> Beyond the snap</div>
       <h2>Small URL. Long <span class="coral">reach.</span></h2>
       <p class="lede">The transform is only the first tide. Caching, metadata, negotiation, and purging are built into the same URL.</p>
       <p style="margin-top:12px;font-size:16.5px;color:var(--ink-2)">41 filters and encoding directives, chained inside one <span class="mono">filters:</span> segment in the order you write them.</p>
+      </div>
+      <figure class="frame" style="max-width:210px;margin:0;flex:0 0 auto">
+        <img src="snap-features.webp" alt="Snap the crochet crab at a small barbecue grill, flipping photo prints like patties with a spatula" width="400" height="400" loading="lazy">
+        <figcaption><span>Snap, flipping prints on the grill.</span></figcaption>
+      </figure>
     </div>
     <figure class="filter-figure reveal-l">
       <div class="frame filter-frame"><img src="crabcrop-mascot.webp" alt="Snap, the crochet crab mascot, shown cycling through filter looks"></div>
@@ -1093,7 +1123,7 @@ srcset = build_srcset(..., widths=[400, 800, 1200])</pre></div>
         <p class="lede">AI filters run ONNX models you provide as files, loaded at boot before the server reports ready. Inference runs behind a server-wide gate of 2 concurrent inferences, so a burst of AI requests cannot starve the normal transform pipeline.</p>
       </div>
       <figure class="ai-crab">
-        <div class="porthole clawp" id="aiPorthole" role="img" aria-label="Snap's claw, standing in for the photo the AI filters work on"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg></div>
+        <div class="porthole" id="aiPorthole"><img src="snap-ai.webp" alt="Snap the crochet crab scanning a photo print with a magnifying glass while neat boxes draw themselves around the mountain, the sun, and the bird in the scene" width="400" height="400" loading="lazy" style="transform:none;object-position:center"></div>
         <div class="bubble" id="aiBubble">AI runs on models you bring.</div>
         <figcaption>The photo is the demo. Models are yours to supply.</figcaption>
       </figure>
