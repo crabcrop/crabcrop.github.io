@@ -3,463 +3,991 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>crabcrop - The URL is the API for image optimization</title>
-<meta name="description" content="crabcrop is an on-demand image optimization service in Rust. Resize, crop, convert and filter images by changing the URL. Signed, cacheable, fast.">
-<meta property="og:title" content="crabcrop - The URL is the API">
-<meta property="og:description" content="On-demand image optimization in Rust. The operations live in the URL.">
+<title>crabcrop: the URL is the API, with claws</title>
+<meta name="description" content="crabcrop is an on-demand image optimization service in Rust. Our aim: the fastest image service on the planet. The operations live in a signed URL: resize, crop, convert, filter. No pre-generated thumbnails, no build step.">
+<meta property="og:title" content="crabcrop: the URL is the API, with claws">
+<meta property="og:description" content="On-demand image optimization in Rust. Snap images to size with a signed URL.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://crabcrop.org/">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%A6%80%3C/text%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M10 3C6.5 7 6.5 13 10 17l2 4 2-4c3.5-4 3.5-10 0-14' fill='none' stroke='%23E8482F' stroke-width='2.4' stroke-linecap='round'/%3E%3C/svg%3E">
 <style>
 :root{
-  --ink:#131e28; --ink2:#3d4c5c; --paper:#fffaf3; --paper2:#fff3e4; --card:#ffffff;
-  --coral:#e8482f; --coral2:#ff6b4a; --teal:#0e7c7b; --teal-lt:#e3f4f2; --amber:#ffb020;
-  --line:#eadfd2; --code:#131e28; --code2:#1e2f42; --radius:20px;
-  --shadow:0 18px 50px rgba(19,30,40,.12); --shadow-sm:0 8px 28px rgba(19,30,40,.09);
+  --foam:#FFFFFF; --sand-100:#FBF0D9; --sand-200:#F3DFB4; --sand-300:#E4C88F;
+  --ink:#142832; --ink-2:#47606E;
+  --coral:#E8482F; --coral-deep:#B92F1B; --coral-soft:#FFD9CF;
+  --tide:#0E7C7B; --tide-deep:#084F57; --sea-glass:#8FE3E1;
+  --shell-pink:#FFB59F; --sun:#FFB020; --sun-soft:#FFD88A;
+  --abyss:#0D202E; --abyss-2:#18344A;
+  --violet:#C9A7FF; --leaf:#9FE8B0; --filterblue:#A9C6FF;
+  --snap:cubic-bezier(0.2,1.4,0.3,1); --scuttle:cubic-bezier(0.3,0.9,0.2,1);
+  --shell:28px 28px 28px 6px;
+  --shadow:5px 5px 0 rgba(20,40,50,.14); --shadow-lg:7px 7px 0 rgba(20,40,50,.16);
+  --shadow-sm:3px 3px 0 rgba(20,40,50,.14); --dark-shadow:0 16px 40px rgba(13,32,46,.35);
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}
-body{font-family:ui-sans-system,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--paper);color:var(--ink);line-height:1.6;overflow-x:hidden}
+body{font-family:ui-sans-system,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--sand-100);color:var(--ink);line-height:1.6;overflow-x:hidden;
+  background-image:radial-gradient(rgba(20,40,50,.05) 1.5px, transparent 1.6px);background-size:22px 22px}
 code,pre,.mono{font-family:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,monospace}
-a{color:var(--coral);text-decoration:none}
+a{color:var(--tide);text-decoration:none}
 a:hover{text-decoration:underline}
 .wrap{max-width:1160px;margin:0 auto;padding:0 24px}
-.btn{display:inline-flex;align-items:center;gap:8px;padding:13px 24px;border-radius:999px;font-weight:700;font-size:15px;border:2px solid transparent;cursor:pointer;transition:transform .18s ease,box-shadow .18s ease,background .18s ease}
-.btn:hover{transform:translateY(-2px);text-decoration:none}
-.btn-primary{background:var(--coral);color:#fff;box-shadow:0 10px 26px rgba(232,72,47,.35)}
-.btn-primary:hover{background:#d63d24}
-.btn-ghost{background:#fff;color:var(--ink);border-color:var(--line)}
-.btn-ghost:hover{border-color:var(--ink)}
-.btn-dark{background:var(--ink);color:#fff}
-section{padding:96px 0}
-.eyebrow{display:inline-block;font-size:12px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:var(--teal);background:var(--teal-lt);padding:6px 14px;border-radius:999px;margin-bottom:18px}
-h1{font-size:clamp(42px,6.4vw,76px);line-height:1.02;letter-spacing:-.03em;font-weight:900}
-h2{font-size:clamp(30px,4.2vw,46px);line-height:1.1;letter-spacing:-.025em;font-weight:900;margin-bottom:16px}
+section{padding:88px 0;position:relative}
+.band-200{background-color:var(--sand-200);background-image:radial-gradient(rgba(20,40,50,.05) 1.5px, transparent 1.6px);background-size:22px 22px;background-position:11px 11px}
+h1{font-size:clamp(42px,6.4vw,74px);line-height:1.02;letter-spacing:-.03em;font-weight:900}
+h2{font-size:clamp(30px,4.2vw,46px);line-height:1.08;letter-spacing:-.025em;font-weight:900;margin-bottom:16px}
+h2 .coral,h1 .coral{color:var(--coral)}
 h3{font-size:19px;font-weight:800;letter-spacing:-.01em;margin-bottom:8px}
-.lede{font-size:19px;color:var(--ink2);max-width:640px}
-.reveal{opacity:0;transform:translateY(26px);transition:opacity .7s ease,transform .7s ease}
-.reveal.in{opacity:1;transform:none}
-.reveal.d1{transition-delay:.08s}.reveal.d2{transition-delay:.16s}.reveal.d3{transition-delay:.24s}
+.lede{font-size:19px;color:var(--ink-2);max-width:660px}
+.tidemark{display:flex;align-items:center;gap:9px;font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:12px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--tide);margin-bottom:18px}
+.tidemark .claw{width:14px;height:14px;flex:0 0 auto}
+.tidemark.on-dark{color:var(--sea-glass)}
+.claw{display:inline-block;vertical-align:middle}
+.claw path{stroke:var(--coral);fill:none;stroke-width:2.2;stroke-linecap:round}
+.foam{position:absolute;top:-11px;left:0;right:0;height:12px;pointer-events:none;background-repeat:repeat-x;background-size:22px 12px;
+  background-image:radial-gradient(circle at 10px -4px, transparent 12px, var(--fc,#FBF0D9) 13px);box-shadow:inset 0 -1px 0 var(--fc,#FBF0D9)}
+.btn{display:inline-flex;align-items:center;gap:9px;padding:13px 24px;border-radius:var(--shell);font-weight:800;font-size:15px;border:2px solid var(--ink);cursor:pointer;background:var(--coral);color:#fff;box-shadow:var(--shadow);transition:transform .15s var(--snap),background .15s}
+.btn:hover{transform:translateX(-2px);background:var(--coral-deep);text-decoration:none}
+.btn:active{transform:translateX(0)}
+.btn-foam{background:var(--foam);color:var(--ink)}
+.btn-foam:hover{background:var(--sand-200)}
+.btn[disabled]{opacity:.55;cursor:not-allowed}
+.mono-link{font-family:ui-monospace,Menlo,Consolas,monospace;font-weight:700;font-size:15px;color:var(--ink);display:inline-flex;align-items:center;gap:8px}
+.mono-link:hover{color:var(--coral-deep)}
+.reveal-l,.reveal-r{opacity:0;transform:translateX(-24px)}
+.reveal-r{transform:translateX(24px)}
+.reveal-l,.reveal-r{transition:opacity .45s ease,transform .5s var(--scuttle)}
+.reveal-l.in-view,.reveal-r.in-view{opacity:1;transform:none}
+.d1{transition-delay:.06s}.d2{transition-delay:.12s}.d3{transition-delay:.18s}
+/* Mascot windows */
+.peek{overflow:hidden;position:relative;line-height:0}
+.peek img{width:100%;height:auto;display:block}
+.porthole{border-radius:50%;overflow:hidden;border:3px solid var(--foam);outline:2px solid var(--ink);box-shadow:var(--shadow);line-height:0;flex:0 0 auto}
+.porthole img{width:100%;height:100%;object-fit:cover;display:block}
+.pebble{border-radius:50%;overflow:hidden;border:3px solid var(--foam);outline:2px solid var(--ink);line-height:0;flex:0 0 auto;background:#fff;display:grid;place-items:center}
+.pebble .claw{width:20px;height:20px;color:var(--coral)}
+.pebble img{width:100%;height:100%;object-fit:cover;display:block}
+.bubble{position:relative;background:var(--coral-soft);color:var(--ink);font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;line-height:1.5;padding:9px 13px;border:2px solid var(--ink);border-radius:18px 18px 18px 4px;box-shadow:var(--shadow-sm);max-width:250px}
+.bubble.on-dark{background:var(--foam)}
+@keyframes snapk{0%{transform:rotate(0) scale(1)}40%{transform:rotate(-4deg) scale(1.06)}100%{transform:rotate(0) scale(1)}}
+.snap{animation:snapk .16s var(--snap)}
+.lean{transform:rotate(5deg)}
+.hidepeek{transform:translateY(70%)}
+.win{transition:transform .3s ease}
 /* Nav */
-header{position:sticky;top:0;z-index:50;background:rgba(255,250,243,.86);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
-.nav{display:flex;align-items:center;justify-content:space-between;height:68px}
+header{position:sticky;top:0;z-index:60;background:rgba(251,240,217,.94);backdrop-filter:blur(10px)}
+header .foam{top:auto;bottom:-11px;--fc:rgba(251,240,217,.94)}
+.nav{display:flex;align-items:center;justify-content:space-between;height:68px;gap:16px}
 .logo{display:flex;align-items:center;gap:10px;font-weight:900;font-size:21px;letter-spacing:-.02em;color:var(--ink)}
 .logo:hover{text-decoration:none}
-.logo-mark{width:36px;height:36px;border-radius:11px;background:var(--coral);display:grid;place-items:center;font-size:20px;box-shadow:var(--shadow-sm)}
-.nav-links{display:flex;gap:28px;font-size:15px;font-weight:600}
-.nav-links a{color:var(--ink2)}
+.logo .pebble{width:36px;height:36px}
+.nav-links{display:flex;gap:24px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:14px;font-weight:700}
+.nav-links a{color:var(--ink-2)}
 .nav-links a:hover{color:var(--ink);text-decoration:none}
-@media(max-width:760px){.nav-links{display:none}}
+@media(max-width:900px){.nav-links{display:none}}
+.nav .btn{padding:10px 18px}
 /* Hero */
-.hero{padding:76px 0 30px;position:relative}
+.hero{padding:56px 0 64px}
 .hero-grid{display:grid;grid-template-columns:1.08fr .92fr;gap:48px;align-items:center}
 @media(max-width:900px){.hero-grid{grid-template-columns:1fr}}
-.hero h1 .hl{color:var(--coral);position:relative;white-space:nowrap}
-.hero-ctas{display:flex;gap:14px;flex-wrap:wrap;margin:30px 0 22px}
-.hero-note{font-size:14px;color:var(--ink2)}
-.mascot-card{background:#fff;border:1px solid var(--line);border-radius:28px;box-shadow:var(--shadow);padding:18px;position:relative;overflow:hidden}
-.mascot-card img{width:100%;height:auto;display:block;border-radius:18px}
-.mascot-card figcaption{display:flex;justify-content:space-between;align-items:center;padding:14px 6px 4px;font-size:14px;color:var(--ink2);font-weight:600}
-.float-badge{position:absolute;background:var(--ink);color:#fff;font-size:12.5px;font-weight:700;padding:8px 13px;border-radius:999px;box-shadow:var(--shadow-sm);animation:bob 4.5s ease-in-out infinite}
-.float-badge.b1{top:26px;left:26px}
-.float-badge.b2{bottom:76px;right:26px;animation-delay:1.4s;background:var(--teal)}
-@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
-.mascot-wrap{animation:floaty 6s ease-in-out infinite}
-@keyframes floaty{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
-.url-anatomy{margin-top:38px;background:var(--code);border-radius:var(--radius);padding:22px 24px;color:#dbe7f3;overflow-x:auto;box-shadow:var(--shadow)}
-.url-anatomy .u{font-size:15.5px;white-space:nowrap}
-.seg{padding:2px 7px;border-radius:7px;cursor:default;transition:background .15s}
-.seg:hover{background:rgba(255,255,255,.14)}
-.seg.sig{color:#ffb59f}.seg.ops{color:#8fe3e1}.seg.src{color:#ffd88a}
-.anatomy-legend{display:flex;gap:20px;flex-wrap:wrap;margin-top:14px;font-size:13px;color:#9db2c8}
-.anatomy-legend b{color:#fff}
-/* Marquee */
-.marquee{border-top:1px solid var(--line);border-bottom:1px solid var(--line);background:#fff;padding:16px 0;overflow:hidden;margin-top:64px}
-.marquee-track{display:flex;gap:14px;width:max-content;animation:scrollx 30s linear infinite}
-.marquee:hover .marquee-track{animation-play-state:paused}
-@keyframes scrollx{to{transform:translateX(-50%)}}
-.chip{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13.5px;background:var(--paper2);border:1px solid var(--line);padding:7px 14px;border-radius:999px;white-space:nowrap;color:var(--ink2)}
+.hero-ctas{display:flex;gap:22px;flex-wrap:wrap;align-items:center;margin:30px 0 20px}
+.hero-note{font-size:14px;color:var(--ink-2);max-width:560px}
+.hero-note code{background:var(--sand-200);padding:1px 6px;border-radius:6px;font-size:13px}
+.frame{background:var(--foam);border:2px solid var(--ink);border-radius:6px;box-shadow:var(--shadow-lg);padding:10px;transform:rotate(-2deg);position:relative;max-width:440px;margin:0 auto;width:100%}
+.frame img{width:100%;height:auto;display:block}
+.frame figcaption{display:flex;justify-content:space-between;align-items:center;padding:10px 4px 2px;font-size:13.5px;color:var(--ink-2);font-weight:600}
+@keyframes tide{from{transform:rotate(-2deg)}to{transform:rotate(-1deg)}}
+.frame{animation:tide 7s ease-in-out infinite alternate}
+.frame:hover{animation:none;transform:rotate(0)}
+.note{position:absolute;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;font-weight:700;padding:6px 11px;border:2px solid var(--ink);box-shadow:var(--shadow-sm);z-index:3}
+.note.n1{top:22px;left:-14px;background:var(--sun-soft);transform:rotate(3deg)}
+.note.n2{bottom:64px;right:-12px;background:var(--coral-soft);transform:rotate(-3deg)}
+.hero-bubble{position:absolute;top:-26px;left:-10px;z-index:4;transform:rotate(-2deg)}
+@media(max-width:640px){.hero-bubble{position:static;transform:none;margin-bottom:14px}}
+/* Speed strip */
+.strip{display:flex;flex-wrap:wrap;gap:14px 44px;align-items:flex-end;margin-top:52px;padding:22px 4px 4px;border-top:2px solid var(--sand-300)}
+.strip .aim{font-weight:900;font-size:19px;letter-spacing:-.01em;max-width:300px;line-height:1.25}
+.strip .stat .num{font-size:30px;font-weight:900;letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1}
+.strip .stat .num em{font-style:normal;font-family:ui-monospace,Menlo,Consolas,monospace;color:var(--coral);font-size:15px;font-weight:700}
+.strip .stat p{font-size:13px;color:var(--ink-2);max-width:210px;margin-top:5px}
+.strip .foot{width:100%;font-size:12.5px;color:var(--ink-2)}
+/* Anatomy */
+.anatomy{margin-top:30px;background:var(--abyss);border-radius:var(--shell);box-shadow:var(--dark-shadow);color:#DCE9F2;padding:30px 30px 26px;position:relative}
+.anatomy .peek{position:absolute;top:-2px;right:34px;width:132px;height:56px}
+.anatomy .peek img{transform:translateY(-8px)}
+.families{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:6px 0 16px}
+.families .flabel{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#9DB2C8;margin-right:4px}
+.fchip{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13.5px;font-weight:700;padding:9px 15px;min-height:44px;border-radius:999px;border:2px solid rgba(255,255,255,.25);background:transparent;color:#DCE9F2;cursor:pointer;transition:all .14s var(--snap)}
+.fchip:hover{border-color:#fff}
+.fchip[aria-checked="true"]{background:var(--foam);color:var(--ink);border-color:var(--foam)}
+.strip-url{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:15.5px;line-height:2.1;display:flex;flex-wrap:wrap;align-items:center;gap:2px}
+.strip-url .host{color:#9DB2C8}
+.strip-url .slash{color:#5F7A8C;padding:0 1px}
+.segbtn{display:inline-flex;align-items:center;gap:2px;font:inherit;color:inherit;background:rgba(255,255,255,.06);border:2px solid transparent;border-radius:9px;padding:3px 9px;min-height:44px;cursor:pointer;transition:background .12s,border-color .12s;text-align:left}
+.segbtn:hover{background:rgba(255,255,255,.14)}
+.segbtn:focus-visible,.fchip:focus-visible,.tokbtn:focus-visible{outline:3px solid var(--sun);outline-offset:2px}
+.segbtn[aria-pressed="true"]{border-color:currentColor;background:rgba(255,255,255,.12)}
+.segbtn.c-sig{color:var(--shell-pink)} .segbtn.c-exp{color:var(--violet)} .segbtn.c-preset{color:var(--leaf)}
+.segbtn.c-ops{color:var(--sea-glass)} .segbtn.c-src{color:var(--sun-soft)}
+.tokbtn{font:inherit;background:none;border:none;color:var(--filterblue);cursor:pointer;padding:2px 3px;border-radius:6px;text-decoration:underline dotted rgba(169,198,255,.6);text-underline-offset:3px}
+.tokbtn:hover{color:#fff}
+.ana-panel{margin-top:22px;border-top:1px solid rgba(255,255,255,.14);padding-top:22px;display:grid;grid-template-columns:1fr 250px;gap:30px;min-height:230px}
+@media(max-width:900px){.ana-panel{grid-template-columns:1fr}}
+.ana-panel h3{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:19px;letter-spacing:0;color:#fff}
+.ana-panel h3 .plain{font-family:ui-sans-system,-apple-system,"Segoe UI",Roboto,sans-serif;font-weight:800;color:#9DB2C8;font-size:16px;margin-left:10px}
+.ana-panel .def{font-size:16.5px;color:#DCE9F2;margin:8px 0 14px;max-width:620px}
+.ana-panel h4{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:#9DB2C8;margin:14px 0 7px}
+.ana-panel ul{list-style:none}
+.ana-panel ul li{font-size:15px;color:#C4D6E2;padding-left:20px;position:relative;margin-bottom:5px}
+.ana-panel ul li::before{content:"";position:absolute;left:0;top:9px;width:7px;height:7px;border-radius:50%;background:var(--tide)}
+.ana-panel ul li code,.ana-panel .def code{color:var(--sea-glass);font-size:.92em}
+.ana-ex{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13.5px;background:var(--abyss-2);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:12px 15px;color:#F2E7C9;overflow-wrap:anywhere;display:grid;grid-template-columns:auto 1fr;gap:6px 16px;align-items:baseline}
+.ana-ex .tokhl{background:rgba(255,176,32,.25);border-radius:6px;padding:1px 5px}
+#anaTeach{transition:opacity .12s}
+.segbtn.locked{border-color:currentColor;background:rgba(255,255,255,.12)}
+.tokbtn.locked{background:var(--sun);color:var(--ink);text-decoration:none}
+.peek{border:2px solid var(--ink);box-shadow:var(--shadow-sm);transition:transform .3s cubic-bezier(.3,.9,.2,1)}
+.peek.clawp{display:grid;place-items:center;background:#fff}
+.peek.clawp .claw{width:36px;height:36px;color:var(--coral)}
+.porthole.clawp{display:grid;place-items:center;background:#fff}
+.porthole.clawp .claw{width:56px;height:56px;color:var(--coral)}
+@keyframes happyk{0%{transform:rotate(0) scale(1)}25%{transform:rotate(-4deg) scale(1.06)}50%{transform:rotate(0) scale(1)}75%{transform:rotate(-4deg) scale(1.06)}100%{transform:rotate(0) scale(1)}}
+.happy{animation:happyk .34s var(--snap)}
+.built .part{font:inherit;color:inherit;background:none;border:0;cursor:pointer;padding:1px 3px;border-radius:6px;text-align:left;overflow-wrap:anywhere}
+.built .part:hover{background:rgba(255,255,255,.1)}
+.built .part.k-sig{color:var(--shell-pink)} .built .part.k-exp{color:var(--violet)} .built .part.k-ops{color:var(--sea-glass)} .built .part.k-src{color:var(--sun-soft)}
+.built .hostp{color:#9DB2C8;padding:1px 3px}
+.built .sep{color:#5E7A8F;padding:0 1px}
+.built.dim{opacity:.45}
+.noterow .nlab{font-weight:800;color:var(--tide-deep)}
+.frow input[type=number]{width:88px;padding:7px 9px;border:2px solid var(--sand-300);border-radius:10px;font:inherit;background:#fff}
+.frow input[type=range].qslider{width:130px}
+#speedCrab{transform:translateX(-26px);opacity:0;transition:transform .48s cubic-bezier(.3,.9,.2,1),opacity .48s}
+#speedCrab.arrived{transform:translateX(0);opacity:1}
+#speedCrab.nudged{transform:translateX(6px)}
+#speedCrab .streaks i{opacity:0;transition:opacity .3s}
+#speedCrab.arrived .streaks i{opacity:1}
+#speedCrab.arrived .streaks i:nth-child(2){transition-delay:.06s}
+#speedCrab.arrived .streaks i:nth-child(3){transition-delay:.12s}
+#aiPorthole{transition:transform .2s}
+#aiPorthole.rot{transform:rotate(-3deg)}
+.bubble.foot{opacity:0;visibility:hidden;transition:opacity .2s,visibility .2s}
+.bubble.foot.shown{opacity:1;visibility:visible}
+.chipbtn[aria-pressed="true"]{background:var(--ink);color:var(--foam);border-color:var(--ink)}
+.ana-watch{margin-top:14px;font-size:15px;color:#FFD9CF}
+.ana-watch b{color:var(--shell-pink)}
+.ana-rail{display:flex;flex-direction:column;gap:14px;align-items:flex-start}
+.ana-rail .clawbig{width:44px;height:44px;transition:transform .16s var(--snap)}
+.ana-rail .bubble{max-width:230px}
+@media(max-width:900px){.ana-rail{flex-direction:row;align-items:center}}
+.legend{display:flex;flex-direction:column;gap:7px;margin-top:20px}
+.legend div{display:flex;gap:10px;align-items:baseline;font-size:14px;color:var(--ink-2)}
+.legend .dot{width:10px;height:10px;border-radius:50%;flex:0 0 auto;position:relative;top:1px}
+.legend b{color:var(--ink)}
+/* Buoy row */
+.buoy{padding:34px 0 40px}
+.buoy .clusters{display:flex;flex-wrap:wrap;gap:26px 48px}
+.cluster .clabel{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--tide);margin-bottom:10px}
+.cluster .chips{display:flex;flex-wrap:wrap;gap:8px}
+.bchip{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;background:var(--foam);border:1.5px solid var(--sand-300);padding:6px 12px;border-radius:999px;color:var(--ink-2);box-shadow:var(--shadow-sm)}
 /* Demo panels */
-.panel{background:var(--card);border:1px solid var(--line);border-radius:24px;box-shadow:var(--shadow-sm);padding:30px}
-.panel + .panel{margin-top:28px}
-.builder-grid{display:grid;grid-template-columns:330px 1fr;gap:30px}
-@media(max-width:860px){.builder-grid{grid-template-columns:1fr}}
-.control{margin-bottom:20px}
-.control label{display:block;font-size:13px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--ink2);margin-bottom:9px}
-.control select,.control input[type=text]{width:100%;padding:11px 13px;border:1.5px solid var(--line);border-radius:12px;font-size:15px;background:#fff;color:var(--ink)}
-.control input[type=range]{width:100%;accent-color:var(--coral)}
-.seg-btns{display:flex;flex-wrap:wrap;gap:8px}
-.toggle{padding:8px 15px;border-radius:999px;border:1.5px solid var(--line);background:#fff;font-size:14px;font-weight:600;cursor:pointer;transition:all .15s}
-.toggle:hover{border-color:var(--ink)}
-.toggle.on{background:var(--ink);color:#fff;border-color:var(--ink)}
-.toggle.coral.on{background:var(--coral);border-color:var(--coral)}
-.output-box{background:var(--code);border-radius:16px;padding:20px;color:#dbe7f3;position:relative}
-.output-box .built{font-size:15px;word-break:break-all;line-height:1.7}
-.output-box .built .sig{color:#ffb59f}.output-box .built .ops{color:#8fe3e1}.output-box .built .src{color:#ffd88a}
-.copy-btn{position:absolute;top:14px;right:14px;background:var(--code2);color:#fff;border:1px solid rgba(255,255,255,.2);padding:7px 14px;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;transition:background .15s}
-.copy-btn:hover{background:#2b435f}
-.copy-btn.ok{background:var(--teal)}
-.breakdown{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
-.breakdown span{font-size:12.5px;font-family:ui-monospace,Menlo,monospace;background:var(--paper2);border:1px solid var(--line);border-radius:8px;padding:5px 10px;color:var(--ink2)}
-.honest{font-size:13.5px;color:var(--ink2);margin-top:14px}
-/* Before after */
-.ba{position:relative;border-radius:18px;overflow:hidden;line-height:0;user-select:none;background:#dfe9ef}
-.ba img{width:100%;height:auto;display:block;pointer-events:none}
-.ba .after-wrap{position:absolute;inset:0;overflow:hidden}
-.ba .after-wrap img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-.ba .divider{position:absolute;top:0;bottom:0;width:3px;background:#fff;box-shadow:0 0 0 1px rgba(0,0,0,.2);z-index:3}
-.ba .handle{position:absolute;top:50%;width:44px;height:44px;margin:-22px 0 0 -22px;border-radius:50%;background:#fff;box-shadow:var(--shadow-sm);display:grid;place-items:center;font-size:17px;color:var(--ink);z-index:4;line-height:1}
-.ba .tag{position:absolute;top:14px;z-index:3;background:rgba(19,30,40,.78);color:#fff;font-size:12px;font-weight:700;padding:5px 11px;border-radius:999px;line-height:1.4}
-.ba .tag.l{left:14px}.ba .tag.r{right:14px}
-.ba input[type=range]{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:ew-resize;z-index:5;margin:0}
-.filter-row{display:flex;flex-wrap:wrap;gap:8px;margin:20px 0 6px}
-/* Grids */
-.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
-.grid2{display:grid;grid-template-columns:repeat(2,1fr);gap:20px}
-@media(max-width:900px){.grid3{grid-template-columns:1fr 1fr}}
-@media(max-width:620px){.grid3,.grid2{grid-template-columns:1fr}}
-.feature{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:26px;transition:transform .2s ease,box-shadow .2s ease}
-.feature:hover{transform:translateY(-4px);box-shadow:var(--shadow-sm)}
-.feature .icon{width:46px;height:46px;border-radius:13px;background:var(--paper2);display:grid;place-items:center;font-size:23px;margin-bottom:14px}
-.feature p{font-size:15px;color:var(--ink2)}
-.feature code{background:var(--paper2);padding:1px 6px;border-radius:6px;font-size:13px;color:var(--coral)}
-.alt-bg{background:#fff;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
-.dark-bg{background:var(--ink);color:#eaf2f8}
-.dark-bg h2{color:#fff}.dark-bg .lede{color:#a9bfd2}
-.dark-bg .eyebrow{background:#22374c;color:#8fe3e1}
-/* Stats */
-.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;margin-top:44px}
-@media(max-width:900px){.stats{grid-template-columns:1fr 1fr}}
-.stat{background:var(--code2);border:1px solid #2b435f;border-radius:18px;padding:26px}
-.stat .num{font-size:clamp(32px,3.6vw,44px);font-weight:900;letter-spacing:-.02em;color:#fff;line-height:1}
-.stat .num em{font-style:normal;color:var(--coral2);font-size:.55em;font-weight:800}
-.stat p{font-size:14px;color:#a9bfd2;margin-top:10px}
-/* Code tabs */
-.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:0}
-.tab{padding:10px 20px;border-radius:12px 12px 0 0;background:#e9dfd2;border:1px solid var(--line);border-bottom:none;font-weight:700;font-size:14.5px;cursor:pointer;color:var(--ink2)}
-.tab.active{background:var(--code);color:#fff}
-.code-window{background:var(--code);border-radius:0 18px 18px 18px;padding:26px;position:relative;overflow-x:auto}
-.code-window pre{color:#dbe7f3;font-size:14px;line-height:1.75;white-space:pre}
+.panel{background:var(--foam);border:2px solid var(--ink);border-radius:var(--shell);box-shadow:var(--shadow-lg);padding:30px}
+.honest{font-size:13.5px;color:var(--ink-2);margin-top:14px}
+.honest code{background:var(--sand-200);padding:1px 5px;border-radius:5px;font-size:12.5px}
+.chipbtn{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13.5px;font-weight:700;padding:9px 15px;min-height:44px;border-radius:999px;border:2px solid var(--ink);background:var(--foam);color:var(--ink);cursor:pointer;transition:all .14s var(--snap)}
+.chipbtn:hover{transform:translateX(-1px)}
+.chipbtn.on{background:var(--ink);color:#fff}
+.chipbtn.coral.on{background:var(--coral);border-color:var(--ink);color:#fff}
+.chipbtn[disabled]{opacity:.42;cursor:not-allowed;transform:none}
+.segctl{display:inline-flex;flex-wrap:wrap;gap:6px;background:var(--sand-200);border:2px solid var(--sand-300);padding:5px;border-radius:999px}
+.segctl .chipbtn{border-color:transparent;background:transparent;min-height:38px;padding:6px 13px}
+.segctl .chipbtn.on{background:var(--ink);color:#fff}
+.segctl .chipbtn.coral.on{background:var(--coral)}
+/* Playground */
+.pg-grid{display:grid;grid-template-columns:400px 1fr;gap:30px;align-items:start;margin-top:38px}
+@media(max-width:1023px){.pg-grid{grid-template-columns:1fr}}
+.pg-out{position:sticky;top:92px}
+@media(max-width:1023px){.pg-out{position:static}}
+.ctl{margin-bottom:22px}
+.ctl>label,.ctl .clabel{display:block;font-size:12.5px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-2);margin-bottom:9px}
+.ctl input[type=text],.ctl input[type=number],.ctl select{width:100%;padding:11px 13px;border:2px solid var(--sand-300);border-radius:12px;font-size:15px;background:#fff;color:var(--ink);font-family:inherit}
+.ctl input.mono{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13.5px}
+.ctl input:focus,.ctl select:focus{border-color:var(--tide);outline:3px solid rgba(14,124,123,.25);outline-offset:1px}
+.ctl .err{color:var(--coral-deep);font-size:13.5px;font-weight:600;margin-top:7px}
+.ctl .hint{font-size:13.5px;color:var(--ink-2);margin-top:7px}
+.wh{display:flex;gap:10px}.wh>div{flex:1}
+fieldset{border:none;min-width:0}
+fieldset[disabled] .ctl,fieldset[disabled] .frow{opacity:.45}
+.fgroup{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--tide);margin:22px 0 10px}
+.frow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:8px 0;border-bottom:1px dashed var(--sand-300)}
+.frow:last-child{border-bottom:none}
+.frow .fname{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13.5px;font-weight:700;min-width:118px}
+.frow .fparams{display:none;align-items:center;gap:8px;flex-wrap:wrap}
+.frow .fparams.show{display:flex}
+.frow input[type=number]{width:84px;padding:8px 10px}
+.frow input[type=text].hex{width:84px;padding:8px 10px;font-family:ui-monospace,Menlo,Consolas,monospace}
+.frow input[type=color]{width:44px;height:38px;padding:2px;border:2px solid var(--sand-300);border-radius:10px;background:#fff;cursor:pointer}
+.frow input[type=range]{width:130px;accent-color:var(--coral)}
+.frow .ferr{color:var(--coral-deep);font-size:13px;font-weight:600;width:100%}
+.fnote{font-size:13px;color:var(--ink-2);margin-top:12px}
+.outbox{background:var(--abyss);border-radius:18px 18px 18px 5px;padding:20px 20px 22px;color:#DCE9F2;position:relative;box-shadow:var(--dark-shadow)}
+.outbox .peek{position:absolute;top:-34px;right:26px;width:110px;height:40px}
+.outbox .peek img{transform:translateY(-4px)}
+.out-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.out-head .olabel{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:#9DB2C8;margin-right:auto}
+.snapbtn{background:var(--coral);color:#fff;border:2px solid var(--foam);border-radius:999px;font-family:ui-monospace,Menlo,Consolas,monospace;font-weight:700;font-size:13.5px;padding:9px 17px;min-height:44px;cursor:pointer;transition:transform .14s var(--snap),background .14s}
+.snapbtn:hover{background:var(--coral-deep)}
+.snapbtn.ok{background:var(--tide)}
+.snapbtn[disabled]{opacity:.55;cursor:not-allowed}
+.copybtn{background:var(--abyss-2);color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:999px;font-family:ui-monospace,Menlo,Consolas,monospace;font-weight:700;font-size:13.5px;padding:9px 17px;min-height:44px;cursor:pointer}
+.copybtn:hover{background:#24455F}
+.copybtn.ok{background:var(--tide)}
+.built{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:14.5px;line-height:1.9;overflow-wrap:anywhere;transition:opacity .12s}
+.built.dim{opacity:.45}
+.built .c-sig{color:var(--shell-pink)} .built .c-exp{color:var(--violet)} .built .c-preset{color:var(--leaf)}
+.built .c-ops{color:var(--sea-glass)} .built .c-fil{color:var(--filterblue)} .built .c-src{color:var(--sun-soft)}
+.built .slash{color:#5F7A8C}
+.seal{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:var(--coral);color:#fff;font-size:13px;font-weight:900;margin-left:8px;vertical-align:middle}
+.sigline{font-size:13px;color:#9DB2C8;margin-top:12px}
+.banner{background:#FBE3DC;border:2px solid var(--coral-deep);color:#7A1F10;border-radius:12px;padding:11px 15px;font-size:14px;font-weight:600;margin-top:14px}
+.parts{margin-top:18px;display:flex;flex-direction:column;gap:8px}
+.partrow{display:flex;gap:11px;align-items:baseline;background:var(--sand-200);border:1.5px solid var(--sand-300);border-radius:12px;padding:9px 13px;font-size:14px;text-align:left;width:100%;cursor:pointer;font-family:inherit;color:var(--ink);transition:transform .14s var(--snap)}
+.partrow:hover{transform:translateX(-2px)}
+.partrow .pspell{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;font-weight:700;white-space:nowrap}
+.partrow .pdef{color:var(--ink-2)}
+.notes{margin-top:18px;display:flex;flex-direction:column;gap:9px}
+.noteitem{display:flex;gap:11px;font-size:14px;align-items:baseline}
+.noteitem .nlabel{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:3px 9px;border-radius:999px;background:var(--sand-200);border:1.5px solid var(--sand-300);color:var(--ink-2);flex:0 0 auto}
+.noteitem.warn .nlabel{background:var(--coral-soft);border-color:var(--coral-deep);color:var(--coral-deep)}
+.noteitem p{color:var(--ink-2)}
+.noteitem p code{color:var(--ink);font-size:.92em}
+.pg-bubble-row{display:flex;justify-content:flex-end;margin-top:44px}
+/* Toy */
+.toy-grid{display:grid;grid-template-columns:1.25fr .95fr;gap:30px;align-items:start;margin-top:36px}
+@media(max-width:1023px){.toy-grid{grid-template-columns:1fr}}
+.toy-stage{position:relative;border-radius:8px;overflow:hidden;border:2px solid var(--ink);box-shadow:var(--shadow-lg);background:#DFE9EF;line-height:0;touch-action:none}
+.toy-stage img.base{width:100%;height:auto;display:block;pointer-events:none}
+.toy-win{position:absolute;border:2.5px solid var(--foam);box-shadow:0 0 0 999px rgba(13,32,46,.48);cursor:move;line-height:1.2}
+.toy-win:focus-visible{outline:3px solid var(--sun);outline-offset:2px}
+.clawh{position:absolute;width:44px;height:44px;display:grid;place-items:center;cursor:nwse-resize;touch-action:none}
+.clawh .claw{width:21px;height:21px}
+.clawh path{stroke:#fff;stroke-width:2.6}
+.clawh.tl{top:-22px;left:-22px}.clawh.tr{top:-22px;right:-22px;cursor:nesw-resize}
+.clawh.bl{bottom:-22px;left:-22px;cursor:nesw-resize}.clawh.br{bottom:-22px;right:-22px}
+.readout{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13.5px;margin-top:14px;color:var(--ink-2)}
+.toy-preview{position:relative;border:2px solid var(--ink);border-radius:8px;overflow:hidden;box-shadow:var(--shadow);background:#DFE9EF;line-height:0}
+.toy-preview .pv{position:absolute;inset:0;overflow:hidden}
+.toy-preview .pv img{position:absolute;max-width:none;pointer-events:none}
+.toy-preview .divider{position:absolute;top:0;bottom:0;width:3px;background:#fff;box-shadow:0 0 0 1px rgba(0,0,0,.25);z-index:3}
+.toy-preview .phandle{position:absolute;top:50%;width:48px;height:48px;margin:-24px 0 0 -24px;border-radius:50%;background:#fff;border:2px solid var(--ink);display:grid;place-items:center;z-index:4}
+#toyPreview:focus-within .phandle{outline:3px solid var(--sun);outline-offset:2px}
+.toy-preview .phandle .claw{width:19px;height:19px}
+.toy-preview input[type=range]{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:ew-resize;z-index:5;margin:0}
+.toy-tag{position:absolute;top:10px;left:10px;z-index:3;background:var(--sun-soft);border:2px solid var(--ink);font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11.5px;font-weight:700;padding:4px 9px;transform:rotate(-2deg)}
+.stack{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0;min-height:44px;align-items:center}
+.stack .empty{font-size:14px;color:var(--ink-2)}
+.schip{display:inline-flex;align-items:center;gap:6px;background:var(--ink);color:#fff;border-radius:999px;padding:5px 8px 5px 13px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;min-height:44px;cursor:grab}
+.schip .idx{background:var(--coral);color:#fff;border-radius:50%;width:19px;height:19px;display:grid;place-items:center;font-size:11px;font-weight:900;flex:0 0 auto}
+.schip button{background:rgba(255,255,255,.14);border:none;color:#fff;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:13px;line-height:1}
+.schip button:hover{background:var(--coral)}
+.eql{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13.5px;background:var(--abyss);color:var(--sea-glass);border-radius:12px;padding:13px 16px;overflow-wrap:anywhere;line-height:1.8}
+.eql .c-src{color:var(--sun-soft)}
+/* Code */
+.tabs{display:flex;gap:0;flex-wrap:wrap}
+.tab{padding:11px 20px;border-radius:20px 20px 0 5px;background:var(--sand-200);border:2px solid var(--ink);border-bottom:none;font-weight:800;font-size:14.5px;cursor:pointer;color:var(--ink-2);margin-right:6px;transition:all .14s var(--snap);min-height:44px}
+.tab.active{background:var(--abyss);color:#fff}
+.code-window{background:var(--abyss);border:2px solid var(--ink);border-radius:0 18px 18px 18px;padding:26px;position:relative;box-shadow:var(--shadow-lg)}
+.code-scroll{overflow-x:auto}
+.code-window pre{color:#DCE9F2;font-size:14px;line-height:1.75;white-space:pre}
 .code-pane{display:none}.code-pane.active{display:block}
-.k{color:#8fe3e1}.s{color:#ffd88a}.c{color:#7e97ad}
-/* AI list */
-.ai-row{display:flex;gap:18px;padding:22px 0;border-bottom:1px solid var(--line)}
-.ai-row:last-child{border-bottom:none}
-.ai-row .icon{flex:0 0 46px;width:46px;height:46px;border-radius:13px;background:var(--teal-lt);display:grid;place-items:center;font-size:23px}
-.ai-row p{color:var(--ink2);font-size:15.5px}
-.ai-row code{background:var(--paper2);padding:1px 6px;border-radius:6px;font-size:13px;color:var(--coral)}
+.code-window .copy-btn{position:absolute;top:14px;right:14px;background:var(--abyss-2);color:#fff;border:1px solid rgba(255,255,255,.25);padding:8px 15px;border-radius:999px;font-size:13px;font-weight:700;cursor:pointer;font-family:ui-monospace,Menlo,Consolas,monospace;min-height:40px;z-index:6}
+.code-window .copy-btn:hover{background:#24455F}
+.code-window .copy-btn.ok{background:var(--tide)}
+.code-window .peek{position:absolute;bottom:0;right:30px;width:96px;height:36px}
+.k{color:var(--sea-glass)}.s{color:var(--sun-soft)}.c{color:#7E97AD}
+.vector-card{background:var(--sand-200);border:2px solid var(--ink);border-radius:var(--shell);box-shadow:var(--shadow);padding:24px 26px;margin-top:26px}
+.vector-card p{font-size:15px;color:var(--ink-2);margin-top:8px;overflow-wrap:anywhere}
+.vector-card p code{color:var(--ink);font-size:13px}
+/* Feature cards */
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+@media(max-width:900px){.grid3{grid-template-columns:1fr 1fr}}
+@media(max-width:620px){.grid3{grid-template-columns:1fr}}
+.specimen{background:var(--sand-100);border:1.5px solid var(--ink);border-radius:var(--shell);box-shadow:var(--shadow);padding:26px;transition:transform .14s var(--snap),box-shadow .14s var(--snap)}
+.band-200 .specimen{background:var(--sand-100)}
+.specimen:hover{transform:translateX(-2px);box-shadow:8px 8px 0 rgba(20,40,50,.16)}
+.specimen p{font-size:15px;color:var(--ink-2)}
+.specimen code{background:rgba(20,40,50,.06);padding:1px 6px;border-radius:6px;font-size:13px;color:var(--coral-deep)}
+.specimen .opname{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;font-weight:700;color:var(--tide);display:block;margin-top:12px}
+.iconring{width:46px;height:46px;border-radius:50%;border:2px solid var(--tide);display:grid;place-items:center;margin-bottom:14px}
+.iconring .claw{width:22px;height:22px}
+.iconring.coral{border-color:var(--coral)}
+.span2{grid-column:span 2}
+@media(max-width:620px){.span2{grid-column:span 1}}
+/* Speed */
+.speed-sec{background:linear-gradient(180deg,var(--abyss) 0%,var(--abyss) 72%,var(--tide-deep) 100%);color:#EAF2F8;overflow:hidden}
+.speed-sec h2{color:#fff}
+.speed-sec .lede{color:#A9BFD2}
+.method{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;color:var(--sea-glass);max-width:860px;line-height:1.7}
+.stats6{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:34px}
+@media(max-width:900px){.stats6{grid-template-columns:1fr 1fr}}
+@media(max-width:620px){.stats6{grid-template-columns:1fr}}
+.stat{background:var(--abyss-2);border:1px solid rgba(143,227,225,.25);border-radius:var(--shell);padding:24px;position:relative}
+.stat .num{font-size:clamp(29px,3.2vw,40px);font-weight:900;letter-spacing:-.02em;color:#fff;line-height:1.05;font-variant-numeric:tabular-nums}
+.stat .num em{font-style:normal;font-family:ui-monospace,Menlo,Consolas,monospace;color:var(--coral);font-size:.48em;font-weight:700}
+.stat .lab{font-weight:800;font-size:15px;margin-top:10px;color:#fff}
+.stat p{font-size:13.5px;color:#A9BFD2;margin-top:4px}
+.speed-head{display:flex;gap:26px;align-items:flex-start;flex-wrap:wrap}
+.speed-crab{display:flex;align-items:center;margin-left:auto}
+.streaks{display:flex;flex-direction:column;gap:6px;margin-right:14px}
+.streaks i{display:block;height:4px;border-radius:999px}
+.streaks i:nth-child(1){width:46px;background:var(--sun)}
+.streaks i:nth-child(2){width:30px;background:var(--coral)}
+.streaks i:nth-child(3){width:18px;background:var(--sea-glass)}
+.speed-crab .porthole{width:120px;height:120px}
+.tidelines{position:absolute;left:0;right:0;bottom:8px;opacity:.35;pointer-events:none}
+/* Race */
+.race{background:var(--abyss-2);border:1px solid rgba(143,227,225,.25);border-radius:var(--shell);padding:28px;margin-top:40px;position:relative}
+.race h3{color:#fff;font-size:23px}
+.race .caption{font-size:14px;color:#A9BFD2;max-width:760px;margin-top:6px}
+.race-ctl{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin:20px 0 8px}
+.race .segctl{background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.18)}
+.race .segctl .chipbtn{color:#DCE9F2}
+.race .segctl .chipbtn.on{background:var(--foam);color:var(--ink)}
+.rbtn{background:var(--coral);color:#fff;border:2px solid var(--foam);border-radius:999px;font-weight:800;font-size:14.5px;padding:11px 22px;min-height:44px;cursor:pointer;transition:background .14s}
+.rbtn:hover{background:var(--coral-deep)}
+.rbtn[disabled]{opacity:.45;cursor:not-allowed}
+.rbtn.ghost{background:transparent;border-color:rgba(255,255,255,.3)}
+.lane{margin-top:20px}
+.lane .llabel{display:flex;justify-content:space-between;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;letter-spacing:.12em;text-transform:uppercase;color:#9DB2C8;margin-bottom:8px}
+.track{position:relative;height:44px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:999px;overflow:hidden}
+.track .bar{position:absolute;inset:0;transform-origin:left center;transform:scaleX(0);border-radius:999px}
+.lane.cold .bar{background:linear-gradient(90deg,var(--tide),var(--sea-glass))}
+.lane.warm .bar{background:linear-gradient(90deg,var(--coral),var(--sun))}
+.track .crabmark{position:absolute;top:50%;left:6px;width:30px;height:30px;margin-top:-15px;display:grid;place-items:center;background:var(--foam);border-radius:50%;border:2px solid var(--ink)}
+.track .crabmark .claw{width:16px;height:16px}
+.track .flag{position:absolute;right:12px;top:50%;margin-top:-9px;font-size:15px}
+.readout{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:14px;color:#DCE9F2;margin-top:9px;min-height:22px}
+.cachechip{display:inline-flex;gap:9px;align-items:center;margin-top:20px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;border:1.5px solid rgba(255,255,255,.25);border-radius:999px;padding:7px 15px;color:#DCE9F2}
+.cachechip .dot{width:9px;height:9px;border-radius:50%;background:#5F7A8C}
+.cachechip.full .dot{background:var(--leaf)}
+.through{margin-top:20px;border-top:1px dashed rgba(255,255,255,.18);padding-top:18px;display:none}
+.through.show{display:block}
+.through .tnum{font-size:34px;font-weight:900;color:#fff;font-variant-numeric:tabular-nums;line-height:1}
+.through .tnum em{font-style:normal;font-family:ui-monospace,Menlo,Consolas,monospace;color:var(--coral);font-size:15px}
+.through p{font-size:13.5px;color:#A9BFD2;margin-top:5px}
+/* AI */
+.ai-intro{display:flex;gap:28px;align-items:flex-start;flex-wrap:wrap}
+.ai-crab{display:flex;flex-direction:column;align-items:center;gap:10px}
+.ai-crab .porthole{width:150px;height:150px}
+.ai-crab .porthole img{transform:scale(1.5);object-position:68% 74%}
+.ai-crab figcaption{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;color:var(--ink-2);text-align:center;max-width:210px}
+.ai-rows{margin-top:14px}
+.ai-row{display:flex;gap:18px;padding:21px 10px;border-bottom:1.5px solid var(--sand-300);border-left:5px solid transparent;transition:border-color .14s}
+.ai-row:first-child{border-top:1.5px solid var(--sand-300)}
+.ai-row:hover{border-left-color:var(--tide)}
+.ai-row .marker{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;font-weight:700;color:var(--tide);flex:0 0 52px;padding-top:3px}
+.ai-row p{color:var(--ink-2);font-size:15.5px}
+.ai-row code{background:var(--sand-200);padding:1px 6px;border-radius:6px;font-size:13px;color:var(--coral-deep)}
+.rules{margin-top:30px;background:var(--coral-soft);border:2px solid var(--ink);border-radius:18px 18px 18px 4px;box-shadow:var(--shadow);padding:24px 28px;position:relative}
+.rules h3{font-size:17px}
+.rules ul{list-style:none;margin-top:10px}
+.rules li{font-size:15.5px;padding-left:22px;position:relative;margin-bottom:8px}
+.rules li::before{content:"";position:absolute;left:0;top:10px;width:8px;height:8px;border-radius:50%;background:var(--coral)}
 /* CTA */
-.cta{background:linear-gradient(135deg,var(--coral) 0%,#ff7a4d 100%);border-radius:28px;padding:56px 40px;color:#fff;text-align:center;box-shadow:var(--shadow)}
-.cta h2{color:#fff}
-.cta p{max-width:560px;margin:0 auto 28px;color:#ffe9e2;font-size:17.5px}
-.cta .btn{background:#fff;color:var(--coral)}
-.cta .btn:hover{background:var(--paper)}
-.cta code{display:inline-block;margin-top:22px;background:rgba(19,30,40,.28);padding:10px 18px;border-radius:11px;font-size:14px;color:#fff}
-footer{padding:44px 0 54px;font-size:14.5px;color:var(--ink2)}
-footer .wrap{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;align-items:center}
-@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
+.cta-panel{background:var(--tide-deep);border-radius:var(--shell);padding:54px 44px;color:#fff;position:relative;overflow:hidden;box-shadow:var(--shadow-lg)}
+.cta-panel h2{color:#fff}
+.cta-panel .body{color:var(--sea-glass);font-size:17.5px;max-width:560px}
+.cta-flex{display:flex;gap:30px;align-items:center;flex-wrap:wrap}
+.cta-panel .frame{max-width:120px;transform:rotate(2deg);animation:none;padding:7px;margin:0}
+.ring{position:absolute;border:3px solid rgba(255,255,255,.22);border-radius:50%}
+.dockerstrip{margin-top:30px;background:var(--abyss);border-radius:14px;padding:15px 18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.dockerstrip code{color:#DCE9F2;font-size:14px;overflow-wrap:anywhere}
+.dockerstrip .copybtn{margin-left:auto}
+/* Footer */
+footer{background:var(--tide-deep);color:#CFE8E6;padding:46px 0 40px;position:relative}
+footer .wrap{display:flex;justify-content:space-between;gap:22px;flex-wrap:wrap;align-items:center}
+footer .fbrand{display:flex;align-items:center;gap:12px}
+footer .pebble{width:40px;height:40px;cursor:pointer}
+footer .wordmark{font-weight:900;font-size:19px;color:#fff;letter-spacing:-.02em}
+footer a{color:var(--sea-glass)}
+.signoff{text-align:center;font-size:13.5px;color:#9CC8C4;margin-top:30px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+@media(max-width:640px){
+  .anatomy .peek{top:auto;bottom:-4px;right:20px}
+  .outbox .peek{width:80px;height:32px;top:-26px}
+  .panel{padding:22px}
+  .cta-panel{padding:38px 24px}
+  section{padding:64px 0}
+}
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important;scroll-behavior:auto!important}
+  html{scroll-behavior:auto}
+  .reveal-l,.reveal-r{opacity:1;transform:none}
+  .frame{animation:none;transform:rotate(-2deg)}
+}
 </style>
 </head>
 <body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<symbol id="clawmark" viewBox="0 0 24 24"><path d="M10 3C6.5 7 6.5 13 10 17l2 4 2-4c3.5-4 3.5-10 0-14"/></symbol>
+</defs></svg>
 
 <header>
   <div class="wrap nav">
-    <a class="logo" href="#top"><span class="logo-mark" aria-hidden="true">🦀</span> crabcrop</a>
+    <a class="logo" href="#top"><span class="pebble" id="navCrab" aria-hidden="true"><svg class="claw"><use href="#clawmark"/></svg></span> crabcrop</a>
     <nav class="nav-links" aria-label="Sections">
-      <a href="#idea">The idea</a><a href="#demo">Live demos</a><a href="#features">Features</a>
-      <a href="#performance">Performance</a><a href="#ai">AI</a><a href="#libraries">Libraries</a>
+      <a href="#anatomy">Anatomy</a><a href="#playground">Playground</a><a href="#sign">Sign it</a>
+      <a href="#features">Features</a><a href="#speed">Speed</a><a href="#ai">AI</a><a href="#libraries">Libraries</a>
     </nav>
-    <a class="btn btn-dark" style="padding:10px 20px" href="#libraries">Start building</a>
+    <a class="btn" style="padding:10px 18px" href="#playground">Start building</a>
   </div>
+  <div class="foam" aria-hidden="true"></div>
 </header>
 
 <main id="top">
 
-<!-- HERO -->
-<div class="hero">
+<!-- HERO + ANATOMY -->
+<section class="hero" id="anatomy">
   <div class="wrap">
     <div class="hero-grid">
-      <div class="reveal in">
-        <span class="eyebrow">On-demand image optimization, in Rust</span>
-        <h1>The URL is <span class="hl">the API.</span></h1>
-        <p class="lede" style="margin-top:22px">crabcrop resizes, crops, converts and filters your images on demand. You encode the operations in the URL, sign it, and crabcrop fetches the source, does the work, and returns the result. No pre-generated thumbnails. No build step.</p>
+      <div class="reveal-l in-view">
+        <div class="tidemark"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg> On-demand image optimization, in Rust</div>
+        <h1>The URL is the API,<br><span class="coral">with claws.</span></h1>
+        <p class="lede" style="margin-top:22px">crabcrop fetches your original, applies the operations in the URL in order, and serves the result. Write the resize, crop, format, and filters into a signed URL, and skip the pre-generated thumbnails and the build step entirely.</p>
         <div class="hero-ctas">
-          <a class="btn btn-primary" href="#demo">Try the live demos</a>
-          <a class="btn btn-ghost" href="#code">See signed URLs in code</a>
+          <a class="btn" href="#playground">Snap a URL together</a>
+          <a class="mono-link" href="#sign"><svg class="claw" width="16" height="16" aria-hidden="true"><use href="#clawmark"/></svg> Learn to sign it</a>
         </div>
-        <p class="hero-note">Signed with HMAC-SHA256. Cached by canonical key. Served with <span class="mono">Cache-Control: immutable</span> for a year.</p>
+        <p class="hero-note">Signed with HMAC-SHA256. Cached by canonical key. Served with <code>Cache-Control: immutable</code> for a year.</p>
       </div>
-      <figure class="mascot-card reveal in d1">
-        <span class="float-badge b1 mono">300x200</span>
-        <span class="float-badge b2 mono">format(avif)</span>
-        <div class="mascot-wrap"><img src="crabcrop-mascot.webp" alt="The crabcrop mascot: a crochet crab waving hello and holding a photo" width="640" height="640"></div>
-        <figcaption><span>Hi. I crop, so you do not have to pre-generate.</span><span aria-hidden="true">🦀</span></figcaption>
-      </figure>
+      <div class="reveal-r">
+        <div class="bubble hero-bubble" id="heroBubble">Hi, I am Snap. I snap images to size.</div>
+        <figure class="frame" id="heroFrame">
+          <span class="note n1">300x200</span>
+          <img src="crabcrop-mascot.webp" alt="Snap, the crochet crab mascot of crabcrop, waving one claw and holding a photo">
+          <span class="note n2">format(avif)</span>
+          <figcaption><span>Snap, resident crab</span><span class="mono" style="font-size:12.5px">est. low tide</span></figcaption>
+        </figure>
+      </div>
     </div>
 
-    <div class="url-anatomy reveal in d2" aria-label="Anatomy of a crabcrop URL">
-      <div class="u mono"><span style="color:#7e97ad">https://img.example.com/</span><span class="seg sig">3c1f6c18…</span><span style="color:#7e97ad">/</span><span class="seg ops">crop:1200x630:smart/filters:grayscale:quality(80)</span><span style="color:#7e97ad">/</span><span class="seg src">https://example.com/photo.jpg</span></div>
-      <div class="anatomy-legend">
-        <span><b>Signature.</b> HMAC-SHA256 of everything after it.</span>
-        <span><b>Operations.</b> Applied in path order.</span>
-        <span><b>Source.</b> The full URL of your original.</span>
+    <div class="strip reveal-l">
+      <div class="aim">Our aim: the fastest image service on the planet.</div>
+      <div class="stat"><div class="num">29.1<em> ms</em></div><p>Cold p50, resize to 800 wide, JPEG</p></div>
+      <div class="stat"><div class="num">0.2 to 0.4<em> ms</em></div><p>Warm p50, served from the in-memory result cache</p></div>
+      <div class="stat"><div class="num">1,843<em> req/s</em></div><p>Warm throughput, resize, 8 workers</p></div>
+      <p class="foot">Measured locally, October 23, 2026. Method and full numbers in the Speed section below.</p>
+    </div>
+
+    <div class="reveal-r">
+      <div class="tidemark" style="margin-top:44px"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg> URL anatomy</div>
+      <h2>One URL. Every instruction inside it.</h2>
+      <p class="lede">Every request is <span class="mono" style="font-size:.92em">GET /&lt;signature&gt;/&lt;operations&gt;/&lt;source-url&gt;</span>. Click a segment. Learn what it does, what it hides, and where it bites.</p>
+    </div>
+
+    <div class="anatomy reveal-l" id="anatomyPanel">
+      <div class="peek win" id="anaCrab" aria-hidden="true"><img src="crabcrop-mascot.webp" alt=""></div>
+      <div class="families" role="radiogroup" aria-label="Size family in the strip">
+        <span class="flabel">Size family</span>
+        <button class="fchip" type="button" role="radio" aria-checked="false" data-fam="size">Size</button>
+        <button class="fchip" type="button" role="radio" aria-checked="false" data-fam="fit-in">Fit-in</button>
+        <button class="fchip" type="button" role="radio" aria-checked="false" data-fam="pad">Pad</button>
+        <button class="fchip" type="button" role="radio" aria-checked="true" data-fam="crop">Crop</button>
+        <button class="fchip" type="button" role="radio" aria-checked="false" data-fam="crop-rect">Crop-rect</button>
+        <button class="fchip" type="button" role="radio" aria-checked="false" data-fam="preset">Preset</button>
       </div>
+      <div class="strip-url" role="group" aria-label="Anatomy of a crabcrop URL">
+        <span class="host">https://img.example.com</span><span class="slash">/</span><button class="segbtn c-sig" type="button" data-seg="sig" aria-pressed="true">3c1f6c18…</button><span class="slash">/</span><button class="segbtn c-exp" type="button" data-seg="exp" aria-pressed="false">exp:1893456000</button><span class="slash">/</span><button class="segbtn c-ops" type="button" data-seg="crop" id="slotSeg" aria-pressed="false">crop:1200x630:smart</button><span class="slash" id="filtersSlash">/</span><span class="segbtn c-ops" id="filtersSeg"><button class="tokbtn segmain" type="button" data-seg="filters" aria-label="Teach the filters segment as a whole">filters:</button><button class="tokbtn" type="button" data-tok="grayscale">grayscale</button>:<button class="tokbtn" type="button" data-tok="quality(80)">quality(80)</button></span><span class="slash">/</span><button class="segbtn c-src" type="button" data-seg="source" aria-pressed="false">https://example.com/photo.jpg</button>
+      </div>
+      <p style="font-size:12.5px;color:#9DB2C8;margin-top:10px">The signature is shortened for display. A real one is 64 hex characters, like the worked example in the panel.</p>
+      <div class="ana-panel">
+        <div id="anaTeach" aria-live="polite" aria-atomic="true">
+          <h3 id="anaSpell">signature<span class="plain" id="anaName">Signature</span></h3>
+          <p class="def" id="anaDef"></p>
+          <h4>Grammar</h4>
+          <ul id="anaGrammar"></ul>
+          <h4>Example</h4>
+          <div class="ana-ex" id="anaEx"></div>
+          <p class="ana-watch"><b>Watch out:</b> <span id="anaWatch"></span></p>
+        </div>
+        <div class="ana-rail">
+          <svg class="clawbig" id="anaClaw" aria-hidden="true"><use href="#clawmark"/></svg>
+          <div class="bubble on-dark" id="anaBubble">I check this first. No match, no image.</div>
+        </div>
+      </div>
+      <noscript>
+        <div style="margin-top:20px;font-size:15px;line-height:1.7">
+          <p><b>signature:</b> HMAC-SHA256 hex of everything after it, or the literal unsafe.</p>
+          <p><b>exp:</b> a signed expiry in Unix seconds, valid strictly before that second.</p>
+          <p><b>preset:</b> a server-side name for an operation string, expanded after verification.</p>
+          <p><b>size:</b> width x height in pixels; 0 scales proportionally, orig keeps the source axis, a minus flips.</p>
+          <p><b>fit-in:</b> scale proportionally to fit inside the box; a 0 axis is unbounded.</p>
+          <p><b>pad:</b> fit inside, center, and fill the rest so the output is exactly the box.</p>
+          <p><b>crop:</b> crop to the aspect ratio, then resize to exactly that size; align picks what survives.</p>
+          <p><b>crop-rect:</b> cut the exact pixel rectangle between two corners.</p>
+          <p><b>filters:</b> a chain of filters and directives, run in the order written; the last repeat wins.</p>
+          <p><b>source:</b> the full source URL; it starts at the first segment that is not an operation.</p>
+        </div>
+      </noscript>
+    </div>
+
+    <div class="legend reveal-l">
+      <div><span class="dot" style="background:var(--coral)"></span><span><b>Signature.</b> Proof the URL came from you. First segment, always.</span></div>
+      <div><span class="dot" style="background:var(--tide)"></span><span><b>Operations.</b> The recipe, in path order. Size, crop, filters, metadata segments like <span class="mono">exp:</span> and <span class="mono">preset:</span>.</span></div>
+      <div><span class="dot" style="background:var(--sun)"></span><span><b>Source.</b> Your original image, full URL. Everything from the first non-operation segment onward.</span></div>
     </div>
   </div>
-  <div class="marquee" aria-hidden="true">
-    <div class="marquee-track" id="marqueeTrack"></div>
+</section>
+
+<!-- BUOY ROW -->
+<div class="buoy band-200">
+  <div class="foam" style="--fc:#F3DFB4" aria-hidden="true"></div>
+  <div class="wrap clusters">
+    <div class="cluster"><div class="clabel">Size</div><div class="chips">
+      <span class="bchip">300x200</span><span class="bchip">crop:1200x630:smart</span><span class="bchip">fit-in:800x600</span><span class="bchip">pad:1200x630:blur</span>
+    </div></div>
+    <div class="cluster"><div class="clabel">Filters</div><div class="chips">
+      <span class="bchip">filters:grayscale</span><span class="bchip">filters:format(avif)</span><span class="bchip">filters:quality(auto)</span><span class="bchip">filters:radius(24)</span><span class="bchip">filters:watermark(...)</span><span class="bchip">filters:removebg</span><span class="bchip">filters:upscale(2)</span><span class="bchip">filters:blurclass(person)</span>
+    </div></div>
+    <div class="cluster"><div class="clabel">Control</div><div class="chips">
+      <span class="bchip">preset:og-card</span><span class="bchip">exp:1893456000</span><span class="bchip">filters:dpr(2)</span>
+    </div></div>
   </div>
 </div>
 
-<!-- IDEA -->
-<section id="idea" style="padding-top:40px">
+<!-- PLAYGROUND -->
+<section id="playground">
+  <div class="foam" style="--fc:#FBF0D9" aria-hidden="true"></div>
   <div class="wrap">
-    <div class="reveal">
-      <span class="eyebrow">How it works</span>
-      <h2>Three parts. One request. Zero setup per image.</h2>
-      <p class="lede">Every image request is <span class="mono">GET /&lt;signature&gt;/&lt;operations&gt;/&lt;source-url&gt;</span>. Change the operations and you change the image. The signature keeps the menu under your control, and signed URLs are content addressed, so results cache cleanly in memory and on disk.</p>
-    </div>
-    <div class="grid3" style="margin-top:44px">
-      <div class="feature reveal"><div class="icon">✂️</div><h3>Resize, crop, fit, pad</h3><p>Exact sizes like <code>300x200</code>, proportional sizes like <code>300x0</code>, <code>fit-in</code> boxes, <code>pad</code> with a color or ambient blur fill, aspect crops with <code>smart</code> and <code>face</code> alignment, and exact rectangle crops.</p></div>
-      <div class="feature reveal d1"><div class="icon">🎛️</div><h3>45+ filters and directives</h3><p>Grayscale, sepia, duotone, blur, sharpen, saturation, radius, borders, masks, watermarks, overlays with blend modes, and text labels. Chain them inside one <code>filters:</code> segment, in the order you write them.</p></div>
-      <div class="feature reveal d2"><div class="icon">🗜️</div><h3>Modern formats, negotiated</h3><p>Output JPEG, PNG, WebP, JPEG XL, AVIF or GIF. Name a format in the URL, or let the <code>Accept</code> header decide: the highest q-value wins, with AVIF, JPEG XL and WebP as the tie-break order.</p></div>
-      <div class="feature reveal"><div class="icon">🔐</div><h3>Signed and expiring</h3><p>HMAC-SHA256 signatures cover the operations and the source. Add an <code>exp:</code> segment and the URL expires on schedule. Purges have their own domain-separated signatures, so an image signature can never be replayed as a purge.</p></div>
-      <div class="feature reveal d1"><div class="icon">🏷️</div><h3>Presets keep URLs short</h3><p>Name an operation string on the server, like <code>preset:og-card</code>, and templates stay short while the transformation menu stays operator controlled. Roll changes out under a new preset name.</p></div>
-      <div class="feature reveal d2"><div class="icon">🧹</div><h3>Purge in one call</h3><p>Invalidate one result with <code>/purge</code>, or a whole preset output set with <code>/purge-group</code> and the <code>Cache-Group</code> header. Equivalent spellings of a path share one canonical cache entry, so one purge evicts them all.</p></div>
-    </div>
-  </div>
-</section>
-
-<!-- DEMOS -->
-<section id="demo" class="alt-bg">
-  <div class="wrap">
-    <div class="reveal">
-      <span class="eyebrow">Live demos</span>
-      <h2>Build a URL. Watch it come together.</h2>
-      <p class="lede">Both demos run entirely in your browser. No server is involved, and nothing you type leaves the page.</p>
+    <div class="reveal-l">
+      <div class="tidemark"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg> Playground</div>
+      <h2>The playground. <span class="coral">Snap</span> a URL together.</h2>
+      <p class="lede">Flip the controls. Watch a real crabcrop URL assemble, segment by segment, in the exact grammar the server parses. Runs entirely in your browser. Nothing you type leaves the page.</p>
     </div>
 
-    <div class="panel reveal" style="margin-top:44px">
-      <h3 style="font-size:22px">1. The URL builder</h3>
-      <p style="color:var(--ink2);margin-bottom:24px">Flip the controls and watch a real crabcrop URL assemble, segment by segment. This is the exact grammar the server parses.</p>
-      <div class="builder-grid">
-        <div>
-          <div class="control">
-            <label for="bSize">Size operation</label>
-            <select id="bSize">
-              <option value="300x200">Resize to 300x200</option>
-              <option value="800x0">Resize to 800 wide, proportional</option>
-              <option value="fit-in:800x600">Fit inside 800x600</option>
-              <option value="crop:1200x630:smart">Crop 1200x630, smart focal point</option>
-              <option value="crop:800x800:face">Crop 800x800 around a face</option>
-              <option value="pad:1200x630:blur">Pad to 1200x630 with blur fill</option>
-              <option value="">No size operation</option>
+    <div class="pg-grid">
+      <div class="panel reveal-l" style="padding:26px">
+        <div class="ctl">
+          <label for="pgSource">Source URL</label>
+          <input type="text" id="pgSource" class="mono" value="https://example.com/photo.jpg" spellcheck="false" autocomplete="off">
+          <p class="err" id="pgSourceErr" hidden></p>
+        </div>
+        <div class="ctl">
+          <span class="clabel" id="pgSigLabel">Signature</span>
+          <div class="segctl" role="group" aria-labelledby="pgSigLabel" id="pgSig">
+            <button class="chipbtn on" type="button" data-v="signed">Signed (production)</button>
+            <button class="chipbtn" type="button" data-v="unsafe">unsafe (local dev only)</button>
+          </div>
+          <p class="hint" id="pgUnsafeNote" hidden>Local development only: the server must run with unsafe allowed, and purges still always need a real signature.</p>
+        </div>
+        <div class="ctl">
+          <span class="clabel" id="pgExpLabel">Expiry</span>
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+            <button class="chipbtn" type="button" id="pgExpToggle" aria-pressed="false">Add exp:</button>
+            <div class="segctl" role="group" aria-labelledby="pgExpLabel" id="pgExpDur" hidden>
+              <button class="chipbtn" type="button" data-v="1h">1 hour</button>
+              <button class="chipbtn on" type="button" data-v="1d">1 day</button>
+              <button class="chipbtn" type="button" data-v="30d">30 days</button>
+            </div>
+          </div>
+          <p class="hint" id="pgExpText" hidden></p>
+        </div>
+        <div class="ctl">
+          <span class="clabel" id="pgModeLabel">Mode</span>
+          <div class="segctl" role="group" aria-labelledby="pgModeLabel" id="pgMode">
+            <button class="chipbtn on" type="button" data-v="free">Build my own</button>
+            <button class="chipbtn" type="button" data-v="preset">Use a preset</button>
+          </div>
+        </div>
+        <div class="ctl" id="pgPresetCtl" hidden>
+          <span class="clabel" id="pgPresetLabel">Preset name</span>
+          <div class="segctl" role="group" aria-labelledby="pgPresetLabel" id="pgPresetName">
+            <button class="chipbtn on" type="button" data-v="og-card">og-card</button>
+            <button class="chipbtn" type="button" data-v="thumb">thumb</button>
+          </div>
+          <div class="ana-ex" id="pgPresetExpansion" style="margin-top:12px;background:var(--sand-200);border-color:var(--sand-300);color:var(--ink)"></div>
+        </div>
+
+        <fieldset id="pgFree">
+          <div class="ctl">
+            <span class="clabel" id="pgSizeLabel">Size operation</span>
+            <div class="segctl" role="group" aria-labelledby="pgSizeLabel" id="pgSizeMode">
+              <button class="chipbtn" type="button" data-v="none">None</button>
+              <button class="chipbtn on" type="button" data-v="resize">Resize</button>
+              <button class="chipbtn" type="button" data-v="fit-in">Fit-in</button>
+              <button class="chipbtn" type="button" data-v="pad">Pad</button>
+              <button class="chipbtn" type="button" data-v="crop">Crop</button>
+            </div>
+            <p class="hint">Pick one sizing move, or none. The crab does one snap at a time, in path order.</p>
+          </div>
+          <div class="wh" id="pgWhRow">
+            <div class="ctl"><label for="pgW">Width (px)</label><input type="number" id="pgW" value="300" min="0" max="16383" step="1"></div>
+            <div class="ctl"><label for="pgH">Height (px)</label><input type="number" id="pgH" value="200" min="0" max="16383" step="1"></div>
+          </div>
+          <p class="err" id="pgSizeErr" hidden style="margin:-8px 0 16px"></p>
+          <div class="ctl" id="pgPadCtl" hidden>
+            <span class="clabel" id="pgPadLabel">Pad fill</span>
+            <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+              <div class="segctl" role="group" aria-labelledby="pgPadLabel" id="pgPadFill">
+                <button class="chipbtn on" type="button" data-v="blur">blur</button>
+                <button class="chipbtn" type="button" data-v="color">Color</button>
+                <button class="chipbtn" type="button" data-v="none">None</button>
+              </div>
+              <span id="pgPadColorWrap" hidden><input type="color" id="pgPadColorPick" value="#ff0000" aria-label="Pad fill color"> <input type="text" class="hex mono" id="pgPadColor" value="ff0000" maxlength="6" aria-label="Pad fill color, hex" style="width:88px;padding:8px 10px;border:2px solid var(--sand-300);border-radius:10px"></span>
+            </div>
+            <p class="hint" id="pgPadNoneNote" hidden>With no fill named, the request's fill(...) directive color is used, or black when there is none.</p>
+          </div>
+          <div class="ctl" id="pgCropCtl" hidden>
+            <label for="pgCropAlign">Crop alignment</label>
+            <select id="pgCropAlign">
+              <option value="smart" selected>smart (focal point, or a face)</option>
+              <option value="center">center (the default)</option>
+              <option value="top">top</option>
+              <option value="bottom">bottom</option>
+              <option value="left">left</option>
+              <option value="right">right</option>
+              <option value="face">face (largest detected face)</option>
             </select>
+            <p class="hint" id="pgFaceNote" hidden>face needs a face model on the server; with none found it falls back to the smart window.</p>
           </div>
-          <div class="control">
-            <label>Look</label>
-            <div class="seg-btns" id="bFilters">
-              <button class="toggle coral" data-f="grayscale" type="button">grayscale</button>
-              <button class="toggle coral" data-f="sepia" type="button">sepia</button>
-              <button class="toggle coral" data-f="sharpen(1.2)" type="button">sharpen(1.2)</button>
-              <button class="toggle coral" data-f="saturation(1.4)" type="button">saturation(1.4)</button>
-              <button class="toggle coral" data-f="radius(24)" type="button">radius(24)</button>
+          <div class="ctl">
+            <span class="clabel" id="pgDprLabel">Device pixel ratio</span>
+            <div class="segctl" role="group" aria-labelledby="pgDprLabel" id="pgDpr">
+              <button class="chipbtn on" type="button" data-v="1">1</button>
+              <button class="chipbtn" type="button" data-v="1.5">1.5</button>
+              <button class="chipbtn" type="button" data-v="2">2</button>
+              <button class="chipbtn" type="button" data-v="3">3</button>
             </div>
+            <p class="hint">Scales size and crop targets before any no_upscale cap. An explicit dpr in the URL beats the DPR client hint header.</p>
           </div>
-          <div class="control">
-            <label for="bFormat">Output format</label>
-            <div class="seg-btns" id="bFormat">
-              <button class="toggle on" data-v="" type="button">Auto (Accept)</button>
-              <button class="toggle" data-v="webp" type="button">WebP</button>
-              <button class="toggle" data-v="avif" type="button">AVIF</button>
-              <button class="toggle" data-v="jxl" type="button">JPEG XL</button>
-              <button class="toggle" data-v="jpeg" type="button">JPEG</button>
-            </div>
-          </div>
-          <div class="control">
-            <label for="bQuality">Quality: <span id="bQualityVal">80</span></label>
-            <input type="range" id="bQuality" min="10" max="100" step="5" value="80">
-            <div class="seg-btns" style="margin-top:8px">
-              <button class="toggle" id="bAuto" type="button">quality(auto), verified per image</button>
-            </div>
-          </div>
-          <div class="control">
-            <label>Signature</label>
-            <div class="seg-btns" id="bSig">
-              <button class="toggle on" data-v="signed" type="button">Signed (production)</button>
-              <button class="toggle" data-v="unsafe" type="button">unsafe (local dev)</button>
-            </div>
-          </div>
-        </div>
-        <div>
-          <div class="output-box">
-            <button class="copy-btn" id="copyBuilt" type="button">Copy URL</button>
-            <div class="built mono" id="builtUrl"></div>
-          </div>
-          <div class="breakdown" id="builtBreakdown"></div>
-          <p class="honest">In production the first segment is the hex HMAC-SHA256 of everything after it, computed with your secret by a client library or the CLI. The placeholder above marks where it goes. Try the signing code below to produce a real one.</p>
-        </div>
+          <div id="pgFilters"></div>
+          <p class="fnote">Each toggle joins the same filters: chain, in the order you switch it on. Also in the grammar, but needing coordinates, images, or server configuration a generic builder cannot set honestly: rgb, trim, rotate, flip, monochrome, mask, blur_region, pixelate_region, watermark, overlay, text, blurfaces, pixelatefaces, blurclass, pixelateclass, facepad, keep_profile.</p>
+        </fieldset>
       </div>
-    </div>
 
-    <div class="panel reveal">
-      <h3 style="font-size:22px">2. Before and after</h3>
-      <p style="color:var(--ink2);margin-bottom:6px">Drag the handle to compare. Toggle filters to preview the look of a filter chain.</p>
-      <p class="honest" style="margin:0 0 18px">Honest preview note: this demo uses CSS filters in your browser to approximate the result. A running crabcrop server applies the real operations to the actual pixels.</p>
-      <div class="ba" id="baBox">
-        <img id="baBefore" alt="Sample landscape photo, original" src="">
-        <div class="after-wrap" id="baAfterWrap"><img id="baAfter" alt="Sample landscape photo with preview filters applied" src=""></div>
-        <span class="tag l">Original</span><span class="tag r">Preview</span>
-        <div class="divider" id="baDivider"></div>
-        <div class="handle" id="baHandle" aria-hidden="true">↔</div>
-        <input type="range" id="baRange" min="0" max="100" value="55" aria-label="Reveal processed preview">
+      <div class="pg-out reveal-r">
+        <div style="height:34px" aria-hidden="true"></div>
+        <div class="outbox">
+          <div class="peek clawp" id="pgCrab" aria-hidden="true"><svg class="claw"><use href="#clawmark"/></svg></div>
+          <div class="out-head">
+            <span class="olabel">Assembled URL</span>
+            <button class="snapbtn" type="button" id="pgSnap">Snap it: copy URL</button>
+            <button class="copybtn" type="button" id="pgCopy">Copy</button>
+          </div>
+          <div class="built" id="pgUrl" aria-live="off"></div><span class="seal" id="pgSeal" hidden aria-hidden="true"><svg class="claw" style="width:13px;height:13px;color:#fff"><use href="#clawmark"/></svg></span>
+          <p class="sigline" id="pgSigLine">The first segment above is a placeholder that marks where the signature goes. In production it is the hex HMAC-SHA256 of everything after it, computed with your secret by a client library or the CLI. Produce a real one in the Sign it section.</p>
+          <div aria-live="polite" class="sr" id="pgLive"></div>
+        </div>
+        <div class="banner" id="pgBanner" hidden></div>
+        <h3 style="margin-top:22px">What you just built</h3>
+        <div class="parts" id="pgParts"></div>
+        <h3 style="margin-top:22px">What the server will do</h3>
+        <div class="notes" id="pgNotes"></div>
+        <div class="pg-bubble-row"><div class="bubble" id="pgBubble">Flip something. I will assemble it.</div></div>
       </div>
-      <div class="filter-row" id="previewFilters">
-        <button class="toggle coral" data-css="grayscale(1)" data-label="grayscale" type="button">grayscale</button>
-        <button class="toggle coral" data-css="sepia(.65)" data-label="sepia" type="button">sepia</button>
-        <button class="toggle coral" data-css="saturate(1.7)" data-label="saturation(1.7)" type="button">saturation(1.7)</button>
-        <button class="toggle coral" data-css="contrast(1.25)" data-label="contrast(25)" type="button">contrast(25)</button>
-        <button class="toggle coral" data-css="hue-rotate(90deg)" data-label="huerotate(90)" type="button">huerotate(90)</button>
-        <button class="toggle coral" data-css="blur(2px)" data-label="blur(2.5)" type="button">blur(2.5)</button>
-      </div>
-      <p class="honest mono" id="previewChain">filters: (none yet, toggle a filter)</p>
     </div>
   </div>
 </section>
 
-<!-- CODE -->
-<section id="code">
+<!-- TRANSFORMATION TOY -->
+<section id="toy" class="band-200">
+  <div class="foam" style="--fc:#F3DFB4" aria-hidden="true"></div>
   <div class="wrap">
-    <div class="reveal">
-      <span class="eyebrow">Sign it in your stack</span>
-      <h2>One signing scheme, every language.</h2>
-      <p class="lede">The grammar and signing scheme are specified once, with a canonical set of test vectors that every implementation runs as its test suite. The server verifies with the same Rust crate your app builds with, so client and server cannot drift.</p>
+    <div class="reveal-l">
+      <div class="tidemark"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg> Transformation toy</div>
+      <h2>Before, after, and a little <span class="coral">sideways.</span></h2>
+      <p class="lede">Drag the crop window by its claws. Stack filters in any order and watch the order change the picture. Crop coordinates are source pixels, and filter order is meaning.</p>
+      <p class="honest" style="max-width:760px">CSS preview. Your browser approximates the look with CSS filters. A running crabcrop server applies the real operations to the actual pixels, in this order. Blur strength and brighten do not map one to one.</p>
     </div>
-    <div class="reveal" style="margin-top:40px">
-      <div class="tabs" role="tablist">
-        <button class="tab active" data-pane="curl" type="button">curl</button>
-        <button class="tab" data-pane="ts" type="button">TypeScript</button>
-        <button class="tab" data-pane="py" type="button">Python</button>
-        <button class="tab" data-pane="rs" type="button">Rust</button>
+    <div style="margin-bottom:12px"><label style="font-weight:700;font-size:14.5px"><input type="checkbox" id="toyLock"> Lock 3:2</label></div>
+    <div class="toy-grid">
+      <div class="reveal-l">
+        <div class="toy-stage" id="toyStage">
+          <span class="toy-tag">Original · 1200x800</span>
+          <img class="base" id="toyBase" alt="Sample landscape illustration used by the transformation toy">
+          <div class="toy-win" id="toyWin" tabindex="0" role="group" aria-label="Crop window. Arrow keys move it, Alt plus arrow keys resize it.">
+            <span class="clawh tl" data-corner="tl" aria-hidden="true"><svg class="claw"><use href="#clawmark"/></svg></span>
+            <span class="clawh tr" data-corner="tr" aria-hidden="true"><svg class="claw"><use href="#clawmark"/></svg></span>
+            <span class="clawh bl" data-corner="bl" aria-hidden="true"><svg class="claw"><use href="#clawmark"/></svg></span>
+            <span class="clawh br" data-corner="br" aria-hidden="true"><svg class="claw"><use href="#clawmark"/></svg></span>
+          </div>
+        </div>
+        <p class="readout" id="toyReadout">left 300, top 150, right 900, bottom 550, size 600x400</p>
+        <p class="honest">Drag inside the window to move it, drag a claw to resize. Keyboard: arrows move by 1 px, Shift by 10 px, Alt plus arrows resize from the bottom right, Home resets.</p>
+        <noscript><p class="honest">With JavaScript off, one static example: <span class="mono">crop-rect:300x150:900x550/filters:grayscale:contrast(25)</span></p></noscript>
+      </div>
+      <div class="reveal-r">
+        <div class="toy-preview" id="toyPreview" style="aspect-ratio:3/2">
+          <span class="toy-tag">Preview</span>
+          <div class="pv" id="pvFiltered"><img id="pvImgF" alt="Cropped preview with the filter stack applied"></div>
+          <div class="pv" id="pvPlain"><img id="pvImgP" alt="Cropped preview without filters"></div>
+          <div class="divider" id="pvDivider"></div>
+          <div class="phandle" id="pvHandle" aria-hidden="true"><svg class="claw"><use href="#clawmark"/></svg></div>
+          <input type="range" id="pvRange" min="0" max="100" value="55" aria-label="Reveal processed preview">
+        </div>
+        <div class="fgroup" style="margin-top:24px">Filter palette</div>
+        <div class="filter-row" id="toyPalette" style="display:flex;flex-wrap:wrap;gap:8px">
+          <button class="chipbtn coral" type="button" data-f="grayscale">grayscale</button>
+          <button class="chipbtn coral" type="button" data-f="sepia">sepia</button>
+          <button class="chipbtn coral" type="button" data-f="invert">invert</button>
+          <button class="chipbtn coral" type="button" data-f="saturation(1.7)">saturation(1.7)</button>
+          <button class="chipbtn coral" type="button" data-f="contrast(25)">contrast(25)</button>
+          <button class="chipbtn coral" type="button" data-f="huerotate(90)">huerotate(90)</button>
+          <button class="chipbtn coral" type="button" data-f="blur(2.5)">blur(2.5)</button>
+        </div>
+        <div class="fgroup">Your chain, in order</div>
+        <div class="stack" id="toyStack"><span class="empty">Empty for now. Toggle a filter and it lands here, numbered.</span></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="chipbtn" type="button" data-preset="postcard">Faded postcard</button>
+          <button class="chipbtn" type="button" data-preset="pop">Pop</button>
+          <button class="chipbtn" type="button" data-preset="noir">Noir</button>
+        </div>
+        <p class="readout" style="margin-top:16px">Your chain so far:</p>
+        <div class="eql" id="toyEq">filters: (none yet, toggle a filter)</div>
+        <div class="bubble" style="margin-top:18px">That preview is CSS standing in. My real claws work on the actual pixels.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SIGN IT -->
+<section id="sign">
+  <div class="foam" style="--fc:#FBF0D9" aria-hidden="true"></div>
+  <div class="wrap">
+    <div class="reveal-l">
+      <div class="tidemark"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg> Sign it</div>
+      <h2>Sign it in your <span class="coral">stack.</span></h2>
+      <p class="lede">One signing scheme, specified once, with a canonical set of test vectors that every implementation runs as its test suite. The server verifies with the same Rust crate your app can build with, so client and server cannot drift.</p>
+      <p style="margin-top:14px;font-size:16.5px;color:var(--ink-2);max-width:720px">Compute HMAC-SHA256 over the remainder of the path, the operations and the source URL exactly as they appear with no leading slash, keyed with your secret. Hex encode the result. Use it as the first path segment.</p>
+    </div>
+    <div class="reveal-r" style="margin-top:38px">
+      <div class="tabs" role="tablist" aria-label="Signing examples by language">
+        <button class="tab active" data-pane="curl" type="button" role="tab" id="tab-curl" aria-controls="pane-curl" aria-selected="true">curl</button>
+        <button class="tab" data-pane="ts" type="button" role="tab" id="tab-ts" aria-controls="pane-ts" aria-selected="false">TypeScript</button>
+        <button class="tab" data-pane="py" type="button" role="tab" id="tab-py" aria-controls="pane-py" aria-selected="false">Python</button>
+        <button class="tab" data-pane="rs" type="button" role="tab" id="tab-rs" aria-controls="pane-rs" aria-selected="false">Rust</button>
       </div>
       <div class="code-window">
-        <button class="copy-btn" id="copyCode" type="button">Copy</button>
-        <div class="code-pane active" data-pane="curl"><pre><span class="c"># Sign the remainder with openssl, then use the hex as segment one</span>
+        <button class="copy-btn" id="copyCode" type="button">Copy snippet</button>
+        <div class="code-scroll">
+        <div class="code-pane active" data-pane="curl" role="tabpanel" id="pane-curl" aria-labelledby="tab-curl"><pre><span class="c"># Sign the remainder. The claw signs what it serves.</span>
+<span class="c"># The hex output is segment one of the URL.</span>
 printf <span class="s">'%s'</span> <span class="s">'300x200/https://example.com/photo.jpg'</span> \
   | openssl dgst -sha256 -hmac <span class="s">'your-secret'</span>
-<span class="c"># SHA2-256(stdin)= 3c1f6c180116661877bd4c85fd201a178087d74c1cc188cc584e819d901308c6</span>
-
-curl <span class="s">"https://img.example.com/3c1f6c18…/300x200/https://example.com/photo.jpg"</span></pre></div>
-        <div class="code-pane" data-pane="ts"><pre><span class="c">// @crabcrop/url, standard library only</span>
+<span class="c"># SHA2-256(stdin)= 3c1f6c180116661877bd4c85fd201a178087d74c1cc188cc584e819d901308c6</span></pre></div>
+        <div class="code-pane" data-pane="ts" role="tabpanel" id="pane-ts" aria-labelledby="tab-ts"><pre><span class="c">// Sign once, reuse the URL everywhere.</span>
+<span class="c">// Same vectors, same signature, no drift.</span>
 <span class="k">import</span> { buildURL, buildSrcSet, purgeSignature } <span class="k">from</span> <span class="s">"@crabcrop/url"</span>;
 
 <span class="k">const</span> url = buildURL({
   base: <span class="s">"https://img.example.com"</span>,
-  secret: process.env.CRABCROP_SECRET,
+secret: <span class="s">"your-secret"</span>,
   operations: <span class="s">"crop:1200x630:smart/filters:format(webp):quality(80)"</span>,
   source: <span class="s">"https://example.com/photo.jpg"</span>,
 });
 
 <span class="k">const</span> srcset = buildSrcSet({ <span class="c">/* same options */</span> }, [400, 800, 1200]);</pre></div>
-        <div class="code-pane" data-pane="py"><pre><span class="c"># crabcrop_url, standard library only</span>
-<span class="k">import</span> os
+        <div class="code-pane" data-pane="py" role="tabpanel" id="pane-py" aria-labelledby="tab-py"><pre><span class="c"># Standard library only. Nothing extra to haul in.</span>
+<span class="c"># Builds the signed URL and the srcset in one go.</span>
 <span class="k">from</span> crabcrop_url <span class="k">import</span> build_url, build_srcset, purge_signature
 
 url = build_url(
-    base=<span class="s">"https://img.example.com"</span>,
-    secret=os.environ[<span class="s">"CRABCROP_SECRET"</span>],
+    base=<span class="s">"https://images.example.com"</span>,
+secret=<span class="s">"your-secret"</span>,
     operations=<span class="s">"300x200/filters:grayscale"</span>,
     source=<span class="s">"https://example.com/photo.jpg"</span>,
 )
 
 srcset = build_srcset(..., widths=[400, 800, 1200])</pre></div>
-        <div class="code-pane" data-pane="rs"><pre><span class="c">// crate: crabcrop-url, the same crate the server verifies with</span>
+        <div class="code-pane" data-pane="rs" role="tabpanel" id="pane-rs" aria-labelledby="tab-rs"><pre><span class="c">// The same crate the server verifies with.</span>
+<span class="c">// If it signs here, it verifies there.</span>
 <span class="k">use</span> crabcrop_url::{build_url, sign};
 
 <span class="k">let</span> signature = sign(secret, <span class="s">"300x200/https://example.com/photo.jpg"</span>);
 <span class="k">let</span> url = build_url(base, secret,
     <span class="s">"crop:1200x630:smart/filters:format(avif):quality(auto)"</span>,
     <span class="s">"https://example.com/photo.jpg"</span>)?;</pre></div>
+        </div>
+        <div class="peek clawp" id="codeCrab" aria-hidden="true"><svg class="claw"><use href="#clawmark"/></svg></div>
       </div>
-      <p class="honest">Test vector you can check right now: with secret <span class="mono">your-secret</span>, the HMAC-SHA256 of <span class="mono">300x200/https://example.com/photo.jpg</span> is <span class="mono">3c1f6c180116661877bd4c85fd201a178087d74c1cc188cc584e819d901308c6</span>.</p>
+
+      <div class="vector-card">
+        <h3>Check the scheme yourself, right now.</h3>
+        <p>Secret <code>Jefe</code>, message <code>what do ye want for nothing?</code>, HMAC-SHA256 <code>ba5396e10039ec002bf1fde117eee48df8c2f06bc47b5f2d3272ea77f6862da9</code>.</p>
+        <p>Secret <code>your-secret</code>, remainder <code>300x200/https://example.com/photo.jpg</code>, HMAC-SHA256 <code>3c1f6c180116661877bd4c85fd201a178087d74c1cc188cc584e819d901308c6</code>.</p>
+      </div>
+      <div class="bubble" id="codeBubble" style="margin-top:18px">Same vectors in every language. Sign here, verify there.</div>
     </div>
   </div>
 </section>
 
-<!-- FEATURES / META -->
-<section id="features" class="alt-bg" style="padding-top:80px">
+<!-- FEATURES -->
+<section id="features" class="band-200">
+  <div class="foam" style="--fc:#F3DFB4" aria-hidden="true"></div>
   <div class="wrap">
-    <div class="reveal">
-      <span class="eyebrow">Beyond the transform</span>
-      <h2>Metadata, placeholders and responsive help, built in.</h2>
+    <div class="reveal-l">
+      <div class="tidemark"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg> Beyond the snap</div>
+      <h2>Small URL. Long <span class="coral">reach.</span></h2>
+      <p class="lede">The transform is only the first tide. Caching, metadata, negotiation, and purging are built into the same URL.</p>
+      <p style="margin-top:12px;font-size:16.5px;color:var(--ink-2)">39 filters and encoding directives, chained inside one <span class="mono">filters:</span> segment in the order you write them.</p>
     </div>
     <div class="grid3" style="margin-top:40px">
-      <div class="feature reveal"><div class="icon">🧾</div><h3>Meta as JSON</h3><p>Send <code>Accept: application/json</code> on any image URL and get dimensions, format, byte size and source size instead of image bytes. Grammar errors answer with a stable JSON error envelope.</p></div>
-      <div class="feature reveal d1"><div class="icon">🎨</div><h3>Placeholders while it loads</h3><p>Ask for placeholders and meta adds the dominant color, a five-color palette, a tiny blurred JPEG preview, and a ThumbHash string your client can decode into an aspect-correct blur.</p></div>
-      <div class="feature reveal d2"><div class="icon">📐</div><h3>Quality you can verify</h3><p><code>quality(auto)</code> picks per image, then for JPEG and JPEG XL it encodes, decodes and scores the result with SSIMULACRA2 until it lands on target. The score is reported back in meta.</p></div>
-      <div class="feature reveal"><div class="icon">📱</div><h3>Client hints and DPR</h3><p>URLs that size nothing can take width from client hints, quantized so nearby viewports share a cache entry. <code>dpr(2)</code> serves retina from the same template, and <code>Save-Data</code> steps quality down for visitors who ask.</p></div>
-      <div class="feature reveal d1"><div class="icon">🗄️</div><h3>Sources where they live</h3><p>Fetch originals over HTTP and HTTPS, from S3 or S3-compatible stores, from Google Cloud Storage, or from a local file root. EXIF orientation is applied at decode, so phone photos come out upright.</p></div>
-      <div class="feature reveal d2"><div class="icon">🛟</div><h3>Graceful by design</h3><p>An optional fallback image serves through the same operations when a source fails. Signature and parse errors stay honest, and fallback responses are never cached, so a recovered origin is picked up on the next request.</p></div>
+      <div class="specimen reveal-l"><div class="iconring"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg></div><h3>Canonical keys, two-tier cache</h3><p>Signed URLs are content addressed, and entries key on the canonical form of the parsed operations, so equivalent spellings share one entry. A byte-bounded in-memory LRU sits in front, with an optional disk tier underneath that survives restarts and promotes hits back into memory. Only 200 responses are cached. Errors never are.</p><span class="opname">Cache-Control: immutable</span></div>
+      <div class="specimen reveal-r d1"><div class="iconring coral"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg></div><h3>Presets that stay put</h3><p>A preset names an operation string on the server, so templates stay short and the transform menu stays under operator control. Treat a preset as a stable template and never edit one in place: roll a change out under a new name, because signed responses travel with a one-year immutable cache header that no purge can reach downstream.</p><span class="opname">preset:og-card</span></div>
+      <div class="specimen reveal-l d2"><div class="iconring"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg></div><h3>Purge one, or purge the group</h3><p><code>/purge</code> invalidates every stored variant of one result in both cache tiers, and <code>/purge-group</code> clears a whole preset output set named in the <code>Cache-Group</code> header. Purge signatures are HMACs under a subkey derived from your secret, a separate domain from image signatures, so an image signature can never be replayed as a purge.</p><span class="opname">POST /purge-group/&lt;signature&gt;/small</span></div>
+      <div class="specimen reveal-r"><div class="iconring coral"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg></div><h3>Meta JSON and placeholders</h3><p>Send <code>Accept: application/json</code> on any image URL and get dimensions, format, byte size, and source size instead of image bytes. Ask for placeholders and the same response adds the dominant color, a five-color palette, a tiny blurred JPEG preview, and a ThumbHash string your client decodes into an aspect-correct blur while the real image loads.</p><span class="opname">Accept: application/json; placeholders=1</span></div>
+      <div class="specimen reveal-l d1"><div class="iconring"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg></div><h3>quality(auto), verified</h3><p><code>quality(auto)</code> picks a quality per image, from 50 for flat images to 95 for detailed ones. For JPEG and JPEG XL, crabcrop then encodes, decodes, and scores the result against the processed source with SSIMULACRA2, adjusting quality until it lands on target, and reports the achieved score back in meta.</p><span class="opname">filters:quality(auto)</span></div>
+      <div class="specimen reveal-r d2"><div class="iconring coral"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg></div><h3>Format negotiation that listens</h3><p>Name no format and the <code>Accept</code> header decides: among AVIF, JPEG XL, and WebP, the highest q-value wins, ties break by server preference in that order, and a format refused with <code>q=0</code> is never picked. An explicit <code>format(...)</code> in the URL always wins, and wildcards do not count as an offer.</p><span class="opname">Accept: image/avif;q=0.5, image/webp</span></div>
+      <div class="specimen reveal-l"><div class="iconring"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg></div><h3>Client hints, DPR, and Save-Data</h3><p>A URL that sizes nothing can take its width from client hints, quantized so nearby viewports share one cache entry, with <code>dpr</code> scaling the same template for retina displays. A request carrying <code>Save-Data: on</code> gets the default quality stepped down one notch, from 80 to 70, and stepped responses are cached separately.</p><span class="opname">filters:dpr(2)</span></div>
+      <div class="specimen reveal-r d1"><div class="iconring coral"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg></div><h3>Sources, where they already live</h3><p>Fetch originals over HTTP and HTTPS under a source policy, from S3 or S3-compatible stores, from Google Cloud Storage, or from a local file root that refuses path escapes. Every fetch is bounded at 10 seconds and 10 MiB, and EXIF orientation is applied at decode, so phone photos come out upright.</p><span class="opname">s3://bucket/key · gs://bucket/key · file:///path</span></div>
+      <div class="specimen reveal-l d2"><div class="iconring"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg></div><h3>Graceful by design</h3><p>An optional fallback image serves through the same operations when a source cannot be fetched or decoded, marked with <code>X-Crabcrop-Fallback: 1</code>. Signature and parse failures never fall back, and fallback responses are never cached, so a recovered origin is picked up on the next request.</p><span class="opname">X-Crabcrop-Fallback: 1</span></div>
     </div>
   </div>
 </section>
 
-<!-- PERFORMANCE -->
-<section id="performance" class="dark-bg">
-  <div class="wrap">
-    <div class="reveal">
-      <span class="eyebrow">Performance</span>
-      <h2>Fast cold. Instant warm.</h2>
-      <p class="lede">Measured on 25 local 2400x1600 JPEG sources, release build, October 23, 2026. Cold is the first request per source. Warm is the repeat, served from the in-memory result cache.</p>
+<!-- SPEED -->
+<section id="speed" class="speed-sec">
+  <div class="foam" style="--fc:#0D202E" aria-hidden="true"></div>
+  <div class="wrap" style="position:relative;z-index:1">
+    <div class="speed-head reveal-l">
+      <div style="max-width:720px">
+        <div class="tidemark on-dark"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg> Speed</div>
+        <h2>Built for speed. Measured like it matters.</h2>
+        <p class="lede">Speed is the identity here, so here are our own numbers, with the method attached. Cold means the first fetch and transform for a source. Warm means the repeat, served from the in-memory result cache.</p>
+      </div>
+      <div class="speed-crab" id="speedCrab">
+        <div class="streaks" aria-hidden="true"><i></i><i></i><i></i></div>
+        <div>
+          <div class="porthole"><img src="crabcrop-mascot.webp" alt="Snap, the crabcrop crab, mid scuttle"></div>
+          <div class="bubble on-dark" style="margin-top:12px;max-width:210px">Cold, I work. Warm, I barely lift a claw.</div>
+        </div>
+      </div>
     </div>
-    <div class="stats">
-      <div class="stat reveal"><div class="num"><span data-count="29.1" data-dec="1">0</span><em> ms</em></div><p>Cold p50, resize to 800 wide (JPEG)</p></div>
-      <div class="stat reveal d1"><div class="num"><span data-count="56.8" data-dec="1">0</span><em> ms</em></div><p>Cold p50, crop-fill to 400x300 (JPEG)</p></div>
-      <div class="stat reveal d2"><div class="num"><span data-count="0.3" data-dec="1">0</span><em> ms</em></div><p>Warm p50 range is 0.2 to 0.4 ms, straight from cache</p></div>
-      <div class="stat reveal d3"><div class="num"><span data-count="1843">0</span><em> req/s</em></div><p>Warm throughput, resize, 8 workers</p></div>
+    <p class="method reveal-l" style="margin-top:26px">Method, stated before the numbers: measured October 23, 2026. Release build. Twenty-five local 2400x1600 JPEG fixtures, about 205 KB each, served from a local origin. Cold is the first request per source. Warm is the immediate repeat. Throughput is one 8-worker pass on the resize operation.</p>
+    <div class="stats6">
+      <div class="stat reveal-l"><div class="num"><span data-count="29.1" data-dec="1">0</span><em> ms</em></div><div class="lab">Cold p50, resize to 800 wide</div><p>JPEG output, first fetch and transform.</p></div>
+      <div class="stat reveal-r d1"><div class="num"><span data-count="56.8" data-dec="1">0</span><em> ms</em></div><div class="lab">Cold p50, crop-fill to 400x300</div><p>JPEG output, first fetch and transform.</p></div>
+      <div class="stat reveal-l d2"><div class="num"><span data-count="29.9" data-dec="1">0</span><em> ms</em></div><div class="lab">Cold p50, resize to 800 wide plus grayscale</div><p>JPEG output, first fetch and transform.</p></div>
+      <div class="stat reveal-r"><div class="num"><span data-count="149.3" data-dec="1">0</span><em> ms</em></div><div class="lab">Cold p50, resize to 800 wide, WebP q80</div><p>The slowest cold row we measured, shown on purpose. Honest numbers or no numbers.</p></div>
+      <div class="stat reveal-l d1"><div class="num">0.2 to 0.4<em> ms</em></div><div class="lab">Warm p50, all operations measured</div><p>Repeat requests, served straight from the in-memory result cache.</p></div>
+      <div class="stat reveal-r d2"><div class="num"><span data-count="1843">0</span><em> req/s</em></div><div class="lab">Warm throughput, resize, 8 workers</div><p>Repeat requests against the result cache. The pass is only 25 requests, so read this as an order of magnitude, not a promise.</p></div>
     </div>
-    <p class="reveal" style="margin-top:28px;color:#a9bfd2;font-size:14.5px;max-width:720px">Signed URLs are content addressed, so successful responses cache in a byte-bounded in-memory LRU, with an optional disk tier underneath that survives restarts. Only 200 responses are cached. Errors never are.</p>
+    <p class="reveal-l" style="margin-top:26px;font-size:16.5px;color:#DCE9F2;max-width:720px">Cold does the work once. Warm never does it twice. That is the whole trick, and the cache is not shy about it.</p>
+
+    <div class="race reveal-r" id="race">
+      <h3>Race <span style="color:var(--coral)">the cache</span></h3>
+      <p class="caption">Illustration of measured results, not a live benchmark. The sprint animation is staged so the gap is visible; the numbers are the measurements.</p>
+      <div class="race-ctl">
+        <div class="segctl" role="group" aria-label="Operation" id="raceOp">
+          <button class="chipbtn on" type="button" data-v="resize">Resize to 800 wide</button>
+          <button class="chipbtn" type="button" data-v="crop">Crop-fill to 400x300</button>
+        </div>
+        <button class="rbtn" type="button" id="raceRun">Run first request</button>
+        <button class="rbtn" type="button" id="raceAgain" disabled>Run it again</button>
+        <button class="rbtn ghost" type="button" id="raceReset">Reset</button>
+      </div>
+      <div class="lane cold">
+        <div class="llabel"><span>Cold: fetch and transform</span><span>lane 1</span></div>
+        <div class="track"><div class="bar" id="coldBar"></div><div class="crabmark" id="coldCrab"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg></div></div>
+        <p class="readout" id="coldOut">Not run yet</p>
+      </div>
+      <div class="lane warm">
+        <div class="llabel"><span>Warm: from the result cache</span><span>lane 2</span></div>
+        <div class="track"><div class="bar" id="warmBar"></div><div class="crabmark" id="warmCrab"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg></div></div>
+        <p class="readout" id="warmOut">Not run yet</p>
+      </div>
+      <div><span class="cachechip" id="cacheChip"><span class="dot"></span><span id="cacheText">Cache: empty</span></span>
+      <span style="font-size:13.5px;color:#A9BFD2;margin-left:12px">Only a 200 response is stored. Errors never are.</span></div>
+      <div class="through" id="through">
+        <div class="tnum"><span id="throughNum">0</span><em> req/s</em></div>
+        <p>1,843 req/s, warm, resize, 8 workers, local fixtures. Warm requests served, illustrated.</p>
+      </div>
+      <div aria-live="polite" class="sr" id="raceLive"></div>
+    </div>
   </div>
+  <svg class="tidelines" width="100%" height="40" preserveAspectRatio="none" aria-hidden="true"><path d="M0 12 Q30 4 60 12 T120 12 T180 12 T240 12 T300 12 T360 12 T420 12 T480 12 T540 12 T600 12 T660 12 T720 12 T780 12 T840 12 T900 12 T960 12 T1020 12 T1080 12 T1140 12 T1200 12 T1260 12 T1320 12 T1380 12 T1440 12 T1500 12" stroke="#8FE3E1" stroke-width="2" fill="none"/><path d="M0 28 Q30 21 60 28 T120 28 T180 28 T240 28 T300 28 T360 28 T420 28 T480 28 T540 28 T600 28 T660 28 T720 28 T780 28 T840 28 T900 28 T960 28 T1020 28 T1080 28 T1140 28 T1200 28 T1260 28 T1320 28 T1380 28 T1440 28 T1500 28" stroke="#8FE3E1" stroke-width="1" fill="none"/></svg>
 </section>
 
 <!-- AI -->
 <section id="ai">
+  <div class="foam" style="--fc:#FBF0D9" aria-hidden="true"></div>
   <div class="wrap">
-    <div class="reveal">
-      <span class="eyebrow">AI features</span>
-      <h2>Models you supply. Inference in process.</h2>
-      <p class="lede">AI features run ONNX models you provide as deployment artifacts. crabcrop never downloads a model. Models load at boot and fail fast if they cannot, and inference runs behind a bounded gate so AI requests cannot starve the normal pipeline. No model configured means a clean 501, never a silent fallback.</p>
+    <div class="ai-intro reveal-l">
+      <div style="max-width:700px">
+        <div class="tidemark"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg> AI features</div>
+        <h2>Models you supply. Inference in process.</h2>
+        <p class="lede">AI filters run ONNX models you provide as files, loaded at boot before the server reports ready. Inference runs behind a server-wide gate of 2 concurrent inferences, so a burst of AI requests cannot starve the normal transform pipeline.</p>
+      </div>
+      <figure class="ai-crab">
+        <div class="porthole clawp" id="aiPorthole" role="img" aria-label="Snap's claw, standing in for the photo the AI filters work on"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg></div>
+        <div class="bubble" id="aiBubble">AI runs on models you bring.</div>
+        <figcaption>The photo is the demo. Models are yours to supply.</figcaption>
+      </figure>
     </div>
-    <div class="reveal" style="margin-top:26px">
-      <div class="ai-row"><div class="icon">🪄</div><div><h3>Background removal and upscale</h3><p><code>filters:removebg</code> keeps the subject over transparency. <code>filters:upscale(2)</code> or <code>upscale(4)</code> runs super-resolution, capped at 4096 px per dimension, with source transparency carried across.</p></div></div>
-      <div class="ai-row"><div class="icon">🙂</div><div><h3>Face-aware crops and redaction</h3><p>A face model makes <code>crop:...:smart</code> center on faces and powers <code>crop:...:face</code>. <code>blurfaces</code> and <code>pixelatefaces</code> redact every detected face. A detection failure fails the request rather than serving an unredacted image.</p></div></div>
-      <div class="ai-row"><div class="icon">🚗</div><div><h3>Class redaction</h3><p>With a detection model, <code>blurclass(person)</code> and <code>pixelateclass(car)</code> redact every detected object of a class. Repeat the filter for more classes. Meta can return the detection boxes for debugging.</p></div></div>
-      <div class="ai-row"><div class="icon">🏷️</div><div><h3>Tags and alt text from CLIP</h3><p>With a CLIP model pair configured, meta responses gain zero-shot <code>tags</code> with scores and a short <code>alt_text</code> composed from the best labels. Phrase-style labels work, and labels are embedded once at boot.</p></div></div>
+    <div class="ai-rows reveal-r">
+      <div class="ai-row" data-bubble="Backgrounds? Snipped."><span class="marker">ai/01</span><div><h3>Background removal</h3><p><code>filters:removebg</code> removes the background and keeps the subject over transparency. The output format must carry alpha: <code>png</code>, <code>webp</code>, <code>jxl</code>, or <code>avif</code>.</p></div></div>
+      <div class="ai-row"><span class="marker">ai/02</span><div><h3>Upscale</h3><p><code>filters:upscale(2)</code> or <code>upscale(4)</code> runs super-resolution by that factor, capped at 4096 px per dimension. Source transparency is carried across, even though the model only sees RGB.</p></div></div>
+      <div class="ai-row" data-bubble="Faces found first. Redaction never guesses."><span class="marker">ai/03</span><div><h3>Face crops and redaction</h3><p>A face model makes <code>crop:...:smart</code> center on detected faces and powers <code>crop:...:face</code>, while <code>blurfaces</code> and <code>pixelatefaces</code> redact every detected face. With no faces found, a face crop falls back to the smart window.</p></div></div>
+      <div class="ai-row" data-bubble="Name the class. I pinch those."><span class="marker">ai/04</span><div><h3>Class redaction</h3><p>With a detection model, <code>blurclass(person)</code> and <code>pixelateclass(car)</code> redact every detected object of a class, matched case-insensitively. Repeat the filter for more classes, and ask meta for the detection boxes when you need to debug.</p></div></div>
+      <div class="ai-row" data-bubble="Tags and alt text, from your model pair."><span class="marker">ai/05</span><div><h3>CLIP tags and alt text</h3><p>With a CLIP model pair configured, meta responses gain <code>tags</code>, zero-shot labels with scores, and <code>alt_text</code> composed from the best labels. Labels are embedded once at boot, and phrase-style labels work as well as single words.</p></div></div>
+    </div>
+    <div class="rules reveal-l">
+      <h3>The rules, with no fine print.</h3>
+      <ul>
+        <li>Models are operator-supplied files, deployment artifacts. crabcrop never downloads a model, at startup or at request time.</li>
+        <li>A configured model that cannot load is a startup error with a one-line diagnostic. It fails fast at boot, not on the first request.</li>
+        <li>No model configured means a clean 501, with a body like <span class="mono" style="font-size:.94em">removebg is not configured on this server</span>.</li>
+        <li>Nothing silently degrades. <span class="mono" style="font-size:.94em">upscale</span> never falls back to a plain resize, and a detection failure fails a redaction request rather than serving an unredacted image.</li>
+      </ul>
     </div>
   </div>
 </section>
 
 <!-- LIBRARIES -->
-<section id="libraries" class="alt-bg">
+<section id="libraries" class="band-200">
+  <div class="foam" style="--fc:#F3DFB4" aria-hidden="true"></div>
   <div class="wrap">
-    <div class="reveal">
-      <span class="eyebrow">Libraries and tools</span>
+    <div class="reveal-l">
+      <div class="tidemark"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg> Libraries and tools</div>
       <h2>Build URLs from anywhere. Even from your agent.</h2>
+      <p class="lede">One grammar and one signing scheme, specified once. Every builder below runs the same canonical test vectors as its test suite.</p>
     </div>
     <div class="grid3" style="margin-top:40px">
-      <div class="feature reveal"><div class="icon">🦀</div><h3>Rust crate</h3><p><code>crabcrop-url</code> with sign, verify, URL and srcset builders, and purge helpers. The same crate the server verifies with.</p></div>
-      <div class="feature reveal d1"><div class="icon">🟦</div><h3>TypeScript</h3><p><code>@crabcrop/url</code>, standard library only. Sign, verify, build URLs and srcsets, and compute purge signatures.</p></div>
-      <div class="feature reveal d2"><div class="icon">🐍</div><h3>Python</h3><p><code>crabcrop_url</code>, standard library only. The same builders and purge helpers, tested against the same vectors.</p></div>
-      <div class="feature reveal"><div class="icon">🤖</div><h3>MCP server for coding agents</h3><p>A first-party MCP server over the same SDK and HTTP surface, exposing <code>sign_url</code>, <code>explain_url</code>, <code>fetch_meta</code> and <code>purge_result</code>.</p></div>
-      <div class="feature reveal d1"><div class="icon">⌨️</div><h3>Operator CLI</h3><p>The server binary doubles as its own CLI: <code>sign</code>, <code>explain</code>, <code>meta</code>, <code>purge</code> and <code>purge-group</code>. URLs are validated against the server grammar before they are signed.</p></div>
-      <div class="feature reveal d2"><div class="icon">🧩</div><h3>Framework loaders</h3><p>A Next.js custom loader for <code>next/image</code>, a Nuxt provider for <code>@nuxt/image</code>, and a Hydrogen loader for external images. All three recommend presets, so client-side building never needs the secret. A browser playground builds, signs and explains URLs with the secret never leaving the page.</p></div>
+      <div class="specimen reveal-l"><div class="iconring"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg></div><h3>Rust crate</h3><p><code>crabcrop-url</code>: sign, verify, build URLs and srcsets, and compute purge signatures, with the same crate the server verifies with.</p></div>
+      <div class="specimen reveal-r d1"><div class="iconring coral"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg></div><h3>TypeScript</h3><p><code>@crabcrop/url</code>: the same sign, verify, URL, srcset, and purge helpers for TypeScript, standard library only.</p></div>
+      <div class="specimen reveal-l d2"><div class="iconring"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg></div><h3>Python</h3><p><code>crabcrop_url</code>: the same builders and purge helpers for Python, standard library only.</p></div>
+      <div class="specimen reveal-r"><div class="iconring coral"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg></div><h3>MCP server</h3><p>A first-party MCP server for coding agents, exposing <code>sign_url</code>, <code>explain_url</code>, <code>fetch_meta</code>, and <code>purge_result</code> over the same SDK and HTTP surface.</p></div>
+      <div class="specimen reveal-l d1"><div class="iconring"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg></div><h3>Operator CLI</h3><p>The server binary doubles as its own operator CLI, with <code>sign</code>, <code>explain</code>, <code>meta</code>, <code>purge</code>, and <code>purge-group</code>, and URLs are validated against the server grammar before they are signed.</p></div>
+      <div class="specimen reveal-r d2"><div class="iconring coral"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg></div><h3>Playground</h3><p>A static browser page for building, signing, previewing, and explaining URLs segment by segment, with the secret never leaving the page.</p></div>
+      <div class="specimen span2 reveal-l"><div class="iconring"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg></div><h3>Framework loaders</h3><p>A Next.js custom loader, a Nuxt provider, and a Hydrogen loader, all recommending presets so client-side URL building never needs the secret.</p></div>
     </div>
+  </div>
+</section>
 
-    <div class="cta reveal" style="margin-top:64px">
-      <h2>Put a crab in front of your images.</h2>
-      <p>Run one binary in front of your origin image store, sign your URLs, and let the URL do the work. Deploy with the included Docker image, Compose setup or Helm chart.</p>
-      <a class="btn" href="https://github.com/crabcrop" target="_blank" rel="noopener">Visit the crabcrop organization on GitHub</a>
-      <br><code>docker run -p 3000:3000 -e CRABCROP_SECRET=your-secret crabcrop:latest</code>
+<!-- CTA -->
+<section style="padding-top:0">
+  <div class="foam" style="--fc:#F3DFB4" aria-hidden="true"></div>
+  <div class="wrap">
+    <div class="cta-panel reveal-r">
+      <span class="ring" style="width:120px;height:120px;top:-40px;right:8%" aria-hidden="true"></span>
+      <span class="ring" style="width:64px;height:64px;bottom:-18px;left:38%" aria-hidden="true"></span>
+      <div class="cta-flex">
+        <figure class="frame"><img src="crabcrop-mascot.webp" alt="Snap, the crabcrop crab, ready to work"></figure>
+        <div>
+          <h2>Put a crab in front of your images.</h2>
+          <p class="body">Run one binary in front of your origin image store, sign your URLs, and let the URL do the work from there.</p>
+          <div class="bubble on-dark" style="margin-top:16px">One binary. I handle the rest.</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:22px;flex-wrap:wrap;align-items:center;margin-top:30px">
+        <a class="btn btn-foam" href="#playground">Start with the playground</a>
+        <a class="mono-link" style="color:#fff" href="#sign"><svg class="claw" width="16" height="16" aria-hidden="true"><use href="#clawmark"/></svg> Read how signing works</a>
+        <a class="mono-link" style="color:#fff" href="https://github.com/crabcrop" target="_blank" rel="noopener">github.com/crabcrop</a>
+      </div>
+      <div class="dockerstrip">
+        <code>docker run -p 3000:3000 -e CRABCROP_SECRET=your-secret crabcrop serve</code>
+        <button class="copybtn" type="button" id="copyDocker">Copy</button>
+      </div>
     </div>
   </div>
 </section>
@@ -467,150 +995,822 @@ srcset = build_srcset(..., widths=[400, 800, 1200])</pre></div>
 </main>
 
 <footer>
+  <div class="foam" style="--fc:#084F57" aria-hidden="true"></div>
   <div class="wrap">
-    <span><strong style="color:var(--ink)">🦀 crabcrop</strong> &nbsp;·&nbsp; On-demand image optimization, in Rust.</span>
-    <span><a href="https://github.com/crabcrop" target="_blank" rel="noopener">github.com/crabcrop</a> &nbsp;·&nbsp; <a href="#top">Back to top</a></span>
+    <div class="fbrand">
+      <span class="pebble" id="footCrab" aria-hidden="true"><svg class="claw"><use href="#clawmark"/></svg></span>
+      <div>
+        <div class="wordmark">crabcrop</div>
+        <div style="font-size:14px">On-demand image optimization, in Rust.</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:24px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:14px;font-weight:700">
+      <a href="https://github.com/crabcrop" target="_blank" rel="noopener">github.com/crabcrop</a>
+      <a href="#top" id="toTop">Back to the surface</a>
+    </div>
   </div>
+  <div class="bubble on-dark foot" id="footBubble" style="margin:18px auto 0">Back to the tide. Your images know the way now.</div>
+  <p class="signoff">Built on the shore, in Rust. MIT licensed.<br>Snapped, not generated. See you at low tide. 🦀</p>
 </footer>
 
 <script>
-// Sample photo: an inline SVG landscape, so the demo works offline from disk.
-(function(){
-  var svg = "<svg xmlns='http://www.w3.org/2000/svg' width='1200' height='800' viewBox='0 0 1200 800'>"
-    + "<defs><linearGradient id='sky' x1='0' y1='0' x2='0' y2='1'><stop offset='0' stop-color='#7ec8e3'/><stop offset='.6' stop-color='#cfeef7'/><stop offset='1' stop-color='#fff3d6'/></linearGradient>"
-    + "<linearGradient id='sea' x1='0' y1='0' x2='0' y2='1'><stop offset='0' stop-color='#2a9d8f'/><stop offset='1' stop-color='#16697a'/></linearGradient></defs>"
-    + "<rect width='1200' height='800' fill='url(#sky)'/>"
-    + "<circle cx='950' cy='150' r='80' fill='#ffd166'/>"
-    + "<path d='M0 430 L260 240 L430 380 L620 200 L860 430 Z' fill='#5a7d5a'/>"
-    + "<path d='M620 200 L700 290 L540 290 Z' fill='#ffffff' opacity='.85'/>"
-    + "<path d='M260 240 L315 300 L205 300 Z' fill='#ffffff' opacity='.8'/>"
-    + "<rect y='430' width='1200' height='370' fill='url(#sea)'/>"
-    + "<path d='M0 500 Q150 480 300 500 T600 500 T900 500 T1200 500' stroke='#ffffff' stroke-width='6' fill='none' opacity='.55'/>"
-    + "<path d='M0 590 Q200 570 400 590 T800 590 T1200 590' stroke='#ffffff' stroke-width='5' fill='none' opacity='.35'/>"
-    + "<ellipse cx='300' cy='680' rx='120' ry='16' fill='#0b4f5c' opacity='.5'/>"
-    + "<path d='M300 610 L300 680 M300 625 L245 665 M300 625 L355 665' stroke='#7a4a21' stroke-width='10' fill='none'/>"
-    + "<circle cx='300' cy='585' r='52' fill='#2e8b57'/>"
-    + "<rect x='820' y='520' width='90' height='46' rx='8' fill='#e8482f'/><path d='M830 520 L865 492 L900 520 Z' fill='#fff'/>"
-    + "<text x='42' y='760' font-family='sans-serif' font-size='26' fill='#ffffff' opacity='.9'>Sample photo (illustration)</text></svg>";
-  var uri = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
-  document.getElementById("baBefore").src = uri;
-  document.getElementById("baAfter").src = uri;
-})();
+"use strict";
+const RM = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const FINE = matchMedia("(pointer: fine)").matches;
+const $ = s => document.querySelector(s);
+const $$ = s => Array.from(document.querySelectorAll(s));
 
-// Marquee of real operation spellings
-(function(){
-  var ops = ["300x200","crop:1200x630:smart","fit-in:800x600","pad:1200x630:blur","filters:grayscale","filters:format(avif)","filters:quality(auto)","filters:radius(24)","filters:watermark(...)","filters:removebg","filters:upscale(2)","preset:og-card","exp:1893456000","filters:dpr(2)","filters:blurclass(person)"];
-  var html = ops.map(function(o){ return "<span class='chip'>" + o + "</span>"; }).join("");
-  document.getElementById("marqueeTrack").innerHTML = html + html;
-})();
+/* mascot reactions: bubbles are persistent speech; text swaps on triggers.
+   Reaction classes (.snap once, .happy = two snaps, .lean, .hidepeek) are transform-only. */
+function setBubble(el, text){ if(el) el.textContent = text; }
+function react(el, cls, ms){
+  if(!el || RM) return;
+  el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls);
+  setTimeout(()=>el.classList.remove(cls), ms || 220);
+}
+function reactHappy(el){ react(el, "happy", 380); }
 
-// Scroll reveal
-(function(){
-  var io = new IntersectionObserver(function(entries){
-    entries.forEach(function(e){ if(e.isIntersecting){ e.target.classList.add("in"); io.unobserve(e.target); } });
-  }, {threshold:.12});
-  document.querySelectorAll(".reveal:not(.in)").forEach(function(el){ io.observe(el); });
-})();
-
-// Animated counters
-(function(){
-  var io = new IntersectionObserver(function(entries){
-    entries.forEach(function(e){
-      if(!e.isIntersecting) return;
-      var el = e.target, target = parseFloat(el.dataset.count), dec = parseInt(el.dataset.dec || "0", 10), t0 = null;
-      function step(ts){ if(!t0) t0 = ts; var p = Math.min((ts - t0) / 1100, 1); var v = target * (1 - Math.pow(1 - p, 3));
-        el.textContent = dec ? v.toFixed(dec) : Math.round(v).toLocaleString("en-US");
-        if(p < 1) requestAnimationFrame(step); }
-      requestAnimationFrame(step); io.unobserve(el);
-    });
-  }, {threshold:.5});
-  document.querySelectorAll("[data-count]").forEach(function(el){ io.observe(el); });
-})();
-
-// Copy helper
-function copyText(text, btn){
-  function done(){ var old = btn.textContent; btn.textContent = "Copied"; btn.classList.add("ok"); setTimeout(function(){ btn.textContent = old; btn.classList.remove("ok"); }, 1400); }
-  if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(text).then(done, function(){ fallback(); }); } else { fallback(); }
-  function fallback(){ var ta = document.createElement("textarea"); ta.value = text; document.body.appendChild(ta); ta.select(); try{ document.execCommand("copy"); }catch(e){} document.body.removeChild(ta); done(); }
+/* sideways reveals (never rising) + counters on first entry */
+const io = new IntersectionObserver(es=>{
+  es.forEach(e=>{
+    if(!e.isIntersecting) return;
+    e.target.classList.add("in-view");
+    e.target.querySelectorAll("[data-count]").forEach(runCounter);
+    io.unobserve(e.target);
+  });
+},{threshold:.12});
+$$(".reveal-l,.reveal-r").forEach(el=>io.observe(el));
+const counted = new WeakSet();
+function runCounter(el){
+  if(counted.has(el)) return; counted.add(el);
+  const target = parseFloat(el.dataset.count), dec = +(el.dataset.dec||0);
+  if(RM){ el.textContent = target.toLocaleString("en-US",{minimumFractionDigits:dec,maximumFractionDigits:dec}); return; }
+  const t0 = performance.now(), D = 800;
+  (function step(t){
+    const p = Math.min(1,(t-t0)/D), e = 1-Math.pow(1-p,3);
+    el.textContent = (target*e).toLocaleString("en-US",{minimumFractionDigits:dec,maximumFractionDigits:dec});
+    if(p<1) requestAnimationFrame(step);
+  })(t0);
 }
 
-// URL builder
-(function(){
-  var size = document.getElementById("bSize"), quality = document.getElementById("bQuality"), qVal = document.getElementById("bQualityVal");
-  var auto = document.getElementById("bAuto"), built = document.getElementById("builtUrl"), breakdown = document.getElementById("builtBreakdown");
-  var filters = [], format = "", sigMode = "signed";
-  document.querySelectorAll("#bFilters .toggle").forEach(function(b){
-    b.addEventListener("click", function(){
-      b.classList.toggle("on");
-      var f = b.dataset.f;
-      if(b.classList.contains("on")) filters.push(f); else filters = filters.filter(function(x){ return x !== f; });
-      render();
-    });
+/* hero frame: one snap on load; hover straightens (CSS) and swaps the bubble */
+const heroFrame = $("#heroFrame"), heroBubble = $("#heroBubble");
+const HERO_GREET = "Hi, I am Snap. I snap images to size.";
+setTimeout(()=>react(heroFrame, "snap", 200), 400);
+if(FINE && heroFrame){
+  heroFrame.addEventListener("mouseenter", ()=>setBubble(heroBubble, "That photo was 2400 px wide. Was."));
+  heroFrame.addEventListener("mouseleave", ()=>setBubble(heroBubble, HERO_GREET));
+}
+
+/* nav pebble: one snap the first time the visitor scrolls past the hero */
+let navSnapped = false;
+addEventListener("scroll", ()=>{
+  if(navSnapped || scrollY < innerHeight * .8) return;
+  navSnapped = true; react($("#navCrab"), "snap", 200);
+},{passive:true});
+
+/* speed porthole: arrival scuttle when it first scrolls into view */
+const speedCrab = $("#speedCrab");
+if(speedCrab){
+  if(RM) speedCrab.classList.add("arrived");
+  new IntersectionObserver((es,o)=>{ es.forEach(e=>{ if(e.isIntersecting){ speedCrab.classList.add("arrived"); o.disconnect(); } }); },{threshold:.4}).observe(speedCrab);
+  $$(".stats6 .stat").forEach(st=>{
+    st.addEventListener("mouseenter", ()=>speedCrab.classList.add("nudged"));
+    st.addEventListener("mouseleave", ()=>speedCrab.classList.remove("nudged"));
   });
-  document.querySelectorAll("#bFormat .toggle").forEach(function(b){
-    b.addEventListener("click", function(){
-      document.querySelectorAll("#bFormat .toggle").forEach(function(x){ x.classList.remove("on"); });
-      b.classList.add("on"); format = b.dataset.v; render();
-    });
+}
+
+/* ============ ANATOMY ============ */
+const SLOT = { size:"300x200", "fit-in":"fit-in:800x600", pad:"pad:1200x630:blur", crop:"crop:1200x630:smart", "crop-rect":"crop-rect:100x50:700x450", preset:"preset:og-card" };
+const ANA = {
+  sig:{spell:"signature",name:"Signature",color:"var(--coral)",pose:"shield",
+    def:"Your proof that this URL came from you. The first segment is the HMAC-SHA256 of everything after it, hex encoded and keyed with your server secret.",
+    grammar:["First segment, always.","The server recomputes it over the operations and source exactly as they appear, with no leading slash.","A match serves the image. A miss gets a 403 and the body <code>bad signature</code>.","Or the literal <code>unsafe</code>, which only works when the server runs with unsafe allowed."],
+    ex:[["Secret","your-secret"],["Signed text","300x200/https://example.com/photo.jpg"],["Signature","3c1f6c180116661877bd4c85fd201a178087d74c1cc188cc584e819d901308c6"]],
+    watch:"Change one character after the signature, even the expiry, and the signature breaks. That is the point. Purge signatures are a different domain and never interchangeable.",
+    bubble:"I check this first. No match, no image."},
+  exp:{spell:"exp:",name:"Expiry",color:"var(--violet)",pose:"point",
+    def:"A signed expiry date, in Unix seconds.",
+    grammar:["<code>exp:</code> plus Unix seconds. It may sit anywhere among the operations.","It is inside the signed remainder, so the signature covers it and nobody can extend it without the secret.","Valid strictly before that second. No clock skew allowance."],
+    ex:[["exp:1893456000","is 2030-01-01 00:00:00 UTC"]],
+    watch:"Past the deadline the request gets a 403, <code>signature expired</code>, and expired URLs never serve from cache. URLs without <code>exp:</code> never expire.",
+    bubble:"Tick tock. After this second I refuse."},
+  preset:{spell:"preset:",name:"Preset",color:"var(--leaf)",pose:"point",
+    def:"A short name for an operation string kept on the server.",
+    grammar:["<code>preset:</code> plus a name defined in the server presets file.","The signature covers the preset reference itself.","After verifying it, the server expands the preset deterministically, and cache entries key on the expanded operations."],
+    ex:[["og-card","crop:1200x630:smart/filters:format(webp):quality(80)"],["thumb","300x200"]],
+    watch:"Never edit a preset in place. Roll out a new name. An unknown preset name is a 400, and presets cannot contain a source segment, an <code>exp:</code>, or another preset.",
+    bubble:"A nickname for a whole recipe."},
+  size:{spell:"300x200",name:"Size",color:"var(--sea-glass)",pose:"point",
+    def:"Resize, written as width x height.",
+    grammar:["<code>300x200</code> means exactly 300 by 200 px.","<code>300x0</code> or <code>300x</code> fixes the width and scales the height proportionally; <code>0x200</code> or <code>x200</code> does the reverse.","<code>0x0</code> is the original size, and <code>orig</code> on either axis keeps the source dimension on that axis.","A negative dimension flips as it resizes: <code>-300x200</code> flips horizontally, <code>300x-200</code> vertically."],
+    ex:[["300x0 on a 1200x800 source","gives 300x200"]],
+    watch:"Requested outputs are capped at 16383 px per axis and 100 megapixels in total. A request past either bound fails with a 400 before anything is allocated.",
+    bubble:"Exact pixels, or proportional with a 0."},
+  "fit-in":{spell:"fit-in:",name:"Fit-in",color:"var(--sea-glass)",pose:"point",
+    def:"Shrink to fit inside a box, proportions intact.",
+    grammar:["<code>fit-in:&lt;width&gt;x&lt;height&gt;</code> scales the image proportionally so it fits inside the box you name.","Nothing is cropped and nothing is stretched.","A <code>0</code> axis is unbounded, so <code>fit-in:800x0</code> is a width limit and nothing more."],
+    ex:[["1200x800 source in fit-in:800x600","gives 800x533"]],
+    watch:"Flips are not allowed here. Use a signed size for a flip, or <code>filters:flip</code> later in the path.",
+    bubble:"Shrink to fit. Never distort."},
+  pad:{spell:"pad:",name:"Pad",color:"var(--sea-glass)",pose:"point",
+    def:"Fit inside the box, then fill the rest of the canvas.",
+    grammar:["<code>pad:&lt;width&gt;x&lt;height&gt;[:&lt;fill&gt;]</code> fits the image inside the box, centers it, and fills the remaining canvas so the output is exactly the size you asked for.","The fill is a 6-digit hex color, or <code>blur</code> for ambient bars made from a cover-scaled, heavily blurred copy of the image itself.","With no fill named, the request's <code>fill(...)</code> filter color is used, or black when there is none."],
+    ex:[["pad:1200x630:blur",""],["pad:1200x630:ff0000",""]],
+    watch:"Both dimensions are required in pixels. A proportional <code>0</code> axis, <code>orig</code>, and flipped sizes are rejected, the same exact-box contract as <code>crop:</code>.",
+    bubble:"I fill the gaps so the box is exact."},
+  crop:{spell:"crop:",name:"Crop",color:"var(--sea-glass)",pose:"snap",
+    def:"The snap. Crop to an aspect ratio, then resize to exact size.",
+    grammar:["<code>crop:&lt;width&gt;x&lt;height&gt;[:&lt;align&gt;]</code> crops to the width:height aspect ratio, then resizes to exactly that width and height.","<code>align</code> chooses which part survives: <code>center</code> by default, or <code>top</code>, <code>bottom</code>, <code>left</code>, <code>right</code>, <code>smart</code> for a window on the focal point, and <code>face</code> for a window around the largest detected face.","<code>smart</code> centers on a detected face when a face model is configured, else on the point of greatest local detail. <code>face</code> falls back to the smart window when no face is found."],
+    ex:[["crop:1200x630:smart",""],["crop:800x800:face",""]],
+    watch:"<code>crop:</code> needs both dimensions in pixels. A <code>0</code> axis, <code>orig</code>, and flipped sizes are rejected when the URL is parsed, and crop ignores flips entirely. Proportional boxes belong to <code>fit-in:</code>.",
+    bubble:"This is literally my job."},
+  "crop-rect":{spell:"crop-rect:",name:"Crop-rect",color:"var(--sea-glass)",pose:"snap",
+    def:"Cut out the exact pixel rectangle between two corners of the source.",
+    grammar:["<code>crop-rect:&lt;left&gt;x&lt;top&gt;:&lt;right&gt;x&lt;bottom&gt;</code> cuts that exact pixel rectangle.","Right must be greater than left, bottom greater than top.","Coordinates address source pixels and are not scaled by <code>dpr</code>."],
+    ex:[["crop-rect:100x50:700x450","cuts a 600x400 region"]],
+    watch:"A rectangle outside the source fails with 400. It is not clamped.",
+    bubble:"Cut exactly there. No guessing."},
+  filters:{spell:"filters:",name:"Filters",color:"var(--sea-glass)",pose:"point",
+    def:"A chain of looks and encoder orders, in one segment.",
+    grammar:["Filters chain inside one <code>filters:</code> segment, separated by <code>:</code>, and run in the order you write them, like <code>filters:sharpen(1.2):saturation(1.1)</code>.","A filter with no parameters may skip the parentheses, so <code>grayscale</code> and <code>grayscale()</code> are the same.","You may repeat the <code>filters:</code> segment in a path."],
+    ex:[["Chain","filters:grayscale:quality(80)"],["Token: grayscale","Converts the image to grayscale."],["Token: quality(80)","Sets the output quality to 80, from 1 to 100."]],
+    watch:"When a directive repeats, the last one wins. Order is meaning here, so read a chain left to right, the way the server runs it. <code>radius(...)</code> and <code>removebg</code> need an output format with alpha (png, webp, jxl, avif); into JPEG they fail with 400. AI filters with no model configured fail with 501, never a silent fallback.",
+    bubble:"Left to right, in the order written."},
+  source:{spell:"source",name:"Source URL",color:"var(--sun)",pose:"point",
+    def:"The original image, full URL, scheme included.",
+    grammar:["The source may contain slashes, and it starts at the first segment that is not an operation. Everything before it is an instruction.","Everything from it onward is the address of your original, fetched over HTTP or HTTPS, or read from <code>s3://</code>, <code>gs://</code>, or a local <code>file://</code> root when the server is configured for those."],
+    exCycles:[
+      [["In this strip","https://example.com/photo.jpg"]],
+      [["Bucket source","s3://photos/photo.jpg"]],
+      [["File source","file:///images/photo.jpg"]]
+    ],
+    watch:"Fetch limits for every kind: 10 seconds, 10 MiB max (larger is 502), at most 5 redirects for http sources. <code>file://</code> must stay under the configured file root; unset root disables it. Bucket sources are gated by the bucket allowlist, not the host policy. HEIC sources and AVIF sources fail with 502 (AVIF is output only here).",
+    bubble:"Everything after the operations is the address."}
+};
+let anaLock = "sig", srcCycle = 0, hoverTimer = null;
+const anaTeachEl = $("#anaTeach");
+const anaEl = { spell:$("#anaSpell"), name:$("#anaName"), def:$("#anaDef"), g:$("#anaGrammar"), ex:$("#anaEx"), watch:$("#anaWatch"), bubble:$("#anaBubble"), claw:$("#anaClaw"), peek:$("#anaCrab") };
+function teachContent(key, tok){
+  const d = ANA[key]; if(!d) return;
+  anaEl.spell.firstChild.textContent = d.spell;
+  anaEl.spell.style.color = d.color;
+  anaEl.name.textContent = d.name;
+  anaEl.def.innerHTML = d.def;
+  anaEl.g.innerHTML = d.grammar.map(x=>"<li>"+x+"</li>").join("");
+  const exs = d.exCycles ? d.exCycles[srcCycle % d.exCycles.length] : d.ex;
+  anaEl.ex.innerHTML = exs.map(r=>"<span"+(tok && r[0]==="Token: "+tok ? " class='tokhl'" : "")+">"+r[0]+"</span><span class='mono'>"+r[1]+"</span>").join("");
+  anaEl.watch.innerHTML = d.watch;
+  setBubble(anaEl.bubble, d.bubble);
+  anaEl.peek.classList.add("lean");
+  anaEl.peek.style.transform = d.pose==="shield" ? "scale(1.04)" : "";
+  anaEl.claw.style.transform = d.pose==="point" || d.pose==="snap" ? "translateY(40px)" : "translateY(0)";
+  if(d.pose==="snap") react(anaEl.claw, "snap", 200);
+  $$(".segbtn").forEach(b=>{
+    const on = b.dataset.seg===key;
+    if(b.dataset.seg) b.setAttribute("aria-pressed", String(on));
+    b.classList.toggle("locked", on);
   });
-  document.querySelectorAll("#bSig .toggle").forEach(function(b){
-    b.addEventListener("click", function(){
-      document.querySelectorAll("#bSig .toggle").forEach(function(x){ x.classList.remove("on"); });
-      b.classList.add("on"); sigMode = b.dataset.v; render();
-    });
-  });
-  auto.addEventListener("click", function(){ auto.classList.toggle("on"); quality.disabled = auto.classList.contains("on"); render(); });
-  size.addEventListener("change", render);
-  quality.addEventListener("input", function(){ qVal.textContent = quality.value; render(); });
-  function render(){
-    var parts = [], notes = [];
-    if(size.value){ parts.push(size.value); notes.push(size.value + " = size"); }
-    var fs = filters.slice();
-    if(format) fs.push("format(" + format + ")");
-    fs.push(auto.classList.contains("on") ? "quality(auto)" : "quality(" + quality.value + ")");
-    var fseg = "filters:" + fs.join(":");
-    parts.push(fseg); notes.push(fseg + " = filters");
-    var sig = sigMode === "unsafe" ? "unsafe" : "<signature>";
-    built.innerHTML = "<span class='sig'>" + sig + "</span>/<span class='ops'>" + parts.join("/") + "</span>/<span class='src'>https://example.com/photo.jpg</span>";
-    breakdown.innerHTML = notes.map(function(n){ return "<span>" + n + "</span>"; }).join("") + "<span>source = https://example.com/photo.jpg</span>";
-    built.dataset.plain = "/" + sig + "/" + parts.join("/") + "/https://example.com/photo.jpg";
+  $$(".tokbtn[data-tok]").forEach(b=>b.classList.toggle("locked", key==="filters" && tok===b.dataset.tok));
+  $("#filtersSeg").classList.toggle("locked", key==="filters");
+}
+function teach(key, mode, tok){
+  if(mode==="preview") anaTeachEl.setAttribute("aria-live","off");
+  else anaTeachEl.setAttribute("aria-live","polite");
+  if(mode==="lock" && !RM){
+    anaTeachEl.style.opacity = "0";
+    setTimeout(()=>{ teachContent(key, tok); anaTeachEl.style.opacity = "1"; }, 120);
+  } else teachContent(key, tok);
+}
+function lockSeg(key, tok){
+  if(key==="source" && anaLock==="source") srcCycle++;
+  anaLock = key; teach(key, "lock", tok);
+  const famMap = {size:"size","fit-in":"fit-in",pad:"pad",crop:"crop","crop-rect":"crop-rect",preset:"preset"};
+  if(famMap[key]){
+    $("#slotSeg").dataset.seg = key;
+    $("#slotSeg").textContent = SLOT[key];
+    $$(".fchip").forEach(c=>c.setAttribute("aria-checked", String(c.dataset.fam===key)));
+    const isPreset = key==="preset";
+    $("#filtersSeg").style.display = isPreset ? "none" : "";
+    $("#filtersSlash").style.display = isPreset ? "none" : "";
   }
-  document.getElementById("copyBuilt").addEventListener("click", function(){ copyText(built.dataset.plain || built.textContent, this); });
-  render();
-})();
+}
+function segKeyOf(b){ return b.dataset.seg || (b.id==="filtersSeg" ? "filters" : null); }
+$$(".segbtn").forEach(b=>{
+  b.addEventListener("click", ()=>{ const k = segKeyOf(b); if(k) lockSeg(k); });
+  if(FINE) b.addEventListener("mouseenter", ()=>{ const k = segKeyOf(b); if(!k) return; clearTimeout(hoverTimer); hoverTimer = setTimeout(()=>teach(k, "preview"), 60); });
+  b.addEventListener("focus", ()=>{ const k = segKeyOf(b); if(k) teach(k, "preview"); });
+});
+$$(".tokbtn[data-tok]").forEach(b=>{
+  b.addEventListener("click", e=>{ e.stopPropagation(); lockSeg("filters", b.dataset.tok); });
+  if(FINE) b.addEventListener("mouseenter", e=>{ e.stopPropagation(); clearTimeout(hoverTimer); hoverTimer = setTimeout(()=>teach("filters", "preview", b.dataset.tok), 60); });
+  b.addEventListener("focus", ()=>teach("filters", "preview", b.dataset.tok));
+});
+$$(".segmain").forEach(b=>{
+  b.addEventListener("click", e=>{ e.stopPropagation(); lockSeg("filters"); });
+  if(FINE) b.addEventListener("mouseenter", e=>{ e.stopPropagation(); clearTimeout(hoverTimer); hoverTimer = setTimeout(()=>teach("filters", "preview"), 60); });
+});
+$$(".fchip").forEach(c=>c.addEventListener("click", ()=>lockSeg(c.dataset.fam)));
+$(".families").addEventListener("keydown", e=>{
+  if(e.key!=="ArrowRight" && e.key!=="ArrowLeft") return;
+  const chips = $$(".fchip"); const i = chips.indexOf(document.activeElement);
+  if(i<0) return;
+  e.preventDefault();
+  const n = chips[(i + (e.key==="ArrowRight"?1:-1) + chips.length) % chips.length];
+  n.focus(); lockSeg(n.dataset.fam);
+});
+$(".strip-url").addEventListener("keydown", e=>{
+  if(!["ArrowRight","ArrowLeft","Home","End"].includes(e.key)) return;
+  const stops = $$(".strip-url .segbtn, .strip-url .tokbtn").filter(el=>el.offsetParent!==null);
+  const i = stops.indexOf(document.activeElement);
+  if(i<0) return;
+  e.preventDefault();
+  const n = e.key==="Home" ? stops[0] : e.key==="End" ? stops[stops.length-1] : stops[(i + (e.key==="ArrowRight"?1:-1) + stops.length) % stops.length];
+  n.focus();
+});
+$("#anatomyPanel").addEventListener("mouseleave", ()=>{ clearTimeout(hoverTimer); teach(anaLock, "lock"); });
+teach("sig", "lock");
+</script>
 
-// Before / after slider and preview filters
-(function(){
-  var range = document.getElementById("baRange"), wrap = document.getElementById("baAfterWrap"),
-      divider = document.getElementById("baDivider"), handle = document.getElementById("baHandle"),
-      after = document.getElementById("baAfter"), chain = document.getElementById("previewChain"), active = [];
-  function setPos(){ var v = range.value; wrap.style.clipPath = "inset(0 0 0 " + v + "%)"; divider.style.left = v + "%"; handle.style.left = v + "%"; }
-  range.addEventListener("input", setPos); setPos();
-  document.querySelectorAll("#previewFilters .toggle").forEach(function(b){
-    b.addEventListener("click", function(){
-      b.classList.toggle("on");
-      if(b.classList.contains("on")) active.push(b); else active = active.filter(function(x){ return x !== b; });
-      after.style.filter = active.map(function(x){ return x.dataset.css; }).join(" ");
-      chain.textContent = active.length ? "filters:" + active.map(function(x){ return x.dataset.label; }).join(":") : "filters: (none yet, toggle a filter)";
+<script>
+"use strict";
+/* ============ PLAYGROUND ============ */
+const PG = {
+  sig:"signed", expOn:false, expDur:"1d", expAt:0, mode:"free", presetName:"og-card",
+  sizeMode:"resize", padFill:"blur", padColor:"ff0000", cropAlign:"smart", dpr:"1",
+  order:["quality"], sel:{ quality:true }
+};
+const PRESETS = { "og-card":"crop:1200x630:smart/filters:format(webp):quality(80)", "thumb":"300x200" };
+const N1 = "Cache key: the canonical form of these parsed operations plus the source. Equivalent spellings share one entry. Only 200 responses are cached, in memory first (256 MB default) with an optional disk tier. Responses carry Cache-Control: public, max-age=31536000, immutable.";
+const N1H = " Because this URL sizes nothing, a width client hint can size it; hinted widths are quantized up to a multiple of 100 px and join the cache key, and Save-Data: on steps default quality from 80 to 70 unless the URL sets quality itself.";
+const CATALOG = [
+  {id:"grayscale", g:"Look", label:"grayscale", kind:"toggle"},
+  {id:"invert", g:"Look", label:"invert", kind:"toggle"},
+  {id:"sepia", g:"Look", label:"sepia", kind:"toggle"},
+  {id:"equalize", g:"Look", label:"equalize", kind:"toggle"},
+  {id:"blur", g:"Look", label:"blur", kind:"num", def:2.5, step:"0.5", minExclusive:0, hint:"Sigma, a positive number."},
+  {id:"sharpen", g:"Look", label:"sharpen", kind:"num", def:1.5, step:"0.1", minExclusive:0},
+  {id:"saturation", g:"Look", label:"saturation", kind:"num", def:1.5, step:"0.1", min:0, hint:"0 is grayscale, 1 is unchanged."},
+  {id:"contrast", g:"Look", label:"contrast", kind:"num", def:25, step:"1", hint:"0 is unchanged; negative lowers."},
+  {id:"brighten", g:"Look", label:"brighten", kind:"num", def:40, step:"1", hint:"Integer added per channel, clamped 0 to 255; negative darkens."},
+  {id:"huerotate", g:"Look", label:"huerotate", kind:"num", def:90, step:"1", hint:"Degrees, integer."},
+  {id:"pixelate", g:"Look", label:"pixelate", kind:"num", def:8, step:"1", min:1, hint:"Block size in pixels."},
+  {id:"duotone", g:"Look", label:"duotone", kind:"duo", def:["1a1a40","ffd9a0"], hint:"Shadows map to the first color, highlights to the second."},
+  {id:"radius", g:"Shape", label:"radius", kind:"num", def:24, step:"1", min:0, hint:"Single value only. The four corner form exists in the grammar; one value is what a generic builder can set honestly."},
+  {id:"border", g:"Shape", label:"border", kind:"border", def:4, color:"000000", hint:"Works on any format. Dimensions do not change."},
+  {id:"format", g:"Encode", label:"format", kind:"format"},
+  {id:"quality", g:"Encode", label:"quality", kind:"quality"},
+  {id:"max_bytes", g:"Encode", label:"max_bytes", kind:"num", def:50000, step:"1", min:1},
+  {id:"fill", g:"Encode", label:"fill", kind:"color", def:"ffffff", hint:"Background used to flatten transparency into JPEG, and the pad fill fallback."},
+  {id:"no_upscale", g:"Encode", label:"no_upscale", kind:"toggle", hint:"Caps every resize at source dimensions, request wide."},
+  {id:"removebg", g:"AI", label:"removebg", kind:"toggle"},
+  {id:"upscale", g:"AI", label:"upscale", kind:"upscale", hint:"Output capped at 4096 px per dimension; past that is 400."}
+];
+const CAT = Object.fromEntries(CATALOG.map(c=>[c.id,c]));
+const fmtVal = ()=>{ const b = document.querySelector("#pgfmt .chipbtn.on"); return b ? b.dataset.v : "auto"; };
+function numVal(id){ const el = document.getElementById("pgnum_"+id); return el ? el.value.trim() : ""; }
+function numOK(c){
+  const v = numVal(c.id); if(v==="" || isNaN(+v)) return false;
+  const n = +v;
+  if(c.minExclusive!==undefined && !(n>c.minExclusive)) return false;
+  if(c.min!==undefined && n<c.min) return false;
+  return true;
+}
+function tokenOf(c){
+  if(!PG.sel[c.id]) return null;
+  switch(c.kind){
+    case "toggle": return c.id;
+    case "num": return numOK(c) ? c.id+"("+numVal(c.id)+")" : null;
+    case "color": { const v = document.getElementById("pgcolor_"+c.id).value.trim().toLowerCase(); return /^[0-9a-f]{6}$/.test(v) ? c.id+"("+v+")" : null; }
+    case "duo": { const a = document.getElementById("pgcolor_"+c.id+"_0").value.trim().toLowerCase(), b = document.getElementById("pgcolor_"+c.id+"_1").value.trim().toLowerCase(); return /^[0-9a-f]{6}$/.test(a) && /^[0-9a-f]{6}$/.test(b) ? "duotone("+a+","+b+")" : null; }
+    case "border": { const v = numVal("border"), col = document.getElementById("pgcolor_border").value.trim().toLowerCase(); return (v!=="" && +v>=1 && /^[0-9a-f]{6}$/.test(col)) ? "border("+v+","+col+")" : null; }
+    case "format": { const v = fmtVal(); return v==="auto" ? null : "format("+v+")"; }
+    case "quality": { if(document.getElementById("pgqauto").getAttribute("aria-pressed")==="true") return "quality(auto)"; const v = document.getElementById("pgq").value; return "quality("+v+")"; }
+    case "upscale": { const b = document.querySelector("#pgup .chipbtn.on"); return "upscale("+(b?b.dataset.v:"2")+")"; }
+  }
+  return null;
+}
+function colorPair(row, id, def, label){
+  const p = document.createElement("input"); p.type="color"; p.id="pgpick_"+id; p.value="#"+def; p.disabled=true; p.setAttribute("aria-label", label+" picker");
+  const t = document.createElement("input"); t.type="text"; t.className="hex mono"; t.id="pgcolor_"+id; t.value=def; t.maxLength=6; t.disabled=true; t.setAttribute("aria-label", label+" hex");
+  p.addEventListener("input", ()=>{ t.value = p.value.slice(1); pgRender(); });
+  t.addEventListener("input", ()=>{ if(/^[0-9a-f]{6}$/i.test(t.value)) p.value = "#"+t.value; });
+  row.append(p, t);
+}
+function buildCatalog(){
+  const host = $("#pgFilters");
+  let lastG = "";
+  CATALOG.forEach(c=>{
+    if(c.g!==lastG){ lastG = c.g; const h = document.createElement("div"); h.className="fgroup"; h.textContent = c.g; host.appendChild(h); }
+    const row = document.createElement("div"); row.className = "frow"; row.id = "frow_"+c.id;
+    const lab = document.createElement("label"); lab.className = "ftoggle";
+    const cb = document.createElement("input"); cb.type = "checkbox"; cb.id = "pgcb_"+c.id; cb.checked = !!PG.sel[c.id];
+    cb.setAttribute("aria-label", c.label);
+    lab.append(cb, document.createTextNode(" " + c.label));
+    row.appendChild(lab);
+    const params = document.createElement("span"); params.className = "fparams";
+    if(c.kind==="num"){
+      const n = document.createElement("input"); n.type="number"; n.id="pgnum_"+c.id; n.value=c.def; n.step=c.step; n.disabled=!PG.sel[c.id];
+      n.setAttribute("aria-label", c.label+" value"); params.appendChild(n);
+    }
+    if(c.kind==="color") colorPair(params, c.id, c.def, c.label);
+    if(c.kind==="duo"){ colorPair(params, c.id+"_0", c.def[0], c.label+" shadows"); colorPair(params, c.id+"_1", c.def[1], c.label+" highlights"); }
+    if(c.kind==="border"){
+      const n = document.createElement("input"); n.type="number"; n.id="pgnum_border"; n.value=c.def; n.step="1"; n.min="1"; n.disabled=true; n.setAttribute("aria-label","border width");
+      params.appendChild(n); colorPair(params, "border", c.color, "border color");
+    }
+    if(c.kind==="format"){
+      const g = document.createElement("span"); g.className="segctl"; g.id="pgfmt"; g.setAttribute("role","group"); g.setAttribute("aria-label","Output format");
+      ["auto","jpeg","png","webp","jxl","avif","gif"].forEach(v=>{
+        const b = document.createElement("button"); b.type="button"; b.className="chipbtn"+(v==="auto"?" on":""); b.dataset.v=v; b.textContent = v==="auto" ? "Auto" : v; b.disabled=true; b.setAttribute("aria-pressed", String(v==="auto"));
+        g.appendChild(b);
+      });
+      params.appendChild(g);
+    }
+    if(c.kind==="quality"){
+      const r = document.createElement("input"); r.type="range"; r.className="qslider"; r.id="pgq"; r.min="0"; r.max="100"; r.step="1"; r.value="80"; r.setAttribute("aria-label","quality");
+      const v = document.createElement("span"); v.className="fval mono"; v.id="pgqval"; v.textContent="80";
+      r.addEventListener("input", ()=>{ v.textContent = r.value; });
+      const a = document.createElement("button"); a.type="button"; a.className="chipbtn"; a.id="pgqauto"; a.textContent="quality(auto)"; a.setAttribute("aria-pressed","false");
+      a.addEventListener("click", ()=>{ const on = a.getAttribute("aria-pressed")!=="true"; a.setAttribute("aria-pressed", String(on)); a.classList.toggle("on", on); r.disabled = on || !PG.sel.quality; pgRender(); });
+      const h = document.createElement("span"); h.className="hint"; h.textContent = "Slide from 10 to 100, or switch on quality(auto) and let crabcrop pick per image.";
+      params.append(r, v, a, h);
+    }
+    if(c.kind==="upscale"){
+      const g = document.createElement("span"); g.className="segctl"; g.id="pgup"; g.setAttribute("role","group"); g.setAttribute("aria-label","Upscale factor");
+      ["2","4"].forEach(v=>{ const b = document.createElement("button"); b.type="button"; b.className="chipbtn"+(v==="2"?" on":""); b.dataset.v=v; b.textContent=v; b.disabled=true; b.setAttribute("aria-pressed", String(v==="2")); g.appendChild(b); });
+      params.appendChild(g);
+    }
+    row.appendChild(params);
+    if(c.hint){ const h = document.createElement("p"); h.className="hint"; h.style.flexBasis="100%"; h.textContent = c.hint; row.appendChild(h); }
+    const err = document.createElement("p"); err.className="err"; err.id="pgerr_"+c.id; err.hidden=true; row.appendChild(err);
+    cb.addEventListener("change", ()=>{
+      PG.sel[c.id] = cb.checked;
+      if(cb.checked) PG.order.push(c.id); else PG.order = PG.order.filter(x=>x!==c.id);
+      params.querySelectorAll("input,button").forEach(x=>{ x.disabled = !cb.checked; });
+      if(c.id==="quality" && cb.checked && document.getElementById("pgqauto").getAttribute("aria-pressed")==="true") document.getElementById("pgq").disabled = true;
+      pgRender();
     });
+    params.querySelectorAll(".segctl").forEach(g=>g.addEventListener("click", e=>{
+      const b = e.target.closest(".chipbtn"); if(!b) return;
+      g.querySelectorAll(".chipbtn").forEach(x=>{ x.classList.toggle("on", x===b); x.setAttribute("aria-pressed", String(x===b)); });
+      pgRender();
+    }));
+    row.addEventListener("input", e=>{ if(e.target!==cb) pgRender(); });
+    row.addEventListener("change", e=>{ if(e.target!==cb) pgRender(); });
+    host.appendChild(row);
   });
-})();
+  document.querySelectorAll("#frow_quality .fparams input,#frow_quality .fparams button").forEach(x=>x.disabled=false);
+}
+function chipGroup(id, fn){
+  const g = document.getElementById(id); if(!g) return;
+  g.querySelectorAll(".chipbtn").forEach(x=>x.setAttribute("aria-pressed", String(x.classList.contains("on"))));
+  g.addEventListener("click", e=>{
+    const b = e.target.closest(".chipbtn"); if(!b) return;
+    g.querySelectorAll(".chipbtn").forEach(x=>{ x.classList.toggle("on", x===b); x.setAttribute("aria-pressed", String(x===b)); });
+    fn(b.dataset.v);
+  });
+}
+function dims(){ return { w: parseInt($("#pgW").value,10), h: parseInt($("#pgH").value,10) }; }
+function sourceState(){
+  const src = $("#pgSource").value;
+  if(src.trim()==="") return { ok:false, msg:"The source is empty." };
+  if(/\s/.test(src)) return { ok:false, msg:"The source must contain no spaces." };
+  const m = src.match(/^([a-z][a-z0-9+.-]*):\/\//i);
+  if(!m) return { ok:false, msg:"The source must start with https://, http://, s3://, gs://, or file:///." };
+  const sch = m[1].toLowerCase();
+  if(sch==="file" && !src.toLowerCase().startsWith("file:///")) return { ok:false, msg:"File sources are spelled file:///path." };
+  if(!["http","https","s3","gs","file"].includes(sch)) return { ok:false, msg:"The source must start with https://, http://, s3://, gs://, or file:///." };
+  return { ok:true, msg:"" };
+}
+function sizeWithheld(){
+  if(PG.mode!=="free") return false;
+  const {w,h} = dims();
+  return (PG.sizeMode==="pad"||PG.sizeMode==="crop") && (!(w>=1)||!(h>=1));
+}
+function chainTokens(){
+  const toks = [];
+  PG.order.forEach(id=>{ const t = tokenOf(CAT[id]); if(t) toks.push(t); });
+  return toks;
+}
+function allTokens(){
+  const t = chainTokens();
+  if(PG.dpr!=="1") t.unshift("dpr("+PG.dpr+")");
+  return t;
+}
+function pgParts(){
+  const src = $("#pgSource").value.trim();
+  const parts = [];
+  parts.push(PG.sig==="unsafe"
+    ? {t:"unsafe", k:"k-sig", focus:"pgSig", r:"The literal development escape hatch. Production URLs carry a real signature instead."}
+    : {t:"<signature>", k:"k-sig", focus:"pgSig", r:"HMAC-SHA256 of everything after it. Placeholder here; the real one comes from a client library or the CLI."});
+  if(PG.expOn) parts.push({t:"exp:"+PG.expAt, k:"k-exp", focus:"pgExpToggle", r:"Expiry inside the signed region. The server accepts the link strictly before that second, 403 after."});
+  if(PG.mode==="preset"){
+    parts.push({t:"preset:"+PG.presetName, k:"k-ops", focus:"pgPresetName", r:"Server-side template name. It expands to "+PRESETS[PG.presetName]+", and cache keys use the expanded form."});
+  } else {
+    const {w,h} = dims();
+    const W = isNaN(w)?0:w, H = isNaN(h)?0:h;
+    if(PG.sizeMode==="resize") parts.push({t:W+"x"+H, k:"k-ops", focus:"pgW", r: (W===0&&H===0) ? "0x0: the original size, unchanged." : "Resize, written as width x height. 0 scales that axis proportionally."});
+    if(PG.sizeMode==="fit-in") parts.push({t:"fit-in:"+W+"x"+H, k:"k-ops", focus:"pgW", r:"Shrink to fit inside the box, proportions intact. A 0 axis is unbounded."});
+    if(PG.sizeMode==="pad" && !sizeWithheld()) parts.push({t:"pad:"+W+"x"+H+(PG.padFill==="blur"?":blur":PG.padFill==="color"?":"+PG.padColor:""), k:"k-ops", focus:"pgW", r:"Fit inside the box, then fill the rest of the canvas. Output is exactly "+W+"x"+H+"."});
+    if(PG.sizeMode==="crop" && !sizeWithheld()){
+      const al = PG.cropAlign==="center" ? "" : ":"+PG.cropAlign;
+      parts.push({t:"crop:"+W+"x"+H+al, k:"k-ops", focus:"pgCropAlign", r:"The snap. Crop to the aspect ratio, then resize to exact size." + (PG.cropAlign==="center" ? " Center is the default, so it is not spelled out." : " Alignment: "+PG.cropAlign+".")});
+    }
+    const toks = allTokens();
+    if(toks.length) parts.push({t:"filters:"+toks.join(":"), k:"k-ops", focus:"pgFilters", r:"A chain of looks and encoder orders, run in the order written. The last repeat wins."});
+  }
+  let sr = "The original image, full URL, scheme included. It starts at the first segment that is not an operation, so nothing after it is parsed as operations.";
+  if(/^(s3|gs|file):\/\//i.test(src)) sr = "Bucket and file sources are fetched under server configuration, not the public host policy. Signed bucket fetches require the bucket allowlist on the server.";
+  parts.push({t:src, k:"k-src", focus:"pgSource", r:sr});
+  return parts;
+}
+function pgNotes(parts){
+  const notes = [];
+  const n1 = (PG.mode==="free" && PG.sizeMode==="none") ? N1 + N1H : N1;
+  notes.push(["Cache", n1]);
+  if(PG.mode==="preset"){
+    notes.push(["Preset", "The server expands preset:"+PG.presetName+" after verifying the signature, and cache entries key on the expanded operations. A purge sent with the preset URL expands the same way, and purge-group clears the preset's whole output set."]);
+  } else {
+    const fv = PG.sel.format ? fmtVal() : "auto";
+    if(!PG.sel.format || fv==="auto") notes.push(["Negotiation", "Format: no format(...) in the URL, so the Accept header decides. Highest q value among AVIF, JPEG XL, and WebP wins; ties break AVIF, then JPEG XL, then WebP. A format refused with q=0 is never picked, wildcards do not count, and an animated GIF source keeps GIF instead of negotiating to JPEG XL."]);
+    else notes.push(["Negotiation", "Format: format("+fv+") in the URL wins over Accept negotiation."]);
+    if(PG.expOn) notes.push(["Expiry", "This URL is valid strictly before "+new Date(PG.expAt*1000).toUTCString()+". After that: 403 signature expired, never served from cache."]);
+    if(PG.sel.quality && document.getElementById("pgqauto").getAttribute("aria-pressed")==="true")
+      notes.push(["Quality", "The server picks quality per image, 50 for flat images to 95 for detailed ones. For JPEG and JPEG XL it verifies the pick by encoding, decoding, and scoring with SSIMULACRA2 against a target of 75, at most 4 encodes, on cache misses only. The value used is reported in the X-Crabcrop-Quality header, and the score in meta responses."]);
+    if(PG.sel.quality || PG.sel.max_bytes){
+      const fv2 = PG.sel.format ? fmtVal() : "auto";
+      if(fv2==="png"||fv2==="gif") notes.push(["Encoding", "Quality and max_bytes have no effect on PNG or GIF output."]);
+      else if(PG.sel.max_bytes) notes.push(["Encoding", "max_bytes re-encodes at decreasing quality until the output fits; if quality reaches its floor, you get the smallest encode, not an error."]);
+    }
+    if(PG.sel.removebg || PG.sel.upscale)
+      notes.push(["AI", "AI filters run ONNX models the operator supplies. If this server has no model configured for it, the request fails with 501 and is never silently replaced by a plain transform. Inference is gated to 2 concurrent runs server wide."]);
+    if(PG.sel.radius || PG.sel.removebg){
+      const fv3 = PG.sel.format ? fmtVal() : "auto";
+      if(fv3==="jpeg") notes.push(["Warning", "Warning: this chain needs an output format with alpha. With format(jpeg) the server returns 400. Choose png, webp, jxl, or avif."]);
+      else if(fv3==="auto") notes.push(["Warning", "This chain needs an alpha capable format. Negotiation may still pick one without alpha for some clients; pin format(png), format(webp), format(jxl), or format(avif) to be safe."]);
+    }
+    const {w,h} = dims();
+    if(!isNaN(w) && !isNaN(h) && w*h>100000000 && PG.sizeMode!=="none")
+      notes.push(["Warning", "Warning: width times height as typed is over 100 megapixels. The URL still builds; the server checks the real request against its own bounds."]);
+  }
+  if(PG.expOn && PG.mode==="preset") notes.push(["Expiry", "This URL is valid strictly before "+new Date(PG.expAt*1000).toUTCString()+". After that: 403 signature expired, never served from cache."]);
+  return notes;
+}
+let lastSnapAt = 0;
+function pgRender(){
+  const st = sourceState();
+  const se = $("#pgSourceErr");
+  if(!st.ok){ se.hidden = false; se.textContent = st.msg; } else se.hidden = true;
+  $("#pgWhRow").style.display = (PG.mode==="free" && PG.sizeMode!=="none") ? "" : "none";
+  $("#pgPadCtl").hidden = !(PG.mode==="free" && PG.sizeMode==="pad");
+  $("#pgCropCtl").hidden = !(PG.mode==="free" && PG.sizeMode==="crop");
+  $("#pgPresetCtl").hidden = PG.mode!=="preset";
+  $("#pgFree").disabled = PG.mode==="preset";
+  $("#pgFaceNote").hidden = PG.cropAlign!=="face";
+  CATALOG.forEach(c=>{
+    if(c.kind==="num" || c.kind==="border"){
+      const bad = PG.sel[c.id] && !numOK(c.kind==="border" ? CAT.border : c);
+      const e = $("#pgerr_"+c.id); if(e){ e.hidden = !bad; e.textContent = bad ? "That value cannot be emitted, so the token is withheld until it is fixed." : ""; }
+    }
+  });
+  const withheld = sizeWithheld();
+  const banner = $("#pgBanner");
+  const msgs = [];
+  if(withheld) msgs.push("Pad and crop require both dimensions at least 1, so the size segment is withheld from the URL until that is fixed.");
+  CATALOG.forEach(c=>{ if(PG.sel[c.id] && tokenOf(c)===null && (c.kind==="num"||c.kind==="color"||c.kind==="duo"||c.kind==="border")) msgs.push("The "+c.id+" token is withheld: its value is not emittable yet."); });
+  if(!st.ok) msgs.push("Fix the source first. The URL below shows the last valid build, dimmed.");
+  banner.hidden = msgs.length===0;
+  banner.textContent = msgs.join(" ");
+  const parts = pgParts();
+  const host = $("#pgUrl");
+  host.classList.toggle("dim", !st.ok);
+  host.innerHTML = "";
+  const hp = document.createElement("span"); hp.className="hostp"; hp.textContent = "https://img.example.com"; host.appendChild(hp);
+  parts.forEach(p=>{
+    const s = document.createElement("span"); s.className="sep"; s.textContent="/"; host.appendChild(s);
+    const b = document.createElement("button"); b.type="button"; b.className="part "+p.k; b.textContent = p.t;
+    b.addEventListener("click", ()=>pgExplain(p));
+    host.appendChild(b);
+  });
+  $("#pgSeal").hidden = true;
+  const rows = $("#pgParts"); rows.innerHTML = "";
+  parts.forEach(p=>{
+    const d = document.createElement("button"); d.type="button"; d.className="partrow";
+    const c = document.createElement("code"); c.textContent = p.t;
+    const s = document.createElement("span"); s.textContent = p.r;
+    d.append(c, s);
+    d.addEventListener("click", ()=>pgExplain(p));
+    rows.appendChild(d);
+  });
+  const notes = $("#pgNotes"); notes.innerHTML = "";
+  pgNotes(parts).forEach(n=>{
+    const d = document.createElement("div"); d.className="noterow";
+    const l = document.createElement("span"); l.className="nlab"; l.textContent = n[0]+": ";
+    d.append(l, document.createTextNode(n[1]));
+    notes.appendChild(d);
+  });
+  const dis = !st.ok;
+  $("#pgSnap").disabled = dis; $("#pgCopy").disabled = dis;
+  if(PG.expOn) $("#pgExpText").textContent = "Expires " + new Date(PG.expAt*1000).toUTCString() + " (Unix " + PG.expAt + "). Frozen when set; the server recomputes validity at request time.";
+  if(!RM && performance.now() - lastSnapAt > 300){ lastSnapAt = performance.now(); react($("#pgCrab"), "snap", 180); }
+}
+function pgFocus(id){
+  if(id==="pgSig") document.querySelector("#pgSig .chipbtn").focus();
+  else if(id==="pgPresetName") document.querySelector("#pgPresetName .chipbtn").focus();
+  else if(id==="pgFilters") $("#pgFilters").scrollIntoView({block:"nearest"});
+  else { const el = document.getElementById(id); if(el) el.focus(); }
+}
+function pgExplain(p){ pgFocus(p.focus); setBubble($("#pgBubble"), p.r); }
+function pgFullText(){ return Array.from($("#pgUrl").childNodes).map(n=>n.textContent).join(""); }
+async function pgCopy(which){
+  const live = $("#pgLive");
+  try{ await navigator.clipboard.writeText(pgFullText()); }
+  catch(e){ live.textContent = "Copy failed, select and copy manually."; if(which==="snap"){ const b = $("#pgSnap"); b.textContent = "Copy failed, select and copy manually"; setTimeout(()=>b.textContent="Snap it: copy URL", 2000); } return; }
+  if(which==="snap"){
+    live.textContent = "URL copied";
+    const b = $("#pgSnap"); b.textContent = "Snapped. Copied."; setTimeout(()=>b.textContent="Snap it: copy URL", 1400);
+    $("#pgSeal").hidden = false;
+    reactHappy($("#pgCrab"));
+    setBubble($("#pgBubble"), "Snapped and copied. That URL is ready to swim.");
+  } else {
+    live.textContent = "URL copied";
+    const b = $("#pgCopy"); const old = b.textContent; b.textContent = "Copied"; setTimeout(()=>b.textContent=old, 1400);
+  }
+}
+function recomputeExp(){ PG.expAt = Math.floor(Date.now()/1000) + ({ "1h":3600, "1d":86400, "30d":2592000 })[PG.expDur]; }
+buildCatalog();
+chipGroup("pgSig", v=>{ PG.sig=v; $("#pgUnsafeNote").hidden = v!=="unsafe"; $("#pgSigLine").textContent = v==="unsafe" ? "This URL only works on a server running with unsafe allowed." : "The first segment above is a placeholder that marks where the signature goes. In production it is the hex HMAC-SHA256 of everything after it, computed with your secret by a client library or the CLI. Produce a real one in the Sign it section."; if(v==="unsafe"){ $("#pgCrab").classList.add("hidepeek"); setBubble($("#pgBubble"), "Unsafe. Brave. Local dev only, right?"); setTimeout(()=>$("#pgCrab").classList.remove("hidepeek"), RM?0:900); } pgRender(); });
+chipGroup("pgExpDur", v=>{ PG.expDur=v; if(PG.expOn) recomputeExp(); pgRender(); });
+chipGroup("pgMode", v=>{ PG.mode=v; pgRender(); });
+chipGroup("pgPresetName", v=>{ PG.presetName=v; $("#pgPresetExpansion").textContent = "Expands to: " + PRESETS[v] + ". Cache keys use this expanded form."; pgRender(); });
+chipGroup("pgSizeMode", v=>{ PG.sizeMode=v; pgRender(); });
+chipGroup("pgPadFill", v=>{ PG.padFill=v; $("#pgPadColorWrap").hidden = v!=="color"; $("#pgPadNoneNote").hidden = v!=="none"; pgRender(); });
+chipGroup("pgDpr", v=>{ PG.dpr=v; pgRender(); });
+$("#pgExpToggle").addEventListener("click", ()=>{
+  PG.expOn = !PG.expOn;
+  $("#pgExpToggle").setAttribute("aria-pressed", String(PG.expOn));
+  $("#pgExpToggle").classList.toggle("on", PG.expOn);
+  $("#pgExpDur").hidden = !PG.expOn;
+  $("#pgExpText").hidden = !PG.expOn;
+  if(PG.expOn) recomputeExp();
+  pgRender();
+});
+$("#pgW").addEventListener("input", pgRender);
+$("#pgH").addEventListener("input", pgRender);
+$("#pgSource").addEventListener("input", pgRender);
+$("#pgCropAlign").addEventListener("change", e=>{ PG.cropAlign = e.target.value; pgRender(); });
+$("#pgPadColor").addEventListener("input", e=>{ const v = e.target.value.replace(/[^0-9a-f]/gi,"").toLowerCase().slice(0,6); PG.padColor = v||"000000"; $("#pgPadColorPick").value = "#"+(v.padEnd(6,"0")); pgRender(); });
+$("#pgPadColorPick").addEventListener("input", e=>{ PG.padColor = e.target.value.slice(1); $("#pgPadColor").value = PG.padColor; pgRender(); });
+$("#pgSnap").addEventListener("click", ()=>pgCopy("snap"));
+$("#pgCopy").addEventListener("click", ()=>pgCopy("copy"));
+$("#pgPresetExpansion").textContent = "Expands to: " + PRESETS["og-card"] + ". Cache keys use this expanded form.";
+pgRender();
+</script>
 
-// Code tabs
-(function(){
-  var tabs = document.querySelectorAll(".tab"), panes = document.querySelectorAll(".code-pane"), active = "curl";
-  tabs.forEach(function(t){
-    t.addEventListener("click", function(){
-      tabs.forEach(function(x){ x.classList.remove("active"); }); t.classList.add("active");
-      panes.forEach(function(p){ p.classList.toggle("active", p.dataset.pane === t.dataset.pane); });
-      active = t.dataset.pane;
-    });
+<script>
+"use strict";
+/* ============ shared toy/sample image (SVG data URI, offline) ============ */
+const TOY_SVG = "<svg xmlns='http://www.w3.org/2000/svg' width='1200' height='800'><defs><linearGradient id='sky' x1='0' y1='0' x2='0' y2='1'><stop offset='0' stop-color='#8FE3E1'/><stop offset='1' stop-color='#F3DFB4'/></linearGradient></defs><rect width='1200' height='800' fill='url(#sky)'/><circle cx='950' cy='150' r='90' fill='#FFB020'/><path d='M0 560 Q300 470 620 545 T1200 520 V800 H0 Z' fill='#0E7C7B'/><path d='M0 650 Q260 590 560 640 T1200 620 V800 H0 Z' fill='#084F57'/><g fill='#FBF0D9'><ellipse cx='240' cy='700' rx='120' ry='26'/><ellipse cx='980' cy='730' rx='150' ry='30'/></g><g fill='#E8482F'><circle cx='600' cy='660' r='46'/><circle cx='600' cy='660' r='20' fill='#B92F1B'/></g></svg>";
+const TOY_URI = "data:image/svg+xml;utf8," + encodeURIComponent(TOY_SVG);
+$("#toyBase").src = TOY_URI;
+$("#pvImgF").src = TOY_URI;
+$("#pvImgP").src = TOY_URI;
+
+/* ============ TOY ============ */
+const TOY = { x:300, y:150, w:600, h:400, chain:[] };
+const CSSMAP = { "grayscale":"grayscale(1)", "sepia":"sepia(0.65)", "invert":"invert(1)", "saturation(1.7)":"saturate(1.7)", "contrast(25)":"contrast(1.25)", "huerotate(90)":"hue-rotate(90deg)", "blur(2.5)":"blur(2px)" };
+const stage = $("#toyStage"), win = $("#toyWin");
+const lock32 = ()=>$("#toyLock").checked;
+function placeWin(){
+  win.style.left = (TOY.x/1200*100)+"%";
+  win.style.top = (TOY.y/800*100)+"%";
+  win.style.width = (TOY.w/1200*100)+"%";
+  win.style.height = (TOY.h/800*100)+"%";
+  const r = TOY.x+TOY.w, b = TOY.y+TOY.h;
+  $("#toyReadout").textContent = "left "+TOY.x+", top "+TOY.y+", right "+r+", bottom "+b+", size "+TOY.w+"x"+TOY.h;
+  win.setAttribute("aria-label", "Crop window. left "+TOY.x+", top "+TOY.y+", right "+r+", bottom "+b+", size "+TOY.w+"x"+TOY.h+". Arrow keys move it, Alt plus arrow keys resize it.");
+  const pv = $("#toyPreview");
+  pv.style.aspectRatio = TOY.w + " / " + TOY.h;
+  const sx = 100/(TOY.w/1200), sy = 100/(TOY.h/800);
+  ["pvImgF","pvImgP"].forEach(id=>{
+    const img = document.getElementById(id);
+    img.style.width = sx+"%"; img.style.height = sy+"%";
+    img.style.left = (-TOY.x/TOY.w*100)+"%"; img.style.top = (-TOY.y/TOY.h*100)+"%";
   });
-  document.getElementById("copyCode").addEventListener("click", function(){
-    var pane = document.querySelector(".code-pane[data-pane='" + active + "'] pre");
-    copyText(pane ? pane.textContent : "", this);
+  toyEq();
+}
+function renderStack(){
+  const host = $("#toyStack"); host.innerHTML = "";
+  if(!TOY.chain.length){ host.innerHTML = "<span class='empty'>Empty for now. Toggle a filter and it lands here, numbered.</span>"; }
+  TOY.chain.forEach((f,i)=>{
+    const s = document.createElement("span"); s.className = "snode";
+    s.innerHTML = "<b>"+(i+1)+"</b> " + f + " <button type='button' class='x' aria-label='Remove "+f+"'>×</button> <button type='button' class='mv' aria-label='Move "+f+" earlier'>←</button><button type='button' class='mv' aria-label='Move "+f+" later'>→</button>";
+    s.querySelector(".x").addEventListener("click", ()=>{ TOY.chain.splice(i,1); syncToy(); });
+    const [b1,b2] = s.querySelectorAll(".mv");
+    b1.addEventListener("click", ()=>{ if(i>0){ [TOY.chain[i-1],TOY.chain[i]]=[TOY.chain[i],TOY.chain[i-1]]; syncToy(); } });
+    b2.addEventListener("click", ()=>{ if(i<TOY.chain.length-1){ [TOY.chain[i+1],TOY.chain[i]]=[TOY.chain[i],TOY.chain[i+1]]; syncToy(); } });
+    host.appendChild(s);
+    if(i<TOY.chain.length-1){ const a = document.createElement("span"); a.className="sarrow"; a.textContent = "→"; host.appendChild(a); }
   });
-})();
+  $$("#toyPalette .chipbtn").forEach(b=>b.classList.toggle("on", TOY.chain.includes(b.dataset.f)));
+}
+function toyEq(){
+  const full = TOY.x===0 && TOY.y===0 && TOY.w===1200 && TOY.h===800;
+  const left = full ? "full frame, no crop segment" : "crop-rect:"+TOY.x+"x"+TOY.y+":"+(TOY.x+TOY.w)+"x"+(TOY.y+TOY.h);
+  const right = TOY.chain.length ? "filters:"+TOY.chain.join(":") : "filters: (empty, add a filter)";
+  $("#toyEq").textContent = left + "/" + right;
+  $("#pvImgF").style.filter = TOY.chain.map(f=>CSSMAP[f]).filter(Boolean).join(" ");
+}
+function syncToy(){ renderStack(); toyEq(); }
+$$("#toyPalette .chipbtn").forEach(b=>b.addEventListener("click", ()=>{
+  const f = b.dataset.f;
+  if(TOY.chain.includes(f)) TOY.chain = TOY.chain.filter(x=>x!==f); else TOY.chain.push(f);
+  react($("#pvHandle svg"), "snap", 200);
+  syncToy();
+}));
+$$("[data-preset]").forEach(b=>b.addEventListener("click", ()=>{
+  const p = b.dataset.preset;
+  const want = p==="postcard" ? ["sepia","contrast(25)"] : p==="pop" ? ["saturation(1.7)","contrast(25)"] : ["grayscale","contrast(25)"];
+  if(JSON.stringify(want)===JSON.stringify(TOY.chain)){ react(b, "snap", 200); return; }
+  TOY.chain = want; syncToy();
+}));
+let drag = null;
+stage.addEventListener("pointerdown", e=>{
+  const corner = e.target.closest(".clawh")?.dataset.corner || null;
+  if(!e.target.closest("#toyWin")) return;
+  const rect = stage.getBoundingClientRect();
+  drag = { corner, sx:e.clientX, sy:e.clientY, ox:TOY.x, oy:TOY.y, ow:TOY.w, oh:TOY.h, rw:rect.width, rh:rect.height };
+  stage.setPointerCapture(e.pointerId);
+  e.preventDefault();
+});
+stage.addEventListener("pointermove", e=>{
+  if(!drag) return;
+  const dx = Math.round((e.clientX-drag.sx)/drag.rw*1200), dy = Math.round((e.clientY-drag.sy)/drag.rh*800);
+  const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
+  const MIN = 80;
+  if(!drag.corner){ TOY.x = clamp(drag.ox+dx, 0, 1200-TOY.w); TOY.y = clamp(drag.oy+dy, 0, 800-TOY.h); }
+  else{
+    let nx = drag.ox, ny = drag.oy, nw = drag.ow, nh = drag.oh;
+    if(drag.corner.includes("r")) nw = clamp(drag.ow+dx, MIN, 1200-drag.ox);
+    if(drag.corner.includes("b")) nh = clamp(drag.oh+dy, MIN, 800-drag.oy);
+    if(drag.corner.includes("l")){ nx = clamp(drag.ox+dx, 0, drag.ox+drag.ow-MIN); nw = drag.ow + (drag.ox-nx); }
+    if(drag.corner.includes("t")){ ny = clamp(drag.oy+dy, 0, drag.oy+drag.oh-MIN); nh = drag.oh + (drag.oy-ny); }
+    if(lock32()){
+      if(drag.corner.includes("r")||drag.corner.includes("l")) nh = clamp(Math.round(nw*2/3), MIN, 800-ny);
+      else nw = clamp(Math.round(nh*3/2), MIN, 1200-nx);
+    }
+    TOY.x = nx; TOY.y = ny; TOY.w = nw; TOY.h = nh;
+  }
+  placeWin();
+});
+stage.addEventListener("pointerup", ()=>{ drag = null; });
+win.addEventListener("keydown", e=>{
+  const step = e.shiftKey ? 10 : 1;
+  let used = true;
+  if(e.key==="ArrowLeft"){ if(e.altKey) TOY.w = Math.max(80, TOY.w-step); else TOY.x = Math.max(0, TOY.x-step); }
+  else if(e.key==="ArrowRight"){ if(e.altKey) TOY.w = Math.min(1200-TOY.x, TOY.w+step); else TOY.x = Math.min(1200-TOY.w, TOY.x+step); }
+  else if(e.key==="ArrowUp"){ if(e.altKey) TOY.h = Math.max(80, TOY.h-step); else TOY.y = Math.max(0, TOY.y-step); }
+  else if(e.key==="ArrowDown"){ if(e.altKey) TOY.h = Math.min(800-TOY.y, TOY.h+step); else TOY.y = Math.min(800-TOY.h, TOY.y+step); }
+  else if(e.key==="Home"){ TOY.x=300; TOY.y=150; TOY.w=600; TOY.h=400; }
+  else used = false;
+  if(used){
+    e.preventDefault();
+    if(e.altKey && lock32()){
+      if(e.key==="ArrowLeft"||e.key==="ArrowRight") TOY.h = Math.max(80, Math.min(800-TOY.y, Math.round(TOY.w*2/3)));
+      else TOY.w = Math.max(80, Math.min(1200-TOY.x, Math.round(TOY.h*3/2)));
+    }
+    placeWin();
+  }
+});
+const pvRange = $("#pvRange");
+let lastClip = 55;
+function setClip(v){
+  $("#pvPlain").style.clipPath = "inset(0 0 0 "+v+"%)";
+  $("#pvHandle").style.left = v+"%";
+  $("#pvDivider").style.left = v+"%";
+  const d = v - lastClip; lastClip = v;
+  $("#pvHandle").style.transform = "rotate("+(d>0?8:d<0?-8:0)+"deg)";
+}
+pvRange.addEventListener("input", ()=>setClip(+pvRange.value));
+pvRange.addEventListener("change", ()=>{ $("#pvHandle").style.transform = "rotate(0deg)"; });
+setClip(55);
+placeWin(); syncToy();
+
+/* ============ RACE THE CACHE ============ */
+const RACE = { op:"resize", ran:false, warmDone:false, busy:false };
+const RACE_COLD = { resize:{ ms:29.1, label:"29.1 ms, cold p50, resize to 800 wide", dur:900 }, crop:{ ms:56.8, label:"56.8 ms, cold p50, crop-fill to 400x300", dur:1400 } };
+const WARM_LABEL = "0.2 to 0.4 ms, warm p50, served from the in-memory cache";
+const raceOpBtns = $$("#raceOp .chipbtn");
+function raceSetOpDisabled(d){ raceOpBtns.forEach(b=>b.disabled = d); }
+chipGroup("raceOp", v=>{ if(RACE.busy) return; RACE.op = v; raceReset(); });
+function raceBar(bar, crabEl, durMs, countTo, countEl, label){
+  return new Promise(res=>{
+    const track = bar.parentElement;
+    const travel = ()=> Math.max(0, track.clientWidth - 42);
+    if(RM){ bar.style.transform = "scaleX(1)"; crabEl.style.transform = "translateX("+travel()+"px)"; if(countEl) countEl.textContent = label; res(); return; }
+    const t0 = performance.now();
+    (function step(t){
+      const p = Math.min(1,(t-t0)/durMs), e = 1-Math.pow(1-p,2);
+      bar.style.transform = "scaleX("+e+")";
+      crabEl.style.transform = "translateX("+(travel()*e)+"px)";
+      if(countEl && countTo) countEl.textContent = (countTo*e).toFixed(1) + label.slice(label.indexOf(" ms"));
+      if(p<1) requestAnimationFrame(step); else res();
+    })(t0);
+  });
+}
+function raceReset(){
+  RACE.ran = false; RACE.warmDone = false; RACE.busy = false;
+  ["coldBar","warmBar"].forEach(id=>{ document.getElementById(id).style.transform = "scaleX(0)"; });
+  ["coldCrab","warmCrab"].forEach(id=>{ document.getElementById(id).style.transform = "translateX(0)"; });
+  $("#coldOut").textContent = "Not run yet"; $("#warmOut").textContent = "Not run yet";
+  $("#cacheChip").classList.remove("full"); $("#cacheText").textContent = "Cache: empty";
+  $("#raceAgain").disabled = true; $("#raceRun").disabled = false;
+  raceSetOpDisabled(false);
+  $("#through").classList.remove("show");
+  $("#throughNum").textContent = "0";
+  $("#raceLive").textContent = "";
+}
+$("#raceRun").addEventListener("click", async ()=>{
+  if(RACE.busy || RACE.ran) return; RACE.busy = true;
+  $("#raceRun").disabled = true; raceSetOpDisabled(true);
+  const c = RACE_COLD[RACE.op];
+  await raceBar($("#coldBar"), $("#coldCrab"), c.dur, c.ms, $("#coldOut"), c.label);
+  $("#coldOut").textContent = c.label;
+  $("#cacheChip").classList.add("full"); $("#cacheText").textContent = "Cache: stored";
+  $("#raceLive").textContent = c.label;
+  RACE.ran = true; RACE.busy = false; $("#raceAgain").disabled = false; raceSetOpDisabled(false);
+});
+$("#raceAgain").addEventListener("click", async ()=>{
+  if(RACE.busy || !RACE.ran || RACE.warmDone) return; RACE.busy = true;
+  $("#raceAgain").disabled = true; raceSetOpDisabled(true);
+  await raceBar($("#warmBar"), $("#warmCrab"), 120, 0, null, "");
+  $("#warmOut").textContent = WARM_LABEL;
+  $("#raceLive").textContent = WARM_LABEL;
+  RACE.warmDone = true;
+  $("#through").classList.add("show");
+  const num = $("#throughNum");
+  if(RM){ num.textContent = "1,843"; }
+  else{
+    const t0 = performance.now(); let shown = 0;
+    (function step(t){
+      const p = Math.min(1,(t-t0)/1000);
+      const target = Math.round(1843*(1-Math.pow(1-p,3)));
+      if(target - shown >= 120 || p===1){ shown = target; num.textContent = shown.toLocaleString("en-US"); }
+      if(p<1) requestAnimationFrame(step);
+    })(t0);
+  }
+  RACE.busy = false; raceSetOpDisabled(false);
+});
+$("#raceReset").addEventListener("click", ()=>{ if(!RACE.busy) raceReset(); });
+raceReset();
+
+/* ============ tabs + copy ============ */
+const tabs = $$(".tab");
+function activateTab(t){
+  tabs.forEach(x=>{ x.classList.toggle("active", x===t); x.setAttribute("aria-selected", String(x===t)); });
+  $$(".code-pane").forEach(p=>p.classList.toggle("active", p.dataset.pane===t.dataset.pane));
+  react($("#codeCrab"), "snap", 200);
+}
+tabs.forEach((t,i)=>t.addEventListener("click", ()=>activateTab(t)));
+$(".tabs").addEventListener("keydown", e=>{
+  if(e.key!=="ArrowRight" && e.key!=="ArrowLeft") return;
+  const i = tabs.indexOf(document.activeElement); if(i<0) return;
+  e.preventDefault();
+  const n = tabs[(i + (e.key==="ArrowRight"?1:-1) + tabs.length) % tabs.length];
+  n.focus(); activateTab(n);
+});
+function flashCopy(btn, okText, ms){
+  const old = btn.textContent; btn.textContent = okText;
+  setTimeout(()=>btn.textContent = old, ms || 1400);
+}
+const CODE_BUBBLE_DEFAULT = "Same vectors in every language. Sign here, verify there.";
+$("#copyCode").addEventListener("click", async ()=>{
+  const pane = $(".code-pane.active pre");
+  try{ await navigator.clipboard.writeText(pane.innerText); flashCopy($("#copyCode"), "Copied"); reactHappy($("#codeCrab")); setBubble($("#codeBubble"), "Signed, sealed, runnable."); setTimeout(()=>setBubble($("#codeBubble"), CODE_BUBBLE_DEFAULT), 5000); }
+  catch(e){ flashCopy($("#copyCode"), "Select and copy manually"); }
+});
+$("#copyDocker").addEventListener("click", async e=>{
+  const code = e.target.closest(".dockerstrip").querySelector("code").textContent;
+  try{ await navigator.clipboard.writeText(code); flashCopy($("#copyDocker"), "Copied"); }catch(err){ flashCopy($("#copyDocker"), "Copy manually"); }
+});
+
+/* ============ AI rows ============ */
+$$(".ai-row").forEach(r=>{
+  if(!r.dataset.bubble) return;
+  const show = ()=>{ setBubble($("#aiBubble"), r.dataset.bubble); $("#aiPorthole").classList.add("rot"); };
+  const hide = ()=>$("#aiPorthole").classList.remove("rot");
+  r.addEventListener("mouseenter", show); r.addEventListener("focusin", show); r.addEventListener("click", show);
+  r.addEventListener("mouseleave", hide); r.addEventListener("focusout", hide);
+});
+
+/* ============ footer mascot ============ */
+$("#footCrab").addEventListener("mouseenter", ()=>react($("#footCrab"), "snap", 200));
+$("#toTop").addEventListener("click", ()=>{
+  reactHappy($("#footCrab"));
+  const b = $("#footBubble"); b.classList.add("shown");
+  setTimeout(()=>b.classList.remove("shown"), 6000);
+});
 </script>
 </body>
 </html>
