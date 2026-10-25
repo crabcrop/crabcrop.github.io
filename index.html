@@ -720,6 +720,11 @@ footer a{color:var(--sea-glass)}
       <div><span class="dot" style="background:var(--tide)"></span><span><b>Operations.</b> The recipe, in path order. Size, crop, filters, metadata segments like <span class="mono">exp:</span> and <span class="mono">preset:</span>.</span></div>
       <div><span class="dot" style="background:var(--sun)"></span><span><b>Source.</b> Your original image, full URL. Everything from the first non-operation segment onward.</span></div>
     </div>
+
+    <div class="reveal-l" style="margin-top:26px;background:#fff;border:1.5px solid var(--ink);border-radius:16px;box-shadow:4px 4px 0 var(--ink);padding:18px 22px">
+      <p style="margin:0;font-size:16px;line-height:1.55"><b>And every URL can explain itself.</b> Swap the front of the path for <span class="mono">/explain/</span> and the server answers with a report instead of the image: the signature and expiry status, the source and its size, every operation in plain words, and the canonical form that gets cached. It verifies the same signature first, so an explain link reveals nothing the image link does not.</p>
+      <p class="mono" style="margin:12px 0 0;font-size:13.5px;word-break:break-all">https://img.example.com/<b style="color:var(--coral-deep)">explain</b>/3c1f6c18…/crop:1200x630:smart/https://example.com/photo.jpg</p>
+    </div>
   </div>
 </section>
 
