@@ -626,6 +626,23 @@ footer a{color:var(--sea-glass)}
       </div>
     </div>
 
+    <div id="install" class="reveal-l" style="margin-top:46px">
+      <div class="tidemark"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg> Install</div>
+      <h2 style="font-size:clamp(26px,3.4vw,36px);margin-bottom:14px">Running in <span class="coral">a minute.</span></h2>
+      <div class="cmdstrip" style="display:flex;align-items:center;gap:12px;margin-top:0">
+        <code style="flex:1">curl --proto '=https' --tlsv1.2 -LsSf https://github.com/dayvson/crabcrop/releases/latest/download/crabcrop-installer.sh | sh</code>
+        <button class="copybtn" type="button" id="copyInstall">Copy</button>
+      </div>
+      <div style="margin-top:14px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13.5px;font-weight:700">
+        Other routes:
+        <a href="https://github.com/dayvson/crabcrop/releases/latest" target="_blank" rel="noopener">Homebrew</a> ·
+        <a href="https://github.com/dayvson/crabcrop/pkgs/container/crabcrop" target="_blank" rel="noopener">Docker</a> ·
+        <a href="https://github.com/dayvson/crabcrop/pkgs/container/crabcrop-ai" target="_blank" rel="noopener">AI image</a> ·
+        <a href="https://github.com/dayvson/crabcrop/releases" target="_blank" rel="noopener">Release binaries</a> ·
+        <a href="https://crates.io/crates/crabcrop-url" target="_blank" rel="noopener">crates.io</a>
+      </div>
+    </div>
+
     <div class="strip reveal-l">
       <div class="aim">Our aim: the fastest image service on the planet.</div>
     </div>
@@ -711,29 +728,6 @@ footer a{color:var(--sea-glass)}
     </div></div>
   </div>
 </div>
-
-<!-- INSTALL -->
-<section id="install" style="padding:52px 0 60px">
-  <div class="foam" style="--fc:#FBF0D9" aria-hidden="true"></div>
-  <div class="wrap">
-    <div class="reveal-l">
-      <div class="tidemark"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg> Install</div>
-      <h2 style="font-size:clamp(26px,3.4vw,36px);margin-bottom:14px">Running in <span class="coral">a minute.</span></h2>
-      <div class="cmdstrip" style="display:flex;align-items:center;gap:12px;margin-top:0">
-        <code style="flex:1">curl --proto '=https' --tlsv1.2 -LsSf https://github.com/dayvson/crabcrop/releases/latest/download/crabcrop-installer.sh | sh</code>
-        <button class="copybtn" type="button" id="copyInstall">Copy</button>
-      </div>
-      <div style="margin-top:14px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13.5px;font-weight:700">
-        Other routes:
-        <a href="https://github.com/dayvson/crabcrop/releases/latest" target="_blank" rel="noopener">Homebrew</a> ·
-        <a href="https://github.com/dayvson/crabcrop/pkgs/container/crabcrop" target="_blank" rel="noopener">Docker</a> ·
-        <a href="https://github.com/dayvson/crabcrop/pkgs/container/crabcrop-ai" target="_blank" rel="noopener">AI image</a> ·
-        <a href="https://github.com/dayvson/crabcrop/releases" target="_blank" rel="noopener">Release binaries</a> ·
-        <a href="https://crates.io/crates/crabcrop-url" target="_blank" rel="noopener">crates.io</a>
-      </div>
-    </div>
-  </div>
-</section>
 
 <!-- PLAYGROUND -->
 <section id="playground">
