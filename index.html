@@ -3,21 +3,19 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>crabcrop: Lightning-Fast On-Demand Image API in Rust | All Major Formats, Over 42 Filters, AI Features</title>
+<title>crabcrop: Blazing Fast On-Demand Image Service</title>
 <meta name="description" content="Crabcrop is a Rust-built, lightning-fast on-demand image API supporting all major formats in and out, with over 42 filters and AI features like background removal. It resizes, crops, converts, and filters your images straight from a signed URL. One binary, no pre-generated thumbnails, no build step.">
 <link rel="canonical" href="https://crabcrop.org/">
 <meta property="og:site_name" content="crabcrop">
-<meta property="og:title" content="crabcrop: Lightning-Fast On-Demand Image API in Rust">
-<meta property="og:description" content="Crabcrop is a Rust-built, lightning-fast on-demand image API supporting all major formats in and out, with over 42 filters and AI features. Put the resize, crop, format, and filters in a signed URL and it serves the result.">
+<meta property="og:title" content="crabcrop: Blazing Fast On-Demand Image Service">
+<meta property="og:description" content="Resize, crop, convert, and filter straight from a signed URL. All major formats in and out, over 42 filters, AI features.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://crabcrop.org/">
 <meta property="og:image" content="https://crabcrop.org/crabcrop-mascot.webp">
-<meta property="og:image:alt" content="Snap, the crabcrop crab, holding a photo print">
-<meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="crabcrop: Lightning-Fast On-Demand Image API in Rust">
-<meta name="twitter:description" content="Crabcrop is a Rust-built, lightning-fast on-demand image API supporting all major formats in and out, with over 42 filters and AI features like background removal. Resize, crop, convert, and filter straight from a signed URL.">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="crabcrop: Blazing Fast On-Demand Image Service">
+<meta name="twitter:description" content="Resize, crop, convert, and filter straight from a signed URL. All major formats in and out, over 42 filters, AI features.">
 <meta name="twitter:image" content="https://crabcrop.org/crabcrop-mascot.webp">
-<meta name="twitter:image:alt" content="Snap, the crabcrop crab, holding a photo print">
 <meta name="theme-color" content="#FBF0D9">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M10 3C6.5 7 6.5 13 10 17l2 4 2-4c3.5-4 3.5-10 0-14' fill='none' stroke='%23E8482F' stroke-width='2.4' stroke-linecap='round'/%3E%3C/svg%3E">
 <style>
@@ -582,8 +580,27 @@ footer a{color:var(--sea-glass)}
   .filter-frame img{animation:none;filter:none}
   #aiPorthole.scanning{animation:none}
 }
+
 </style>
-<!-- Google tag (gtag.js) -->
+<style>
+section{padding:56px 0}
+.hero-b{padding:44px 0 30px}
+.hero-b .ba{box-shadow:var(--shadow-lg)}
+.strip-scroll{display:flex;gap:18px;overflow-x:auto;padding:8px 4px 20px;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch}
+.strip-card{scroll-snap-align:start;flex:0 0 300px;background:var(--foam);border:2px solid var(--ink);border-radius:var(--shell);box-shadow:var(--shadow);overflow:hidden}
+.strip-card img{width:100%;height:170px;object-fit:cover;display:block}
+.strip-card .sc-body{padding:16px 18px 18px}
+.strip-card p{font-size:14.5px;color:var(--ink-2)}
+.strip-card .opname{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;font-weight:700;color:var(--tide);display:block;margin-top:10px}
+.fmt-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:30px}
+@media(max-width:900px){.fmt-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:520px){.fmt-grid{grid-template-columns:1fr}}
+.fmt-cell{background:var(--foam);border:1.5px solid var(--ink);border-radius:var(--shell);box-shadow:var(--shadow);padding:18px}
+.badges{display:flex;gap:6px;margin:8px 0}
+.bdg{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:3px 9px;border-radius:999px;border:1.5px solid var(--ink)}
+.bdg.in{background:var(--sea-glass)} .bdg.out{background:var(--sun-soft)} .bdg.off{background:var(--sand-200);color:var(--ink-2);border-color:var(--sand-300)}
+.fmt-cell p{font-size:14px;color:var(--ink-2)}
+</style>
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-56Q9ZPMWLX"></script>
 <script>
   window.dataLayer = window.dataLayer || [];
@@ -599,580 +616,144 @@ footer a{color:var(--sea-glass)}
 
 <header>
   <div class="wrap nav">
-    <a class="logo" href="#top"><span class="pebble" id="navCrab" aria-hidden="true"><svg class="claw"><use href="#clawmark"/></svg></span> crabcrop</a>
+    <a class="logo" href="#top"><span class="pebble" aria-hidden="true"><svg class="claw"><use href="#clawmark"/></svg></span> crabcrop</a>
     <nav class="nav-links" aria-label="Sections">
-      <a href="#anatomy">Anatomy</a><a href="#playground">Playground</a><a href="#sign">Sign it</a>
-      <a href="#features">Features</a><a href="#formats">Formats</a><a href="#ai">AI</a><a href="#libraries">Libraries</a><a href="#install">Install</a>
+      <a href="#install">Install</a><a href="#features">Features</a><a href="#formats">Formats</a><a href="#sign">Sign a URL</a>
+      <a href="docs.html">Documentation</a>
     </nav>
-    <a class="btn" style="padding:10px 18px" href="#playground">Start building</a>
+    <a class="btn" style="padding:10px 18px" href="docs.html">Read the docs</a>
   </div>
   <div class="foam" aria-hidden="true"></div>
 </header>
 
 <main id="top">
-
-<!-- HERO + ANATOMY -->
-<section class="hero" id="anatomy">
+<!-- HERO -->
+<section class="hero-b">
   <div class="wrap">
-    <div class="hero-grid">
-      <div class="reveal-l in-view">
-        <div class="tidemark"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg> On-demand image optimization, in Rust</div>
-        <h1>The URL is the API,<br><span class="coral">with claws.</span></h1>
-        <p class="lede" style="margin-top:22px">Crabcrop is a Rust-built, lightning-fast on-demand image API supporting all major formats in and out, with over 42 filters and AI features. It fetches your original, applies the operations in the URL in order, and serves the result: write the resize, crop, format, and filters into a signed URL, and skip the pre-generated thumbnails and the build step entirely.</p>
-        <div class="hero-ctas">
-          <a class="btn" href="#playground">Snap a URL together</a>
-          <a class="mono-link" href="#sign"><svg class="claw" width="16" height="16" aria-hidden="true"><use href="#clawmark"/></svg> Learn to sign it</a>
-        </div>
-        <p class="hero-note">Signed with HMAC-SHA256. Cached by canonical key. Served with <code>Cache-Control: immutable</code> for a year.</p>
-      </div>
-      <div class="reveal-r">
-        <div class="bubble hero-bubble" id="heroBubble">Hi, I am Snap. I snap images to size.</div>
-        <figure class="frame" id="heroFrame">
-          <span class="note n1">300x200</span>
-          <img src="crabcrop-mascot.webp" alt="Snap, the crochet crab mascot of crabcrop, waving one claw and holding a photo">
-          <span class="note n2">format(avif)</span>
-          <figcaption><span>Snap, resident crab</span><span class="mono" style="font-size:12.5px">est. low tide</span></figcaption>
-        </figure>
-      </div>
-    </div>
-
-    <div id="install" class="reveal-l in-view" style="margin-top:46px">
-      <div class="tidemark"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg> Install</div>
-      <h2 style="font-size:clamp(26px,3.4vw,36px);margin-bottom:14px">Running in <span class="coral">a minute.</span></h2>
-      <div class="cmdstrip" style="display:flex;align-items:center;gap:12px;margin-top:0">
-        <code style="flex:1">curl --proto '=https' --tlsv1.2 -LsSf https://github.com/dayvson/crabcrop/releases/latest/download/crabcrop-installer.sh | sh</code>
-        <button class="copybtn" type="button" id="copyInstall">Copy</button>
-      </div>
-      <div style="margin-top:14px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13.5px;font-weight:700">
-        Other routes:
-        <a href="https://github.com/dayvson/crabcrop/releases/latest" target="_blank" rel="noopener">Homebrew</a> ·
-        <a href="https://github.com/dayvson/crabcrop/pkgs/container/crabcrop" target="_blank" rel="noopener">Docker</a> ·
-        <a href="https://github.com/dayvson/crabcrop/pkgs/container/crabcrop-ai" target="_blank" rel="noopener">AI image</a> ·
-        <a href="https://github.com/dayvson/crabcrop/releases" target="_blank" rel="noopener">Release binaries</a> ·
-        <a href="https://crates.io/crates/crabcrop-url" target="_blank" rel="noopener">crates.io</a>
-      </div>
-    </div>
-
-    <div class="strip reveal-l">
-      <div class="aim">Our aim: the fastest image service on the planet.</div>
-    </div>
-
-    <div class="reveal-r" style="display:flex;gap:28px;align-items:center;flex-wrap:wrap">
-      <div style="flex:1 1 430px;min-width:min(430px,100%)">
-      <div class="tidemark" style="margin-top:44px"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg> URL anatomy</div>
-      <h2>One URL. Every instruction inside it.</h2>
-      <p class="lede">Every request is <span class="mono" style="font-size:.92em">GET /&lt;signature&gt;/&lt;operations&gt;/&lt;source-url&gt;</span>. Click a segment. Learn what it does, what it hides, and where it bites.</p>
-      </div>
-      <figure class="frame" style="max-width:210px;margin:0;flex:0 0 auto">
-        <img src="snap-anatomy.webp" alt="Snap the crochet crab at a small workbench, clicking chunky colored blocks into a row and tightening the last block with a wrench" width="400" height="400" loading="lazy">
-        <figcaption><span>Snap, building the URL.</span></figcaption>
-      </figure>
-    </div>
-
-    <div class="anatomy reveal-l" id="anatomyPanel">
-      <div class="peek win" id="anaCrab" aria-hidden="true"><img src="crabcrop-mascot.webp" alt=""></div>
-      <div class="families" role="radiogroup" aria-label="Size family in the strip">
-        <span class="flabel">Size family</span>
-        <button class="fchip" type="button" role="radio" aria-checked="false" data-fam="size">Size</button>
-        <button class="fchip" type="button" role="radio" aria-checked="false" data-fam="fit-in">Fit-in</button>
-        <button class="fchip" type="button" role="radio" aria-checked="false" data-fam="pad">Pad</button>
-        <button class="fchip" type="button" role="radio" aria-checked="true" data-fam="crop">Crop</button>
-        <button class="fchip" type="button" role="radio" aria-checked="false" data-fam="crop-rect">Crop-rect</button>
-        <button class="fchip" type="button" role="radio" aria-checked="false" data-fam="preset">Preset</button>
-      </div>
-      <div class="strip-url" role="group" aria-label="Anatomy of a crabcrop URL">
-        <span class="host">https://img.example.com</span><span class="slash">/</span><button class="segbtn c-sig" type="button" data-seg="sig" aria-pressed="true">3c1f6c18…</button><span class="slash">/</span><button class="segbtn c-exp" type="button" data-seg="exp" aria-pressed="false">exp:1893456000</button><span class="slash">/</span><button class="segbtn c-ops" type="button" data-seg="crop" id="slotSeg" aria-pressed="false">crop:1200x630:smart</button><span class="slash" id="filtersSlash">/</span><span class="segbtn c-ops" id="filtersSeg"><button class="tokbtn segmain" type="button" data-seg="filters" aria-label="Teach the filters segment as a whole">filters:</button><button class="tokbtn" type="button" data-tok="grayscale">grayscale</button>:<button class="tokbtn" type="button" data-tok="quality(80)">quality(80)</button></span><span class="slash">/</span><button class="segbtn c-src" type="button" data-seg="source" aria-pressed="false">https://example.com/photo.jpg</button>
-      </div>
-      <p style="font-size:12.5px;color:#9DB2C8;margin-top:10px">The signature is shortened for display. A real one is 64 hex characters, like the worked example in the panel.</p>
-      <div class="ana-panel">
-        <div id="anaTeach" aria-live="polite" aria-atomic="true">
-          <h3 id="anaSpell">signature<span class="plain" id="anaName">Signature</span></h3>
-          <p class="def" id="anaDef"></p>
-          <h4>Grammar</h4>
-          <ul id="anaGrammar"></ul>
-          <h4>Example</h4>
-          <div class="ana-ex" id="anaEx"></div>
-          <p class="ana-watch"><b>Watch out:</b> <span id="anaWatch"></span></p>
-        </div>
-        <div class="ana-rail">
-          <svg class="clawbig" id="anaClaw" aria-hidden="true"><use href="#clawmark"/></svg>
-          <div class="bubble on-dark" id="anaBubble">I check this first. No match, no image.</div>
-        </div>
-      </div>
-      <noscript>
-        <div style="margin-top:20px;font-size:15px;line-height:1.7">
-          <p><b>signature:</b> HMAC-SHA256 hex of everything after it, or the literal unsafe.</p>
-          <p><b>exp:</b> a signed expiry in Unix seconds, valid strictly before that second.</p>
-          <p><b>preset:</b> a server-side name for an operation string, expanded after verification.</p>
-          <p><b>size:</b> width x height in pixels; 0 scales proportionally, orig keeps the source axis, a minus flips.</p>
-          <p><b>fit-in:</b> scale proportionally to fit inside the box; a 0 axis is unbounded.</p>
-          <p><b>pad:</b> fit inside, center, and fill the rest so the output is exactly the box.</p>
-          <p><b>crop:</b> crop to the aspect ratio, then resize to exactly that size; align picks what survives.</p>
-          <p><b>crop-rect:</b> cut the exact pixel rectangle between two corners.</p>
-          <p><b>filters:</b> a chain of filters and directives, run in the order written; the last repeat wins.</p>
-          <p><b>source:</b> the full source URL; it starts at the first segment that is not an operation.</p>
-        </div>
-      </noscript>
-    </div>
-
-    <div class="legend reveal-l">
-      <div><span class="dot" style="background:var(--coral)"></span><span><b>Signature.</b> Proof the URL came from you. First segment, always.</span></div>
-      <div><span class="dot" style="background:var(--tide)"></span><span><b>Operations.</b> The recipe, in path order. Size, crop, filters, metadata segments like <span class="mono">exp:</span> and <span class="mono">preset:</span>.</span></div>
-      <div><span class="dot" style="background:var(--sun)"></span><span><b>Source.</b> Your original image, full URL. Everything from the first non-operation segment onward.</span></div>
-    </div>
-
-    <div class="reveal-l" style="margin-top:26px;background:#fff;border:1.5px solid var(--ink);border-radius:16px;box-shadow:4px 4px 0 var(--ink);padding:18px 22px">
-      <p style="margin:0;font-size:16px;line-height:1.55"><b>And every URL can explain itself.</b> Swap the front of the path for <span class="mono">/explain/</span> and the server answers with a report instead of the image: the signature and expiry status, the source and its size, every operation in plain words, and the canonical form that gets cached. It verifies the same signature first, so an explain link reveals nothing the image link does not.</p>
-      <p class="mono" style="margin:12px 0 0;font-size:13.5px;word-break:break-all">https://img.example.com/<b style="color:var(--coral-deep)">explain</b>/3c1f6c18…/crop:1200x630:smart/https://example.com/photo.jpg</p>
+    <h1>Blazing fast,<br><span class="coral">on-demand images.</span></h1>
+    <p class="lede" style="margin-top:20px">Crabcrop is a Rust-built, lightning-fast on-demand image API supporting all major formats in and out, with over 42 filters and AI features like background removal. It resizes, crops, converts, and filters your images straight from a signed URL. One binary, no pre-generated thumbnails, no build step.</p>
+    <div class="hero-ctas">
+      <a class="btn" href="#install">Get it running</a>
+      <a class="mono-link" href="docs.html"><svg class="claw" width="16" height="16" aria-hidden="true"><use href="#clawmark"/></svg> Full documentation</a>
     </div>
   </div>
 </section>
 
-<!-- BUOY ROW -->
-<div class="buoy band-200">
-  <div class="foam" style="--fc:#F3DFB4" aria-hidden="true"></div>
-  <div class="wrap clusters">
-    <div class="cluster"><div class="clabel">Size</div><div class="chips">
-      <span class="bchip">300x200</span><span class="bchip">crop:1200x630:smart</span><span class="bchip">fit-in:800x600</span><span class="bchip">pad:1200x630:blur</span>
-    </div></div>
-    <div class="cluster"><div class="clabel">Filters</div><div class="chips">
-      <span class="bchip">filters:grayscale</span><span class="bchip">filters:format(avif)</span><span class="bchip">filters:quality(auto)</span><span class="bchip">filters:radius(24)</span><span class="bchip">filters:watermark(...)</span><span class="bchip">filters:removebg</span><span class="bchip">filters:upscale(2)</span><span class="bchip">filters:blurclass(person)</span>
-    </div></div>
-    <div class="cluster"><div class="clabel">Control</div><div class="chips">
-      <span class="bchip">preset:og-card</span><span class="bchip">exp:1893456000</span><span class="bchip">maxage:3600</span><span class="bchip">filters:dpr(2)</span>
-    </div></div>
-  </div>
-</div>
-
-<!-- PLAYGROUND -->
-<section id="playground">
-  <div class="foam" style="--fc:#FBF0D9" aria-hidden="true"></div>
+<!-- INSTALL -->
+<section id="install">
   <div class="wrap">
-    <div class="reveal-l" style="display:flex;gap:28px;align-items:center;flex-wrap:wrap">
-      <div style="flex:1 1 430px;min-width:min(430px,100%)">
-      <div class="tidemark"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg> Playground</div>
-      <h2>The playground. <span class="coral">Snap</span> a URL together.</h2>
-      <p class="lede">Flip the controls. Watch a real crabcrop URL assemble, segment by segment, in the exact grammar the server parses. Runs entirely in your browser. Nothing you type leaves the page.</p>
-      </div>
-      <figure class="frame" style="max-width:210px;margin:0;flex:0 0 auto">
-        <img src="snap-playground.webp" alt="Snap the crochet crab pushing big sliders and a lever on a friendly control panel while the photo print in its claw grows larger and more vivid" width="400" height="400" loading="lazy">
-        <figcaption><span>Snap, working the controls.</span></figcaption>
-      </figure>
+    <div class="tidemark"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg> Install</div>
+    <h2>Running in <span class="coral">a minute.</span></h2>
+    <div class="cmdstrip" style="display:flex;align-items:center;gap:12px">
+      <code style="flex:1">curl --proto '=https' --tlsv1.2 -LsSf https://github.com/dayvson/crabcrop/releases/latest/download/crabcrop-installer.sh | sh</code>
+      <button class="copybtn" type="button" data-copy="curl --proto '=https' --tlsv1.2 -LsSf https://github.com/dayvson/crabcrop/releases/latest/download/crabcrop-installer.sh | sh">Copy</button>
     </div>
-
-    <div class="pg-grid">
-      <div class="panel reveal-l" style="padding:26px">
-        <div class="ctl">
-          <label for="pgSource">Source URL</label>
-          <input type="text" id="pgSource" class="mono" value="https://example.com/photo.jpg" spellcheck="false" autocomplete="off">
-          <p class="err" id="pgSourceErr" hidden></p>
-        </div>
-        <div class="ctl">
-          <span class="clabel" id="pgSigLabel">Signature</span>
-          <div class="segctl" role="group" aria-labelledby="pgSigLabel" id="pgSig">
-            <button class="chipbtn on" type="button" data-v="signed">Signed (production)</button>
-            <button class="chipbtn" type="button" data-v="unsafe">unsafe (local dev only)</button>
-          </div>
-          <p class="hint" id="pgUnsafeNote" hidden>Local development only: the server must run with unsafe allowed, and purges still always need a real signature.</p>
-        </div>
-        <div class="ctl">
-          <span class="clabel" id="pgExpLabel">Expiry</span>
-          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-            <button class="chipbtn" type="button" id="pgExpToggle" aria-pressed="false">Add exp:</button>
-            <div class="segctl" role="group" aria-labelledby="pgExpLabel" id="pgExpDur" hidden>
-              <button class="chipbtn" type="button" data-v="1h">1 hour</button>
-              <button class="chipbtn on" type="button" data-v="1d">1 day</button>
-              <button class="chipbtn" type="button" data-v="30d">30 days</button>
-            </div>
-          </div>
-          <p class="hint" id="pgExpText" hidden></p>
-        </div>
-        <div class="ctl">
-          <span class="clabel" id="pgModeLabel">Mode</span>
-          <div class="segctl" role="group" aria-labelledby="pgModeLabel" id="pgMode">
-            <button class="chipbtn on" type="button" data-v="free">Build my own</button>
-            <button class="chipbtn" type="button" data-v="preset">Use a preset</button>
-          </div>
-        </div>
-        <div class="ctl" id="pgPresetCtl" hidden>
-          <span class="clabel" id="pgPresetLabel">Preset name</span>
-          <div class="segctl" role="group" aria-labelledby="pgPresetLabel" id="pgPresetName">
-            <button class="chipbtn on" type="button" data-v="og-card">og-card</button>
-            <button class="chipbtn" type="button" data-v="thumb">thumb</button>
-          </div>
-          <div class="ana-ex" id="pgPresetExpansion" style="margin-top:12px;background:var(--sand-200);border-color:var(--sand-300);color:var(--ink)"></div>
-        </div>
-
-        <fieldset id="pgFree">
-          <div class="ctl">
-            <span class="clabel" id="pgSizeLabel">Size operation</span>
-            <div class="segctl" role="group" aria-labelledby="pgSizeLabel" id="pgSizeMode">
-              <button class="chipbtn" type="button" data-v="none">None</button>
-              <button class="chipbtn on" type="button" data-v="resize">Resize</button>
-              <button class="chipbtn" type="button" data-v="fit-in">Fit-in</button>
-              <button class="chipbtn" type="button" data-v="pad">Pad</button>
-              <button class="chipbtn" type="button" data-v="crop">Crop</button>
-            </div>
-            <p class="hint">Pick one sizing move, or none. The crab does one snap at a time, in path order.</p>
-          </div>
-          <div class="wh" id="pgWhRow">
-            <div class="ctl"><label for="pgW">Width (px)</label><input type="number" id="pgW" value="300" min="0" max="16383" step="1"></div>
-            <div class="ctl"><label for="pgH">Height (px)</label><input type="number" id="pgH" value="200" min="0" max="16383" step="1"></div>
-          </div>
-          <p class="err" id="pgSizeErr" hidden style="margin:-8px 0 16px"></p>
-          <div class="ctl" id="pgPadCtl" hidden>
-            <span class="clabel" id="pgPadLabel">Pad fill</span>
-            <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-              <div class="segctl" role="group" aria-labelledby="pgPadLabel" id="pgPadFill">
-                <button class="chipbtn on" type="button" data-v="blur">blur</button>
-                <button class="chipbtn" type="button" data-v="color">Color</button>
-                <button class="chipbtn" type="button" data-v="none">None</button>
-              </div>
-              <span id="pgPadColorWrap" hidden><input type="color" id="pgPadColorPick" value="#ff0000" aria-label="Pad fill color"> <input type="text" class="hex mono" id="pgPadColor" value="ff0000" maxlength="6" aria-label="Pad fill color, hex" style="width:88px;padding:8px 10px;border:2px solid var(--sand-300);border-radius:10px"></span>
-            </div>
-            <p class="hint" id="pgPadNoneNote" hidden>With no fill named, the request's fill(...) directive color is used, or black when there is none.</p>
-          </div>
-          <div class="ctl" id="pgCropCtl" hidden>
-            <label for="pgCropAlign">Crop alignment</label>
-            <select id="pgCropAlign">
-              <option value="smart" selected>smart (focal point, or a face)</option>
-              <option value="center">center (the default)</option>
-              <option value="top">top</option>
-              <option value="bottom">bottom</option>
-              <option value="left">left</option>
-              <option value="right">right</option>
-              <option value="top-left">top-left</option>
-              <option value="top-right">top-right</option>
-              <option value="bottom-left">bottom-left</option>
-              <option value="bottom-right">bottom-right</option>
-              <option value="face">face (largest detected face)</option>
-            </select>
-            <p class="hint" id="pgFaceNote" hidden>face needs a face model on the server; with none found it falls back to the smart window.</p>
-          </div>
-          <div class="ctl">
-            <span class="clabel" id="pgDprLabel">Device pixel ratio</span>
-            <div class="segctl" role="group" aria-labelledby="pgDprLabel" id="pgDpr">
-              <button class="chipbtn on" type="button" data-v="1">1</button>
-              <button class="chipbtn" type="button" data-v="1.5">1.5</button>
-              <button class="chipbtn" type="button" data-v="2">2</button>
-              <button class="chipbtn" type="button" data-v="3">3</button>
-            </div>
-            <p class="hint">Scales size and crop targets before any no_upscale cap. An explicit dpr in the URL beats the DPR client hint header.</p>
-          </div>
-          <div id="pgFilters"></div>
-          <p class="fnote">Each toggle joins the same filters: chain, in the order you switch it on. Also in the grammar, but needing coordinates, images, or server configuration a generic builder cannot set honestly: rgb, curve, convolution, trim, rotate, flip, monochrome, mask, blur_region, pixelate_region, watermark, overlay, text, blurfaces, pixelatefaces, blurclass, pixelateclass, facepad, keep_profile.</p>
-        </fieldset>
-      </div>
-
-      <div class="pg-out reveal-r">
-        <div style="height:34px" aria-hidden="true"></div>
-        <div class="outbox">
-          <div class="peek clawp" id="pgCrab" aria-hidden="true"><svg class="claw"><use href="#clawmark"/></svg></div>
-          <div class="out-head">
-            <span class="olabel">Assembled URL</span>
-            <button class="snapbtn" type="button" id="pgSnap">Snap it: copy URL</button>
-            <button class="copybtn" type="button" id="pgCopy">Copy</button>
-          </div>
-          <div class="built" id="pgUrl" aria-live="off"></div><span class="seal" id="pgSeal" hidden aria-hidden="true"><svg class="claw" style="width:13px;height:13px;color:#fff"><use href="#clawmark"/></svg></span>
-          <p class="sigline" id="pgSigLine">The first segment above is a placeholder that marks where the signature goes. In production it is the hex HMAC-SHA256 of everything after it, computed with your secret by a client library or the CLI. Produce a real one in the Sign it section.</p>
-          <div aria-live="polite" class="sr" id="pgLive"></div>
-        </div>
-        <div class="banner" id="pgBanner" hidden></div>
-        <h3 style="margin-top:22px">What you just built</h3>
-        <div class="parts" id="pgParts"></div>
-        <h3 style="margin-top:22px">What the server will do</h3>
-        <div class="notes" id="pgNotes"></div>
-        <div class="pg-bubble-row"><div class="bubble" id="pgBubble">Flip something. I will assemble it.</div></div>
-      </div>
+    <div style="margin-top:14px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13.5px;font-weight:700">
+      Other routes:
+      <a href="https://github.com/dayvson/crabcrop/releases/latest" target="_blank" rel="noopener">Homebrew</a> ·
+      <a href="https://github.com/dayvson/crabcrop/pkgs/container/crabcrop-ai" target="_blank" rel="noopener">AI image</a> ·
+      <a href="https://github.com/dayvson/crabcrop/releases" target="_blank" rel="noopener">Release binaries</a> ·
+      <a href="https://crates.io/crates/crabcrop-url" target="_blank" rel="noopener">crates.io</a>
     </div>
   </div>
 </section>
 
-<!-- TRANSFORMATION TOY -->
-<section id="toy" class="band-200">
-  <div class="foam" style="--fc:#F3DFB4" aria-hidden="true"></div>
+<!-- FEATURES STRIP -->
+<section id="features" style="padding-top:26px">
   <div class="wrap">
-    <div class="reveal-l" style="display:flex;gap:28px;align-items:center;flex-wrap:wrap">
-      <div style="flex:1 1 430px;min-width:min(430px,100%)">
-      <div class="tidemark"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg> Transformation toy</div>
-      <h2>Before, after, and a little <span class="coral">sideways.</span></h2>
-      <p class="lede">Drag the crop window by its claws. Stack filters in any order and watch the order change the picture. Crop coordinates are source pixels, and filter order is meaning.</p>
-      <p class="honest" style="max-width:760px">CSS preview. Your browser approximates the look with CSS filters. A running crabcrop server applies the real operations to the actual pixels, in this order. Blur strength and brighten do not map one to one.</p>
-      </div>
-      <figure class="frame" style="max-width:210px;margin:0;flex:0 0 auto">
-        <img src="snap-toy.webp" alt="Snap the crochet crab sliding a glowing divider across a big photo print, dull and faded on one side, bright and vivid on the other" width="400" height="400" loading="lazy">
-        <figcaption><span>Snap, sliding before into after.</span></figcaption>
-      </figure>
-    </div>
-    <div class="scene-picker" role="group" aria-label="Toy scene">
-      <span class="sp-label" aria-hidden="true">Scene</span>
-      <button class="spchip" type="button" data-scene="bbq" aria-pressed="true"><img src="scene-bbq.jpg" alt="" width="40" height="28"> BBQ</button>
-      <button class="spchip" type="button" data-scene="surf" aria-pressed="false"><img src="scene-surf.jpg" alt="" width="40" height="28" loading="lazy"> Surf</button>
-      <button class="spchip" type="button" data-scene="camera" aria-pressed="false"><img src="scene-camera.jpg" alt="" width="40" height="28" loading="lazy"> Camera</button>
-    </div>
-    <div style="margin-bottom:12px"><label style="font-weight:700;font-size:14.5px"><input type="checkbox" id="toyLock"> Lock 3:2</label></div>
-    <div class="toy-grid">
-      <div class="reveal-l">
-        <div class="toy-stage" id="toyStage">
-          <span class="toy-tag">Original · 1200x800</span>
-          <img class="base" id="toyBase" src="scene-bbq.jpg" width="1200" height="800" alt="Snap grilling skewers at a beach BBQ">
-          <div class="toy-win" id="toyWin" tabindex="0" role="group" aria-label="Crop window. Arrow keys move it, Alt plus arrow keys resize it.">
-            <span class="clawh tl" data-corner="tl" aria-hidden="true"><svg class="claw"><use href="#clawmark"/></svg></span>
-            <span class="clawh tr" data-corner="tr" aria-hidden="true"><svg class="claw"><use href="#clawmark"/></svg></span>
-            <span class="clawh bl" data-corner="bl" aria-hidden="true"><svg class="claw"><use href="#clawmark"/></svg></span>
-            <span class="clawh br" data-corner="br" aria-hidden="true"><svg class="claw"><use href="#clawmark"/></svg></span>
-          </div>
-        </div>
-        <p class="readout" id="toyReadout">left 300, top 150, right 900, bottom 550, size 600x400</p>
-        <p class="honest">Drag inside the window to move it, drag a claw to resize. Keyboard: arrows move by 1 px, Shift by 10 px, Alt plus arrows resize from the bottom right, Home resets.</p>
-        <noscript><p class="honest">With JavaScript off, one static example: <span class="mono">crop-rect:300x150:900x550/filters:grayscale:contrast(25)</span></p></noscript>
-      </div>
-      <div class="reveal-r">
-        <div class="toy-preview" id="toyPreview" style="aspect-ratio:3/2">
-          <span class="toy-tag">Preview</span>
-          <div class="pv" id="pvFiltered"><img id="pvImgF" src="scene-bbq.jpg" alt="Snap grilling skewers at a beach BBQ, cropped preview with the filter stack applied"></div>
-          <div class="pv" id="pvPlain"><img id="pvImgP" src="scene-bbq.jpg" alt="Snap grilling skewers at a beach BBQ, cropped preview without filters"></div>
-          <div class="divider" id="pvDivider"></div>
-          <div class="phandle" id="pvHandle" aria-hidden="true"><svg class="claw"><use href="#clawmark"/></svg></div>
-          <input type="range" id="pvRange" min="0" max="100" value="55" aria-label="Reveal processed preview">
-        </div>
-        <div class="fgroup" style="margin-top:24px">Filter palette</div>
-        <div class="filter-row" id="toyPalette" style="display:flex;flex-wrap:wrap;gap:8px">
-          <button class="chipbtn coral" type="button" data-f="grayscale">grayscale</button>
-          <button class="chipbtn coral" type="button" data-f="sepia">sepia</button>
-          <button class="chipbtn coral" type="button" data-f="invert">invert</button>
-          <button class="chipbtn coral" type="button" data-f="saturation(1.7)">saturation(1.7)</button>
-          <button class="chipbtn coral" type="button" data-f="contrast(25)">contrast(25)</button>
-          <button class="chipbtn coral" type="button" data-f="huerotate(90)">huerotate(90)</button>
-          <button class="chipbtn coral" type="button" data-f="blur(2.5)">blur(2.5)</button>
-        </div>
-        <div class="fgroup">Your chain, in order</div>
-        <div class="stack" id="toyStack"><span class="empty">Empty for now. Toggle a filter and it lands here, numbered.</span></div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <button class="chipbtn" type="button" data-preset="postcard">Faded postcard</button>
-          <button class="chipbtn" type="button" data-preset="pop">Pop</button>
-          <button class="chipbtn" type="button" data-preset="noir">Noir</button>
-        </div>
-        <p class="readout" style="margin-top:16px">Your chain so far:</p>
-        <div class="eql" id="toyEq">filters: (none yet, toggle a filter)</div>
-        <div class="bubble" style="margin-top:18px">That preview is CSS standing in. My real claws work on the actual pixels.</div>
-      </div>
+    <div class="tidemark"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg> Major features</div>
+    <h2>Everything an image pipeline does, <span class="coral">in one signed URL.</span></h2>
+    <div class="strip-scroll">
+      <div class="strip-card" id="formats" style="scroll-margin-top:96px"><img src="crabcrop-mascot-magician.webp" alt="Snap the crab as a stage magician" loading="lazy"><div class="sc-body"><h3>Supported formats</h3><p>JPEG, PNG, WebP, GIF, AVIF, and JPEG XL, in and out. HEIC and HEIF decode only; SVG decodes, sanitized and rasterized. Name no format and the visitor's <code>Accept</code> header decides: AVIF first, then JPEG XL, then WebP. An explicit <code>format(...)</code> always wins.</p><span class="opname">format(avif) · format(jxl) · format(webp)</span></div></div>
+      <div class="strip-card"><img src="snap-features.webp" alt="Snap flipping photo prints on a grill" loading="lazy"><div class="sc-body"><h3>43 operations, one chain</h3><p>Resize, crop, adjust, shape, overlay, encode: chained inside one <code>filters:</code> segment, run in the order written.</p><span class="opname">filters:sharpen(1.2):saturation(1.1)</span></div></div>
+      <div class="strip-card"><img src="ai-skate-removebg.webp" alt="Snap with the background removed, over transparency" loading="lazy"><div class="sc-body"><h3>Background removal</h3><p>Your ONNX model, in process. The subject stays, the background becomes real alpha.</p><span class="opname">filters:removebg:format(webp)</span></div></div>
+      <div class="strip-card"><img src="studio-brand.webp" alt="Snap composited onto a tide green brand backdrop" loading="lazy"><div class="sc-body"><h3>Studio mode</h3><p>The listing shot in one filter: cut out, backdrop, contact shadow, margin. Backdrops resolve on the server, brand color included.</p><span class="opname">filters:studio(product,bg:brand)</span></div></div>
+      <div class="strip-card"><img src="ai-crop-smart.jpg" alt="Smart crop keeping the whole crab in frame" loading="lazy"><div class="sc-body"><h3>Smart crop, face safe</h3><p>The crop window finds the subject, and keeps detected faces whole instead of clipping them at the edge.</p><span class="opname">crop:760x760:smart</span></div></div>
+      <div class="strip-card"><img src="ai-friend-redact.jpg" alt="A background skater blurred by class redaction" loading="lazy"><div class="sc-body"><h3>Redaction</h3><p>Blur or pixelate faces, or every detected object of a class. Redaction never guesses: a detection failure fails the request.</p><span class="opname">filters:blurclass(person)</span></div></div>
+      <div class="strip-card"><img src="snap-sign.webp" alt="Snap stamping a wax seal onto a scroll" loading="lazy"><div class="sc-body"><h3>Presets and purge</h3><p>Server-side preset names keep templates short. Purge one result, or a whole preset group, with signatures from their own subkey.</p><span class="opname">preset:og-card · POST /purge-group</span></div></div>
+      <div class="strip-card"><img src="snap-ai.webp" alt="Snap scanning a photo with a magnifying glass" loading="lazy"><div class="sc-body"><h3>Meta that describes</h3><p>Ask for JSON and get dimensions plus CLIP tags, alt text, detections, moderation verdicts, embeddings, and an aesthetic score.</p><span class="opname">Accept: application/json; detections=1</span></div></div>
+      <div class="strip-card"><img src="snap-anatomy.webp" alt="Snap clicking colored blocks into a row at a workbench" loading="lazy"><div class="sc-body"><h3>URLs that explain themselves</h3><p>Put <code>explain/</code> in front of any signed URL and the server reports on it instead of serving the image.</p><span class="opname">GET /explain/&lt;signature&gt;/...</span></div></div>
+      <div class="strip-card"><img src="snap-toy.webp" alt="Snap peeking over a picture, half sketch and half finished color" loading="lazy"><div class="sc-body"><h3>SDKs and loaders</h3><p>Build and sign these URLs from code instead of by hand: SDKs for TypeScript and Python, the <code>crabcrop-url</code> Rust crate, an MCP server, and loaders for Next.js, Nuxt, and Hydrogen.</p><span class="opname">@crabcrop/url · crabcrop_url · crabcrop-url</span></div></div>
     </div>
   </div>
 </section>
 
-<!-- SIGN IT -->
+<!-- SIGNING SAMPLES -->
 <section id="sign">
-  <div class="foam" style="--fc:#FBF0D9" aria-hidden="true"></div>
   <div class="wrap">
-    <div class="reveal-l" style="display:flex;gap:28px;align-items:center;flex-wrap:wrap">
-      <div style="flex:1 1 430px;min-width:min(430px,100%)">
-      <div class="tidemark"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg> Sign it</div>
-      <h2>Sign it in your <span class="coral">stack.</span></h2>
-      <p class="lede">One signing scheme, specified once, with a canonical set of test vectors that every implementation runs as its test suite. The server verifies with the same Rust crate your app can build with, so client and server cannot drift.</p>
-      <p style="margin-top:14px;font-size:16.5px;color:var(--ink-2);max-width:720px">Compute HMAC-SHA256 over the remainder of the path, the operations and the source URL exactly as they appear with no leading slash, keyed with your secret. Hex encode the result. Use it as the first path segment.</p>
-      </div>
-      <figure class="frame" style="max-width:210px;margin:0;flex:0 0 auto">
-        <img src="snap-sign.webp" alt="Snap the crochet crab wearing a notary sash, stamping a coral-red wax seal onto a paper scroll" width="400" height="400" loading="lazy">
-        <figcaption><span>Snap, stamping it official.</span></figcaption>
-      </figure>
+    <div class="tidemark"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg> Signing</div>
+    <h2>Sign a URL, <span class="coral">from any stack.</span></h2>
+    <p class="lede">Every URL carries an HMAC-SHA256 signature over the operations and the source, lowercase hex. Sign with the TypeScript or Python SDK, the crabcrop-url Rust crate, or plain curl: same inputs, same URL.</p>
+  </div>
+
+  <div class="wrap" style="margin-top:28px">
+    <div class="tabs" role="tablist" aria-label="Signing examples by language">
+      <button class="tab active" data-pane="curl" type="button" role="tab" aria-selected="true">curl</button>
+      <button class="tab" data-pane="ts" type="button" role="tab" aria-selected="false">TypeScript</button>
+      <button class="tab" data-pane="py" type="button" role="tab" aria-selected="false">Python</button>
+      <button class="tab" data-pane="rs" type="button" role="tab" aria-selected="false">Rust</button>
     </div>
-    <div class="reveal-r" style="margin-top:38px">
-      <div class="tabs" role="tablist" aria-label="Signing examples by language">
-        <button class="tab active" data-pane="curl" type="button" role="tab" id="tab-curl" aria-controls="pane-curl" aria-selected="true">curl</button>
-        <button class="tab" data-pane="ts" type="button" role="tab" id="tab-ts" aria-controls="pane-ts" aria-selected="false">TypeScript</button>
-        <button class="tab" data-pane="py" type="button" role="tab" id="tab-py" aria-controls="pane-py" aria-selected="false">Python</button>
-        <button class="tab" data-pane="rs" type="button" role="tab" id="tab-rs" aria-controls="pane-rs" aria-selected="false">Rust</button>
-      </div>
-      <div class="code-window">
-        <button class="copy-btn" id="copyCode" type="button">Copy snippet</button>
-        <div class="code-scroll">
-        <div class="code-pane active" data-pane="curl" role="tabpanel" id="pane-curl" aria-labelledby="tab-curl"><pre><span class="c"># Sign the remainder. The claw signs what it serves.</span>
-<span class="c"># The hex output is segment one of the URL.</span>
-printf <span class="s">'%s'</span> <span class="s">'300x200/https://example.com/photo.jpg'</span> \
-  | openssl dgst -sha256 -hmac <span class="s">'your-secret'</span>
-<span class="c"># SHA2-256(stdin)= 3c1f6c180116661877bd4c85fd201a178087d74c1cc188cc584e819d901308c6</span></pre></div>
-        <div class="code-pane" data-pane="ts" role="tabpanel" id="pane-ts" aria-labelledby="tab-ts"><pre><span class="c">// Sign once, reuse the URL everywhere.</span>
-<span class="c">// Same vectors, same signature, no drift.</span>
-<span class="k">import</span> { buildURL, buildSrcSet, purgeSignature } <span class="k">from</span> <span class="s">"@crabcrop/url"</span>;
+    <div class="code-window">
+      <button class="copy-btn" type="button" data-copytarget>Copy snippet</button>
+      <div class="code-scroll">
+      <div class="code-pane active" data-pane="curl" role="tabpanel"><pre>printf <span class="s">'%s'</span> <span class="s">'crop:1200x630:smart/filters:format(webp):quality(80)/https://example.com/photo.jpg'</span> \
+  | openssl dgst -sha256 -hmac <span class="s">'demo-secret'</span>
+<span class="c"># SHA2-256(stdin)= ca3d1f22f4cc3860926608df02383f46dcf74af9a4e1bc26b1a00c644f55f300</span></pre></div>
+      <div class="code-pane" data-pane="ts" role="tabpanel"><pre><span class="k">import</span> { buildURL } <span class="k">from</span> <span class="s">"@crabcrop/url"</span>;
 
 <span class="k">const</span> url = buildURL({
   base: <span class="s">"https://img.example.com"</span>,
-secret: <span class="s">"your-secret"</span>,
+  secret: <span class="s">"demo-secret"</span>,
   operations: <span class="s">"crop:1200x630:smart/filters:format(webp):quality(80)"</span>,
   source: <span class="s">"https://example.com/photo.jpg"</span>,
-});
-
-<span class="k">const</span> srcset = buildSrcSet({ <span class="c">/* same options */</span> }, [400, 800, 1200]);</pre></div>
-        <div class="code-pane" data-pane="py" role="tabpanel" id="pane-py" aria-labelledby="tab-py"><pre><span class="c"># Standard library only. Nothing extra to haul in.</span>
-<span class="c"># Builds the signed URL and the srcset in one go.</span>
-<span class="k">from</span> crabcrop_url <span class="k">import</span> build_url, build_srcset, purge_signature
+});</pre></div>
+      <div class="code-pane" data-pane="py" role="tabpanel"><pre><span class="k">from</span> crabcrop_url <span class="k">import</span> build_url
 
 url = build_url(
-    base=<span class="s">"https://images.example.com"</span>,
-secret=<span class="s">"your-secret"</span>,
-    operations=<span class="s">"300x200/filters:grayscale"</span>,
+    base=<span class="s">"https://img.example.com"</span>,
+    secret=<span class="s">"demo-secret"</span>,
+    operations=<span class="s">"crop:1200x630:smart/filters:format(webp):quality(80)"</span>,
     source=<span class="s">"https://example.com/photo.jpg"</span>,
-)
+)</pre></div>
+      <div class="code-pane" data-pane="rs" role="tabpanel"><pre><span class="k">use</span> crabcrop_url::{build_url, sign};
 
-srcset = build_srcset(..., widths=[400, 800, 1200])</pre></div>
-        <div class="code-pane" data-pane="rs" role="tabpanel" id="pane-rs" aria-labelledby="tab-rs"><pre><span class="c">// The same crate the server verifies with.</span>
-<span class="c">// If it signs here, it verifies there.</span>
-<span class="k">use</span> crabcrop_url::{build_url, sign};
-
-<span class="k">let</span> signature = sign(secret, <span class="s">"300x200/https://example.com/photo.jpg"</span>);
+<span class="k">let</span> signature = sign(secret, <span class="s">"crop:1200x630:smart/filters:format(webp):quality(80)/https://example.com/photo.jpg"</span>);
 <span class="k">let</span> url = build_url(base, secret,
-    <span class="s">"crop:1200x630:smart/filters:format(avif):quality(auto)"</span>,
+    <span class="s">"crop:1200x630:smart/filters:format(webp):quality(80)"</span>,
     <span class="s">"https://example.com/photo.jpg"</span>)?;</pre></div>
+      </div>
+    </div>
+    <p class="honest" style="margin-top:14px">Each snippet signs the same example with the sample secret <code>demo-secret</code>. Swap in your base, your secret, and your operations.</p>
+  </div>
+</section>
+
+<!-- STUDIO MODE -->
+<section id="studio">
+  <div class="wrap">
+    <div class="tidemark"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg> Studio mode</div>
+    <h2>Studio product shots, <span class="coral">in one URL.</span></h2>
+    <p class="lede" style="margin-bottom:26px"><code>studio(product)</code> cuts the subject out of a photo taken anywhere and composites it onto a clean backdrop (white, a hex color, or your brand color) over a soft contact shadow: a finished product shot, in one URL. The skate park photo below is a real output from a running server. Drag the slider.</p>
+    <div style="max-width:880px">
+<div class="ba" style="aspect-ratio:3/2">
+          <div class="ba-layer"><img src="studio-white.webp" alt="Snap composited by studio mode onto a white backdrop with a soft contact shadow" width="1000" height="667"></div>
+          <div class="ba-layer ba-top"><img src="studio-before.jpg" alt="Snap the crochet crab at a skate park, original photo" width="1000" height="667"></div>
+          <span class="ba-chip l">studio(product)</span><span class="ba-chip r">BEFORE</span>
+          <div class="ba-div"></div>
+          <input type="range" min="0" max="100" value="55" aria-label="Reveal the studio mode result">
         </div>
-        <div class="peek clawp" id="codeCrab" aria-hidden="true"><svg class="claw"><use href="#clawmark"/></svg></div>
-      </div>
-
-      <div class="vector-card">
-        <h3>Check the scheme yourself, right now.</h3>
-        <p>Secret <code>Jefe</code>, message <code>what do ye want for nothing?</code>, HMAC-SHA256 <code>ba5396e10039ec002bf1fde117eee48df8c2f06bc47b5f2d3272ea77f6862da9</code>.</p>
-        <p>Secret <code>your-secret</code>, remainder <code>300x200/https://example.com/photo.jpg</code>, HMAC-SHA256 <code>3c1f6c180116661877bd4c85fd201a178087d74c1cc188cc584e819d901308c6</code>.</p>
-      </div>
-      <div class="bubble" id="codeBubble" style="margin-top:18px">Same vectors in every language. Sign here, verify there.</div>
+        <p class="ai-op" style="margin-top:10px">fit-in:1000x667/filters:studio(product,bg:white,shadow:soft,pad:10)</p>
     </div>
   </div>
 </section>
 
-<!-- FEATURES -->
-<section id="features" class="band-200">
-  <div class="foam" style="--fc:#F3DFB4" aria-hidden="true"></div>
-  <div class="wrap">
-    <div class="reveal-l" style="display:flex;gap:28px;align-items:center;flex-wrap:wrap">
-      <div style="flex:1 1 430px;min-width:min(430px,100%)">
-      <div class="tidemark"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg> Beyond the snap</div>
-      <h2>Small URL. Long <span class="coral">reach.</span></h2>
-      <p class="lede">The transform is only the first tide. Caching, metadata, negotiation, and purging are built into the same URL.</p>
-      <p style="margin-top:12px;font-size:16.5px;color:var(--ink-2)">42 filters and encoding directives, chained inside one <span class="mono">filters:</span> segment in the order you write them.</p>
-      </div>
-      <figure class="frame" style="max-width:210px;margin:0;flex:0 0 auto">
-        <img src="snap-features.webp" alt="Snap the crochet crab at a small barbecue grill, flipping photo prints like patties with a spatula" width="400" height="400" loading="lazy">
-        <figcaption><span>Snap, flipping prints on the grill.</span></figcaption>
-      </figure>
-    </div>
-    <figure class="filter-figure reveal-l">
-      <div class="frame filter-frame"><img src="crabcrop-mascot.webp" alt="Snap, the crochet crab mascot, shown cycling through filter looks"></div>
-      <figcaption>
-        <div class="bubble">Six filters. Zero effort.</div>
-        <div class="fname-live" id="filterName" aria-hidden="true">Now showing: original</div>
-      </figcaption>
-    </figure>
-    <div class="grid3" style="margin-top:40px">
-      <div class="specimen reveal-l"><div class="iconring"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg></div><h3>Canonical keys, three-tier cache</h3><p>Signed URLs are content addressed, and entries key on the canonical form of the parsed operations, so equivalent spellings share one entry. A byte-bounded in-memory LRU sits in front, an optional disk tier underneath survives restarts and promotes hits back into memory, and an optional shared S3 tier behind both lets every replica serve the same stored results. Only 200 responses are cached. Errors never are.</p><span class="opname">Cache-Control: immutable</span></div>
-      <div class="specimen reveal-r d1"><div class="iconring coral"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg></div><h3>Presets that stay put</h3><p>A preset names an operation string on the server, so templates stay short and the transform menu stays under operator control. Treat a preset as a stable template and never edit one in place: roll a change out under a new name, because signed responses travel with a one-year immutable cache header that no purge can reach downstream.</p><span class="opname">preset:og-card</span></div>
-      <div class="specimen reveal-l d2"><div class="iconring"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg></div><h3>Purge one, or purge the group</h3><p><code>/purge</code> invalidates every stored variant of one result across every cache tier, and <code>/purge-group</code> clears a whole preset output set named in the <code>Cache-Group</code> header. Purge signatures are HMACs under a subkey derived from your secret, a separate domain from image signatures, so an image signature can never be replayed as a purge.</p><span class="opname">POST /purge-group/&lt;signature&gt;/small</span></div>
-      <div class="specimen reveal-r"><div class="iconring coral"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg></div><h3>Meta JSON and placeholders</h3><p>Send <code>Accept: application/json</code> on any image URL and get dimensions, format, byte size, and source size instead of image bytes. Ask for placeholders and the same response adds the dominant color, a five-color palette, a tiny blurred JPEG preview, and a ThumbHash string your client decodes into an aspect-correct blur while the real image loads.</p><span class="opname">Accept: application/json; placeholders=1</span></div>
-      <div class="specimen reveal-l d1"><div class="iconring"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg></div><h3>quality(auto), verified</h3><p><code>quality(auto)</code> picks a quality per image, from 50 for flat images to 95 for detailed ones. For JPEG and JPEG XL, crabcrop then encodes, decodes, and scores the result against the processed source with SSIMULACRA2, adjusting quality until it lands on target, and reports the achieved score back in meta.</p><span class="opname">filters:quality(auto)</span></div>
-      <div class="specimen reveal-r d2"><div class="iconring coral"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg></div><h3>Format negotiation that listens</h3><p>Name no format and the <code>Accept</code> header decides: among AVIF, JPEG XL, and WebP, the highest q-value wins, ties break by server preference in that order, and a format refused with <code>q=0</code> is never picked. An explicit <code>format(...)</code> in the URL always wins, and wildcards do not count as an offer.</p><span class="opname">Accept: image/avif;q=0.5, image/webp</span></div>
-      <div class="specimen reveal-l"><div class="iconring"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg></div><h3>Steer the crop: focal and corners</h3><p>A <code>focal:</code> segment names the source rectangle the next crop must keep, and center and smart crops position their window on it, so the region the caller cares about stays in frame; a smart crop with a focal rectangle pending skips detection entirely. Or pin a corner: <code>top-left</code>, <code>top-right</code>, <code>bottom-left</code>, and <code>bottom-right</code> keep that corner's edges on whichever axis the crop cuts.</p><span class="opname">focal:100x50:700x450/crop:800x600:smart</span></div>
-      <div class="specimen reveal-r d1"><div class="iconring coral"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg></div><h3>Pro colour tools: curve and convolution</h3><p><code>filters:curve(...)</code> remaps tones per channel, <code>rgb</code>, <code>r</code>, <code>g</code>, or <code>b</code>, through 2 to 16 control points you set: the fine tone control the additive filters only approximate. <code>filters:convolution(...)</code> applies your own kernel, 9 values (3x3) or 25 (5x5), with optional normalization, for the sharpen, blur, and edge styles the built-ins do not cover.</p><span class="opname">filters:curve(r,0,64,255,255)</span></div>
-      <div class="specimen reveal-l d2"><div class="iconring"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg></div><h3>A cache lifetime per request</h3><p>Responses normally ride a one-year immutable cache header. A <code>maxage:</code> segment overrides the max-age for that response only: it changes the header and never the cache key, so URLs differing only in <code>maxage</code> share one stored image. Presets stay immutable, unless a preset URL carries <code>maxage</code> itself, which is the caller's explicit choice for that response.</p><span class="opname">maxage:3600</span></div>
-      <div class="specimen reveal-l"><div class="iconring"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg></div><h3>Client hints, DPR, and Save-Data</h3><p>A URL that sizes nothing can take its width from client hints, quantized so nearby viewports share one cache entry, with <code>dpr</code> scaling the same template for retina displays. A request carrying <code>Save-Data: on</code> gets the default quality stepped down one notch, from 80 to 70, and stepped responses are cached separately.</p><span class="opname">filters:dpr(2)</span></div>
-      <div class="specimen reveal-r d1"><div class="iconring coral"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg></div><h3>Sources, where they already live</h3><p>Fetch originals over HTTP and HTTPS under a source policy, from S3 or S3-compatible stores, from Google Cloud Storage, or from a local file root that refuses path escapes. Every fetch is bounded at 10 seconds and 10 MiB, and EXIF orientation is applied at decode, so phone photos come out upright.</p><span class="opname">s3://bucket/key · gs://bucket/key · file:///path</span></div>
-      <div class="specimen reveal-l d2"><div class="iconring"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg></div><h3>Graceful by design</h3><p>An optional fallback image serves through the same operations when a source cannot be fetched or decoded, marked with <code>X-Crabcrop-Fallback: 1</code>. Signature and parse failures never fall back, and fallback responses are never cached, so a recovered origin is picked up on the next request.</p><span class="opname">X-Crabcrop-Fallback: 1</span></div>
-    </div>
-  </div>
-</section>
-
-<!-- FORMATS -->
-<section id="formats">
-  <div class="foam" style="--fc:#FBF0D9" aria-hidden="true"></div>
-  <div class="wrap">
-    <div class="reveal-l">
-      <div class="tidemark"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg> Formats</div>
-      <h2>Every major format. <span class="coral">In and out.</span></h2>
-      <p class="lede">Originals arrive in whatever format they arrive in, and every visitor's browser does best with a different one. crabcrop takes any of them in and serves the right one back out, so it is the only image service you run: no separate thumbnail pipeline, no format-specific tooling, no build step.</p>
-    </div>
-
-    <div class="fmt-card reveal-r">
-      <div class="fmt-row head"><span class="fmt-name">Format</span><span class="fmt-dec">Decode</span><span class="fmt-enc">Encode</span><span class="fmt-note">Notes</span></div>
-      <div class="fmt-row">
-        <span class="fmt-name">JPEG</span>
-        <span class="fmt-dec"><span class="fmt-yes"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg>Yes</span></span>
-        <span class="fmt-enc"><span class="fmt-yes"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg>Yes</span></span>
-        <span class="fmt-note">Universal, and <code>quality(auto)</code> is verified perceptually for it.</span>
-      </div>
-      <div class="fmt-row">
-        <span class="fmt-name">PNG</span>
-        <span class="fmt-dec"><span class="fmt-yes"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg>Yes</span></span>
-        <span class="fmt-enc"><span class="fmt-yes"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg>Yes</span></span>
-        <span class="fmt-note">Lossless, and carries alpha.</span>
-      </div>
-      <div class="fmt-row">
-        <span class="fmt-name">WebP</span>
-        <span class="fmt-dec"><span class="fmt-yes"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg>Yes</span><span class="fmt-qual">still and animated</span></span>
-        <span class="fmt-enc"><span class="fmt-yes"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg>Yes</span><span class="fmt-qual">still and animated; animated out is lossless</span></span>
-        <span class="fmt-note">The modern default.</span>
-      </div>
-      <div class="fmt-row">
-        <span class="fmt-name">GIF</span>
-        <span class="fmt-dec"><span class="fmt-yes"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg>Yes</span><span class="fmt-qual">animated</span></span>
-        <span class="fmt-enc"><span class="fmt-yes"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg>Yes</span><span class="fmt-qual">animated</span></span>
-        <span class="fmt-note">Animation survives: frames, delays, and loop count are preserved.</span>
-      </div>
-      <div class="fmt-row">
-        <span class="fmt-name">AVIF</span>
-        <span class="fmt-dec"><span class="fmt-yes"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg>Yes</span><span class="fmt-qual">in the Docker image, the release binaries, and the Homebrew install</span></span>
-        <span class="fmt-enc"><span class="fmt-yes"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg>Yes</span></span>
-        <span class="fmt-note">The smallest files, and the first choice in negotiation. Source builds opt in to decoding with the <code>avif-decode</code> feature.</span>
-      </div>
-      <div class="fmt-row">
-        <span class="fmt-name">JPEG XL</span>
-        <span class="fmt-dec"><span class="fmt-yes"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg>Yes</span></span>
-        <span class="fmt-enc"><span class="fmt-yes"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg>Yes</span></span>
-        <span class="fmt-note"><code>quality(auto)</code> is verified perceptually for it, like JPEG.</span>
-      </div>
-      <div class="fmt-row">
-        <span class="fmt-name">HEIC / HEIF</span>
-        <span class="fmt-dec"><span class="fmt-yes"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg>Yes</span><span class="fmt-qual">decoded in pure Rust</span></span>
-        <span class="fmt-enc"><span class="fmt-no">No</span></span>
-        <span class="fmt-note">What phone cameras shoot. It comes in, and goes back out as any of the six output formats.</span>
-      </div>
-    </div>
-
-    <div class="grid3" style="margin-top:26px">
-      <div class="specimen reveal-l"><div class="iconring"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg></div><h3>Negotiation picks per visitor</h3><p>Name no format and the <code>Accept</code> header decides by q-value: AVIF first, then JPEG XL, then WebP. An explicit <code>format(...)</code> in the URL always wins over the header.</p><span class="opname">filters:format(webp) always wins</span></div>
-      <div class="specimen reveal-r d1"><div class="iconring coral"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg></div><h3>Animation survives the trip</h3><p>Animated GIF and WebP sources keep their frames, delays, and loop count when the output carries animation. Ask for a still and you get the first frame, and an animated AVIF source decodes its first frame too.</p><span class="opname">GIF in, GIF out · WebP in, WebP out</span></div>
-      <div class="specimen reveal-l d2"><div class="iconring"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg></div><h3>Alpha, end to end</h3><p>The <code>radius</code>, <code>mask</code>, and <code>removebg</code> chains end in transparency, so the output has to carry alpha: <code>png</code>, <code>webp</code>, <code>jxl</code>, and <code>avif</code> all do.</p><span class="opname">filters:mask(circle):format(png)</span></div>
-      <div class="specimen span2 reveal-r"><div class="iconring coral"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg></div><h3>Every format, one pipeline</h3><p>EXIF orientation is applied at decode, so phone photos come out upright, and ICC profiles are converted to sRGB before any operation runs. SVG originals join the same pipeline too: sanitized first, with scripts and external references stripped, then rasterized.</p><span class="opname">EXIF upright · ICC to sRGB · SVG sanitized</span></div>
-    </div>
-
-    <p class="honest reveal-l" style="margin-top:22px">One honest note: HEIC decodes in pure Rust, with no external tools. The first load of a phone photo is slower than other formats, then it caches like everything else.</p>
-
-    <div class="reveal-l" style="margin-top:34px;display:flex;gap:22px;align-items:center;flex-wrap:wrap">
-      <figure class="frame" style="max-width:230px;margin:0;flex:0 0 auto">
-        <img src="crabcrop-mascot-magician.webp" alt="Snap the crab dressed as a magician, waving a star-tipped wand at the photo in his claw as its mountain scene transforms into a castle" width="400" height="400" loading="lazy">
-        <figcaption><span>Snap, converting with a flourish.</span></figcaption>
-      </figure>
-      <div class="bubble">Seven formats in. Six back out.</div>
-      <p style="font-size:19px;font-weight:800;letter-spacing:-.01em;max-width:660px">Fetch, resize, crop, filter, convert, cache, purge, meta, and AI, in a single Rust binary. That is all you need for image serving.</p>
-    </div>
-  </div>
-</section>
-
-<!-- AI -->
+<!-- AI SIDE BY SIDE -->
 <section id="ai">
-  <div class="foam" style="--fc:#FBF0D9" aria-hidden="true"></div>
   <div class="wrap">
-    <div class="ai-intro reveal-l">
-      <div style="max-width:700px">
-        <div class="tidemark"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg> AI features</div>
-        <h2>Models you supply. Inference in process.</h2>
-        <p class="lede">AI filters run ONNX models you provide as files, loaded at boot before the server reports ready. Inference runs behind a server-wide gate of 2 concurrent inferences, so a burst of AI requests cannot starve the normal transform pipeline.</p>
-      </div>
-      <figure class="ai-crab">
-        <div class="porthole" id="aiPorthole"><img src="snap-ai.webp" alt="Snap the crochet crab scanning a photo print with a magnifying glass while neat boxes draw themselves around the mountain, the sun, and the bird in the scene" width="400" height="400" loading="lazy" style="transform:none;object-position:center"></div>
-        <div class="bubble" id="aiBubble">AI runs on models you bring.</div>
-        <figcaption>The photo is the demo. Models are yours to supply.</figcaption>
-      </figure>
-    </div>
-    <p class="ai-proof reveal-l">Proof, not promises: Snap went to the skate park, and every after image below is the direct output of a running crabcrop server fed these exact photos, with the operations printed under each demo. Nothing was retouched in an editor. Drag the sliders.</p>
-    <div class="ai-demos">
-      <div class="ai-demo reveal-l">
+    <div class="tidemark"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg> AI features</div>
+    <h2>Models you supply. <span class="coral">Inference in process.</span></h2>
+    <p class="lede" style="margin-bottom:26px">Real outputs from a running server, nothing retouched. No model configured means a clean 501, never a silent fallback.</p>
+    <div class="ai-demos" style="margin-top:0">
+      <div class="ai-demo">
         <div class="ba" style="aspect-ratio:3/2">
           <div class="ba-layer checker"><img src="ai-skate-removebg.webp" alt="Snap at the skate park with the background removed, over transparency" width="1000" height="667" loading="lazy"></div>
           <div class="ba-layer ba-top"><img src="ai-skate-before.jpg" alt="Snap the crochet crab at a skate park, original photo" width="1000" height="667" loading="lazy"></div>
@@ -1181,10 +762,9 @@ srcset = build_srcset(..., widths=[400, 800, 1200])</pre></div>
           <input type="range" min="0" max="100" value="55" aria-label="Reveal the background removal result">
         </div>
         <h3>Background removal</h3>
-        <p><code>removebg</code> keeps the subject and swaps the background for real alpha, ready to composite anywhere. Ask for a format that carries alpha: <code>png</code>, <code>webp</code>, <code>jxl</code>, or <code>avif</code>. The skateboard went with the background, because the mask keeps the subject, and the subject is the crab.</p>
         <p class="ai-op">fit-in:1000x667/filters:removebg:format(webp)</p>
       </div>
-      <div class="ai-demo reveal-r">
+      <div class="ai-demo">
         <div class="ba" style="aspect-ratio:1100/733">
           <div class="ba-layer"><img src="ai-skate-redact.jpg" alt="The skate park photo with the skateboard pixelated by crabcrop" width="1100" height="733" loading="lazy"></div>
           <div class="ba-layer ba-top"><img src="ai-skate-redact-before.jpg" alt="Snap at the skate park next to a skateboard, original photo" width="1100" height="733" loading="lazy"></div>
@@ -1193,116 +773,22 @@ srcset = build_srcset(..., widths=[400, 800, 1200])</pre></div>
           <input type="range" min="0" max="100" value="55" aria-label="Reveal the pixelated skateboard">
         </div>
         <h3>Redact a class: pixelate</h3>
-        <p>The detection model found the board (skateboard, 0.53) and <code>pixelateclass</code> covered its box. Redaction hides pixels. It does not erase the object or paint in what was behind it, and crabcrop does not claim otherwise.</p>
         <p class="ai-op">fit-in:1100x733/filters:pixelateclass(skateboard)</p>
       </div>
-      <div class="ai-demo wide reveal-l">
-        <div class="ba" style="aspect-ratio:1100/733">
-          <div class="ba-layer"><img src="ai-friend-redact.jpg" alt="Snap at the edge of a skate bowl with the skater in the background blurred by crabcrop" width="1100" height="733" loading="lazy"></div>
-          <div class="ba-layer ba-top"><img src="ai-friend-before.jpg" alt="Snap at the edge of a skate bowl with a skater riding in the background, original photo" width="1100" height="733" loading="lazy"></div>
-          <span class="ba-chip l">AFTER</span><span class="ba-chip r">BEFORE</span>
-          <div class="ba-div"></div>
-          <input type="range" min="0" max="100" value="55" aria-label="Reveal the blurred skater">
-        </div>
-        <h3>Redact people: blur</h3>
-        <p>Same idea, softer edge. <code>blurclass(person)</code> blurs every detected person and nothing else: handy for street shots, event photos, and one skater who never signed a release. Repeat class filters to cover more classes, matched case-insensitively.</p>
-        <p class="ai-op">fit-in:1100x733/filters:blurclass(person)</p>
-      </div>
-      <div class="ai-demo wide reveal-r">
-        <div class="crop3">
-          <figure><img src="ai-skate-redact-before.jpg" alt="The full skate park photo, Snap left of center next to a skateboard" width="1100" height="733" loading="lazy"><figcaption>source, 1920x1280</figcaption></figure>
-          <figure><img src="ai-crop-center.jpg" alt="Plain center crop of the skate park photo, clipping Snap's raised claw at the frame edge" width="760" height="760" loading="lazy"><figcaption>crop:760x760</figcaption></figure>
-          <figure><img src="ai-crop-smart.jpg" alt="Smart crop of the same photo, keeping the whole crab in frame" width="760" height="760" loading="lazy"><figcaption>crop:760x760:smart</figcaption></figure>
-        </div>
-        <h3>Smart crop finds the subject</h3>
-        <p>The plain center crop clips Snap's raised claw at the edge. <code>:smart</code> scores the frame for the interesting region and keeps the whole crab in shot. Add a face model and <code>:smart(faces)</code> lets detected faces pick the focus instead, with <code>:face</code> cropping on a face outright.</p>
-        <p class="ai-op">crop:760x760:smart</p>
-      </div>
-      <div class="ai-demo wide reveal-l">
-        <div class="meta-grid">
-          <img src="ai-skate-before.jpg" alt="Snap the crochet crab at a skate park, the photo described by the meta response" width="1000" height="667" loading="lazy">
-          <pre class="meta-json">{
-  "tags": [
-    { "label": "a crochet crab plush toy", "score": 1 }
-  ],
-  "alt_text": "A crochet crab plush toy,
-    a skateboard, a skate park",
-  "detections": [
-    { "label": "teddy bear", "score": 0.693,
-      "x": 58, "y": 82, "w": 504, "h": 454 },
-    { "label": "skateboard", "score": 0.528,
-      "x": 511, "y": 312, "w": 389, "h": 203 }
-  ],
-  "dominant_color": "#a47f74"
-}</pre>
-        </div>
-        <h3>Meta that describes the picture</h3>
-        <p>Ask for JSON instead of pixels and a meta response adds CLIP <code>tags</code> and composed <code>alt_text</code> from a label vocabulary you supply, plus detection boxes, palette, dominant color, and a placeholder. It read this scene right. The detector's 80 classes hold no crab, so it called Snap a teddy bear at 0.69. Fair enough.</p>
-        <p class="ai-op">signed fit-in:900x600 URL, sent with Accept: application/json; placeholders=1; detections=1</p>
-      </div>
     </div>
-    <div class="ai-rows reveal-r">
-      <div class="ai-row"><span class="marker">ai/06</span><div><h3>Upscale</h3><p><code>filters:upscale(2)</code> or <code>upscale(4)</code> runs super-resolution by that factor, capped at 4096 px per dimension. Source transparency is carried across, even though the model only sees RGB.</p></div></div>
-      <div class="ai-row" data-bubble="Faces found first. Redaction never guesses."><span class="marker">ai/07</span><div><h3>Face redaction</h3><p><code>blurfaces</code> and <code>pixelatefaces</code> cover every detected face. No landmarks, no identity, no embeddings: detection in, redaction out, and the boxes go no further than the response.</p></div></div>
-    </div>
-    <div class="rules reveal-l">
-      <h3>The rules, with no fine print.</h3>
-      <ul>
-        <li>Models are operator-supplied files, deployment artifacts. crabcrop never downloads a model, at startup or at request time.</li>
-        <li>A configured model that cannot load is a startup error with a one-line diagnostic. It fails fast at boot, not on the first request.</li>
-        <li>No model configured means a clean 501, with a body like <span class="mono" style="font-size:.94em">removebg is not configured on this server</span>.</li>
-        <li>Nothing silently degrades. <span class="mono" style="font-size:.94em">upscale</span> never falls back to a plain resize, and a detection failure fails a redaction request rather than serving an unredacted image.</li>
-      </ul>
-    </div>
+    <p class="honest">Plus upscale, face redaction, smart crops, and the meta family: <a href="docs.html#ai">AI in the documentation</a>.</p>
   </div>
 </section>
 
-<!-- LIBRARIES -->
-<section id="libraries" class="band-200">
-  <div class="foam" style="--fc:#F3DFB4" aria-hidden="true"></div>
+<!-- DOCUMENTATION -->
+<section>
   <div class="wrap">
-    <div class="reveal-l">
-      <div class="tidemark"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg> Libraries and tools</div>
-      <h2>Build URLs from anywhere. Even from your agent.</h2>
-      <p class="lede">One grammar and one signing scheme, specified once. Every builder below runs the same canonical test vectors as its test suite.</p>
-    </div>
-    <div class="grid3" style="margin-top:40px">
-      <div class="specimen reveal-l"><div class="iconring"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg></div><h3>Rust crate</h3><p><code>crabcrop-url</code>: sign, verify, build URLs and srcsets, and compute purge signatures, with the same crate the server verifies with.</p></div>
-      <div class="specimen reveal-r d1"><div class="iconring coral"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg></div><h3>TypeScript</h3><p><code>@crabcrop/url</code>: the same sign, verify, URL, srcset, and purge helpers for TypeScript, standard library only.</p></div>
-      <div class="specimen reveal-l d2"><div class="iconring"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg></div><h3>Python</h3><p><code>crabcrop_url</code>: the same builders and purge helpers for Python, standard library only.</p></div>
-      <div class="specimen reveal-r"><div class="iconring coral"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg></div><h3>MCP server</h3><p>A first-party MCP server for coding agents, exposing <code>sign_url</code>, <code>explain_url</code>, <code>fetch_meta</code>, and <code>purge_result</code> over the same SDK and HTTP surface.</p></div>
-      <div class="specimen reveal-l d1"><div class="iconring"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg></div><h3>Operator CLI</h3><p>The server binary doubles as its own operator CLI, with <code>sign</code>, <code>explain</code>, <code>meta</code>, <code>purge</code>, and <code>purge-group</code>, and URLs are validated against the server grammar before they are signed.</p></div>
-      <div class="specimen reveal-r d2"><div class="iconring coral"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg></div><h3>Playground</h3><p>A static browser page for building, signing, previewing, and explaining URLs segment by segment, with the secret never leaving the page.</p></div>
-      <div class="specimen span2 reveal-l"><div class="iconring"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg></div><h3>Framework loaders</h3><p>A Next.js custom loader, a Nuxt provider, and a Hydrogen loader, all recommending presets so client-side URL building never needs the secret.</p></div>
-    </div>
-  </div>
-</section>
-
-<!-- CTA -->
-<section style="padding-top:0">
-  <div class="foam" style="--fc:#F3DFB4" aria-hidden="true"></div>
-  <div class="wrap">
-    <div class="cta-panel reveal-r">
-      <span class="ring" style="width:120px;height:120px;top:-40px;right:8%" aria-hidden="true"></span>
-      <span class="ring" style="width:64px;height:64px;bottom:-18px;left:38%" aria-hidden="true"></span>
-      <div class="cta-flex">
-        <figure class="frame"><img src="crabcrop-mascot.webp" alt="Snap, the crabcrop crab, ready to work"></figure>
-        <div>
-          <h2>Put a crab in front of your images.</h2>
-          <p class="body">Run one binary in front of your origin image store, sign your URLs, and let the URL do the work from there.</p>
-          <div class="bubble on-dark" style="margin-top:16px">One binary. I handle the rest.</div>
-        </div>
+    <div style="margin-top:0;background:var(--tide-deep);border-radius:var(--shell);padding:34px 32px;color:#fff;display:flex;gap:24px;align-items:center;flex-wrap:wrap">
+      <div style="flex:1 1 380px;min-width:min(380px,100%)">
+        <h2 style="color:#fff;margin:0">The full documentation.</h2>
+        <p style="color:var(--sea-glass);font-size:16px;margin-top:8px">Every operation with examples and interactive demos, section by section.</p>
       </div>
-      <div style="display:flex;gap:22px;flex-wrap:wrap;align-items:center;margin-top:30px">
-        <a class="btn btn-foam" href="#playground">Start with the playground</a>
-        <a class="mono-link" style="color:#fff" href="#sign"><svg class="claw" width="16" height="16" aria-hidden="true"><use href="#clawmark"/></svg> Read how signing works</a>
-        <a class="mono-link" style="color:#fff" href="https://github.com/dayvson/crabcrop" target="_blank" rel="noopener">Source on GitHub</a>
-        <a class="mono-link" style="color:#fff" href="https://github.com/crabcrop" target="_blank" rel="noopener">github.com/crabcrop</a>
-      </div>
-      <div class="dockerstrip">
-        <code>docker run -p 3000:3000 -e CRABCROP_SECRET=your-secret ghcr.io/dayvson/crabcrop:0.1.0</code>
-        <button class="copybtn" type="button" id="copyDocker">Copy</button>
-      </div>
+      <a class="btn btn-foam" href="docs.html">Read the documentation</a>
     </div>
   </div>
 </section>
@@ -1313,778 +799,56 @@ srcset = build_srcset(..., widths=[400, 800, 1200])</pre></div>
   <div class="foam" style="--fc:#084F57" aria-hidden="true"></div>
   <div class="wrap">
     <div class="fbrand">
-      <span class="pebble" id="footCrab" aria-hidden="true"><svg class="claw"><use href="#clawmark"/></svg></span>
+      <span class="pebble" aria-hidden="true"><svg class="claw"><use href="#clawmark"/></svg></span>
       <div>
         <div class="wordmark">crabcrop</div>
-        <div style="font-size:14px">On-demand image optimization, in Rust.</div>
       </div>
     </div>
-    <div style="display:flex;gap:24px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:14px;font-weight:700">
+    <div style="display:flex;gap:24px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:14px;font-weight:700;flex-wrap:wrap">
+      <a href="docs.html">Documentation</a>
       <a href="https://github.com/dayvson/crabcrop" target="_blank" rel="noopener">github.com/dayvson/crabcrop</a>
       <a href="https://github.com/crabcrop" target="_blank" rel="noopener">github.com/crabcrop</a>
-      <a href="#top" id="toTop">Back to the surface</a>
+      <a href="#top">Back to the surface</a>
     </div>
   </div>
-  <div class="bubble on-dark foot" id="footBubble" style="margin:18px auto 0">Back to the tide. Your images know the way now.</div>
   <p class="signoff">Built on the shore, in Rust. MIT licensed.<br>Snapped, not generated. See you at low tide. 🦀</p>
 </footer>
 
 <script>
 "use strict";
-const RM = matchMedia("(prefers-reduced-motion: reduce)").matches;
-const FINE = matchMedia("(pointer: fine)").matches;
 const $ = s => document.querySelector(s);
 const $$ = s => Array.from(document.querySelectorAll(s));
 
-/* mascot reactions: bubbles are persistent speech; text swaps on triggers.
-   Reaction classes (.snap once, .happy = two snaps, .lean, .hidepeek) are transform-only. */
-function setBubble(el, text){ if(el) el.textContent = text; }
-function react(el, cls, ms){
-  if(!el || RM) return;
-  el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls);
-  setTimeout(()=>el.classList.remove(cls), ms || 220);
-}
-function reactHappy(el){ react(el, "happy", 380); }
-
-/* sideways reveals (never rising) on first entry */
-const io = new IntersectionObserver(es=>{
-  es.forEach(e=>{
-    if(!e.isIntersecting) return;
-    e.target.classList.add("in-view");
-    io.unobserve(e.target);
-  });
-},{threshold:.12, rootMargin:"0px 0px 18% 0px"});
-$$(".reveal-l,.reveal-r").forEach(el=>io.observe(el));
-
-/* hero frame: one snap on load; hover straightens (CSS) and swaps the bubble */
-const heroFrame = $("#heroFrame"), heroBubble = $("#heroBubble");
-const HERO_GREET = "Hi, I am Snap. I snap images to size.";
-setTimeout(()=>react(heroFrame, "snap", 200), 400);
-if(FINE && heroFrame){
-  heroFrame.addEventListener("mouseenter", ()=>setBubble(heroBubble, "That photo was 2400 px wide. Was."));
-  heroFrame.addEventListener("mouseleave", ()=>setBubble(heroBubble, HERO_GREET));
-}
-
-/* nav pebble: one snap the first time the visitor scrolls past the hero */
-let navSnapped = false;
-addEventListener("scroll", ()=>{
-  if(navSnapped || scrollY < innerHeight * .8) return;
-  navSnapped = true; react($("#navCrab"), "snap", 200);
-},{passive:true});
-
-
-/* ============ ANATOMY ============ */
-const SLOT = { size:"300x200", "fit-in":"fit-in:800x600", pad:"pad:1200x630:blur", crop:"crop:1200x630:smart", "crop-rect":"crop-rect:100x50:700x450", preset:"preset:og-card" };
-const ANA = {
-  sig:{spell:"signature",name:"Signature",color:"var(--coral)",pose:"shield",
-    def:"Your proof that this URL came from you. The first segment is the HMAC-SHA256 of everything after it, hex encoded and keyed with your server secret.",
-    grammar:["First segment, always.","The server recomputes it over the operations and source exactly as they appear, with no leading slash.","A match serves the image. A miss gets a 403 and the body <code>bad signature</code>.","Or the literal <code>unsafe</code>, which only works when the server runs with unsafe allowed."],
-    ex:[["Secret","your-secret"],["Signed text","300x200/https://example.com/photo.jpg"],["Signature","3c1f6c180116661877bd4c85fd201a178087d74c1cc188cc584e819d901308c6"]],
-    watch:"Change one character after the signature, even the expiry, and the signature breaks. That is the point. Purge signatures are a different domain and never interchangeable.",
-    bubble:"I check this first. No match, no image."},
-  exp:{spell:"exp:",name:"Expiry",color:"var(--violet)",pose:"point",
-    def:"A signed expiry date, in Unix seconds.",
-    grammar:["<code>exp:</code> plus Unix seconds. It may sit anywhere among the operations.","It is inside the signed remainder, so the signature covers it and nobody can extend it without the secret.","Valid strictly before that second. No clock skew allowance."],
-    ex:[["exp:1893456000","is 2030-01-01 00:00:00 UTC"]],
-    watch:"Past the deadline the request gets a 403, <code>signature expired</code>, and expired URLs never serve from cache. URLs without <code>exp:</code> never expire.",
-    bubble:"Tick tock. After this second I refuse."},
-  preset:{spell:"preset:",name:"Preset",color:"var(--leaf)",pose:"point",
-    def:"A short name for an operation string kept on the server.",
-    grammar:["<code>preset:</code> plus a name defined in the server presets file.","The signature covers the preset reference itself.","After verifying it, the server expands the preset deterministically, and cache entries key on the expanded operations."],
-    ex:[["og-card","crop:1200x630:smart/filters:format(webp):quality(80)"],["thumb","300x200"]],
-    watch:"Never edit a preset in place. Roll out a new name. An unknown preset name is a 400, and presets cannot contain a source segment, an <code>exp:</code>, or another preset.",
-    bubble:"A nickname for a whole recipe."},
-  size:{spell:"300x200",name:"Size",color:"var(--sea-glass)",pose:"point",
-    def:"Resize, written as width x height.",
-    grammar:["<code>300x200</code> means exactly 300 by 200 px.","<code>300x0</code> or <code>300x</code> fixes the width and scales the height proportionally; <code>0x200</code> or <code>x200</code> does the reverse.","<code>0x0</code> is the original size, and <code>orig</code> on either axis keeps the source dimension on that axis.","A negative dimension flips as it resizes: <code>-300x200</code> flips horizontally, <code>300x-200</code> vertically."],
-    ex:[["300x0 on a 1200x800 source","gives 300x200"]],
-    watch:"Requested outputs are capped at 16383 px per axis and 100 megapixels in total. A request past either bound fails with a 400 before anything is allocated.",
-    bubble:"Exact pixels, or proportional with a 0."},
-  "fit-in":{spell:"fit-in:",name:"Fit-in",color:"var(--sea-glass)",pose:"point",
-    def:"Shrink to fit inside a box, proportions intact.",
-    grammar:["<code>fit-in:&lt;width&gt;x&lt;height&gt;</code> scales the image proportionally so it fits inside the box you name.","Nothing is cropped and nothing is stretched.","A <code>0</code> axis is unbounded, so <code>fit-in:800x0</code> is a width limit and nothing more."],
-    ex:[["1200x800 source in fit-in:800x600","gives 800x533"]],
-    watch:"Flips are not allowed here. Use a signed size for a flip, or <code>filters:flip</code> later in the path.",
-    bubble:"Shrink to fit. Never distort."},
-  pad:{spell:"pad:",name:"Pad",color:"var(--sea-glass)",pose:"point",
-    def:"Fit inside the box, then fill the rest of the canvas.",
-    grammar:["<code>pad:&lt;width&gt;x&lt;height&gt;[:&lt;fill&gt;]</code> fits the image inside the box, centers it, and fills the remaining canvas so the output is exactly the size you asked for.","The fill is a 6-digit hex color, or <code>blur</code> for ambient bars made from a cover-scaled, heavily blurred copy of the image itself.","With no fill named, the request's <code>fill(...)</code> filter color is used, or black when there is none."],
-    ex:[["pad:1200x630:blur",""],["pad:1200x630:ff0000",""]],
-    watch:"Both dimensions are required in pixels. A proportional <code>0</code> axis, <code>orig</code>, and flipped sizes are rejected, the same exact-box contract as <code>crop:</code>.",
-    bubble:"I fill the gaps so the box is exact."},
-  crop:{spell:"crop:",name:"Crop",color:"var(--sea-glass)",pose:"snap",
-    def:"The snap. Crop to an aspect ratio, then resize to exact size.",
-    grammar:["<code>crop:&lt;width&gt;x&lt;height&gt;[:&lt;align&gt;]</code> crops to the width:height aspect ratio, then resizes to exactly that width and height.","<code>align</code> chooses which part survives: <code>center</code> by default, or <code>top</code>, <code>bottom</code>, <code>left</code>, <code>right</code>, a corner such as <code>top-left</code> or <code>bottom-right</code> that keeps that corner's edges on whichever axis is cut, <code>smart</code> for a window on the focal point, and <code>face</code> for a window around the largest detected face.","<code>smart</code> centers on a detected face when a face model is configured, else on the point of greatest local detail. <code>face</code> falls back to the smart window when no face is found.","A <code>focal:&lt;l&gt;x&lt;t&gt;:&lt;r&gt;x&lt;b&gt;</code> segment before the crop names the source rectangle a center or smart crop must keep: the window positions on it, clamped so a rectangle that fits stays fully inside, and a smart crop with one pending skips detection entirely."],
-    ex:[["crop:1200x630:smart",""],["crop:800x800:face",""]],
-    watch:"<code>crop:</code> needs both dimensions in pixels. A <code>0</code> axis, <code>orig</code>, and flipped sizes are rejected when the URL is parsed, and crop ignores flips entirely. Proportional boxes belong to <code>fit-in:</code>.",
-    bubble:"This is literally my job."},
-  "crop-rect":{spell:"crop-rect:",name:"Crop-rect",color:"var(--sea-glass)",pose:"snap",
-    def:"Cut out the exact pixel rectangle between two corners of the source.",
-    grammar:["<code>crop-rect:&lt;left&gt;x&lt;top&gt;:&lt;right&gt;x&lt;bottom&gt;</code> cuts that exact pixel rectangle.","Right must be greater than left, bottom greater than top.","Coordinates address source pixels and are not scaled by <code>dpr</code>."],
-    ex:[["crop-rect:100x50:700x450","cuts a 600x400 region"]],
-    watch:"A rectangle outside the source fails with 400. It is not clamped.",
-    bubble:"Cut exactly there. No guessing."},
-  filters:{spell:"filters:",name:"Filters",color:"var(--sea-glass)",pose:"point",
-    def:"A chain of looks and encoder orders, in one segment.",
-    grammar:["Filters chain inside one <code>filters:</code> segment, separated by <code>:</code>, and run in the order you write them, like <code>filters:sharpen(1.2):saturation(1.1)</code>.","A filter with no parameters may skip the parentheses, so <code>grayscale</code> and <code>grayscale()</code> are the same.","You may repeat the <code>filters:</code> segment in a path."],
-    ex:[["Chain","filters:grayscale:quality(80)"],["Token: grayscale","Converts the image to grayscale."],["Token: quality(80)","Sets the output quality to 80, from 1 to 100."]],
-    watch:"When a directive repeats, the last one wins. Order is meaning here, so read a chain left to right, the way the server runs it. <code>radius(...)</code> and <code>removebg</code> need an output format with alpha (png, webp, jxl, avif); into JPEG they fail with 400. AI filters with no model configured fail with 501, never a silent fallback.",
-    bubble:"Left to right, in the order written."},
-  source:{spell:"source",name:"Source URL",color:"var(--sun)",pose:"point",
-    def:"The original image, full URL, scheme included.",
-    grammar:["The source may contain slashes, and it starts at the first segment that is not an operation. Everything before it is an instruction.","Everything from it onward is the address of your original, fetched over HTTP or HTTPS, or read from <code>s3://</code>, <code>gs://</code>, or a local <code>file://</code> root when the server is configured for those."],
-    exCycles:[
-      [["In this strip","https://example.com/photo.jpg"]],
-      [["Bucket source","s3://photos/photo.jpg"]],
-      [["File source","file:///images/photo.jpg"]]
-    ],
-    watch:"Fetch limits for every kind: 10 seconds, 10 MiB max (larger is 502), at most 5 redirects for http sources. <code>file://</code> must stay under the configured file root; unset root disables it. Bucket sources are gated by the bucket allowlist, not the host policy. HEIC sources decode in pure Rust. AVIF sources decode in the Docker image, the release binaries, and the Homebrew install; a source build without the <code>avif-decode</code> feature answers 502 and names the feature.",
-    bubble:"Everything after the operations is the address."}
-};
-let anaLock = "sig", srcCycle = 0, hoverTimer = null;
-const anaTeachEl = $("#anaTeach");
-const anaEl = { spell:$("#anaSpell"), name:$("#anaName"), def:$("#anaDef"), g:$("#anaGrammar"), ex:$("#anaEx"), watch:$("#anaWatch"), bubble:$("#anaBubble"), claw:$("#anaClaw"), peek:$("#anaCrab") };
-function teachContent(key, tok){
-  const d = ANA[key]; if(!d) return;
-  anaEl.spell.firstChild.textContent = d.spell;
-  anaEl.spell.style.color = d.color;
-  anaEl.name.textContent = d.name;
-  anaEl.def.innerHTML = d.def;
-  anaEl.g.innerHTML = d.grammar.map(x=>"<li>"+x+"</li>").join("");
-  const exs = d.exCycles ? d.exCycles[srcCycle % d.exCycles.length] : d.ex;
-  anaEl.ex.innerHTML = exs.map(r=>"<span"+(tok && r[0]==="Token: "+tok ? " class='tokhl'" : "")+">"+r[0]+"</span><span class='mono'>"+r[1]+"</span>").join("");
-  anaEl.watch.innerHTML = d.watch;
-  setBubble(anaEl.bubble, d.bubble);
-  anaEl.peek.classList.add("lean");
-  anaEl.peek.style.transform = d.pose==="shield" ? "scale(1.04)" : "";
-  anaEl.claw.style.transform = d.pose==="point" || d.pose==="snap" ? "translateY(40px)" : "translateY(0)";
-  if(d.pose==="snap") react(anaEl.claw, "snap", 200);
-  $$(".segbtn").forEach(b=>{
-    const on = b.dataset.seg===key;
-    if(b.dataset.seg) b.setAttribute("aria-pressed", String(on));
-    b.classList.toggle("locked", on);
-  });
-  $$(".tokbtn[data-tok]").forEach(b=>b.classList.toggle("locked", key==="filters" && tok===b.dataset.tok));
-  $("#filtersSeg").classList.toggle("locked", key==="filters");
-}
-function teach(key, mode, tok){
-  if(mode==="preview") anaTeachEl.setAttribute("aria-live","off");
-  else anaTeachEl.setAttribute("aria-live","polite");
-  if(mode==="lock" && !RM){
-    anaTeachEl.style.opacity = "0";
-    setTimeout(()=>{ teachContent(key, tok); anaTeachEl.style.opacity = "1"; }, 120);
-  } else teachContent(key, tok);
-}
-function lockSeg(key, tok){
-  if(key==="source" && anaLock==="source") srcCycle++;
-  anaLock = key; teach(key, "lock", tok);
-  const famMap = {size:"size","fit-in":"fit-in",pad:"pad",crop:"crop","crop-rect":"crop-rect",preset:"preset"};
-  if(famMap[key]){
-    $("#slotSeg").dataset.seg = key;
-    $("#slotSeg").textContent = SLOT[key];
-    $$(".fchip").forEach(c=>c.setAttribute("aria-checked", String(c.dataset.fam===key)));
-    const isPreset = key==="preset";
-    $("#filtersSeg").style.display = isPreset ? "none" : "";
-    $("#filtersSlash").style.display = isPreset ? "none" : "";
-  }
-}
-function segKeyOf(b){ return b.dataset.seg || (b.id==="filtersSeg" ? "filters" : null); }
-$$(".segbtn").forEach(b=>{
-  b.addEventListener("click", ()=>{ const k = segKeyOf(b); if(k) lockSeg(k); });
-  if(FINE) b.addEventListener("mouseenter", ()=>{ const k = segKeyOf(b); if(!k) return; clearTimeout(hoverTimer); hoverTimer = setTimeout(()=>teach(k, "preview"), 60); });
-  b.addEventListener("focus", ()=>{ const k = segKeyOf(b); if(k) teach(k, "preview"); });
-});
-$$(".tokbtn[data-tok]").forEach(b=>{
-  b.addEventListener("click", e=>{ e.stopPropagation(); lockSeg("filters", b.dataset.tok); });
-  if(FINE) b.addEventListener("mouseenter", e=>{ e.stopPropagation(); clearTimeout(hoverTimer); hoverTimer = setTimeout(()=>teach("filters", "preview", b.dataset.tok), 60); });
-  b.addEventListener("focus", ()=>teach("filters", "preview", b.dataset.tok));
-});
-$$(".segmain").forEach(b=>{
-  b.addEventListener("click", e=>{ e.stopPropagation(); lockSeg("filters"); });
-  if(FINE) b.addEventListener("mouseenter", e=>{ e.stopPropagation(); clearTimeout(hoverTimer); hoverTimer = setTimeout(()=>teach("filters", "preview"), 60); });
-});
-$$(".fchip").forEach(c=>c.addEventListener("click", ()=>lockSeg(c.dataset.fam)));
-$(".families").addEventListener("keydown", e=>{
-  if(e.key!=="ArrowRight" && e.key!=="ArrowLeft") return;
-  const chips = $$(".fchip"); const i = chips.indexOf(document.activeElement);
-  if(i<0) return;
-  e.preventDefault();
-  const n = chips[(i + (e.key==="ArrowRight"?1:-1) + chips.length) % chips.length];
-  n.focus(); lockSeg(n.dataset.fam);
-});
-$(".strip-url").addEventListener("keydown", e=>{
-  if(!["ArrowRight","ArrowLeft","Home","End"].includes(e.key)) return;
-  const stops = $$(".strip-url .segbtn, .strip-url .tokbtn").filter(el=>el.offsetParent!==null);
-  const i = stops.indexOf(document.activeElement);
-  if(i<0) return;
-  e.preventDefault();
-  const n = e.key==="Home" ? stops[0] : e.key==="End" ? stops[stops.length-1] : stops[(i + (e.key==="ArrowRight"?1:-1) + stops.length) % stops.length];
-  n.focus();
-});
-$("#anatomyPanel").addEventListener("mouseleave", ()=>{ clearTimeout(hoverTimer); teach(anaLock, "lock"); });
-teach("sig", "lock");
-</script>
-
-<script>
-"use strict";
-/* ============ PLAYGROUND ============ */
-const PG = {
-  sig:"signed", expOn:false, expDur:"1d", expAt:0, mode:"free", presetName:"og-card",
-  sizeMode:"resize", padFill:"blur", padColor:"ff0000", cropAlign:"smart", dpr:"1",
-  order:["quality"], sel:{ quality:true }
-};
-const PRESETS = { "og-card":"crop:1200x630:smart/filters:format(webp):quality(80)", "thumb":"300x200" };
-const N1 = "Cache key: the canonical form of these parsed operations plus the source. Equivalent spellings share one entry. Only 200 responses are cached, in memory first (256 MB default), with an optional disk tier underneath and an optional shared S3 tier behind both. Responses carry Cache-Control: public, max-age=31536000, immutable.";
-const N1H = " Because this URL sizes nothing, a width client hint can size it; hinted widths are quantized up to a multiple of 100 px and join the cache key, and Save-Data: on steps default quality from 80 to 70 unless the URL sets quality itself.";
-const CATALOG = [
-  {id:"grayscale", g:"Look", label:"grayscale", kind:"toggle"},
-  {id:"invert", g:"Look", label:"invert", kind:"toggle"},
-  {id:"sepia", g:"Look", label:"sepia", kind:"toggle"},
-  {id:"equalize", g:"Look", label:"equalize", kind:"toggle"},
-  {id:"blur", g:"Look", label:"blur", kind:"num", def:2.5, step:"0.5", minExclusive:0, hint:"Sigma, a positive number."},
-  {id:"sharpen", g:"Look", label:"sharpen", kind:"num", def:1.5, step:"0.1", minExclusive:0},
-  {id:"saturation", g:"Look", label:"saturation", kind:"num", def:1.5, step:"0.1", min:0, hint:"0 is grayscale, 1 is unchanged."},
-  {id:"contrast", g:"Look", label:"contrast", kind:"num", def:25, step:"1", hint:"0 is unchanged; negative lowers."},
-  {id:"brighten", g:"Look", label:"brighten", kind:"num", def:40, step:"1", hint:"Integer added per channel, clamped 0 to 255; negative darkens."},
-  {id:"huerotate", g:"Look", label:"huerotate", kind:"num", def:90, step:"1", hint:"Degrees, integer."},
-  {id:"pixelate", g:"Look", label:"pixelate", kind:"num", def:8, step:"1", min:1, hint:"Block size in pixels."},
-  {id:"duotone", g:"Look", label:"duotone", kind:"duo", def:["1a1a40","ffd9a0"], hint:"Shadows map to the first color, highlights to the second."},
-  {id:"radius", g:"Shape", label:"radius", kind:"num", def:24, step:"1", min:0, hint:"Single value only. The four corner form exists in the grammar; one value is what a generic builder can set honestly."},
-  {id:"border", g:"Shape", label:"border", kind:"border", def:4, color:"000000", hint:"Works on any format. Dimensions do not change."},
-  {id:"format", g:"Encode", label:"format", kind:"format"},
-  {id:"quality", g:"Encode", label:"quality", kind:"quality"},
-  {id:"max_bytes", g:"Encode", label:"max_bytes", kind:"num", def:50000, step:"1", min:1},
-  {id:"fill", g:"Encode", label:"fill", kind:"color", def:"ffffff", hint:"Background used to flatten transparency into JPEG, and the pad fill fallback."},
-  {id:"no_upscale", g:"Encode", label:"no_upscale", kind:"toggle", hint:"Caps every resize at source dimensions, request wide."},
-  {id:"removebg", g:"AI", label:"removebg", kind:"toggle"},
-  {id:"upscale", g:"AI", label:"upscale", kind:"upscale", hint:"Output capped at 4096 px per dimension; past that is 400."}
-];
-const CAT = Object.fromEntries(CATALOG.map(c=>[c.id,c]));
-const fmtVal = ()=>{ const b = document.querySelector("#pgfmt .chipbtn.on"); return b ? b.dataset.v : "auto"; };
-function numVal(id){ const el = document.getElementById("pgnum_"+id); return el ? el.value.trim() : ""; }
-function numOK(c){
-  const v = numVal(c.id); if(v==="" || isNaN(+v)) return false;
-  const n = +v;
-  if(c.minExclusive!==undefined && !(n>c.minExclusive)) return false;
-  if(c.min!==undefined && n<c.min) return false;
-  return true;
-}
-function tokenOf(c){
-  if(!PG.sel[c.id]) return null;
-  switch(c.kind){
-    case "toggle": return c.id;
-    case "num": return numOK(c) ? c.id+"("+numVal(c.id)+")" : null;
-    case "color": { const v = document.getElementById("pgcolor_"+c.id).value.trim().toLowerCase(); return /^[0-9a-f]{6}$/.test(v) ? c.id+"("+v+")" : null; }
-    case "duo": { const a = document.getElementById("pgcolor_"+c.id+"_0").value.trim().toLowerCase(), b = document.getElementById("pgcolor_"+c.id+"_1").value.trim().toLowerCase(); return /^[0-9a-f]{6}$/.test(a) && /^[0-9a-f]{6}$/.test(b) ? "duotone("+a+","+b+")" : null; }
-    case "border": { const v = numVal("border"), col = document.getElementById("pgcolor_border").value.trim().toLowerCase(); return (v!=="" && +v>=1 && /^[0-9a-f]{6}$/.test(col)) ? "border("+v+","+col+")" : null; }
-    case "format": { const v = fmtVal(); return v==="auto" ? null : "format("+v+")"; }
-    case "quality": { if(document.getElementById("pgqauto").getAttribute("aria-pressed")==="true") return "quality(auto)"; const v = document.getElementById("pgq").value; return "quality("+v+")"; }
-    case "upscale": { const b = document.querySelector("#pgup .chipbtn.on"); return "upscale("+(b?b.dataset.v:"2")+")"; }
-  }
-  return null;
-}
-function colorPair(row, id, def, label){
-  const p = document.createElement("input"); p.type="color"; p.id="pgpick_"+id; p.value="#"+def; p.disabled=true; p.setAttribute("aria-label", label+" picker");
-  const t = document.createElement("input"); t.type="text"; t.className="hex mono"; t.id="pgcolor_"+id; t.value=def; t.maxLength=6; t.disabled=true; t.setAttribute("aria-label", label+" hex");
-  p.addEventListener("input", ()=>{ t.value = p.value.slice(1); pgRender(); });
-  t.addEventListener("input", ()=>{ if(/^[0-9a-f]{6}$/i.test(t.value)) p.value = "#"+t.value; });
-  row.append(p, t);
-}
-function buildCatalog(){
-  const host = $("#pgFilters");
-  let lastG = "";
-  CATALOG.forEach(c=>{
-    if(c.g!==lastG){ lastG = c.g; const h = document.createElement("div"); h.className="fgroup"; h.textContent = c.g; host.appendChild(h); }
-    const row = document.createElement("div"); row.className = "frow"; row.id = "frow_"+c.id;
-    const lab = document.createElement("label"); lab.className = "ftoggle";
-    const cb = document.createElement("input"); cb.type = "checkbox"; cb.id = "pgcb_"+c.id; cb.checked = !!PG.sel[c.id];
-    cb.setAttribute("aria-label", c.label);
-    lab.append(cb, document.createTextNode(" " + c.label));
-    row.appendChild(lab);
-    const params = document.createElement("span"); params.className = "fparams"; params.classList.toggle("show", !!PG.sel[c.id]);
-    if(c.kind==="num"){
-      const n = document.createElement("input"); n.type="number"; n.id="pgnum_"+c.id; n.value=c.def; n.step=c.step; n.disabled=!PG.sel[c.id];
-      n.setAttribute("aria-label", c.label+" value"); params.appendChild(n);
-    }
-    if(c.kind==="color") colorPair(params, c.id, c.def, c.label);
-    if(c.kind==="duo"){ colorPair(params, c.id+"_0", c.def[0], c.label+" shadows"); colorPair(params, c.id+"_1", c.def[1], c.label+" highlights"); }
-    if(c.kind==="border"){
-      const n = document.createElement("input"); n.type="number"; n.id="pgnum_border"; n.value=c.def; n.step="1"; n.min="1"; n.disabled=true; n.setAttribute("aria-label","border width");
-      params.appendChild(n); colorPair(params, "border", c.color, "border color");
-    }
-    if(c.kind==="format"){
-      const g = document.createElement("span"); g.className="segctl"; g.id="pgfmt"; g.setAttribute("role","group"); g.setAttribute("aria-label","Output format");
-      ["auto","jpeg","png","webp","jxl","avif","gif"].forEach(v=>{
-        const b = document.createElement("button"); b.type="button"; b.className="chipbtn"+(v==="auto"?" on":""); b.dataset.v=v; b.textContent = v==="auto" ? "Auto" : v; b.disabled=true; b.setAttribute("aria-pressed", String(v==="auto"));
-        g.appendChild(b);
-      });
-      params.appendChild(g);
-    }
-    if(c.kind==="quality"){
-      const r = document.createElement("input"); r.type="range"; r.className="qslider"; r.id="pgq"; r.min="0"; r.max="100"; r.step="1"; r.value="80"; r.setAttribute("aria-label","quality");
-      const v = document.createElement("span"); v.className="fval mono"; v.id="pgqval"; v.textContent="80";
-      r.addEventListener("input", ()=>{ v.textContent = r.value; });
-      const a = document.createElement("button"); a.type="button"; a.className="chipbtn"; a.id="pgqauto"; a.textContent="quality(auto)"; a.setAttribute("aria-pressed","false");
-      a.addEventListener("click", ()=>{ const on = a.getAttribute("aria-pressed")!=="true"; a.setAttribute("aria-pressed", String(on)); a.classList.toggle("on", on); r.disabled = on || !PG.sel.quality; pgRender(); });
-      const h = document.createElement("span"); h.className="hint"; h.textContent = "Slide from 10 to 100, or switch on quality(auto) and let crabcrop pick per image.";
-      params.append(r, v, a, h);
-    }
-    if(c.kind==="upscale"){
-      const g = document.createElement("span"); g.className="segctl"; g.id="pgup"; g.setAttribute("role","group"); g.setAttribute("aria-label","Upscale factor");
-      ["2","4"].forEach(v=>{ const b = document.createElement("button"); b.type="button"; b.className="chipbtn"+(v==="2"?" on":""); b.dataset.v=v; b.textContent=v; b.disabled=true; b.setAttribute("aria-pressed", String(v==="2")); g.appendChild(b); });
-      params.appendChild(g);
-    }
-    row.appendChild(params);
-    if(c.hint){ const h = document.createElement("p"); h.className="hint"; h.style.flexBasis="100%"; h.textContent = c.hint; row.appendChild(h); }
-    const err = document.createElement("p"); err.className="err"; err.id="pgerr_"+c.id; err.hidden=true; row.appendChild(err);
-    cb.addEventListener("change", ()=>{
-      PG.sel[c.id] = cb.checked;
-      params.classList.toggle("show", cb.checked);
-      if(cb.checked) PG.order.push(c.id); else PG.order = PG.order.filter(x=>x!==c.id);
-      params.querySelectorAll("input,button").forEach(x=>{ x.disabled = !cb.checked; });
-      if(c.id==="quality" && cb.checked && document.getElementById("pgqauto").getAttribute("aria-pressed")==="true") document.getElementById("pgq").disabled = true;
-      pgRender();
-    });
-    params.querySelectorAll(".segctl").forEach(g=>g.addEventListener("click", e=>{
-      const b = e.target.closest(".chipbtn"); if(!b) return;
-      g.querySelectorAll(".chipbtn").forEach(x=>{ x.classList.toggle("on", x===b); x.setAttribute("aria-pressed", String(x===b)); });
-      pgRender();
-    }));
-    row.addEventListener("input", e=>{ if(e.target!==cb) pgRender(); });
-    row.addEventListener("change", e=>{ if(e.target!==cb) pgRender(); });
-    host.appendChild(row);
-  });
-  document.querySelectorAll("#frow_quality .fparams input,#frow_quality .fparams button").forEach(x=>x.disabled=false);
-}
-function chipGroup(id, fn){
-  const g = document.getElementById(id); if(!g) return;
-  g.querySelectorAll(".chipbtn").forEach(x=>x.setAttribute("aria-pressed", String(x.classList.contains("on"))));
-  g.addEventListener("click", e=>{
-    const b = e.target.closest(".chipbtn"); if(!b) return;
-    g.querySelectorAll(".chipbtn").forEach(x=>{ x.classList.toggle("on", x===b); x.setAttribute("aria-pressed", String(x===b)); });
-    fn(b.dataset.v);
-  });
-}
-function dims(){ return { w: parseInt($("#pgW").value,10), h: parseInt($("#pgH").value,10) }; }
-function sourceState(){
-  const src = $("#pgSource").value;
-  if(src.trim()==="") return { ok:false, msg:"The source is empty." };
-  if(/\s/.test(src)) return { ok:false, msg:"The source must contain no spaces." };
-  const m = src.match(/^([a-z][a-z0-9+.-]*):\/\//i);
-  if(!m) return { ok:false, msg:"The source must start with https://, http://, s3://, gs://, or file:///." };
-  const sch = m[1].toLowerCase();
-  if(sch==="file" && !src.toLowerCase().startsWith("file:///")) return { ok:false, msg:"File sources are spelled file:///path." };
-  if(!["http","https","s3","gs","file"].includes(sch)) return { ok:false, msg:"The source must start with https://, http://, s3://, gs://, or file:///." };
-  return { ok:true, msg:"" };
-}
-function sizeWithheld(){
-  if(PG.mode!=="free") return false;
-  const {w,h} = dims();
-  return (PG.sizeMode==="pad"||PG.sizeMode==="crop") && (!(w>=1)||!(h>=1));
-}
-function chainTokens(){
-  const toks = [];
-  PG.order.forEach(id=>{ const t = tokenOf(CAT[id]); if(t) toks.push(t); });
-  return toks;
-}
-function allTokens(){
-  const t = chainTokens();
-  if(PG.dpr!=="1") t.unshift("dpr("+PG.dpr+")");
-  return t;
-}
-function pgParts(){
-  const src = $("#pgSource").value.trim();
-  const parts = [];
-  parts.push(PG.sig==="unsafe"
-    ? {t:"unsafe", k:"k-sig", focus:"pgSig", r:"The literal development escape hatch. Production URLs carry a real signature instead."}
-    : {t:"<signature>", k:"k-sig", focus:"pgSig", r:"HMAC-SHA256 of everything after it. Placeholder here; the real one comes from a client library or the CLI."});
-  if(PG.expOn) parts.push({t:"exp:"+PG.expAt, k:"k-exp", focus:"pgExpToggle", r:"Expiry inside the signed region. The server accepts the link strictly before that second, 403 after."});
-  if(PG.mode==="preset"){
-    parts.push({t:"preset:"+PG.presetName, k:"k-ops", focus:"pgPresetName", r:"Server-side template name. It expands to "+PRESETS[PG.presetName]+", and cache keys use the expanded form."});
-  } else {
-    const {w,h} = dims();
-    const W = isNaN(w)?0:w, H = isNaN(h)?0:h;
-    if(PG.sizeMode==="resize") parts.push({t:W+"x"+H, k:"k-ops", focus:"pgW", r: (W===0&&H===0) ? "0x0: the original size, unchanged." : "Resize, written as width x height. 0 scales that axis proportionally."});
-    if(PG.sizeMode==="fit-in") parts.push({t:"fit-in:"+W+"x"+H, k:"k-ops", focus:"pgW", r:"Shrink to fit inside the box, proportions intact. A 0 axis is unbounded."});
-    if(PG.sizeMode==="pad" && !sizeWithheld()) parts.push({t:"pad:"+W+"x"+H+(PG.padFill==="blur"?":blur":PG.padFill==="color"?":"+PG.padColor:""), k:"k-ops", focus:"pgW", r:"Fit inside the box, then fill the rest of the canvas. Output is exactly "+W+"x"+H+"."});
-    if(PG.sizeMode==="crop" && !sizeWithheld()){
-      const al = PG.cropAlign==="center" ? "" : ":"+PG.cropAlign;
-      parts.push({t:"crop:"+W+"x"+H+al, k:"k-ops", focus:"pgCropAlign", r:"The snap. Crop to the aspect ratio, then resize to exact size." + (PG.cropAlign==="center" ? " Center is the default, so it is not spelled out." : " Alignment: "+PG.cropAlign+".")});
-    }
-    const toks = allTokens();
-    if(toks.length) parts.push({t:"filters:"+toks.join(":"), k:"k-ops", focus:"pgFilters", r:"A chain of looks and encoder orders, run in the order written. The last repeat wins."});
-  }
-  let sr = "The original image, full URL, scheme included. It starts at the first segment that is not an operation, so nothing after it is parsed as operations.";
-  if(/^(s3|gs|file):\/\//i.test(src)) sr = "Bucket and file sources are fetched under server configuration, not the public host policy. Signed bucket fetches require the bucket allowlist on the server.";
-  parts.push({t:src, k:"k-src", focus:"pgSource", r:sr});
-  return parts;
-}
-function pgNotes(parts){
-  const notes = [];
-  const n1 = (PG.mode==="free" && PG.sizeMode==="none") ? N1 + N1H : N1;
-  notes.push(["Cache", n1]);
-  if(PG.mode==="preset"){
-    notes.push(["Preset", "The server expands preset:"+PG.presetName+" after verifying the signature, and cache entries key on the expanded operations. A purge sent with the preset URL expands the same way, and purge-group clears the preset's whole output set."]);
-  } else {
-    const fv = PG.sel.format ? fmtVal() : "auto";
-    if(!PG.sel.format || fv==="auto") notes.push(["Negotiation", "Format: no format(...) in the URL, so the Accept header decides. Highest q value among AVIF, JPEG XL, and WebP wins; ties break AVIF, then JPEG XL, then WebP. A format refused with q=0 is never picked, wildcards do not count, and an animated GIF or WebP source keeps its own format instead of negotiating to JPEG XL, so its frames survive."]);
-    else notes.push(["Negotiation", "Format: format("+fv+") in the URL wins over Accept negotiation."]);
-    if(PG.expOn) notes.push(["Expiry", "This URL is valid strictly before "+new Date(PG.expAt*1000).toUTCString()+". After that: 403 signature expired, never served from cache."]);
-    if(PG.sel.quality && document.getElementById("pgqauto").getAttribute("aria-pressed")==="true")
-      notes.push(["Quality", "The server picks quality per image, 50 for flat images to 95 for detailed ones. For JPEG and JPEG XL it verifies the pick by encoding, decoding, and scoring with SSIMULACRA2 against a target of 75, at most 4 encodes, on cache misses only. The value used is reported in the X-Crabcrop-Quality header, and the score in meta responses."]);
-    if(PG.sel.quality || PG.sel.max_bytes){
-      const fv2 = PG.sel.format ? fmtVal() : "auto";
-      if(fv2==="png"||fv2==="gif") notes.push(["Encoding", "Quality and max_bytes have no effect on PNG or GIF output."]);
-      else if(PG.sel.max_bytes) notes.push(["Encoding", "max_bytes re-encodes at decreasing quality until the output fits; if quality reaches its floor, you get the smallest encode, not an error."]);
-    }
-    if(PG.sel.removebg || PG.sel.upscale)
-      notes.push(["AI", "AI filters run ONNX models the operator supplies. If this server has no model configured for it, the request fails with 501 and is never silently replaced by a plain transform. Inference is gated to 2 concurrent runs server wide."]);
-    if(PG.sel.radius || PG.sel.removebg){
-      const fv3 = PG.sel.format ? fmtVal() : "auto";
-      if(fv3==="jpeg") notes.push(["Warning", "Warning: this chain needs an output format with alpha. With format(jpeg) the server returns 400. Choose png, webp, jxl, or avif."]);
-      else if(fv3==="auto") notes.push(["Warning", "This chain needs an alpha capable format. Negotiation may still pick one without alpha for some clients; pin format(png), format(webp), format(jxl), or format(avif) to be safe."]);
-    }
-    const {w,h} = dims();
-    if(!isNaN(w) && !isNaN(h) && w*h>100000000 && PG.sizeMode!=="none")
-      notes.push(["Warning", "Warning: width times height as typed is over 100 megapixels. The URL still builds; the server checks the real request against its own bounds."]);
-  }
-  if(PG.expOn && PG.mode==="preset") notes.push(["Expiry", "This URL is valid strictly before "+new Date(PG.expAt*1000).toUTCString()+". After that: 403 signature expired, never served from cache."]);
-  return notes;
-}
-let lastSnapAt = 0;
-function pgRender(){
-  const st = sourceState();
-  const se = $("#pgSourceErr");
-  if(!st.ok){ se.hidden = false; se.textContent = st.msg; } else se.hidden = true;
-  $("#pgWhRow").style.display = (PG.mode==="free" && PG.sizeMode!=="none") ? "" : "none";
-  $("#pgPadCtl").hidden = !(PG.mode==="free" && PG.sizeMode==="pad");
-  $("#pgCropCtl").hidden = !(PG.mode==="free" && PG.sizeMode==="crop");
-  $("#pgPresetCtl").hidden = PG.mode!=="preset";
-  $("#pgFree").disabled = PG.mode==="preset";
-  $("#pgFaceNote").hidden = PG.cropAlign!=="face";
-  CATALOG.forEach(c=>{
-    if(c.kind==="num" || c.kind==="border"){
-      const bad = PG.sel[c.id] && !numOK(c.kind==="border" ? CAT.border : c);
-      const e = $("#pgerr_"+c.id); if(e){ e.hidden = !bad; e.textContent = bad ? "That value cannot be emitted, so the token is withheld until it is fixed." : ""; }
-    }
-  });
-  const withheld = sizeWithheld();
-  const banner = $("#pgBanner");
-  const msgs = [];
-  if(withheld) msgs.push("Pad and crop require both dimensions at least 1, so the size segment is withheld from the URL until that is fixed.");
-  CATALOG.forEach(c=>{ if(PG.sel[c.id] && tokenOf(c)===null && (c.kind==="num"||c.kind==="color"||c.kind==="duo"||c.kind==="border")) msgs.push("The "+c.id+" token is withheld: its value is not emittable yet."); });
-  if(!st.ok) msgs.push("Fix the source first. The URL below shows the last valid build, dimmed.");
-  banner.hidden = msgs.length===0;
-  banner.textContent = msgs.join(" ");
-  const parts = pgParts();
-  const host = $("#pgUrl");
-  host.classList.toggle("dim", !st.ok);
-  host.innerHTML = "";
-  const hp = document.createElement("span"); hp.className="hostp"; hp.textContent = "https://img.example.com"; host.appendChild(hp);
-  parts.forEach(p=>{
-    const s = document.createElement("span"); s.className="sep"; s.textContent="/"; host.appendChild(s);
-    const b = document.createElement("button"); b.type="button"; b.className="part "+p.k; b.textContent = p.t;
-    b.addEventListener("click", ()=>pgExplain(p));
-    host.appendChild(b);
-  });
-  $("#pgSeal").hidden = true;
-  const rows = $("#pgParts"); rows.innerHTML = "";
-  parts.forEach(p=>{
-    const d = document.createElement("button"); d.type="button"; d.className="partrow";
-    const c = document.createElement("code"); c.textContent = p.t;
-    const s = document.createElement("span"); s.textContent = p.r;
-    d.append(c, s);
-    d.addEventListener("click", ()=>pgExplain(p));
-    rows.appendChild(d);
-  });
-  const notes = $("#pgNotes"); notes.innerHTML = "";
-  pgNotes(parts).forEach(n=>{
-    const d = document.createElement("div"); d.className="noterow";
-    const l = document.createElement("span"); l.className="nlab"; l.textContent = n[0]+": ";
-    d.append(l, document.createTextNode(n[1]));
-    notes.appendChild(d);
-  });
-  const dis = !st.ok;
-  $("#pgSnap").disabled = dis; $("#pgCopy").disabled = dis;
-  if(PG.expOn) $("#pgExpText").textContent = "Expires " + new Date(PG.expAt*1000).toUTCString() + " (Unix " + PG.expAt + "). Frozen when set; the server recomputes validity at request time.";
-  if(!RM && performance.now() - lastSnapAt > 300){ lastSnapAt = performance.now(); react($("#pgCrab"), "snap", 180); }
-}
-function pgFocus(id){
-  if(id==="pgSig") document.querySelector("#pgSig .chipbtn").focus();
-  else if(id==="pgPresetName") document.querySelector("#pgPresetName .chipbtn").focus();
-  else if(id==="pgFilters") $("#pgFilters").scrollIntoView({block:"nearest"});
-  else { const el = document.getElementById(id); if(el) el.focus(); }
-}
-function pgExplain(p){ pgFocus(p.focus); setBubble($("#pgBubble"), p.r); }
-function pgFullText(){ return Array.from($("#pgUrl").childNodes).map(n=>n.textContent).join(""); }
-async function pgCopy(which){
-  const live = $("#pgLive");
-  try{ await navigator.clipboard.writeText(pgFullText()); }
-  catch(e){ live.textContent = "Copy failed, select and copy manually."; if(which==="snap"){ const b = $("#pgSnap"); b.textContent = "Copy failed, select and copy manually"; setTimeout(()=>b.textContent="Snap it: copy URL", 2000); } return; }
-  if(which==="snap"){
-    live.textContent = "URL copied";
-    const b = $("#pgSnap"); b.textContent = "Snapped. Copied."; setTimeout(()=>b.textContent="Snap it: copy URL", 1400);
-    $("#pgSeal").hidden = false;
-    reactHappy($("#pgCrab"));
-    setBubble($("#pgBubble"), "Snapped and copied. That URL is ready to swim.");
-  } else {
-    live.textContent = "URL copied";
-    const b = $("#pgCopy"); const old = b.textContent; b.textContent = "Copied"; setTimeout(()=>b.textContent=old, 1400);
-  }
-}
-function recomputeExp(){ PG.expAt = Math.floor(Date.now()/1000) + ({ "1h":3600, "1d":86400, "30d":2592000 })[PG.expDur]; }
-buildCatalog();
-chipGroup("pgSig", v=>{ PG.sig=v; $("#pgUnsafeNote").hidden = v!=="unsafe"; $("#pgSigLine").textContent = v==="unsafe" ? "This URL only works on a server running with unsafe allowed." : "The first segment above is a placeholder that marks where the signature goes. In production it is the hex HMAC-SHA256 of everything after it, computed with your secret by a client library or the CLI. Produce a real one in the Sign it section."; if(v==="unsafe"){ $("#pgCrab").classList.add("hidepeek"); setBubble($("#pgBubble"), "Unsafe. Brave. Local dev only, right?"); setTimeout(()=>$("#pgCrab").classList.remove("hidepeek"), RM?0:900); } pgRender(); });
-chipGroup("pgExpDur", v=>{ PG.expDur=v; if(PG.expOn) recomputeExp(); pgRender(); });
-chipGroup("pgMode", v=>{ PG.mode=v; pgRender(); });
-chipGroup("pgPresetName", v=>{ PG.presetName=v; $("#pgPresetExpansion").textContent = "Expands to: " + PRESETS[v] + ". Cache keys use this expanded form."; pgRender(); });
-chipGroup("pgSizeMode", v=>{ PG.sizeMode=v; pgRender(); });
-chipGroup("pgPadFill", v=>{ PG.padFill=v; $("#pgPadColorWrap").hidden = v!=="color"; $("#pgPadNoneNote").hidden = v!=="none"; pgRender(); });
-chipGroup("pgDpr", v=>{ PG.dpr=v; pgRender(); });
-$("#pgExpToggle").addEventListener("click", ()=>{
-  PG.expOn = !PG.expOn;
-  $("#pgExpToggle").setAttribute("aria-pressed", String(PG.expOn));
-  $("#pgExpToggle").classList.toggle("on", PG.expOn);
-  $("#pgExpDur").hidden = !PG.expOn;
-  $("#pgExpText").hidden = !PG.expOn;
-  if(PG.expOn) recomputeExp();
-  pgRender();
-});
-$("#pgW").addEventListener("input", pgRender);
-$("#pgH").addEventListener("input", pgRender);
-$("#pgSource").addEventListener("input", pgRender);
-$("#pgCropAlign").addEventListener("change", e=>{ PG.cropAlign = e.target.value; pgRender(); });
-$("#pgPadColor").addEventListener("input", e=>{ const v = e.target.value.replace(/[^0-9a-f]/gi,"").toLowerCase().slice(0,6); PG.padColor = v||"000000"; $("#pgPadColorPick").value = "#"+(v.padEnd(6,"0")); pgRender(); });
-$("#pgPadColorPick").addEventListener("input", e=>{ PG.padColor = e.target.value.slice(1); $("#pgPadColor").value = PG.padColor; pgRender(); });
-$("#pgSnap").addEventListener("click", ()=>pgCopy("snap"));
-$("#pgCopy").addEventListener("click", ()=>pgCopy("copy"));
-$("#pgPresetExpansion").textContent = "Expands to: " + PRESETS["og-card"] + ". Cache keys use this expanded form.";
-pgRender();
-</script>
-
-<script>
-"use strict";
-/* ============ toy scenes (Snap photos, all 1200x800) ============ */
-const SCENES = {
-  bbq:{ src:"scene-bbq.jpg", alt:"Snap grilling skewers at a beach BBQ" },
-  surf:{ src:"scene-surf.jpg", alt:"Snap riding a surfboard on a turquoise wave, claws up" },
-  camera:{ src:"scene-camera.jpg", alt:"Snap waving beside a vintage camera on a tripod at low tide" }
-};
-/* Surf and Camera load lazily on first pick; BBQ is the default and is already in the HTML. */
-const sceneLoaded = { bbq:true };
-function setScene(key){
-  const sc = SCENES[key]; if(!sc) return;
-  if(!sceneLoaded[key]){
-    sceneLoaded[key] = true;
-    const pre = new Image(); pre.src = sc.src;
-  }
-  $("#toyBase").src = sc.src; $("#toyBase").alt = sc.alt;
-  $("#pvImgF").src = sc.src; $("#pvImgF").alt = sc.alt + ", cropped preview with the filter stack applied";
-  $("#pvImgP").src = sc.src; $("#pvImgP").alt = sc.alt + ", cropped preview without filters";
-  $$(".spchip").forEach(b=>b.setAttribute("aria-pressed", String(b.dataset.scene===key)));
-}
-$$(".spchip").forEach(b=>b.addEventListener("click", ()=>setScene(b.dataset.scene)));
-
-/* ============ TOY ============ */
-const TOY = { x:300, y:150, w:600, h:400, chain:[] };
-const CSSMAP = { "grayscale":"grayscale(1)", "sepia":"sepia(0.65)", "invert":"invert(1)", "saturation(1.7)":"saturate(1.7)", "contrast(25)":"contrast(1.25)", "huerotate(90)":"hue-rotate(90deg)", "blur(2.5)":"blur(2px)" };
-const stage = $("#toyStage"), win = $("#toyWin");
-const lock32 = ()=>$("#toyLock").checked;
-function placeWin(){
-  win.style.left = (TOY.x/1200*100)+"%";
-  win.style.top = (TOY.y/800*100)+"%";
-  win.style.width = (TOY.w/1200*100)+"%";
-  win.style.height = (TOY.h/800*100)+"%";
-  const r = TOY.x+TOY.w, b = TOY.y+TOY.h;
-  $("#toyReadout").textContent = "left "+TOY.x+", top "+TOY.y+", right "+r+", bottom "+b+", size "+TOY.w+"x"+TOY.h;
-  win.setAttribute("aria-label", "Crop window. left "+TOY.x+", top "+TOY.y+", right "+r+", bottom "+b+", size "+TOY.w+"x"+TOY.h+". Arrow keys move it, Alt plus arrow keys resize it.");
-  const pv = $("#toyPreview");
-  pv.style.aspectRatio = TOY.w + " / " + TOY.h;
-  const sx = 100/(TOY.w/1200), sy = 100/(TOY.h/800);
-  ["pvImgF","pvImgP"].forEach(id=>{
-    const img = document.getElementById(id);
-    img.style.width = sx+"%"; img.style.height = sy+"%";
-    img.style.left = (-TOY.x/TOY.w*100)+"%"; img.style.top = (-TOY.y/TOY.h*100)+"%";
-  });
-  toyEq();
-}
-function renderStack(){
-  const host = $("#toyStack"); host.innerHTML = "";
-  if(!TOY.chain.length){ host.innerHTML = "<span class='empty'>Empty for now. Toggle a filter and it lands here, numbered.</span>"; }
-  TOY.chain.forEach((f,i)=>{
-    const s = document.createElement("span"); s.className = "snode";
-    s.innerHTML = "<b>"+(i+1)+"</b> " + f + " <button type='button' class='x' aria-label='Remove "+f+"'>×</button> <button type='button' class='mv' aria-label='Move "+f+" earlier'>←</button><button type='button' class='mv' aria-label='Move "+f+" later'>→</button>";
-    s.querySelector(".x").addEventListener("click", ()=>{ TOY.chain.splice(i,1); syncToy(); });
-    const [b1,b2] = s.querySelectorAll(".mv");
-    b1.addEventListener("click", ()=>{ if(i>0){ [TOY.chain[i-1],TOY.chain[i]]=[TOY.chain[i],TOY.chain[i-1]]; syncToy(); } });
-    b2.addEventListener("click", ()=>{ if(i<TOY.chain.length-1){ [TOY.chain[i+1],TOY.chain[i]]=[TOY.chain[i],TOY.chain[i+1]]; syncToy(); } });
-    host.appendChild(s);
-    if(i<TOY.chain.length-1){ const a = document.createElement("span"); a.className="sarrow"; a.textContent = "→"; host.appendChild(a); }
-  });
-  $$("#toyPalette .chipbtn").forEach(b=>b.classList.toggle("on", TOY.chain.includes(b.dataset.f)));
-}
-function toyEq(){
-  const full = TOY.x===0 && TOY.y===0 && TOY.w===1200 && TOY.h===800;
-  const left = full ? "full frame, no crop segment" : "crop-rect:"+TOY.x+"x"+TOY.y+":"+(TOY.x+TOY.w)+"x"+(TOY.y+TOY.h);
-  const right = TOY.chain.length ? "filters:"+TOY.chain.join(":") : "filters: (empty, add a filter)";
-  $("#toyEq").textContent = left + "/" + right;
-  $("#pvImgF").style.filter = TOY.chain.map(f=>CSSMAP[f]).filter(Boolean).join(" ");
-}
-function syncToy(){ renderStack(); toyEq(); }
-$$("#toyPalette .chipbtn").forEach(b=>b.addEventListener("click", ()=>{
-  const f = b.dataset.f;
-  if(TOY.chain.includes(f)) TOY.chain = TOY.chain.filter(x=>x!==f); else TOY.chain.push(f);
-  react($("#pvHandle svg"), "snap", 200);
-  syncToy();
+$$("[data-copy]").forEach(b=>b.addEventListener("click", ()=>{
+  navigator.clipboard && navigator.clipboard.writeText(b.dataset.copy);
+  const t = b.textContent; b.textContent = "Copied"; b.classList.add("ok");
+  setTimeout(()=>{ b.textContent = t; b.classList.remove("ok"); }, 1400);
 }));
-$$("[data-preset]").forEach(b=>b.addEventListener("click", ()=>{
-  const p = b.dataset.preset;
-  const want = p==="postcard" ? ["sepia","contrast(25)"] : p==="pop" ? ["saturation(1.7)","contrast(25)"] : ["grayscale","contrast(25)"];
-  if(JSON.stringify(want)===JSON.stringify(TOY.chain)){ react(b, "snap", 200); return; }
-  TOY.chain = want; syncToy();
+$$("[data-copytarget]").forEach(b=>b.addEventListener("click", ()=>{
+  const win = b.closest(".code-window");
+  const pre = win && (win.querySelector(".code-pane.active pre") || win.querySelector("pre"));
+  if(pre) navigator.clipboard && navigator.clipboard.writeText(pre.innerText);
+  const t = b.textContent; b.textContent = "Copied"; b.classList.add("ok");
+  setTimeout(()=>{ b.textContent = t; b.classList.remove("ok"); }, 1400);
 }));
-let drag = null;
-stage.addEventListener("pointerdown", e=>{
-  const corner = e.target.closest(".clawh")?.dataset.corner || null;
-  if(!e.target.closest("#toyWin")) return;
-  const rect = stage.getBoundingClientRect();
-  drag = { corner, sx:e.clientX, sy:e.clientY, ox:TOY.x, oy:TOY.y, ow:TOY.w, oh:TOY.h, rw:rect.width, rh:rect.height };
-  stage.setPointerCapture(e.pointerId);
-  e.preventDefault();
-});
-stage.addEventListener("pointermove", e=>{
-  if(!drag) return;
-  const dx = Math.round((e.clientX-drag.sx)/drag.rw*1200), dy = Math.round((e.clientY-drag.sy)/drag.rh*800);
-  const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
-  const MIN = 80;
-  if(!drag.corner){ TOY.x = clamp(drag.ox+dx, 0, 1200-TOY.w); TOY.y = clamp(drag.oy+dy, 0, 800-TOY.h); }
-  else{
-    let nx = drag.ox, ny = drag.oy, nw = drag.ow, nh = drag.oh;
-    if(drag.corner.includes("r")) nw = clamp(drag.ow+dx, MIN, 1200-drag.ox);
-    if(drag.corner.includes("b")) nh = clamp(drag.oh+dy, MIN, 800-drag.oy);
-    if(drag.corner.includes("l")){ nx = clamp(drag.ox+dx, 0, drag.ox+drag.ow-MIN); nw = drag.ow + (drag.ox-nx); }
-    if(drag.corner.includes("t")){ ny = clamp(drag.oy+dy, 0, drag.oy+drag.oh-MIN); nh = drag.oh + (drag.oy-ny); }
-    if(lock32()){
-      if(drag.corner.includes("r")||drag.corner.includes("l")) nh = clamp(Math.round(nw*2/3), MIN, 800-ny);
-      else nw = clamp(Math.round(nh*3/2), MIN, 1200-nx);
-    }
-    TOY.x = nx; TOY.y = ny; TOY.w = nw; TOY.h = nh;
-  }
-  placeWin();
-});
-stage.addEventListener("pointerup", ()=>{ drag = null; });
-stage.addEventListener("pointercancel", ()=>{ drag = null; });
-win.addEventListener("keydown", e=>{
-  const step = e.shiftKey ? 10 : 1;
-  let used = true;
-  if(e.key==="ArrowLeft"){ if(e.altKey) TOY.w = Math.max(80, TOY.w-step); else TOY.x = Math.max(0, TOY.x-step); }
-  else if(e.key==="ArrowRight"){ if(e.altKey) TOY.w = Math.min(1200-TOY.x, TOY.w+step); else TOY.x = Math.min(1200-TOY.w, TOY.x+step); }
-  else if(e.key==="ArrowUp"){ if(e.altKey) TOY.h = Math.max(80, TOY.h-step); else TOY.y = Math.max(0, TOY.y-step); }
-  else if(e.key==="ArrowDown"){ if(e.altKey) TOY.h = Math.min(800-TOY.y, TOY.h+step); else TOY.y = Math.min(800-TOY.h, TOY.y+step); }
-  else if(e.key==="Home"){ TOY.x=300; TOY.y=150; TOY.w=600; TOY.h=400; }
-  else used = false;
-  if(used){
-    e.preventDefault();
-    if(e.altKey && lock32()){
-      if(e.key==="ArrowLeft"||e.key==="ArrowRight") TOY.h = Math.max(80, Math.min(800-TOY.y, Math.round(TOY.w*2/3)));
-      else TOY.w = Math.max(80, Math.min(1200-TOY.x, Math.round(TOY.h*3/2)));
-    }
-    placeWin();
-  }
-});
-const pvRange = $("#pvRange");
-let lastClip = 55;
-function setClip(v){
-  $("#pvPlain").style.clipPath = "inset(0 0 0 "+v+"%)";
-  $("#pvHandle").style.left = v+"%";
-  $("#pvDivider").style.left = v+"%";
-  const d = v - lastClip; lastClip = v;
-  $("#pvHandle").style.transform = "rotate("+(d>0?8:d<0?-8:0)+"deg)";
-}
-pvRange.addEventListener("input", ()=>setClip(+pvRange.value));
-pvRange.addEventListener("change", ()=>{ $("#pvHandle").style.transform = "rotate(0deg)"; });
-setClip(55);
-placeWin(); syncToy();
 
-/* ============ tabs + copy ============ */
-const tabs = $$(".tab");
-function activateTab(t){
-  tabs.forEach(x=>{ x.classList.toggle("active", x===t); x.setAttribute("aria-selected", String(x===t)); });
-  $$(".code-pane").forEach(p=>p.classList.toggle("active", p.dataset.pane===t.dataset.pane));
-  react($("#codeCrab"), "snap", 200);
-}
-tabs.forEach((t,i)=>t.addEventListener("click", ()=>activateTab(t)));
-$(".tabs").addEventListener("keydown", e=>{
-  if(e.key!=="ArrowRight" && e.key!=="ArrowLeft") return;
-  const i = tabs.indexOf(document.activeElement); if(i<0) return;
-  e.preventDefault();
-  const n = tabs[(i + (e.key==="ArrowRight"?1:-1) + tabs.length) % tabs.length];
-  n.focus(); activateTab(n);
-});
-function flashCopy(btn, okText, ms){
-  const old = btn.textContent; btn.textContent = okText;
-  setTimeout(()=>btn.textContent = old, ms || 1400);
-}
-const CODE_BUBBLE_DEFAULT = "Same vectors in every language. Sign here, verify there.";
-$("#copyCode").addEventListener("click", async ()=>{
-  const pane = $(".code-pane.active pre");
-  try{ await navigator.clipboard.writeText(pane.innerText); flashCopy($("#copyCode"), "Copied"); reactHappy($("#codeCrab")); setBubble($("#codeBubble"), "Signed, sealed, runnable."); setTimeout(()=>setBubble($("#codeBubble"), CODE_BUBBLE_DEFAULT), 5000); }
-  catch(e){ flashCopy($("#copyCode"), "Select and copy manually"); }
-});
-$("#copyDocker").addEventListener("click", async e=>{
-  const code = e.target.closest(".dockerstrip").querySelector("code").textContent;
-  try{ await navigator.clipboard.writeText(code); flashCopy($("#copyDocker"), "Copied"); }catch(err){ flashCopy($("#copyDocker"), "Copy manually"); }
-});
-$("#copyInstall").addEventListener("click", async e=>{
-  const code = e.target.closest(".cmdstrip").querySelector("code").textContent;
-  try{ await navigator.clipboard.writeText(code); flashCopy($("#copyInstall"), "Copied"); }catch(err){ flashCopy($("#copyInstall"), "Copy manually"); }
+/* signing tabs */
+$$(".tabs").forEach(tabs=>{
+  tabs.addEventListener("click", e=>{
+    const tab = e.target.closest(".tab"); if(!tab) return;
+    const win = tabs.nextElementSibling;
+    tabs.querySelectorAll(".tab").forEach(t=>{ t.classList.toggle("active", t===tab); t.setAttribute("aria-selected", String(t===tab)); });
+    win.querySelectorAll(".code-pane").forEach(p=>p.classList.toggle("active", p.dataset.pane===tab.dataset.pane));
+  });
 });
 
-/* ============ AI demo before/after sliders ============ */
+/* before and after sliders */
 $$(".ba").forEach(ba=>{
   const top = ba.querySelector(".ba-top"), div = ba.querySelector(".ba-div"), range = ba.querySelector("input[type=range]");
-  if(!top || !div || !range) return;
-  const set = v=>{ top.style.clipPath = "inset(0 0 0 " + v + "%)"; div.style.left = v + "%"; };
-  range.addEventListener("input", ()=>set(+range.value));
-  set(+range.value || 55);
-});
-
-/* ============ AI rows ============ */
-$$(".ai-row").forEach(r=>{
-  if(!r.dataset.bubble) return;
-  const show = ()=>{ setBubble($("#aiBubble"), r.dataset.bubble); $("#aiPorthole").classList.add("rot"); };
-  const hide = ()=>$("#aiPorthole").classList.remove("rot");
-  r.addEventListener("mouseenter", show); r.addEventListener("focusin", show); r.addEventListener("click", show);
-  r.addEventListener("mouseleave", hide); r.addEventListener("focusout", hide);
-});
-
-/* ============ Features filter cycler label (decorative; the cycling itself is CSS) ============ */
-const fName = $("#filterName");
-if(fName && !RM){
-  const LOOKS = [[0,"original"],[.135,"grayscale(1)"],[.305,"sepia(0.7)"],[.475,"saturate(2.2)"],[.645,"hue-rotate(100deg)"],[.815,"contrast(1.35) and brightness(1.15)"],[.96,"original"]];
-  const t0 = performance.now();
-  setInterval(()=>{
-    const ph = ((performance.now()-t0) % 12000) / 12000;
-    let cur = LOOKS[0][1];
-    for(const pair of LOOKS) if(ph>=pair[0]) cur = pair[1];
-    const txt = "Now showing: " + cur;
-    if(fName.textContent !== txt) fName.textContent = txt;
-  }, 250);
-}
-
-/* ============ AI scan pulse while the porthole is in view ============ */
-const aiPort = $("#aiPorthole");
-if(aiPort && !RM && "IntersectionObserver" in window){
-  const aio = new IntersectionObserver(es=>es.forEach(e=>aiPort.classList.toggle("scanning", e.isIntersecting)),{threshold:.4});
-  aio.observe(aiPort);
-}
-
-/* ============ footer mascot ============ */
-$("#footCrab").addEventListener("mouseenter", ()=>react($("#footCrab"), "snap", 200));
-$("#toTop").addEventListener("click", ()=>{
-  reactHappy($("#footCrab"));
-  const b = $("#footBubble"); b.classList.add("shown");
-  setTimeout(()=>b.classList.remove("shown"), 6000);
+  if(!top || !range) return;
+  const set = v=>{ top.style.clipPath = "inset(0 0 0 " + v + "%)"; if(div) div.style.left = v + "%"; };
+  set(range.value);
+  range.addEventListener("input", ()=>set(range.value));
 });
 </script>
 </body>
