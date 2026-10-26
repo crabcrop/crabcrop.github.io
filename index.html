@@ -3,21 +3,15 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>crabcrop: Lightning-Fast On-Demand Image API in Rust | All Major Formats, Over 42 Filters, AI Features</title>
-<meta name="description" content="Crabcrop is a Rust-built, lightning-fast on-demand image API supporting all major formats in and out, with over 42 filters and AI features like background removal. Resize, crop, convert, and filter straight from a signed URL. One binary, no pre-generated thumbnails, no build step.">
+<title>crabcrop: On-Demand Image API in Rust | The Demo-Forward Tour</title>
+<meta name="description" content="Crabcrop is a Rust-built, lightning-fast on-demand image API supporting all major formats in and out, with over 42 filters and AI features. Install in one line, tour the features in one sideways scroll, and build a signed URL in the sticky builder bar.">
 <link rel="canonical" href="https://crabcrop.org/">
 <meta property="og:site_name" content="crabcrop">
-<meta property="og:title" content="crabcrop: Lightning-Fast On-Demand Image API in Rust">
-<meta property="og:description" content="Put the resize, crop, format, and filters in a signed URL and crabcrop serves the result. All major formats in and out, over 42 filters, AI features.">
+<meta property="og:title" content="crabcrop: On-Demand Image API in Rust">
+<meta property="og:description" content="Resize, crop, convert, and filter straight from a signed URL. All major formats in and out, over 42 filters, AI features.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://crabcrop.org/">
 <meta property="og:image" content="https://crabcrop.org/crabcrop-mascot.webp">
-<meta property="og:image:alt" content="Snap, the crabcrop crab, holding a photo print">
-<meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="crabcrop: Lightning-Fast On-Demand Image API in Rust">
-<meta name="twitter:description" content="Resize, crop, convert, and filter straight from a signed URL. All major formats in and out, over 42 filters, AI features.">
-<meta name="twitter:image" content="https://crabcrop.org/crabcrop-mascot.webp">
-<meta name="twitter:image:alt" content="Snap, the crabcrop crab, holding a photo print">
 <meta name="theme-color" content="#FBF0D9">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M10 3C6.5 7 6.5 13 10 17l2 4 2-4c3.5-4 3.5-10 0-14' fill='none' stroke='%23E8482F' stroke-width='2.4' stroke-linecap='round'/%3E%3C/svg%3E">
 <style>
@@ -585,27 +579,32 @@ footer a{color:var(--sea-glass)}
 
 </style>
 <style>
-section{padding:64px 0}
-.fmt-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:34px}
+section{padding:56px 0}
+.hero-b{padding:44px 0 30px}
+.hero-b .ba{box-shadow:var(--shadow-lg)}
+.builderbar{position:sticky;top:76px;z-index:55;background:var(--abyss);color:#DCE9F2;border:2px solid var(--ink);border-radius:18px;box-shadow:var(--dark-shadow);padding:14px 18px;margin-top:26px}
+@media(max-width:900px){.builderbar{top:118px}}
+.builderbar .brow{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.builderbar label{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#9DB2C8}
+.builderbar select{padding:9px 10px;border-radius:10px;border:2px solid rgba(255,255,255,.25);background:var(--abyss-2);color:#fff;font:inherit;font-size:14px;min-height:44px}
+.builderbar .bchip{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;font-weight:700;padding:8px 13px;min-height:40px;border-radius:999px;border:2px solid rgba(255,255,255,.3);background:transparent;color:#DCE9F2;cursor:pointer}
+.builderbar .bchip[aria-pressed="true"]{background:var(--foam);color:var(--ink);border-color:var(--foam)}
+.builderbar .burl{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13.5px;overflow-wrap:anywhere;line-height:1.7;margin-top:10px}
+.builderbar .burl .c-sig{color:var(--shell-pink)} .builderbar .burl .c-ops{color:var(--sea-glass)} .builderbar .burl .c-src{color:var(--sun-soft)} .builderbar .burl .host{color:#9DB2C8} .builderbar .burl .slash{color:#5F7A8C}
+.strip-scroll{display:flex;gap:18px;overflow-x:auto;padding:8px 4px 20px;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch}
+.strip-card{scroll-snap-align:start;flex:0 0 300px;background:var(--foam);border:2px solid var(--ink);border-radius:var(--shell);box-shadow:var(--shadow);overflow:hidden}
+.strip-card img{width:100%;height:170px;object-fit:cover;display:block}
+.strip-card .sc-body{padding:16px 18px 18px}
+.strip-card p{font-size:14.5px;color:var(--ink-2)}
+.strip-card .opname{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;font-weight:700;color:var(--tide);display:block;margin-top:10px}
+.fmt-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:30px}
 @media(max-width:900px){.fmt-grid{grid-template-columns:1fr 1fr}}
 @media(max-width:520px){.fmt-grid{grid-template-columns:1fr}}
-.fmt-cell{background:var(--foam);border:1.5px solid var(--ink);border-radius:var(--shell);box-shadow:var(--shadow);padding:20px}
-.fmt-cell .fmt-name{font-size:19px}
-.badges{display:flex;gap:6px;margin:10px 0}
+.fmt-cell{background:var(--foam);border:1.5px solid var(--ink);border-radius:var(--shell);box-shadow:var(--shadow);padding:18px}
+.badges{display:flex;gap:6px;margin:8px 0}
 .bdg{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:3px 9px;border-radius:999px;border:1.5px solid var(--ink)}
-.bdg.in{background:var(--sea-glass)}
-.bdg.out{background:var(--sun-soft)}
-.bdg.off{background:var(--sand-200);color:var(--ink-2);border-color:var(--sand-300)}
+.bdg.in{background:var(--sea-glass)} .bdg.out{background:var(--sun-soft)} .bdg.off{background:var(--sand-200);color:var(--ink-2);border-color:var(--sand-300)}
 .fmt-cell p{font-size:14px;color:var(--ink-2)}
-.ana-lite{margin-top:26px}
-.ana-lite .strip-url{font-size:16.5px}
-.ana-lite .defbox{margin-top:18px;border-top:1px solid rgba(255,255,255,.14);padding-top:16px;font-size:16px;color:#DCE9F2;min-height:56px}
-.ana-lite .defbox b{color:#fff}
-.toy-lite{display:grid;grid-template-columns:1fr 340px;gap:26px;align-items:start;margin-top:30px}
-@media(max-width:900px){.toy-lite{grid-template-columns:1fr}}
-.docs-cta{background:var(--tide-deep);border-radius:var(--shell);padding:40px 36px;color:#fff;box-shadow:var(--shadow-lg);display:flex;gap:26px;align-items:center;flex-wrap:wrap}
-.docs-cta h2{color:#fff;margin:0}
-.docs-cta p{color:var(--sea-glass);font-size:16.5px;max-width:560px;margin-top:8px}
 </style>
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-56Q9ZPMWLX"></script>
 <script>
@@ -624,8 +623,8 @@ section{padding:64px 0}
   <div class="wrap nav">
     <a class="logo" href="#top"><span class="pebble" aria-hidden="true"><svg class="claw"><use href="#clawmark"/></svg></span> crabcrop</a>
     <nav class="nav-links" aria-label="Sections">
-      <a href="#install">Install</a><a href="#sign">Sign a URL</a><a href="#formats">Formats</a>
-      <a href="#filters">Filters</a><a href="#features">Features</a><a href="docs.html">Documentation</a>
+      <a href="#install">Install</a><a href="#features">Features</a><a href="#formats">Formats</a><a href="#sign">Sign a URL</a>
+      <a href="docs.html">Documentation</a>
     </nav>
     <a class="btn" style="padding:10px 18px" href="docs.html">Read the docs</a>
   </div>
@@ -633,235 +632,135 @@ section{padding:64px 0}
 </header>
 
 <main id="top">
-
-<!-- HERO + INSTALL -->
-<section class="hero" style="padding-bottom:40px">
+<!-- HERO -->
+<section class="hero-b">
   <div class="wrap">
-    <div class="hero-grid">
-      <div>
-        <div class="tidemark"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg> On-demand image optimization, in Rust</div>
-        <h1>The URL is the API,<br><span class="coral">with claws.</span></h1>
-        <p class="lede" style="margin-top:22px">Write the resize, crop, format, and filters into a signed URL. Crabcrop fetches your original, applies the operations in order, and serves the result. No pre-generated thumbnails, no build step.</p>
-        <div class="hero-ctas">
-          <a class="btn" href="#filters">Snap a URL together</a>
-          <a class="mono-link" href="#sign"><svg class="claw" width="16" height="16" aria-hidden="true"><use href="#clawmark"/></svg> Learn to sign it</a>
-        </div>
-        <div id="install">
-          <div class="cmdstrip" style="display:flex;align-items:center;gap:12px">
-            <code style="flex:1">curl --proto '=https' --tlsv1.2 -LsSf https://github.com/dayvson/crabcrop/releases/latest/download/crabcrop-installer.sh | sh</code>
-            <button class="copybtn" type="button" data-copy="curl --proto '=https' --tlsv1.2 -LsSf https://github.com/dayvson/crabcrop/releases/latest/download/crabcrop-installer.sh | sh">Copy</button>
-          </div>
-          <div style="margin-top:12px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13.5px;font-weight:700">
-            Other routes:
-            <a href="https://github.com/dayvson/crabcrop/releases/latest" target="_blank" rel="noopener">Homebrew</a> ·
-            <a href="https://github.com/dayvson/crabcrop/pkgs/container/crabcrop" target="_blank" rel="noopener">Docker</a> ·
-            <a href="https://github.com/dayvson/crabcrop/pkgs/container/crabcrop-ai" target="_blank" rel="noopener">AI image</a> ·
-            <a href="https://github.com/dayvson/crabcrop/releases" target="_blank" rel="noopener">Release binaries</a> ·
-            <a href="https://crates.io/crates/crabcrop-url" target="_blank" rel="noopener">crates.io</a>
-          </div>
-        </div>
-        <p class="hero-note" style="margin-top:18px">Signed with HMAC-SHA256. One Rust binary in front of your origin image store.</p>
-      </div>
-      <div>
-        <div class="bubble hero-bubble">Hi, I am Snap. I snap images to size.</div>
-        <figure class="frame">
-          <span class="note n1">300x200</span>
-          <img src="crabcrop-mascot.webp" alt="Snap, the crochet crab mascot of crabcrop, waving one claw and holding a photo">
-          <span class="note n2">format(avif)</span>
-          <figcaption><span>Snap, resident crab</span><span class="mono" style="font-size:12.5px">est. low tide</span></figcaption>
-        </figure>
-      </div>
-    </div>
-    <div class="strip">
-      <div class="aim">Our aim: the fastest image service on the planet.</div>
+    <div class="tidemark"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg> On-demand image optimization, in Rust</div>
+    <h1>The URL is the API,<br><span class="coral">with claws.</span></h1>
+    <p class="lede" style="margin-top:20px">One signed URL carries the resize, the crop, the format, and the filters. Crabcrop fetches your original, runs the operations in order, and serves the result.</p>
+    <p style="margin-top:16px;font-size:16.5px;color:var(--ink-2)">Start with the one-line install right below. Then tour the features, and build a URL of your own: the builder bar sticks to the header while you scroll.</p>
+    <div class="hero-ctas">
+      <a class="btn" href="#install">Get it running</a>
+      <a class="mono-link" href="docs.html"><svg class="claw" width="16" height="16" aria-hidden="true"><use href="#clawmark"/></svg> Full documentation</a>
     </div>
   </div>
 </section>
 
-<!-- SIGN A URL -->
-<section id="sign" style="padding-top:30px">
+<!-- INSTALL -->
+<section id="install">
   <div class="wrap">
-    <div style="display:flex;gap:28px;align-items:center;flex-wrap:wrap">
-      <div style="flex:1 1 430px;min-width:min(430px,100%)">
-        <div class="tidemark"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg> URL signature</div>
-        <h2>One URL. <span class="coral">Every instruction inside it.</span></h2>
-        <p class="lede">Every request is <span class="mono" style="font-size:.92em">GET /&lt;signature&gt;/&lt;operations&gt;/&lt;source-url&gt;</span>. The first segment is the HMAC-SHA256 of everything after it. Click a segment to see what it does.</p>
-      </div>
-      <figure class="frame" style="max-width:190px;margin:0;flex:0 0 auto">
-        <img src="snap-anatomy.webp" alt="Snap the crochet crab at a small workbench, clicking chunky colored blocks into a row" width="400" height="400" loading="lazy">
-        <figcaption><span>Snap, building the URL.</span></figcaption>
-      </figure>
+    <div class="tidemark"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg> Install</div>
+    <h2>Running in <span class="coral">a minute.</span></h2>
+    <div class="cmdstrip" style="display:flex;align-items:center;gap:12px">
+      <code style="flex:1">curl --proto '=https' --tlsv1.2 -LsSf https://github.com/dayvson/crabcrop/releases/latest/download/crabcrop-installer.sh | sh</code>
+      <button class="copybtn" type="button" data-copy="curl --proto '=https' --tlsv1.2 -LsSf https://github.com/dayvson/crabcrop/releases/latest/download/crabcrop-installer.sh | sh">Copy</button>
     </div>
-
-    <div class="anatomy ana-lite">
-      <div class="strip-url" role="group" aria-label="Anatomy of a crabcrop URL">
-        <span class="host">https://img.example.com</span><span class="slash">/</span><button class="segbtn c-sig" type="button" data-seg="sig" aria-pressed="true">3c1f6c18…</button><span class="slash">/</span><button class="segbtn c-exp" type="button" data-seg="exp" aria-pressed="false">exp:1893456000</button><span class="slash">/</span><button class="segbtn c-ops" type="button" data-seg="ops" aria-pressed="false">crop:1200x630:smart</button><span class="slash">/</span><button class="segbtn c-ops" type="button" data-seg="filters" aria-pressed="false">filters:grayscale:quality(80)</button><span class="slash">/</span><button class="segbtn c-src" type="button" data-seg="source" aria-pressed="false">https://example.com/photo.jpg</button>
-      </div>
-      <p style="font-size:12.5px;color:#9DB2C8;margin-top:10px">The signature is shortened for display. A real one is 64 hex characters.</p>
-      <div class="defbox" id="anaDef" aria-live="polite"><b>Signature.</b> Proof the URL came from you. The server recomputes the HMAC-SHA256 over the operations and source exactly as they appear. A match serves the image; a miss gets a 403.</div>
+    <div class="cmdstrip" style="display:flex;align-items:center;gap:12px">
+      <code style="flex:1">docker run -p 3000:3000 -e CRABCROP_SECRET=your-secret ghcr.io/dayvson/crabcrop</code>
+      <button class="copybtn" type="button" data-copy="docker run -p 3000:3000 -e CRABCROP_SECRET=your-secret ghcr.io/dayvson/crabcrop">Copy</button>
     </div>
-
-    <div style="margin-top:34px">
-      <div class="tabs" role="tablist" aria-label="Signing examples by language">
-        <button class="tab active" data-pane="curl" type="button" role="tab" aria-selected="true">curl</button>
-        <button class="tab" data-pane="ts" type="button" role="tab" aria-selected="false">TypeScript</button>
-        <button class="tab" data-pane="py" type="button" role="tab" aria-selected="false">Python</button>
-        <button class="tab" data-pane="rs" type="button" role="tab" aria-selected="false">Rust</button>
-      </div>
-      <div class="code-window">
-        <button class="copy-btn" type="button" data-copytarget>Copy snippet</button>
-        <div class="code-scroll">
-        <div class="code-pane active" data-pane="curl" role="tabpanel"><pre><span class="c"># Sign the remainder. The hex output is segment one of the URL.</span>
-printf <span class="s">'%s'</span> <span class="s">'300x200/https://example.com/photo.jpg'</span> \
-  | openssl dgst -sha256 -hmac <span class="s">'your-secret'</span>
-<span class="c"># SHA2-256(stdin)= 3c1f6c180116661877bd4c85fd201a178087d74c1cc188cc584e819d901308c6</span></pre></div>
-        <div class="code-pane" data-pane="ts" role="tabpanel"><pre><span class="c">// Sign once, reuse the URL everywhere.</span>
-<span class="k">import</span> { buildURL, buildSrcSet } <span class="k">from</span> <span class="s">"@crabcrop/url"</span>;
-
-<span class="k">const</span> url = buildURL({
-  base: <span class="s">"https://img.example.com"</span>,
-  secret: <span class="s">"your-secret"</span>,
-  operations: <span class="s">"crop:1200x630:smart/filters:format(webp):quality(80)"</span>,
-  source: <span class="s">"https://example.com/photo.jpg"</span>,
-});</pre></div>
-        <div class="code-pane" data-pane="py" role="tabpanel"><pre><span class="c"># Standard library only. Nothing extra to haul in.</span>
-<span class="k">from</span> crabcrop_url <span class="k">import</span> build_url, build_srcset
-
-url = build_url(
-    base=<span class="s">"https://images.example.com"</span>,
-    secret=<span class="s">"your-secret"</span>,
-    operations=<span class="s">"300x200/filters:grayscale"</span>,
-    source=<span class="s">"https://example.com/photo.jpg"</span>,
-)</pre></div>
-        <div class="code-pane" data-pane="rs" role="tabpanel"><pre><span class="c">// The same crate the server verifies with.</span>
-<span class="k">use</span> crabcrop_url::{build_url, sign};
-
-<span class="k">let</span> signature = sign(secret, <span class="s">"300x200/https://example.com/photo.jpg"</span>);
-<span class="k">let</span> url = build_url(base, secret,
-    <span class="s">"crop:1200x630:smart/filters:format(avif):quality(auto)"</span>,
-    <span class="s">"https://example.com/photo.jpg"</span>)?;</pre></div>
-        </div>
-      </div>
-      <p class="honest">Check the scheme yourself: secret <code>your-secret</code>, remainder <code>300x200/https://example.com/photo.jpg</code>, HMAC-SHA256 <code>3c1f6c18…08c6</code>. The same test vectors run in every SDK. Full signing guide, key rotation, and expiry rules: <a href="docs.html#signing">the documentation</a>.</p>
+    <div style="margin-top:14px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13.5px;font-weight:700">
+      Other routes:
+      <a href="https://github.com/dayvson/crabcrop/releases/latest" target="_blank" rel="noopener">Homebrew</a> ·
+      <a href="https://github.com/dayvson/crabcrop/pkgs/container/crabcrop-ai" target="_blank" rel="noopener">AI image</a> ·
+      <a href="https://github.com/dayvson/crabcrop/releases" target="_blank" rel="noopener">Release binaries</a> ·
+      <a href="https://crates.io/crates/crabcrop-url" target="_blank" rel="noopener">crates.io</a>
     </div>
   </div>
 </section>
 
-<!-- FORMATS -->
-<section id="formats" class="band-200">
-  <div class="foam" style="--fc:#F3DFB4" aria-hidden="true"></div>
+<!-- FEATURES STRIP -->
+<section id="features" style="padding-top:26px">
   <div class="wrap">
-    <div style="display:flex;gap:28px;align-items:center;flex-wrap:wrap">
-      <div style="flex:1 1 430px;min-width:min(430px,100%)">
-        <div class="tidemark"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg> Formats supported</div>
-        <h2>Every major format. <span class="coral">In and out.</span></h2>
-        <p class="lede">Originals arrive in whatever format they arrive in. Crabcrop takes any of them in and serves the right one back out. Name no format and the visitor's <code>Accept</code> header decides: AVIF first, then JPEG XL, then WebP.</p>
-      </div>
-      <figure class="frame" style="max-width:190px;margin:0;flex:0 0 auto">
-        <img src="crabcrop-mascot-magician.webp" alt="Snap the crab dressed as a magician, waving a wand at the photo in his claw" width="400" height="400" loading="lazy">
-        <figcaption><span>Snap, converting with a flourish.</span></figcaption>
-      </figure>
+    <div class="tidemark"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg> Major features</div>
+    <h2>The tour, <span class="coral">in one sideways scroll.</span></h2>
+    <div class="strip-scroll">
+      <div class="strip-card" id="formats" style="scroll-margin-top:96px"><img src="crabcrop-mascot-magician.webp" alt="Snap the crab as a stage magician" loading="lazy"><div class="sc-body"><h3>Supported formats</h3><p>JPEG, PNG, WebP, GIF, AVIF, and JPEG XL, in and out. HEIC and HEIF decode only; SVG decodes, sanitized and rasterized. Name no format and the visitor's <code>Accept</code> header decides: AVIF first, then JPEG XL, then WebP. An explicit <code>format(...)</code> always wins.</p><span class="opname">format(avif) · format(jxl) · format(webp)</span></div></div>
+      <div class="strip-card"><img src="snap-features.webp" alt="Snap flipping photo prints on a grill" loading="lazy"><div class="sc-body"><h3>43 operations, one chain</h3><p>Resize, crop, adjust, shape, overlay, encode: chained inside one <code>filters:</code> segment, run in the order written.</p><span class="opname">filters:sharpen(1.2):saturation(1.1)</span></div></div>
+      <div class="strip-card"><img src="ai-skate-removebg.webp" alt="Snap with the background removed, over transparency" loading="lazy"><div class="sc-body"><h3>Background removal</h3><p>Your ONNX model, in process. The subject stays, the background becomes real alpha.</p><span class="opname">filters:removebg:format(webp)</span></div></div>
+      <div class="strip-card"><img src="studio-brand.webp" alt="Snap composited onto a tide green brand backdrop" loading="lazy"><div class="sc-body"><h3>Studio mode</h3><p>The listing shot in one filter: cut out, backdrop, contact shadow, margin. Backdrops resolve on the server, brand color included.</p><span class="opname">filters:studio(product,bg:brand)</span></div></div>
+      <div class="strip-card"><img src="ai-crop-smart.jpg" alt="Smart crop keeping the whole crab in frame" loading="lazy"><div class="sc-body"><h3>Smart crop, face safe</h3><p>The crop window finds the subject, and keeps detected faces whole instead of clipping them at the edge.</p><span class="opname">crop:760x760:smart</span></div></div>
+      <div class="strip-card"><img src="ai-friend-redact.jpg" alt="A background skater blurred by class redaction" loading="lazy"><div class="sc-body"><h3>Redaction</h3><p>Blur or pixelate faces, or every detected object of a class. Redaction never guesses: a detection failure fails the request.</p><span class="opname">filters:blurclass(person)</span></div></div>
+      <div class="strip-card"><img src="snap-sign.webp" alt="Snap stamping a wax seal onto a scroll" loading="lazy"><div class="sc-body"><h3>Presets and purge</h3><p>Server-side preset names keep templates short. Purge one result, or a whole preset group, with signatures from their own subkey.</p><span class="opname">preset:og-card · POST /purge-group</span></div></div>
+      <div class="strip-card"><img src="snap-ai.webp" alt="Snap scanning a photo with a magnifying glass" loading="lazy"><div class="sc-body"><h3>Meta that describes</h3><p>Ask for JSON and get dimensions plus CLIP tags, alt text, detections, moderation verdicts, embeddings, and an aesthetic score.</p><span class="opname">Accept: application/json; detections=1</span></div></div>
+      <div class="strip-card"><img src="snap-anatomy.webp" alt="Snap clicking colored blocks into a row at a workbench" loading="lazy"><div class="sc-body"><h3>URLs that explain themselves</h3><p>Put <code>explain/</code> in front of any signed URL and the server reports on it instead of serving the image.</p><span class="opname">GET /explain/&lt;signature&gt;/...</span></div></div>
     </div>
-    <div class="fmt-grid">
-      <div class="fmt-cell"><span class="fmt-name">JPEG</span><div class="badges"><span class="bdg in">Decode</span><span class="bdg out">Encode</span></div><p>Universal. <code>quality(auto)</code> is verified perceptually for it.</p></div>
-      <div class="fmt-cell"><span class="fmt-name">PNG</span><div class="badges"><span class="bdg in">Decode</span><span class="bdg out">Encode</span></div><p>Lossless, and carries alpha.</p></div>
-      <div class="fmt-cell"><span class="fmt-name">WebP</span><div class="badges"><span class="bdg in">Decode</span><span class="bdg out">Encode</span></div><p>Still and animated, both ways. The modern default.</p></div>
-      <div class="fmt-cell"><span class="fmt-name">GIF</span><div class="badges"><span class="bdg in">Decode</span><span class="bdg out">Encode</span></div><p>Animation survives: frames, delays, and loop count.</p></div>
-      <div class="fmt-cell"><span class="fmt-name">AVIF</span><div class="badges"><span class="bdg in">Decode</span><span class="bdg out">Encode</span></div><p>The smallest files, and the first choice in negotiation.</p></div>
-      <div class="fmt-cell"><span class="fmt-name">JPEG XL</span><div class="badges"><span class="bdg in">Decode</span><span class="bdg out">Encode</span></div><p>In and out for everyone, with verified <code>quality(auto)</code>.</p></div>
-      <div class="fmt-cell"><span class="fmt-name">HEIC / HEIF</span><div class="badges"><span class="bdg in">Decode</span><span class="bdg off">No encode</span></div><p>What phone cameras shoot, decoded in pure Rust. Goes back out as any output format.</p></div>
-      <div class="fmt-cell"><span class="fmt-name">SVG</span><div class="badges"><span class="bdg in">Decode</span><span class="bdg off">Rasterizes</span></div><p>Sanitized first, scripts and external references stripped, then rasterized into the pipeline.</p></div>
-    </div>
-    <p class="honest">Animated sources can also leave as real video: <code>filters:format(mp4)</code> or <code>format(webm)</code>, encoded by an external encoder you configure. Details in <a href="docs.html#format">the format docs</a>.</p>
+    <p class="honest">Every card, in depth, with parameters and ranges: <a href="docs.html">the documentation</a>. SDKs for TypeScript and Python, the <code>crabcrop-url</code> Rust crate, an MCP server, and Next.js, Nuxt, and Hydrogen loaders build these URLs from anywhere.</p>
   </div>
 </section>
 
-<!-- FILTERS -->
-<section id="filters">
+<!-- URL BUILDER -->
+<section style="padding-bottom:4px">
   <div class="wrap">
-    <div style="display:flex;gap:28px;align-items:center;flex-wrap:wrap">
-      <div style="flex:1 1 430px;min-width:min(430px,100%)">
-        <div class="tidemark"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg> Filters</div>
-        <h2>Stack filters. <span class="coral">Order is meaning.</span></h2>
-        <p class="lede">43 operations chain inside one <code>filters:</code> segment, in the order you write them. Toggle a few and watch the chain assemble.</p>
-        <p class="honest">CSS preview. Your browser approximates the look with CSS filters. A running crabcrop server applies the real operations to the actual pixels, in this order.</p>
+    <div class="tidemark"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg> URL builder</div>
+    <h2>Build a URL, <span class="coral">watch it assemble.</span></h2>
+    <p class="lede">Pick a size, toggle filters, choose a format and quality. The final URL assembles in the bar below, ready to copy, and the bar sticks to the header for the rest of the tour.</p>
+  </div>
+</section>
+    <div class="builderbar wrap" id="builder">
+      <div class="brow">
+        <span><label for="bbSize">Size</label><br>
+        <select id="bbSize">
+          <option value="300x200">300x200</option>
+          <option value="crop:1200x630:smart" selected>crop:1200x630:smart</option>
+          <option value="fit-in:800x600">fit-in:800x600</option>
+          <option value="pad:1200x630:blur">pad:1200x630:blur</option>
+          <option value="crop-rect:100x50:700x450">crop-rect:100x50:700x450</option>
+        </select></span>
+        <span><label>Filters</label><br>
+          <button class="bchip" type="button" data-bf="grayscale" aria-pressed="false">grayscale</button>
+          <button class="bchip" type="button" data-bf="sharpen(1.2)" aria-pressed="false">sharpen(1.2)</button>
+          <button class="bchip" type="button" data-bf="radius(24)" aria-pressed="false">radius(24)</button>
+          <button class="bchip" type="button" data-bf="removebg" aria-pressed="false">removebg</button>
+        </span>
+        <span><label for="bbFmt">Format</label><br>
+        <select id="bbFmt">
+          <option value="">Negotiated</option>
+          <option value="avif">format(avif)</option>
+          <option value="webp" selected>format(webp)</option>
+          <option value="jxl">format(jxl)</option>
+          <option value="jpeg">format(jpeg)</option>
+          <option value="png">format(png)</option>
+        </select></span>
+        <span><label for="bbQ">Quality</label><br>
+        <select id="bbQ">
+          <option value="80" selected>quality(80)</option>
+          <option value="auto">quality(auto)</option>
+          <option value="60">quality(60)</option>
+          <option value="95">quality(95)</option>
+        </select></span>
+        <button class="copybtn" type="button" id="bbCopy" style="margin-left:auto">Copy URL</button>
       </div>
-      <figure class="frame" style="max-width:190px;margin:0;flex:0 0 auto">
-        <img src="snap-toy.webp" alt="Snap the crochet crab sliding a glowing divider across a big photo print" width="400" height="400" loading="lazy">
-        <figcaption><span>Snap, sliding before into after.</span></figcaption>
-      </figure>
+      <div class="burl" id="bbUrl" aria-live="polite"></div>
+      <p style="font-size:12.5px;color:#9DB2C8;margin-top:6px">The signature segment is a placeholder here. In production it is the 64 hex character HMAC-SHA256 of everything after it. The full builder lives in <a href="docs.html#anatomy" style="color:var(--sea-glass)">the documentation</a>.</p>
     </div>
-    <div class="toy-lite">
-      <div>
-        <div class="toy-preview" id="litePreview" style="aspect-ratio:3/2">
-          <span class="toy-tag">Preview</span>
-          <div class="pv" id="litePvF"><img id="liteImgF" src="scene-bbq.jpg" alt="Snap grilling skewers at a beach BBQ, with the filter stack applied"></div>
-          <div class="pv" id="litePvP"><img id="liteImgP" src="scene-bbq.jpg" alt="Snap grilling skewers at a beach BBQ, unfiltered"></div>
-          <div class="divider" id="liteDivider"></div>
-          <div class="phandle" aria-hidden="true"><svg class="claw"><use href="#clawmark"/></svg></div>
-          <input type="range" id="liteRange" min="0" max="100" value="55" aria-label="Reveal processed preview">
+
+<!-- STUDIO MODE -->
+<section id="studio">
+  <div class="wrap">
+    <div class="tidemark"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg> Studio mode</div>
+    <h2>A location shot in, <span class="coral">a listing shot out.</span></h2>
+    <p class="lede" style="margin-bottom:26px">A real output from a running server: the skate park photo went in as shot, and studio mode cut the subject out, set a clean backdrop, and laid a soft contact shadow. Drag the slider.</p>
+    <div style="max-width:880px">
+<div class="ba" style="aspect-ratio:3/2">
+          <div class="ba-layer"><img src="studio-white.webp" alt="Snap composited by studio mode onto a white backdrop with a soft contact shadow" width="1000" height="667"></div>
+          <div class="ba-layer ba-top"><img src="studio-before.jpg" alt="Snap the crochet crab at a skate park, original photo" width="1000" height="667"></div>
+          <span class="ba-chip l">studio(product)</span><span class="ba-chip r">BEFORE</span>
+          <div class="ba-div"></div>
+          <input type="range" min="0" max="100" value="55" aria-label="Reveal the studio mode result">
         </div>
-        <div class="scene-picker" role="group" aria-label="Scene" style="margin-top:14px">
-          <span class="sp-label" aria-hidden="true">Scene</span>
-          <button class="spchip" type="button" data-scene="scene-bbq.jpg" aria-pressed="true"><img src="scene-bbq.jpg" alt="" width="40" height="28"> BBQ</button>
-          <button class="spchip" type="button" data-scene="scene-surf.jpg" aria-pressed="false"><img src="scene-surf.jpg" alt="" width="40" height="28" loading="lazy"> Surf</button>
-          <button class="spchip" type="button" data-scene="scene-camera.jpg" aria-pressed="false"><img src="scene-camera.jpg" alt="" width="40" height="28" loading="lazy"> Camera</button>
-        </div>
-      </div>
-      <div>
-        <div class="fgroup" style="margin-top:0">Filter palette</div>
-        <div style="display:flex;flex-wrap:wrap;gap:8px" id="litePalette">
-          <button class="chipbtn coral" type="button" data-f="grayscale" data-css="grayscale(1)">grayscale</button>
-          <button class="chipbtn coral" type="button" data-f="sepia" data-css="sepia(.75)">sepia</button>
-          <button class="chipbtn coral" type="button" data-f="invert" data-css="invert(1)">invert</button>
-          <button class="chipbtn coral" type="button" data-f="saturation(1.7)" data-css="saturate(1.7)">saturation(1.7)</button>
-          <button class="chipbtn coral" type="button" data-f="contrast(25)" data-css="contrast(1.25)">contrast(25)</button>
-          <button class="chipbtn coral" type="button" data-f="brighten(40)" data-css="brightness(1.16)">brighten(40)</button>
-          <button class="chipbtn coral" type="button" data-f="huerotate(90)" data-css="hue-rotate(90deg)">huerotate(90)</button>
-          <button class="chipbtn coral" type="button" data-f="blur(2.5)" data-css="blur(2.5px)">blur(2.5)</button>
-        </div>
-        <div class="fgroup">Your chain, in order</div>
-        <div class="stack" id="liteStack"><span class="empty">Empty for now. Toggle a filter and it lands here.</span></div>
-        <p class="readout">Assembled URL segment:</p>
-        <div class="eql" id="liteEq">filters: (none yet)</div>
-        <p class="honest">The full operation reference, every parameter and range: <a href="docs.html#size">the documentation</a>.</p>
-      </div>
+        <p class="ai-op" style="margin-top:10px">fit-in:1000x667/filters:studio(product,bg:white,shadow:soft,pad:10)</p>
     </div>
   </div>
 </section>
 
-<!-- FEATURES -->
-<section id="features" class="band-200">
-  <div class="foam" style="--fc:#F3DFB4" aria-hidden="true"></div>
+<!-- AI SIDE BY SIDE -->
+<section id="ai">
   <div class="wrap">
-    <div style="display:flex;gap:28px;align-items:center;flex-wrap:wrap">
-      <div style="flex:1 1 430px;min-width:min(430px,100%)">
-        <div class="tidemark"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg> Major features</div>
-        <h2>Small URL. <span class="coral">Long reach.</span></h2>
-        <p class="lede">The transform is only the first tide. Presets, purging, metadata, and AI are built into the same URL.</p>
-      </div>
-      <figure class="frame" style="max-width:190px;margin:0;flex:0 0 auto">
-        <img src="snap-features.webp" alt="Snap the crochet crab at a small barbecue grill, flipping photo prints like patties" width="400" height="400" loading="lazy">
-        <figcaption><span>Snap, flipping prints on the grill.</span></figcaption>
-      </figure>
-    </div>
-    <div class="grid3" style="margin-top:34px">
-      <div class="specimen"><div class="iconring"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg></div><h3>Presets that stay put</h3><p>A preset names an operation string on the server, so templates stay short and the menu stays under operator control. Roll changes out under a new name, never edit one in place.</p><span class="opname">preset:og-card</span></div>
-      <div class="specimen"><div class="iconring coral"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg></div><h3>Purge one, or the group</h3><p><code>/purge</code> invalidates every stored variant of one result. <code>/purge-group</code> clears a whole preset output set. Purge signatures use their own subkey, so an image signature can never be replayed as a purge.</p><span class="opname">POST /purge-group/&lt;signature&gt;/small</span></div>
-      <div class="specimen"><div class="iconring"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg></div><h3>Meta and placeholders</h3><p>Send <code>Accept: application/json</code> and get dimensions, format, and sizes instead of bytes. Add placeholders for the dominant color, palette, a tiny blurred preview, and a ThumbHash string.</p><span class="opname">Accept: application/json; placeholders=1</span></div>
-      <div class="specimen"><div class="iconring coral"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg></div><h3>URLs that explain themselves</h3><p>Swap the front of the path for <code>/explain/</code> and the server reports on the URL instead of serving the image: signature and expiry status, the source, every operation in plain words. It verifies the same signature first.</p><span class="opname">GET /explain/&lt;signature&gt;/...</span></div>
-      <div class="specimen"><div class="iconring"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg></div><h3>Sources where they live</h3><p>HTTP and HTTPS under a source policy, S3 and S3-compatible stores, Google Cloud Storage, or a local file root that refuses path escapes. Every fetch is bounded, and EXIF orientation is applied at decode.</p><span class="opname">s3://bucket/key · gs://bucket/key · file:///path</span></div>
-      <div class="specimen"><div class="iconring coral"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg></div><h3>Build from anywhere</h3><p>TypeScript and Python SDKs, the <code>crabcrop-url</code> Rust crate, an MCP server for coding agents, and Next.js, Nuxt, and Hydrogen loaders. One grammar, one signing scheme, the same test vectors everywhere.</p><span class="opname">@crabcrop/url · crabcrop_url · crabcrop-url</span></div>
-    </div>
-
-    <div style="margin-top:56px;display:flex;gap:24px;align-items:center;flex-wrap:wrap">
-      <div class="porthole" style="width:110px;height:110px"><img src="snap-ai.webp" alt="Snap the crochet crab scanning a photo print with a magnifying glass" width="400" height="400" loading="lazy"></div>
-      <div style="flex:1 1 400px;min-width:min(400px,100%)">
-        <h3 style="font-size:24px">AI features: models you supply, inference in process</h3>
-        <p style="color:var(--ink-2);font-size:16px">AI filters run ONNX models you provide as files, loaded at boot. No model configured means a clean 501, never a silent fallback. Every after image below is the direct output of a running crabcrop server. Drag the sliders.</p>
-      </div>
-    </div>
-    <div class="ai-demos">
+    <div class="tidemark"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg> AI features</div>
+    <h2>Models you supply. <span class="coral">Inference in process.</span></h2>
+    <p class="lede" style="margin-bottom:26px">Real outputs from a running server, nothing retouched. No model configured means a clean 501, never a silent fallback.</p>
+    <div class="ai-demos" style="margin-top:0">
       <div class="ai-demo">
         <div class="ba" style="aspect-ratio:3/2">
           <div class="ba-layer checker"><img src="ai-skate-removebg.webp" alt="Snap at the skate park with the background removed, over transparency" width="1000" height="667" loading="lazy"></div>
@@ -871,57 +770,56 @@ url = build_url(
           <input type="range" min="0" max="100" value="55" aria-label="Reveal the background removal result">
         </div>
         <h3>Background removal</h3>
-        <p><code>removebg</code> keeps the subject and swaps the background for real alpha, ready to composite anywhere.</p>
         <p class="ai-op">fit-in:1000x667/filters:removebg:format(webp)</p>
       </div>
       <div class="ai-demo">
-        <div class="ba" style="aspect-ratio:3/2">
-          <div class="ba-layer"><img src="studio-white.webp" alt="Snap composited by studio mode onto a white backdrop with a soft contact shadow" width="1000" height="667" loading="lazy"></div>
-          <div class="ba-layer ba-top"><img src="studio-before.jpg" alt="Snap the crochet crab at a skate park, original photo" width="1000" height="667" loading="lazy"></div>
-          <span class="ba-chip l">AFTER</span><span class="ba-chip r">BEFORE</span>
-          <div class="ba-div"></div>
-          <input type="range" min="0" max="100" value="55" aria-label="Reveal the studio mode result">
-        </div>
-        <h3>Studio mode</h3>
-        <p><code>studio(product)</code> names an outcome: the subject cut out, set on a clean backdrop, a contact shadow under it, margin on every side. The listing shot in one filter.</p>
-        <p class="ai-op">fit-in:1000x667/filters:studio(product,bg:white,shadow:soft,pad:10)</p>
-      </div>
-      <div class="ai-demo">
-        <div class="crop3" style="grid-template-columns:1fr 1fr">
-          <figure><img src="ai-crop-center.jpg" alt="Plain center crop of the skate park photo, clipping Snap's raised claw" width="760" height="760" loading="lazy"><figcaption>crop:760x760</figcaption></figure>
-          <figure><img src="ai-crop-smart.jpg" alt="Smart crop of the same photo, keeping the whole crab in frame" width="760" height="760" loading="lazy"><figcaption>crop:760x760:smart</figcaption></figure>
-        </div>
-        <h3>Smart crop keeps the subject whole</h3>
-        <p>The plain center crop clips Snap's raised claw. <code>:smart</code> finds the subject, and with a face model it keeps faces whole too.</p>
-        <p class="ai-op">crop:760x760:smart</p>
-      </div>
-      <div class="ai-demo">
         <div class="ba" style="aspect-ratio:1100/733">
-          <div class="ba-layer"><img src="ai-friend-redact.jpg" alt="The skate bowl photo with the skater in the background blurred by crabcrop" width="1100" height="733" loading="lazy"></div>
-          <div class="ba-layer ba-top"><img src="ai-friend-before.jpg" alt="Snap at the edge of a skate bowl with a skater riding in the background, original photo" width="1100" height="733" loading="lazy"></div>
+          <div class="ba-layer"><img src="ai-skate-redact.jpg" alt="The skate park photo with the skateboard pixelated by crabcrop" width="1100" height="733" loading="lazy"></div>
+          <div class="ba-layer ba-top"><img src="ai-skate-redact-before.jpg" alt="Snap at the skate park next to a skateboard, original photo" width="1100" height="733" loading="lazy"></div>
           <span class="ba-chip l">AFTER</span><span class="ba-chip r">BEFORE</span>
           <div class="ba-div"></div>
-          <input type="range" min="0" max="100" value="55" aria-label="Reveal the blurred skater">
+          <input type="range" min="0" max="100" value="55" aria-label="Reveal the pixelated skateboard">
         </div>
-        <h3>Redaction and more</h3>
-        <p><code>blurclass(person)</code> blurs every detected person and nothing else. The same model family powers face redaction, <code>upscale(2)</code> super-resolution, and meta tags, alt text, moderation verdicts, embeddings, and aesthetic scores.</p>
-        <p class="ai-op">fit-in:1100x733/filters:blurclass(person)</p>
+        <h3>Redact a class: pixelate</h3>
+        <p class="ai-op">fit-in:1100x733/filters:pixelateclass(skateboard)</p>
       </div>
     </div>
-    <p class="honest">Studio backdrops resolve on the server: <code>bg:white</code>, any hex, <code>bg:brand</code> for your configured brand color, or <code>bg:none</code> to keep the alpha. Full AI reference: <a href="docs.html#ai">the documentation</a>.</p>
+    <p class="honest">Plus upscale, face redaction, smart crops, and the meta family: <a href="docs.html#ai">AI in the documentation</a>.</p>
   </div>
 </section>
 
-<!-- DOCS CTA -->
-<section style="padding-top:8px">
+<!-- SIGN -->
+<section id="sign" class="band-200">
+  <div class="foam" style="--fc:#F3DFB4" aria-hidden="true"></div>
   <div class="wrap">
-    <div class="docs-cta">
-      <div style="flex:1 1 420px;min-width:min(420px,100%)">
-        <h2>The full documentation.</h2>
-        <p>Every operation, every parameter, signing in four languages, the meta and explain endpoints, purge, upload, SDKs, MCP, the CLI, and deployment recipes, each with examples and demos.</p>
+    <div class="tidemark"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg> URL signature</div>
+    <h2>Sign it in your <span class="coral">stack.</span></h2>
+    <p class="lede" style="margin-bottom:24px">Compute HMAC-SHA256 over the remainder of the path, keyed with your secret, hex encoded, as the first segment: <span class="mono" style="font-size:.9em">/&lt;signature&gt;/&lt;operations&gt;/&lt;source&gt;</span>. One scheme, the same test vectors in every SDK.</p>
+    <div class="code-window" style="border-radius:18px">
+      <button class="copy-btn" type="button" data-copytarget>Copy snippet</button>
+      <div class="code-scroll"><pre><span class="k">import</span> { buildURL } <span class="k">from</span> <span class="s">"@crabcrop/url"</span>;
+
+<span class="k">const</span> url = buildURL({
+  base: <span class="s">"https://img.example.com"</span>,
+  secret: <span class="s">"your-secret"</span>,
+  operations: <span class="s">"crop:1200x630:smart/filters:format(webp):quality(80)"</span>,
+  source: <span class="s">"https://example.com/photo.jpg"</span>,
+});
+<span class="c">// https://img.example.com/3c1f6c18…/crop:1200x630:smart/…</span></pre></div>
+    </div>
+    <p class="honest">curl, Python, and Rust examples, expiring URLs, and secret rotation: <a href="docs.html#signing">signing in the documentation</a>.</p>
+  </div>
+</section>
+
+<!-- DOCUMENTATION -->
+<section>
+  <div class="wrap">
+    <div style="margin-top:0;background:var(--tide-deep);border-radius:var(--shell);padding:34px 32px;color:#fff;display:flex;gap:24px;align-items:center;flex-wrap:wrap">
+      <div style="flex:1 1 380px;min-width:min(380px,100%)">
+        <h2 style="color:#fff;margin:0">The full documentation.</h2>
+        <p style="color:var(--sea-glass);font-size:16px;margin-top:8px">Every operation with examples and interactive demos, section by section.</p>
       </div>
       <a class="btn btn-foam" href="docs.html">Read the documentation</a>
-      <a class="mono-link" style="color:#fff" href="https://github.com/dayvson/crabcrop" target="_blank" rel="noopener">Source on GitHub</a>
     </div>
   </div>
 </section>
@@ -953,7 +851,6 @@ url = build_url(
 const $ = s => document.querySelector(s);
 const $$ = s => Array.from(document.querySelectorAll(s));
 
-/* copy buttons: data-copy text, or data-copytarget for the active code pane */
 $$("[data-copy]").forEach(b=>b.addEventListener("click", ()=>{
   navigator.clipboard && navigator.clipboard.writeText(b.dataset.copy);
   const t = b.textContent; b.textContent = "Copied"; b.classList.add("ok");
@@ -961,37 +858,13 @@ $$("[data-copy]").forEach(b=>b.addEventListener("click", ()=>{
 }));
 $$("[data-copytarget]").forEach(b=>b.addEventListener("click", ()=>{
   const win = b.closest(".code-window");
-  const pane = win && win.querySelector(".code-pane.active pre");
-  if(pane) navigator.clipboard && navigator.clipboard.writeText(pane.innerText);
+  const pre = win && win.querySelector("pre");
+  if(pre) navigator.clipboard && navigator.clipboard.writeText(pre.innerText);
   const t = b.textContent; b.textContent = "Copied"; b.classList.add("ok");
   setTimeout(()=>{ b.textContent = t; b.classList.remove("ok"); }, 1400);
 }));
 
-/* code tabs */
-$$(".tabs").forEach(tabs=>{
-  tabs.addEventListener("click", e=>{
-    const tab = e.target.closest(".tab"); if(!tab) return;
-    const win = tabs.nextElementSibling;
-    tabs.querySelectorAll(".tab").forEach(t=>{ t.classList.toggle("active", t===tab); t.setAttribute("aria-selected", String(t===tab)); });
-    win.querySelectorAll(".code-pane").forEach(p=>p.classList.toggle("active", p.dataset.pane===tab.dataset.pane));
-  });
-});
-
-/* compact anatomy */
-const ANA_DEF = {
-  sig:"<b>Signature.</b> Proof the URL came from you. The server recomputes the HMAC-SHA256 over the operations and source exactly as they appear. A match serves the image; a miss gets a 403.",
-  exp:"<b>Expiry.</b> A signed deadline in Unix seconds, valid strictly before that second. It sits inside the signed remainder, so nobody can extend it without the secret. Past it: 403, and expired URLs never serve from cache.",
-  ops:"<b>Operations.</b> The recipe, in path order: size, crop, fit-in, pad, crop-rect, focal, presets, and metadata segments like exp: and maxage:. Each runs in the order written.",
-  filters:"<b>Filters.</b> A chain of looks and encoder orders in one segment, run left to right: filters:grayscale:quality(80). When a directive repeats, the last one wins.",
-  source:"<b>Source.</b> Your original image, full URL. It starts at the first segment that is not an operation, and may itself contain slashes: http and https, s3://, gs://, or a local file:// root."
-};
-const anaDef = $("#anaDef");
-$$(".ana-lite .segbtn").forEach(b=>b.addEventListener("click", ()=>{
-  $$(".ana-lite .segbtn").forEach(x=>x.setAttribute("aria-pressed", String(x===b)));
-  if(ANA_DEF[b.dataset.seg]) anaDef.innerHTML = ANA_DEF[b.dataset.seg];
-}));
-
-/* before and after sliders: the top layer clips from the right */
+/* before and after sliders */
 $$(".ba").forEach(ba=>{
   const top = ba.querySelector(".ba-top"), div = ba.querySelector(".ba-div"), range = ba.querySelector("input[type=range]");
   if(!top || !range) return;
@@ -1000,44 +873,34 @@ $$(".ba").forEach(ba=>{
   range.addEventListener("input", ()=>set(range.value));
 });
 
-/* filters lite demo */
-const liteChain = [];
-const liteCss = { "grayscale(1)":1 };
-function liteRender(){
-  const stack = $("#liteStack"), eq = $("#liteEq"), img = $("#liteImgF");
-  if(!liteChain.length){
-    stack.innerHTML = '<span class="empty">Empty for now. Toggle a filter and it lands here.</span>';
-    eq.textContent = "filters: (none yet)";
-    img.style.filter = "";
-    return;
-  }
-  stack.innerHTML = liteChain.map((c,i)=>'<span class="schip"><span class="idx">'+(i+1)+'</span>'+c.f+'<button type="button" data-i="'+i+'" aria-label="Remove '+c.f+'">×</button></span>').join("");
-  eq.textContent = "filters:" + liteChain.map(c=>c.f).join(":");
-  img.style.filter = liteChain.map(c=>c.css).join(" ");
+/* sticky mini URL builder */
+const bbFilters = [];
+function bbRender(){
+  const ops = [$("#bbSize").value];
+  const fil = bbFilters.slice();
+  if($("#bbFmt").value) fil.push("format(" + $("#bbFmt").value + ")");
+  fil.push("quality(" + $("#bbQ").value + ")");
+  ops.push("filters:" + fil.join(":"));
+  $("#bbUrl").innerHTML = '<span class="host">https://img.example.com</span><span class="slash">/</span><span class="c-sig">&lt;signature&gt;</span><span class="slash">/</span><span class="c-ops">' +
+    ops.join('</span><span class="slash">/</span><span class="c-ops">') +
+    '</span><span class="slash">/</span><span class="c-src">https://example.com/photo.jpg</span>';
+  $("#bbUrl").dataset.plain = "https://img.example.com/<signature>/" + ops.join("/") + "/https://example.com/photo.jpg";
 }
-$("#litePalette").addEventListener("click", e=>{
-  const b = e.target.closest("[data-f]"); if(!b) return;
-  const i = liteChain.findIndex(c=>c.f===b.dataset.f);
-  if(i>=0){ liteChain.splice(i,1); b.classList.remove("on"); }
-  else { liteChain.push({f:b.dataset.f, css:b.dataset.css}); b.classList.add("on"); }
-  liteRender();
-});
-$("#liteStack").addEventListener("click", e=>{
-  const b = e.target.closest("button[data-i]"); if(!b) return;
-  const gone = liteChain.splice(+b.dataset.i,1)[0];
-  $$("#litePalette [data-f]").forEach(x=>{ if(x.dataset.f===gone.f) x.classList.remove("on"); });
-  liteRender();
-});
-$$(".scene-picker .spchip").forEach(ch=>ch.addEventListener("click", ()=>{
-  $$(".scene-picker .spchip").forEach(x=>x.setAttribute("aria-pressed", String(x===ch)));
-  $("#liteImgF").src = ch.dataset.scene; $("#liteImgP").src = ch.dataset.scene;
+$$("[data-bf]").forEach(b=>b.addEventListener("click", ()=>{
+  const on = b.getAttribute("aria-pressed")==="true";
+  b.setAttribute("aria-pressed", String(!on));
+  const i = bbFilters.indexOf(b.dataset.bf);
+  if(on && i>=0) bbFilters.splice(i,1);
+  if(!on && i<0) bbFilters.push(b.dataset.bf);
+  bbRender();
 }));
-(function(){
-  const pv = $("#litePreview"), range = $("#liteRange"), plain = $("#litePvP"), div = $("#liteDivider");
-  const set = v=>{ plain.style.clipPath = "inset(0 0 0 " + v + "%)"; div.style.left = v + "%"; };
-  set(range.value);
-  range.addEventListener("input", ()=>set(range.value));
-})();
+["bbSize","bbFmt","bbQ"].forEach(id=>$("#"+id).addEventListener("change", bbRender));
+$("#bbCopy").addEventListener("click", ()=>{
+  navigator.clipboard && navigator.clipboard.writeText($("#bbUrl").dataset.plain || "");
+  const b = $("#bbCopy"), t = b.textContent; b.textContent = "Copied"; b.classList.add("ok");
+  setTimeout(()=>{ b.textContent = t; b.classList.remove("ok"); }, 1400);
+});
+bbRender();
 </script>
 </body>
 </html>
