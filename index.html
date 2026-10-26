@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>crabcrop: On-Demand Image API in Rust | The Demo-Forward Tour</title>
-<meta name="description" content="Crabcrop is a Rust-built, lightning-fast on-demand image API supporting all major formats in and out, with over 42 filters and AI features. Install in one line, tour the features in one sideways scroll, and build a signed URL in the sticky builder bar.">
+<meta name="description" content="Crabcrop is a Rust-built, lightning-fast on-demand image API supporting all major formats in and out, with over 42 filters and AI features like background removal. It resizes, crops, converts, and filters your images straight from a signed URL. One binary, no pre-generated thumbnails, no build step.">
 <link rel="canonical" href="https://crabcrop.org/">
 <meta property="og:site_name" content="crabcrop">
 <meta property="og:title" content="crabcrop: On-Demand Image API in Rust">
@@ -582,8 +582,7 @@ footer a{color:var(--sea-glass)}
 section{padding:56px 0}
 .hero-b{padding:44px 0 30px}
 .hero-b .ba{box-shadow:var(--shadow-lg)}
-.builderbar{position:sticky;top:76px;z-index:55;background:var(--abyss);color:#DCE9F2;border:2px solid var(--ink);border-radius:18px;box-shadow:var(--dark-shadow);padding:14px 18px;margin-top:26px}
-@media(max-width:900px){.builderbar{top:118px}}
+.builderbar{background:var(--abyss);color:#DCE9F2;border:2px solid var(--ink);border-radius:18px;box-shadow:var(--dark-shadow);padding:14px 18px;margin-top:26px}
 .builderbar .brow{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .builderbar label{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#9DB2C8}
 .builderbar select{padding:9px 10px;border-radius:10px;border:2px solid rgba(255,255,255,.25);background:var(--abyss-2);color:#fff;font:inherit;font-size:14px;min-height:44px}
@@ -637,8 +636,7 @@ section{padding:56px 0}
   <div class="wrap">
     <div class="tidemark"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg> On-demand image optimization, in Rust</div>
     <h1>The URL is the API,<br><span class="coral">with claws.</span></h1>
-    <p class="lede" style="margin-top:20px">One signed URL carries the resize, the crop, the format, and the filters. Crabcrop fetches your original, runs the operations in order, and serves the result.</p>
-    <p style="margin-top:16px;font-size:16.5px;color:var(--ink-2)">Start with the one-line install right below. Then tour the features, and build a URL of your own: the builder bar sticks to the header while you scroll.</p>
+    <p class="lede" style="margin-top:20px">Crabcrop is a Rust-built, lightning-fast on-demand image API supporting all major formats in and out, with over 42 filters and AI features like background removal. It resizes, crops, converts, and filters your images straight from a signed URL. One binary, no pre-generated thumbnails, no build step.</p>
     <div class="hero-ctas">
       <a class="btn" href="#install">Get it running</a>
       <a class="mono-link" href="docs.html"><svg class="claw" width="16" height="16" aria-hidden="true"><use href="#clawmark"/></svg> Full documentation</a>
@@ -673,7 +671,7 @@ section{padding:56px 0}
 <section id="features" style="padding-top:26px">
   <div class="wrap">
     <div class="tidemark"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg> Major features</div>
-    <h2>The tour, <span class="coral">in one sideways scroll.</span></h2>
+    <h2>Everything an image pipeline does, <span class="coral">in one signed URL.</span></h2>
     <div class="strip-scroll">
       <div class="strip-card" id="formats" style="scroll-margin-top:96px"><img src="crabcrop-mascot-magician.webp" alt="Snap the crab as a stage magician" loading="lazy"><div class="sc-body"><h3>Supported formats</h3><p>JPEG, PNG, WebP, GIF, AVIF, and JPEG XL, in and out. HEIC and HEIF decode only; SVG decodes, sanitized and rasterized. Name no format and the visitor's <code>Accept</code> header decides: AVIF first, then JPEG XL, then WebP. An explicit <code>format(...)</code> always wins.</p><span class="opname">format(avif) · format(jxl) · format(webp)</span></div></div>
       <div class="strip-card"><img src="snap-features.webp" alt="Snap flipping photo prints on a grill" loading="lazy"><div class="sc-body"><h3>43 operations, one chain</h3><p>Resize, crop, adjust, shape, overlay, encode: chained inside one <code>filters:</code> segment, run in the order written.</p><span class="opname">filters:sharpen(1.2):saturation(1.1)</span></div></div>
@@ -694,7 +692,7 @@ section{padding:56px 0}
   <div class="wrap">
     <div class="tidemark"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg> URL builder</div>
     <h2>Build a URL, <span class="coral">watch it assemble.</span></h2>
-    <p class="lede">Pick a size, toggle filters, choose a format and quality. The final URL assembles in the bar below, ready to copy, and the bar sticks to the header for the rest of the tour.</p>
+    <p class="lede">Pick a size, toggle filters, choose a format and quality. The URL in the bar below is the finished thing: signed in your browser with a sample secret, ready to copy and use.</p>
   </div>
 </section>
     <div class="builderbar wrap" id="builder">
@@ -732,8 +730,48 @@ section{padding:56px 0}
         <button class="copybtn" type="button" id="bbCopy" style="margin-left:auto">Copy URL</button>
       </div>
       <div class="burl" id="bbUrl" aria-live="polite"></div>
-      <p style="font-size:12.5px;color:#9DB2C8;margin-top:6px">The signature segment is a placeholder here. In production it is the 64 hex character HMAC-SHA256 of everything after it. The full builder lives in <a href="docs.html#anatomy" style="color:var(--sea-glass)">the documentation</a>.</p>
+      <p style="font-size:12.5px;color:#9DB2C8;margin-top:6px">Signed live in your browser with the sample secret <span class="mono">demo-secret</span>: the URL above is complete and real, the 64 hex character HMAC-SHA256 of everything after the signature segment. A server running with that secret would accept it. Production signing uses your own secret, kept server side. The code that produces this URL, in four languages, is directly below.</p>
     </div>
+
+  <div class="wrap" style="margin-top:28px">
+    <div class="tabs" role="tablist" aria-label="Signing examples by language">
+      <button class="tab active" data-pane="curl" type="button" role="tab" aria-selected="true">curl</button>
+      <button class="tab" data-pane="ts" type="button" role="tab" aria-selected="false">TypeScript</button>
+      <button class="tab" data-pane="py" type="button" role="tab" aria-selected="false">Python</button>
+      <button class="tab" data-pane="rs" type="button" role="tab" aria-selected="false">Rust</button>
+    </div>
+    <div class="code-window">
+      <button class="copy-btn" type="button" data-copytarget>Copy snippet</button>
+      <div class="code-scroll">
+      <div class="code-pane active" data-pane="curl" role="tabpanel"><pre>printf <span class="s">'%s'</span> <span class="s">'crop:1200x630:smart/filters:format(webp):quality(80)/https://example.com/photo.jpg'</span> \
+  | openssl dgst -sha256 -hmac <span class="s">'demo-secret'</span>
+<span class="c"># SHA2-256(stdin)= ca3d1f22f4cc3860926608df02383f46dcf74af9a4e1bc26b1a00c644f55f300</span></pre></div>
+      <div class="code-pane" data-pane="ts" role="tabpanel"><pre><span class="k">import</span> { buildURL } <span class="k">from</span> <span class="s">"@crabcrop/url"</span>;
+
+<span class="k">const</span> url = buildURL({
+  base: <span class="s">"https://img.example.com"</span>,
+  secret: <span class="s">"demo-secret"</span>,
+  operations: <span class="s">"crop:1200x630:smart/filters:format(webp):quality(80)"</span>,
+  source: <span class="s">"https://example.com/photo.jpg"</span>,
+});</pre></div>
+      <div class="code-pane" data-pane="py" role="tabpanel"><pre><span class="k">from</span> crabcrop_url <span class="k">import</span> build_url
+
+url = build_url(
+    base=<span class="s">"https://img.example.com"</span>,
+    secret=<span class="s">"demo-secret"</span>,
+    operations=<span class="s">"crop:1200x630:smart/filters:format(webp):quality(80)"</span>,
+    source=<span class="s">"https://example.com/photo.jpg"</span>,
+)</pre></div>
+      <div class="code-pane" data-pane="rs" role="tabpanel"><pre><span class="k">use</span> crabcrop_url::{build_url, sign};
+
+<span class="k">let</span> signature = sign(secret, <span class="s">"crop:1200x630:smart/filters:format(webp):quality(80)/https://example.com/photo.jpg"</span>);
+<span class="k">let</span> url = build_url(base, secret,
+    <span class="s">"crop:1200x630:smart/filters:format(webp):quality(80)"</span>,
+    <span class="s">"https://example.com/photo.jpg"</span>)?;</pre></div>
+      </div>
+    </div>
+    <p class="honest" style="margin-top:14px">Each snippet builds the builder's default URL with the same sample secret. Swap in your base, your secret, and your operations.</p>
+  </div>
 
 <!-- STUDIO MODE -->
 <section id="studio">
@@ -795,19 +833,7 @@ section{padding:56px 0}
     <div class="tidemark"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg> URL signature</div>
     <h2>Sign it in your <span class="coral">stack.</span></h2>
     <p class="lede" style="margin-bottom:24px">Compute HMAC-SHA256 over the remainder of the path, keyed with your secret, hex encoded, as the first segment: <span class="mono" style="font-size:.9em">/&lt;signature&gt;/&lt;operations&gt;/&lt;source&gt;</span>. One scheme, the same test vectors in every SDK.</p>
-    <div class="code-window" style="border-radius:18px">
-      <button class="copy-btn" type="button" data-copytarget>Copy snippet</button>
-      <div class="code-scroll"><pre><span class="k">import</span> { buildURL } <span class="k">from</span> <span class="s">"@crabcrop/url"</span>;
-
-<span class="k">const</span> url = buildURL({
-  base: <span class="s">"https://img.example.com"</span>,
-  secret: <span class="s">"your-secret"</span>,
-  operations: <span class="s">"crop:1200x630:smart/filters:format(webp):quality(80)"</span>,
-  source: <span class="s">"https://example.com/photo.jpg"</span>,
-});
-<span class="c">// https://img.example.com/3c1f6c18…/crop:1200x630:smart/…</span></pre></div>
-    </div>
-    <p class="honest">curl, Python, and Rust examples, expiring URLs, and secret rotation: <a href="docs.html#signing">signing in the documentation</a>.</p>
+    <p class="honest">The builder above computes this signature in your browser, and copyable code in curl, TypeScript, Python, and Rust sits right under it. Expiring URLs and secret rotation: <a href="docs.html#signing">signing in the documentation</a>.</p>
   </div>
 </section>
 
@@ -858,11 +884,21 @@ $$("[data-copy]").forEach(b=>b.addEventListener("click", ()=>{
 }));
 $$("[data-copytarget]").forEach(b=>b.addEventListener("click", ()=>{
   const win = b.closest(".code-window");
-  const pre = win && win.querySelector("pre");
+  const pre = win && (win.querySelector(".code-pane.active pre") || win.querySelector("pre"));
   if(pre) navigator.clipboard && navigator.clipboard.writeText(pre.innerText);
   const t = b.textContent; b.textContent = "Copied"; b.classList.add("ok");
   setTimeout(()=>{ b.textContent = t; b.classList.remove("ok"); }, 1400);
 }));
+
+/* signing tabs */
+$$(".tabs").forEach(tabs=>{
+  tabs.addEventListener("click", e=>{
+    const tab = e.target.closest(".tab"); if(!tab) return;
+    const win = tabs.nextElementSibling;
+    tabs.querySelectorAll(".tab").forEach(t=>{ t.classList.toggle("active", t===tab); t.setAttribute("aria-selected", String(t===tab)); });
+    win.querySelectorAll(".code-pane").forEach(p=>p.classList.toggle("active", p.dataset.pane===tab.dataset.pane));
+  });
+});
 
 /* before and after sliders */
 $$(".ba").forEach(ba=>{
@@ -873,18 +909,34 @@ $$(".ba").forEach(ba=>{
   range.addEventListener("input", ()=>set(range.value));
 });
 
-/* sticky mini URL builder */
+/* mini URL builder: signs the real URL in the browser with a sample secret */
+const BB_SECRET = "demo-secret";
+const bbEnc = new TextEncoder();
+async function crabSign(secret, remainder){
+  const key = await crypto.subtle.importKey("raw", bbEnc.encode(secret), {name:"HMAC", hash:"SHA-256"}, false, ["sign"]);
+  const mac = await crypto.subtle.sign("HMAC", key, bbEnc.encode(remainder));
+  return Array.from(new Uint8Array(mac), b=>b.toString(16).padStart(2,"0")).join("");
+}
 const bbFilters = [];
-function bbRender(){
+let bbSeq = 0;
+async function bbRender(){
   const ops = [$("#bbSize").value];
   const fil = bbFilters.slice();
   if($("#bbFmt").value) fil.push("format(" + $("#bbFmt").value + ")");
   fil.push("quality(" + $("#bbQ").value + ")");
   ops.push("filters:" + fil.join(":"));
-  $("#bbUrl").innerHTML = '<span class="host">https://img.example.com</span><span class="slash">/</span><span class="c-sig">&lt;signature&gt;</span><span class="slash">/</span><span class="c-ops">' +
+  const remainder = ops.join("/") + "/https://example.com/photo.jpg";
+  const seq = ++bbSeq;
+  let sigText = "<signature>";
+  if(window.crypto && crypto.subtle){
+    try { sigText = await crabSign(BB_SECRET, remainder); } catch(e) { /* keep the placeholder */ }
+  }
+  if(seq !== bbSeq) return;
+  const sigHtml = sigText.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  $("#bbUrl").innerHTML = '<span class="host">https://img.example.com</span><span class="slash">/</span><span class="c-sig">' + sigHtml + '</span><span class="slash">/</span><span class="c-ops">' +
     ops.join('</span><span class="slash">/</span><span class="c-ops">') +
     '</span><span class="slash">/</span><span class="c-src">https://example.com/photo.jpg</span>';
-  $("#bbUrl").dataset.plain = "https://img.example.com/<signature>/" + ops.join("/") + "/https://example.com/photo.jpg";
+  $("#bbUrl").dataset.plain = "https://img.example.com/" + sigText + "/" + remainder;
 }
 $$("[data-bf]").forEach(b=>b.addEventListener("click", ()=>{
   const on = b.getAttribute("aria-pressed")==="true";
