@@ -582,14 +582,6 @@ footer a{color:var(--sea-glass)}
 section{padding:56px 0}
 .hero-b{padding:44px 0 30px}
 .hero-b .ba{box-shadow:var(--shadow-lg)}
-.builderbar{background:var(--abyss);color:#DCE9F2;border:2px solid var(--ink);border-radius:18px;box-shadow:var(--dark-shadow);padding:14px 18px;margin-top:26px}
-.builderbar .brow{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-.builderbar label{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#9DB2C8}
-.builderbar select{padding:9px 10px;border-radius:10px;border:2px solid rgba(255,255,255,.25);background:var(--abyss-2);color:#fff;font:inherit;font-size:14px;min-height:44px}
-.builderbar .bchip{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;font-weight:700;padding:8px 13px;min-height:40px;border-radius:999px;border:2px solid rgba(255,255,255,.3);background:transparent;color:#DCE9F2;cursor:pointer}
-.builderbar .bchip[aria-pressed="true"]{background:var(--foam);color:var(--ink);border-color:var(--foam)}
-.builderbar .burl{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13.5px;overflow-wrap:anywhere;line-height:1.7;margin-top:10px}
-.builderbar .burl .c-sig{color:var(--shell-pink)} .builderbar .burl .c-ops{color:var(--sea-glass)} .builderbar .burl .c-src{color:var(--sun-soft)} .builderbar .burl .host{color:#9DB2C8} .builderbar .burl .slash{color:#5F7A8C}
 .strip-scroll{display:flex;gap:18px;overflow-x:auto;padding:8px 4px 20px;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch}
 .strip-card{scroll-snap-align:start;flex:0 0 300px;background:var(--foam);border:2px solid var(--ink);border-radius:var(--shell);box-shadow:var(--shadow);overflow:hidden}
 .strip-card img{width:100%;height:170px;object-fit:cover;display:block}
@@ -622,7 +614,7 @@ section{padding:56px 0}
   <div class="wrap nav">
     <a class="logo" href="#top"><span class="pebble" aria-hidden="true"><svg class="claw"><use href="#clawmark"/></svg></span> crabcrop</a>
     <nav class="nav-links" aria-label="Sections">
-      <a href="#install">Install</a><a href="#features">Features</a><a href="#formats">Formats</a><a href="#builder">Sign a URL</a>
+      <a href="#install">Install</a><a href="#features">Features</a><a href="#formats">Formats</a><a href="#sign">Sign a URL</a>
       <a href="docs.html">Documentation</a>
     </nav>
     <a class="btn" style="padding:10px 18px" href="docs.html">Read the docs</a>
@@ -683,51 +675,13 @@ section{padding:56px 0}
   </div>
 </section>
 
-<!-- URL BUILDER -->
-<section style="padding-bottom:4px">
+<!-- SIGNING SAMPLES -->
+<section id="sign">
   <div class="wrap">
-    <div class="tidemark"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg> URL builder</div>
-    <h2>Build a URL, <span class="coral">watch it assemble.</span></h2>
-    <p class="lede">Pick a size, toggle filters, choose a format and quality. The URL in the bar below is the finished thing: signed in your browser with a sample secret, ready to copy and use.</p>
+    <div class="tidemark"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg> Signing</div>
+    <h2>Sign a URL, <span class="coral">from any stack.</span></h2>
+    <p class="lede">Every URL carries an HMAC-SHA256 signature over the operations and the source, lowercase hex. Sign with the TypeScript or Python SDK, the crabcrop-url Rust crate, or plain curl: same inputs, same URL.</p>
   </div>
-</section>
-    <div class="builderbar wrap" id="builder">
-      <div class="brow">
-        <span><label for="bbSize">Size</label><br>
-        <select id="bbSize">
-          <option value="300x200">300x200</option>
-          <option value="crop:1200x630:smart" selected>crop:1200x630:smart</option>
-          <option value="fit-in:800x600">fit-in:800x600</option>
-          <option value="pad:1200x630:blur">pad:1200x630:blur</option>
-          <option value="crop-rect:100x50:700x450">crop-rect:100x50:700x450</option>
-        </select></span>
-        <span><label>Filters</label><br>
-          <button class="bchip" type="button" data-bf="grayscale" aria-pressed="false">grayscale</button>
-          <button class="bchip" type="button" data-bf="sharpen(1.2)" aria-pressed="false">sharpen(1.2)</button>
-          <button class="bchip" type="button" data-bf="radius(24)" aria-pressed="false">radius(24)</button>
-          <button class="bchip" type="button" data-bf="removebg" aria-pressed="false">removebg</button>
-        </span>
-        <span><label for="bbFmt">Format</label><br>
-        <select id="bbFmt">
-          <option value="">Negotiated</option>
-          <option value="avif">format(avif)</option>
-          <option value="webp" selected>format(webp)</option>
-          <option value="jxl">format(jxl)</option>
-          <option value="jpeg">format(jpeg)</option>
-          <option value="png">format(png)</option>
-        </select></span>
-        <span><label for="bbQ">Quality</label><br>
-        <select id="bbQ">
-          <option value="80" selected>quality(80)</option>
-          <option value="auto">quality(auto)</option>
-          <option value="60">quality(60)</option>
-          <option value="95">quality(95)</option>
-        </select></span>
-        <button class="copybtn" type="button" id="bbCopy" style="margin-left:auto">Copy URL</button>
-      </div>
-      <div class="burl" id="bbUrl" aria-live="polite"></div>
-      <p style="font-size:12.5px;color:#9DB2C8;margin-top:6px">Signed live in your browser with the sample secret <span class="mono">demo-secret</span>: the URL above is complete and real, the 64 hex character HMAC-SHA256 of everything after the signature segment. A server running with that secret would accept it. Production signing uses your own secret, kept server side. The code that produces this URL, in four languages, is directly below.</p>
-    </div>
 
   <div class="wrap" style="margin-top:28px">
     <div class="tabs" role="tablist" aria-label="Signing examples by language">
@@ -766,8 +720,9 @@ url = build_url(
     <span class="s">"https://example.com/photo.jpg"</span>)?;</pre></div>
       </div>
     </div>
-    <p class="honest" style="margin-top:14px">Each snippet builds the builder's default URL with the same sample secret. Swap in your base, your secret, and your operations.</p>
+    <p class="honest" style="margin-top:14px">Each snippet signs the same example with the sample secret <code>demo-secret</code>. Swap in your base, your secret, and your operations.</p>
   </div>
+</section>
 
 <!-- STUDIO MODE -->
 <section id="studio">
@@ -893,51 +848,6 @@ $$(".ba").forEach(ba=>{
   set(range.value);
   range.addEventListener("input", ()=>set(range.value));
 });
-
-/* mini URL builder: signs the real URL in the browser with a sample secret */
-const BB_SECRET = "demo-secret";
-const bbEnc = new TextEncoder();
-async function crabSign(secret, remainder){
-  const key = await crypto.subtle.importKey("raw", bbEnc.encode(secret), {name:"HMAC", hash:"SHA-256"}, false, ["sign"]);
-  const mac = await crypto.subtle.sign("HMAC", key, bbEnc.encode(remainder));
-  return Array.from(new Uint8Array(mac), b=>b.toString(16).padStart(2,"0")).join("");
-}
-const bbFilters = [];
-let bbSeq = 0;
-async function bbRender(){
-  const ops = [$("#bbSize").value];
-  const fil = bbFilters.slice();
-  if($("#bbFmt").value) fil.push("format(" + $("#bbFmt").value + ")");
-  fil.push("quality(" + $("#bbQ").value + ")");
-  ops.push("filters:" + fil.join(":"));
-  const remainder = ops.join("/") + "/https://example.com/photo.jpg";
-  const seq = ++bbSeq;
-  let sigText = "<signature>";
-  if(window.crypto && crypto.subtle){
-    try { sigText = await crabSign(BB_SECRET, remainder); } catch(e) { /* keep the placeholder */ }
-  }
-  if(seq !== bbSeq) return;
-  const sigHtml = sigText.replace(/</g, "&lt;").replace(/>/g, "&gt;");
-  $("#bbUrl").innerHTML = '<span class="host">https://img.example.com</span><span class="slash">/</span><span class="c-sig">' + sigHtml + '</span><span class="slash">/</span><span class="c-ops">' +
-    ops.join('</span><span class="slash">/</span><span class="c-ops">') +
-    '</span><span class="slash">/</span><span class="c-src">https://example.com/photo.jpg</span>';
-  $("#bbUrl").dataset.plain = "https://img.example.com/" + sigText + "/" + remainder;
-}
-$$("[data-bf]").forEach(b=>b.addEventListener("click", ()=>{
-  const on = b.getAttribute("aria-pressed")==="true";
-  b.setAttribute("aria-pressed", String(!on));
-  const i = bbFilters.indexOf(b.dataset.bf);
-  if(on && i>=0) bbFilters.splice(i,1);
-  if(!on && i<0) bbFilters.push(b.dataset.bf);
-  bbRender();
-}));
-["bbSize","bbFmt","bbQ"].forEach(id=>$("#"+id).addEventListener("change", bbRender));
-$("#bbCopy").addEventListener("click", ()=>{
-  navigator.clipboard && navigator.clipboard.writeText($("#bbUrl").dataset.plain || "");
-  const b = $("#bbCopy"), t = b.textContent; b.textContent = "Copied"; b.classList.add("ok");
-  setTimeout(()=>{ b.textContent = t; b.classList.remove("ok"); }, 1400);
-});
-bbRender();
 </script>
 </body>
 </html>
