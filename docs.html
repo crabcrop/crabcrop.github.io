@@ -664,6 +664,7 @@ input[type=number].din,select.din,input[type=text].din{padding:9px 11px;border:2
       <a href="#ai">AI operations</a>
       <a href="#studio">Studio mode</a>
       <a href="#presets">Presets</a>
+      <a href="#roots">Source roots</a>
       <a href="#sources">Sources and safety</a>
       <a href="#meta">Meta endpoint</a>
       <a href="#explain">Explain</a>
@@ -1099,10 +1100,28 @@ thumb = 300x200</pre></div>
       <p>With <code>CRABCROP_ONLY_PRESETS=1</code>, free-form operations are rejected with <code>400</code>: requests may use preset references, <code>exp:</code> and <code>maxage:</code> metadata, and bare sources only. Combined with unsafe mode it makes a public deployment where browsers and CMSs build URLs from preset names alone, with no secret to hold. Responses for preset URLs carry a <code>Cache-Group</code> header naming the preset, which is what <a href="#purge">purge-group</a> clears.</p>
     </section>
 
+    <!-- SOURCE ROOTS -->
+    <section class="doc-sec" id="roots">
+      <h2>Source roots</h2>
+      <p>A source root names an origin on the server, so a URL can carry a short source instead of spelling out the full source URL: the origin layout stays off the URL, and URLs get shorter. Define roots in a file, one per line, and point <code>CRABCROP_SOURCE_ROOTS_FILE</code> at it:</p>
+      <div class="cb"><button class="copy-btn" type="button" data-copytarget>Copy</button><pre># /etc/crabcrop/roots.txt
+photos = https://cdn.example.com/photos
+media = https://assets.example.com</pre></div>
+      <div class="cb"><button class="copy-btn" type="button" data-copytarget>Copy</button><pre>curl "http://localhost:3000/&lt;signature&gt;/300x200/root:photos/cat.jpg"</pre></div>
+      <p>That request fetches <code>https://cdn.example.com/photos/cat.jpg</code>. The signature covers the short form exactly as written; the server expands it after verification and before cache keying, so the short spelling and the full URL it expands to are one render: they share a cache entry, and purging either spelling evicts it. Root definitions are validated at startup: names are letters, digits, <code>_</code>, or <code>-</code>, a duplicate name refuses the boot, and a base must be an absolute http(s) URL with no userinfo, query, or fragment.</p>
+      <p>The safety rules:</p>
+      <ul>
+        <li>The source allowlist (<code>CRABCROP_ALLOWED_SOURCES</code>) and every other loader check apply to the expanded URL, exactly as if the client had spelled it out. A root never widens what the server will fetch.</li>
+        <li>The path must stay under the root. Dot segments are normalized, and a path that climbs above the root, plainly or percent-encoded, is a <code>400</code> (<code>invalid_root</code>).</li>
+        <li>An unknown root name is a <code>400</code> (<code>unknown_root</code>), including on a server with no roots configured.</li>
+        <li>Root base URLs are operator configuration and stay private: <code>explain</code> reports the source as written plus the root's name, and never prints a base URL.</li>
+      </ul>
+    </section>
+
     <!-- SOURCES -->
     <section class="doc-sec" id="sources">
       <h2>Sources and safety</h2>
-      <p>The source is the full URL of the original, scheme included. Four kinds are supported:</p>
+      <p>The source locates the original. Four kinds are supported:</p>
       <div class="dtablewrap"><table class="dtable"><tr><th>Kind</th><th>Form</th><th>Notes</th></tr>
       <tr><td>HTTP / HTTPS</td><td>https://example.com/photo.jpg</td><td>Fetched under the source policy: <code>CRABCROP_ALLOWED_SOURCES</code> host suffixes, up to 5 redirects with the policy re-checked on every hop. Source URLs with userinfo are always refused.</td></tr>
       <tr><td>S3</td><td>s3://bucket/key</td><td>AWS S3 or an S3-compatible store via <code>CRABCROP_S3_ENDPOINT</code>. SigV4 signed when AWS credentials are in the environment; unsigned otherwise.</td></tr>
@@ -1170,7 +1189,7 @@ curl -X POST "http://localhost:3000/purge/&lt;signature&gt;/300x200/https://exam
 # Invalidate every stored result in a cache group (a preset's output set)
 curl -X POST "http://localhost:3000/purge-group/&lt;signature&gt;/small"
 # 200, body like: purged 3</pre></div>
-      <p>For <code>/purge</code>, the path is the original request path without its signature. The target is canonicalized the same way entries are keyed, so purging any equivalent spelling of a path (the <code>jpg</code> alias, leading zeros, a preset reference) evicts the shared entry, <code>exp:</code> variants included. A bad purge signature is a <code>403</code> and removes nothing; purging a path that is not stored answers <code>purged 0</code>.</p>
+      <p>For <code>/purge</code>, the path is the original request path without its signature. The target is canonicalized the same way entries are keyed, so purging any equivalent spelling of a path (the <code>jpg</code> alias, leading zeros, a preset reference, a root reference) evicts the shared entry, <code>exp:</code> variants included. A bad purge signature is a <code>403</code> and removes nothing; purging a path that is not stored answers <code>purged 0</code>.</p>
       <p>Groups come from presets: a response belongs to a cache group for each preset its URL referenced, listed in the <code>Cache-Group</code> header (RFC 9875). Group membership accumulates, so a group purge reaches entries first rendered through a plain, preset-free URL. Image responses also carry <code>Cache-Status</code> (RFC 9211), reporting what the server's own caches did: a memory hit, a disk hit, a shared-tier hit, or an origin fetch.</p>
     </section>
 
@@ -1292,7 +1311,7 @@ docker run -p 3000:3000 -e CRABCROP_SECRET=your-secret crabcrop:latest
     <!-- ERRORS -->
     <section class="doc-sec" id="errors">
       <h2>Errors</h2>
-      <p>Error bodies are plain text with a short message. Send <code>Accept: application/json</code> and a grammar failure (a <code>400</code>) instead answers with a JSON envelope: <code>{"error":{"code":"invalid_filters","message":"..."}}</code>. The codes are the parser's stable names, frozen as published: <code>invalid_size</code>, <code>invalid_crop</code>, <code>invalid_filters</code>, <code>unknown_preset</code>, and the rest.</p>
+      <p>Error bodies are plain text with a short message. Send <code>Accept: application/json</code> and a grammar failure (a <code>400</code>) instead answers with a JSON envelope: <code>{"error":{"code":"invalid_filters","message":"..."}}</code>. The codes are the parser's stable names, frozen as published: <code>invalid_size</code>, <code>invalid_crop</code>, <code>invalid_filters</code>, <code>unknown_preset</code>, <code>unknown_root</code>, <code>invalid_root</code>, and the rest.</p>
       <div class="dtablewrap"><table class="dtable"><tr><th>Status</th><th>Meaning</th></tr>
       <tr><td>400</td><td>The path or operations do not parse, or the operation is not supported: a malformed segment, an unknown filter, removebg into a format without alpha, upscale past its caps, a crop-rect outside the image, a video format asked of a still source.</td></tr>
       <tr><td>403</td><td>Bad signature, an expired exp: URL, or the source refused by the source policy.</td></tr>
@@ -1319,6 +1338,7 @@ docker run -p 3000:3000 -e CRABCROP_SECRET=your-secret crabcrop:latest
       <tr><td>CRABCROP_ALLOWED_SOURCES</td><td>all hosts</td><td>Comma-separated host suffixes the loader may fetch from.</td></tr>
       <tr><td>CRABCROP_BLOCK_PRIVATE_SOURCES</td><td>off</td><td>Refuses sources that resolve to non-public addresses.</td></tr>
       <tr><td>CRABCROP_PRESETS_FILE</td><td>unset</td><td>Path to the presets file.</td></tr>
+      <tr><td>CRABCROP_SOURCE_ROOTS_FILE</td><td>unset</td><td>Path to a source roots file. See <a href="#roots">Source roots</a>.</td></tr>
       <tr><td>CRABCROP_ONLY_PRESETS</td><td>off</td><td>Rejects free-form operations; preset references and metadata only.</td></tr>
       <tr><td>CRABCROP_DEFAULT_OPS</td><td>unset</td><td>Operations prepended to every request (a house format, quality, or watermark), applied after signature verification. The signature never covers the defaults.</td></tr>
       <tr><td>CRABCROP_CACHE_MAX_MB</td><td>256</td><td>Result cache budget. 0 disables the cache.</td></tr>
@@ -1385,7 +1405,7 @@ const ANA_DEF = {
   exp:"<b>Expiry.</b> A signed deadline in Unix seconds, valid strictly before that second. It sits inside the signed remainder, so nobody can extend it without the secret. Past it: 403, and expired URLs never serve from cache.",
   ops:"<b>Operations.</b> The recipe, in path order: size, crop, fit-in, pad, crop-rect, focal, presets, and metadata segments like exp: and maxage:. Each runs in the order written.",
   filters:"<b>Filters.</b> A chain of looks and encoder orders in one segment, run left to right: filters:grayscale:quality(80). When a directive repeats, the last one wins.",
-  source:"<b>Source.</b> Your original image, full URL. It starts at the first segment that is not an operation, and may itself contain slashes: http and https, s3://, gs://, or a local file:// root."
+  source:"<b>Source.</b> The source locator: a full URL with its scheme, a bucket or file locator, or a root:&lt;name&gt;/&lt;path&gt; short source naming a source root. It starts at the first segment that is not an operation, and may itself contain slashes."
 };
 $$(".ana-lite .segbtn").forEach(b=>b.addEventListener("click", ()=>{
   $$(".ana-lite .segbtn").forEach(x=>x.setAttribute("aria-pressed", String(x===b)));
