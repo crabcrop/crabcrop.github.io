@@ -661,6 +661,8 @@ input[type=number].din,select.din,input[type=text].din{padding:9px 11px;border:2
       <a href="#effects">Effects and shape</a>
       <a href="#overlays">Overlays and text</a>
       <a href="#format">Format and quality</a>
+      <a href="#frames">Video frames</a>
+      <a href="#pages">PDF pages</a>
       <a href="#ai">AI operations</a>
       <a href="#studio">Studio mode</a>
       <a href="#presets">Presets</a>
@@ -983,6 +985,39 @@ curl "http://localhost:3000/unsafe/filters:watermark(https%3A%2F%2Fcdn.example.c
       <p>EXIF orientation is applied at decode, so phone photos come out upright. ICC profiles are converted to sRGB before any operation runs; <code>filters:keep_profile</code> opts out per request and embeds the source profile in JPEG and PNG outputs instead. Animated GIF and WebP sources keep their frames, delays, and loop count when the output carries animation.</p>
     </section>
 
+    <!-- VIDEO FRAMES -->
+    <section class="doc-sec" id="frames">
+      <h2>Video frames</h2>
+      <p>A video source can also be an image source: a <code>frame:</code> segment selects one frame, and that frame becomes the source image the rest of the URL operates on. It flows through crops (face-safe smart crops included), filters, studio mode, and format negotiation like any other source image. The selection applies at decode, wherever the segment sits in the path; when a URL carries several <code>frame:</code> segments, the last one wins.</p>
+      <div class="cb"><button class="copy-btn" type="button" data-copytarget>Copy</button><pre>frame:poster
+frame:&lt;seconds&gt;
+frame:&lt;percent&gt;%</pre></div>
+      <div class="cb"><button class="copy-btn" type="button" data-copytarget>Copy</button><pre>curl "http://localhost:3000/unsafe/frame:50%/800x450/filters:format(webp)/https://example.com/clip.mp4"</pre></div>
+      <p><code>frame:poster</code> is the video's first frame, <code>frame:1.5</code> is the frame at a timestamp in seconds, and <code>frame:50%</code> is the frame at a percentage of the duration. The edges:</p>
+      <ul>
+        <li>Frame selection is video-only. A <code>frame:</code> segment on a still image or an animated GIF or WebP source fails with <code>502</code>, the way a bad source fails; animated sources keep their existing behavior whenever no <code>frame:</code> segment is present.</li>
+        <li>Out-of-range selections clamp: a timestamp past the end of the video serves the last frame, and so does <code>frame:100%</code>. Nothing about the request is an error. A percentage needs the video's duration; a container that reports none fails the percentage form with <code>400</code>.</li>
+        <li>A malformed selector (a sign, an exponent, a percentage over 100, a timestamp over 86400) fails with <code>400</code> and the <code>invalid_frame</code> code, before any fetch.</li>
+      </ul>
+      <p>Extraction is an operator feature: crabcrop ships no video decoder. It runs through the external decoder configured with <code>CRABCROP_VIDEO_DECODER</code> (FFmpeg is the reference), validated at startup; with the variable unset, a <code>frame:</code> URL answers <code>501</code>. Extraction happens once per unique URL on a cache miss, and the result caches and purges like any other render. A frame render's meta response carries a <code>video</code> object: the stream's <code>width</code> and <code>height</code>, its <code>duration</code> in seconds when the container reports one, and the <code>frame_timestamp</code> the frame was selected at, after clamping. See <a href="#meta">Meta endpoint</a>.</p>
+    </section>
+
+    <!-- PDF PAGES -->
+    <section class="doc-sec" id="pages">
+      <h2>PDF pages</h2>
+      <p>A PDF source can also be an image source: a <code>page:</code> segment selects one page, rendered as the source image the rest of the URL operates on. <code>page:1</code> is the document's first page. The page renders at a fixed scale of 2 (a 144 dpi raster), and from there the request is an ordinary image request: crops, filters, studio mode, and format negotiation apply unchanged. One page per request: there are no ranges and no contact sheets. When a URL carries several <code>page:</code> segments, the last one wins.</p>
+      <div class="cb"><button class="copy-btn" type="button" data-copytarget>Copy</button><pre>page:&lt;n&gt;</pre></div>
+      <div class="cb"><button class="copy-btn" type="button" data-copytarget>Copy</button><pre>curl "http://localhost:3000/unsafe/page:2/800x1000/filters:format(webp)/https://example.com/report.pdf"</pre></div>
+      <p>The edges:</p>
+      <ul>
+        <li>Page selection is PDF-only. A <code>page:</code> segment on an image, a video, or any other source fails with <code>502</code>, the way a bad source fails.</li>
+        <li>Pages are 1-based and the number is exact: <code>page:9</code> on a three-page document fails with <code>400</code>. It never clamps to the last page, the deliberate difference from <code>frame:</code> timestamps: a frame is a position inside a stream, while a page is a numbered object a caller picks by identity, so a wrong number is a wrong request, not a position past the end.</li>
+        <li>The number is canonicalized: <code>page:007</code> is <code>page:7</code>, and both spellings share one cache entry. A malformed selector (zero, a sign, letters, more than six digits) fails with <code>400</code> and the <code>invalid_page</code> code, before any fetch.</li>
+        <li>A document that needs a password to open fails with <code>400</code>. A document that is merely permission-encrypted and opens without a password renders normally. Documents over 1000 pages are refused.</li>
+      </ul>
+      <p>Rendering is an operator feature: crabcrop ships no PDF renderer. It runs through the external renderer configured with <code>CRABCROP_PDF_RENDERER</code> (Poppler's <code>pdftocairo</code> is the reference), validated at startup; crabcrop derives the <code>pdfinfo</code> program next to it, in the same directory, and uses it to probe documents. Each run is bounded by <code>CRABCROP_PDF_TIMEOUT_SECS</code> (default 30). With the variable unset, a <code>page:</code> URL answers <code>501</code>. The tools receive only the document bytes over stdin, so external references, embedded files, and document actions or scripts have no target and no effect. A page render's meta response carries a <code>pdf</code> object: the document's <code>pages</code> count, the <code>page</code> rendered, and the page's <code>page_width</code> and <code>page_height</code> in points. See <a href="#meta">Meta endpoint</a>.</p>
+    </section>
+
     <!-- AI -->
     <section class="doc-sec" id="ai">
       <h2>AI operations</h2>
@@ -1030,7 +1065,15 @@ curl "http://localhost:3000/unsafe/filters:watermark(https%3A%2F%2Fcdn.example.c
       <tr><td>upscale(2) or upscale(4)</td><td>CRABCROP_UPSCALE_MODEL</td><td>Super-resolution by that factor, output capped at 4096 px per dimension, at most 262,144 input pixels per model run (a larger input is a 400). upscale(4) on a 2x model composes two runs. Source transparency is carried across.</td></tr>
       <tr><td>blurfaces, pixelatefaces</td><td>CRABCROP_FACE_MODEL</td><td>Redact every detected face.</td></tr>
       <tr><td>blurclass, pixelateclass</td><td>CRABCROP_DETECT_MODEL</td><td>Redact every detected object of a class.</td></tr>
+      <tr><td>recolorclass(class,hex)</td><td>CRABCROP_DETECT_MODEL</td><td>Paint every detected object of a class a solid color, alpha preserved.</td></tr>
+      <tr><td>remove_region(x,y,w,h)</td><td>CRABCROP_INPAINT_MODEL</td><td>Erase a rectangle and inpaint it from the surrounding pixels.</td></tr>
       <tr><td>facepad</td><td>the face model</td><td>Padding for crop:...:face, 0 to 3, default 0.5.</td></tr></table></div>
+      <h3>Region removal: remove_region</h3>
+      <p>Point <code>CRABCROP_INPAINT_MODEL</code> at a LaMa family inpainting model and the <code>remove_region(x,y,w,h)</code> filter erases a rectangle and inpaints it from the surrounding pixels, with the same bounds rule as <code>blur_region</code>: a rectangle that overflows the image is a <code>400</code>. Each removal runs the model once on a square crop window around the rectangle, and only the rectangle's pixels are taken from the result: everything outside it comes back bit-identical. Meta responses for a removal carry an <code>inpaint</code> object listing the erased rectangles. Know the limit before you rely on it: the model fabricates what goes in the hole. The fill is plausible on smooth or textured surroundings and visibly wrong on structured content: text, faces, repeating patterns, straight edges that should continue. A removal takes seconds of inference behind the shared AI gate, and the result cache absorbs repeat requests for the same URL, so a given removal is normally paid for once.</p>
+      <h3>Segmentation: class operations follow the silhouette</h3>
+      <p>Point <code>CRABCROP_SEGMENT_ENCODER_MODEL</code> and <code>CRABCROP_SEGMENT_DECODER_MODEL</code> at a MobileSAM export pair (an image encoder and a box-prompt decoder; both are required together) and the class filters change shape: <code>blurclass</code> and <code>pixelateclass</code> redact each object's silhouette instead of its rectangle, and <code>recolorclass</code> paints the silhouette. Segmentation is box-prompted: each detection goes to the decoder as its own box, and the mask decides, pixel by pixel, what the operation touches; the mask's soft edge blends, so silhouettes antialias instead of stair-stepping. The image is encoded once per request however many class operations chain, and each box costs one small decode. Meta responses for a request that segmented carry a <code>segments</code> object: per object, the label, the detection score and box, the mask's tight box (the silhouette's own extent, often well inside the detection), its coverage (the share of the box the silhouette fills), and its centroid. Without the pair, the class filters keep their rectangle behavior exactly. With the pair, a segmentation failure fails the request like a detection failure does, never a silently rectangular redaction. Class operations still need a detection model: the segmenter refines boxes, it does not find them.</p>
+      <h3>OCR: text in meta</h3>
+      <p>Point <code>CRABCROP_OCR_DETECT_MODEL</code> and <code>CRABCROP_OCR_RECOGNIZE_MODEL</code> at a PP-OCR family model pair (a text detector and a text recognizer) and <code>CRABCROP_OCR_DICT</code> at the recognition model's character dictionary, and meta requests that opt in with <code>ocr=1</code> gain an <code>ocr</code> object: the lines read in the processed image, in reading order, each with its text, a confidence score, and its box, plus the lines joined as one <code>text_content</code>. All three OCR paths are required together, and the dictionary's character count is checked against the recognition model at boot, so a mismatched set fails startup instead of returning misaligned text. <code>CRABCROP_OCR_LANGUAGE</code> declares the language the recognition model serves (a BCP-47 tag, default <code>und</code>), and meta echoes it beside the model identity. The text is an annotation only: an OCR request builds and caches exactly the image entry any other request for the URL would, byte for byte. When the opt-in cannot be answered, the field reports itself unavailable with a reason, and the meta request still succeeds. See <a href="#meta">Meta endpoint</a>.</p>
       <h3>Declared detectors</h3>
       <p><code>CRABCROP_DETECTORS_FILE</code> points at a JSON file declaring more of your own models against two built-in contracts: <code>boxes</code> (a YOLOv8 family detector feeding class redaction and meta detections) and <code>focal</code> (a heatmap model feeding smart crops). The file is configuration only; crabcrop never loads or runs operator code. Every declaration is loaded and probed at boot.</p>
       <div class="cb"><button class="copy-btn" type="button" data-copytarget>Copy</button><pre>[
@@ -1086,6 +1129,13 @@ curl "http://localhost:3000/unsafe/filters:watermark(https%3A%2F%2Fcdn.example.c
 curl "http://localhost:3000/unsafe/filters:studio(product)/https://example.com/shoe.jpg"
 # Every argument named
 curl "http://localhost:3000/unsafe/filters:studio(product,bg:f5f0e8,shadow:strong,pad:25)/https://example.com/shoe.jpg"</pre></div>
+      <h3>Scene mode: studio(scene)</h3>
+      <p><code>studio(scene)</code> is the second mode: it keeps the photograph's scene instead of cutting the subject out. One filter expands into a smart crop on the detected subject plus a per-image light and color correction, run at the filter's position in the chain. The same mask model runs first; without one configured, <code>studio(scene)</code> fails with <code>501</code>, the same way. The subject is picked from the mask's connected regions at the subject threshold: the largest wins, ties break toward the frame center, then reading order. The frame is cropped to the smallest window with the frame's own aspect ratio that holds the subject with its pad margin, then resized back to the canvas in effect, so the output keeps the size the chain expects and later operations compose unchanged. The correction is driven by the reframed image's own histogram: a per-channel levels stretch between the 0.5th and 99.5th percentiles (a channel whose span is too flat to stretch is left alone), then a saturation factor that steers the image's mean saturation toward 0.30, capped at 1.35 and never below 1, so muted photographs gain color and vivid ones are never desaturated.</p>
+      <p>Scene takes one argument: <code>pad</code>, 0 to 40, default 10, the margin the subject keeps in the reframed window. The product arguments are bad arguments under scene: <code>bg</code> or <code>shadow</code> named with <code>studio(scene)</code> is a <code>400</code>. If the mask finds no subject (or only a speck not worth believing), the fallback skips the crop and serves the original framing, corrected. Meta reports scene runs in the same <code>studio</code> field, with <code>mode</code> set to <code>scene</code> and a <code>scene</code> object: the winning subject's box (or null), how many candidate subjects the mask carried, the crop window applied, the per-channel levels stretch, and the saturation factor, alongside the steps and fallbacks.</p>
+      <div class="cb"><button class="copy-btn" type="button" data-copytarget>Copy</button><pre># Reframe on the subject and correct, default pad
+curl "http://localhost:3000/unsafe/filters:studio(scene)/https://example.com/shoe.jpg"
+# A wider margin around the subject
+curl "http://localhost:3000/unsafe/filters:studio(scene,pad:25)/https://example.com/shoe.jpg"</pre></div>
     </section>
 
     <!-- PRESETS -->
@@ -1132,7 +1182,7 @@ media = https://assets.example.com</pre></div>
       <ul>
         <li>10 seconds total per fetch, including redirects.</li>
         <li>10 MiB maximum body; larger sources fail with <code>502</code>.</li>
-        <li>A <code>Content-Type</code> header, when present, must start with <code>image/</code>.</li>
+        <li>A <code>Content-Type</code> header, when present, must start with <code>image/</code>: the exceptions are a <code>video/*</code> source under a <code>frame:</code> segment (see <a href="#frames">Video frames</a>) and an <code>application/pdf</code> source under a <code>page:</code> segment (see <a href="#pages">PDF pages</a>).</li>
         <li>Decoding is bounded: at most 16384 px per axis, 256 MiB of decoder allocations, and animated sources at most 200 frames and 100 million decoded pixels.</li>
       </ul>
       <h3>Private address protection</h3>
@@ -1156,14 +1206,17 @@ media = https://assets.example.com</pre></div>
       <tr><td>bytes</td><td>Size of the processed image in bytes.</td></tr>
       <tr><td>source_width, source_height</td><td>Source dimensions, after EXIF orientation.</td></tr>
       <tr><td>ssimulacra2</td><td>The verified perceptual score, present when quality(auto) verified a JPEG or JPEG XL encode. 100 is identical.</td></tr>
-      <tr><td>studio</td><td>Present when a studio(...) filter ran: the resolved backdrop, its source, the shadow and pad, the steps, the fallbacks.</td></tr></table></div>
+      <tr><td>studio</td><td>Present when a studio(...) filter ran, with a mode (product or scene). Product runs report the resolved backdrop, its source, the shadow and pad. Scene runs report the pad and a scene object: the winning subject box, the candidate subjects count, the crop window, the per-channel levels, and the saturation factor. Both report the steps and the fallbacks.</td></tr>
+      <tr><td>video</td><td>Present when the source was a video and a frame: segment selected the frame: the video stream's width and height, its duration in seconds when the container reports one, and the frame_timestamp the frame was selected at, after clamping.</td></tr>
+      <tr><td>pdf</td><td>Present when the source was a PDF and a page: segment selected the page: the document's pages count, the page rendered, and the page size as page_width and page_height in points.</td></tr></table></div>
       <h3>Opt-in parameters</h3>
       <p>Parameters ride on the same <code>Accept</code> entry. Each opts in when bare, <code>1</code>, or <code>true</code>. When an opt-in cannot be answered (nothing configured, a busy inference gate, a failed run), the field reports itself unavailable with a reason, and the meta request still succeeds.</p>
       <div class="dtablewrap"><table class="dtable"><tr><th>Parameter</th><th>Adds</th></tr>
       <tr><td>placeholders=1</td><td>dominant_color (the average color as #rrggbb), palette (the five most prominent colors), placeholder (a 16 px wide blurred JPEG preview as a data URI), and thumbhash (a ThumbHash string your client decodes into an aspect-correct blur while the real image loads).</td></tr>
       <tr><td>detections=1</td><td>detections: the objects found, as {label, score, x, y, w, h, detector} in pixels, from the built-in detector and every declared detector.</td></tr>
       <tr><td>moderation=1</td><td>moderation: the configured classifier's per-category verdict scores, or, with only a labels file configured, zero-shot CLIP signals marked review_only. Verdicts annotate meta only: no score ever changes what the image URL serves.</td></tr>
-      <tr><td>embeddings=1</td><td>embedding: the CLIP image vector, float16 little-endian, base64-encoded, with embedding_model, embedding_dim, embedding_encoding, and embedding_normalized alongside, ready to store in a vector index.</td></tr></table></div>
+      <tr><td>embeddings=1</td><td>embedding: the CLIP image vector, float16 little-endian, base64-encoded, with embedding_model, embedding_dim, embedding_encoding, and embedding_normalized alongside, ready to store in a vector index.</td></tr>
+      <tr><td>ocr=1</td><td>ocr: the text read from the processed image, as {model, language, text: [{text, score, x, y, w, h}], text_content}: the lines in reading order with their boxes in the image's pixels and a confidence score each, plus the lines joined into one text_content. The text annotates meta only: the image bytes are identical with or without it.</td></tr></table></div>
       <p>With a CLIP model configured, meta responses also carry <code>tags</code> (zero-shot labels with scores) and <code>alt_text</code> composed from the best labels, whether or not placeholders were asked for. With <code>CRABCROP_AESTHETIC_HEAD</code> set, they carry <code>aesthetic</code>: a LAION-style head's score of the same embedding, with the head's and encoder's identities. The aesthetic score is descriptive only: it never gates, ranks, or alters what a URL serves. One refusal: a meta request on a video URL answers <code>400</code>, because a video result is not an image.</p>
       <div class="cb"><button class="copy-btn" type="button" data-copytarget>Copy</button><pre>curl -H "Accept: application/json; placeholders=1; detections=1" \
   "http://localhost:3000/unsafe/300x200/https://example.com/photo.jpg"</pre></div>
@@ -1311,7 +1364,7 @@ docker run -p 3000:3000 -e CRABCROP_SECRET=your-secret crabcrop:latest
     <!-- ERRORS -->
     <section class="doc-sec" id="errors">
       <h2>Errors</h2>
-      <p>Error bodies are plain text with a short message. Send <code>Accept: application/json</code> and a grammar failure (a <code>400</code>) instead answers with a JSON envelope: <code>{"error":{"code":"invalid_filters","message":"..."}}</code>. The codes are the parser's stable names, frozen as published: <code>invalid_size</code>, <code>invalid_crop</code>, <code>invalid_filters</code>, <code>unknown_preset</code>, <code>unknown_root</code>, <code>invalid_root</code>, and the rest.</p>
+      <p>Error bodies are plain text with a short message. Send <code>Accept: application/json</code> and a grammar failure (a <code>400</code>) instead answers with a JSON envelope: <code>{"error":{"code":"invalid_filters","message":"..."}}</code>. The codes are the parser's stable names, frozen as published: <code>invalid_size</code>, <code>invalid_crop</code>, <code>invalid_filters</code>, <code>unknown_preset</code>, <code>unknown_root</code>, <code>invalid_root</code>, <code>invalid_frame</code>, <code>invalid_page</code>, and the rest.</p>
       <div class="dtablewrap"><table class="dtable"><tr><th>Status</th><th>Meaning</th></tr>
       <tr><td>400</td><td>The path or operations do not parse, or the operation is not supported: a malformed segment, an unknown filter, removebg into a format without alpha, upscale past its caps, a crop-rect outside the image, a video format asked of a still source.</td></tr>
       <tr><td>403</td><td>Bad signature, an expired exp: URL, or the source refused by the source policy.</td></tr>
@@ -1345,7 +1398,17 @@ docker run -p 3000:3000 -e CRABCROP_SECRET=your-secret crabcrop:latest
       <tr><td>CRABCROP_METADATA</td><td>strip</td><td>preserve copies source EXIF/XMP (and IPTC for JPEG) into JPEG and PNG outputs, with the orientation rewritten to 1.</td></tr>
       <tr><td>CRABCROP_FALLBACK_IMAGE</td><td>unset</td><td>URL or local path of the fallback image for unfetchable sources.</td></tr>
       <tr><td>CRABCROP_FONT_PATH</td><td>unset</td><td>A TTF/OTF font for the text(...) filter. Unset disables the filter.</td></tr>
-      <tr><td>CRABCROP_VIDEO_ENCODER</td><td>unset</td><td>Path to the external video encoder. Unset disables video output.</td></tr></table></div>
+      <tr><td>CRABCROP_VIDEO_ENCODER</td><td>unset</td><td>Path to the external video encoder. Unset disables video output.</td></tr>
+      <tr><td>CRABCROP_VIDEO_DECODER</td><td>unset</td><td>Path to the external video decoder program for frame: extraction from video sources, validated at startup. Unset disables frame selection. See <a href="#frames">Video frames</a>.</td></tr>
+      <tr><td>CRABCROP_PDF_RENDERER</td><td>unset</td><td>Path to the external PDF renderer program for page: rendering from PDF sources; the pdfinfo program next to it is derived from the path and validated alongside. Unset disables page selection. See <a href="#pages">PDF pages</a>.</td></tr>
+      <tr><td>CRABCROP_PDF_TIMEOUT_SECS</td><td>30</td><td>Hard wall-clock limit per external PDF tool run (one probe or one page render), 1 to 600 seconds.</td></tr>
+      <tr><td>CRABCROP_INPAINT_MODEL</td><td>unset</td><td>Path to a LaMa family ONNX model for the remove_region filter. See <a href="#ai">AI operations</a>.</td></tr>
+      <tr><td>CRABCROP_SEGMENT_ENCODER_MODEL</td><td>unset</td><td>The image encoder of the MobileSAM pair, for mask-tight class operations. Both segment paths are required together.</td></tr>
+      <tr><td>CRABCROP_SEGMENT_DECODER_MODEL</td><td>unset</td><td>The box-prompt decoder of the MobileSAM pair, for mask-tight class operations. Both segment paths are required together.</td></tr>
+      <tr><td>CRABCROP_OCR_DETECT_MODEL</td><td>unset</td><td>The text detection model of the PP-OCR family pair, for OCR in meta. All three OCR paths are required together.</td></tr>
+      <tr><td>CRABCROP_OCR_RECOGNIZE_MODEL</td><td>unset</td><td>The text recognition model of the PP-OCR family pair, for OCR in meta. All three OCR paths are required together.</td></tr>
+      <tr><td>CRABCROP_OCR_DICT</td><td>unset</td><td>The recognition model's character dictionary: one character per line, in class order.</td></tr>
+      <tr><td>CRABCROP_OCR_LANGUAGE</td><td>und</td><td>The language tag the OCR recognition model serves, echoed in meta OCR responses.</td></tr></table></div>
       <p>Cache entries in the persistent tiers are authenticated: each stored entry carries an HMAC-SHA256 tag under a key derived from the server secret, verified before the entry is served, so rotating the secret also invalidates the persistent tiers' contents. Cache keys also carry a fingerprint of the configuration that shapes output, printed at startup, so restarting with any of it changed starts a fresh cache epoch. The full configuration table, including every AI model variable and the result-tier settings, is in the <a href="https://github.com/dayvson/crabcrop#configuration" target="_blank" rel="noopener">README</a>.</p>
       <p style="margin-top:22px"><a class="mono-link" href="index.html"><svg class="claw" width="16" height="16" aria-hidden="true"><use href="#clawmark"/></svg> Back to the homepage</a></p>
     </section>
