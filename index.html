@@ -725,6 +725,7 @@ url = build_url(
     </div>
     <p class="honest" style="margin-top:14px">Each snippet signs the same example with the sample secret <code>demo-secret</code>. Swap in your base, your secret, and your operations.</p>
     <p class="honest" style="margin-top:10px">The source can be a short root reference instead of a full URL, like <code>root:photos/cat.jpg</code>: the server expands it against an origin configured on the server, so the origin itself never appears in the URL.</p>
+    <p class="honest" style="margin-top:10px">A URL can also be sealed: the whole recipe, operations and source, encrypted into one opaque token in the signature slot, for links that have to stay public but unreadable. The readable form stays the default. See <a href="docs.html#sealed">sealed URLs in the docs</a>.</p>
   </div>
 </section>
 
