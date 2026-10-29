@@ -1401,6 +1401,8 @@ docker run -p 3000:3000 -e CRABCROP_SECRET=your-secret crabcrop:latest
       <tr><td>CRABCROP_DEFAULT_OPS</td><td>unset</td><td>Operations prepended to every request (a house format, quality, or watermark), applied after signature verification. The signature never covers the defaults.</td></tr>
       <tr><td>CRABCROP_CACHE_MAX_MB</td><td>256</td><td>Result cache budget. 0 disables the cache.</td></tr>
       <tr><td>CRABCROP_METADATA</td><td>strip</td><td>preserve copies source EXIF/XMP (and IPTC for JPEG) into JPEG and PNG outputs, with the orientation rewritten to 1.</td></tr>
+      <tr><td>CRABCROP_AVIF_SPEED</td><td>9</td><td>ravif speed tier for AVIF encodes, 1 (slowest, smallest output) to 10 (fastest, larger output). The default favors encode speed; set 8 for smaller files.</td></tr>
+      <tr><td>CRABCROP_JXL_SPEED</td><td>fastest</td><td>Speed tier for JPEG XL encodes: ultrafast, fastest, fast, medium, slow, or extraslow. Slower tiers shrink output with steep latency costs.</td></tr>
       <tr><td>CRABCROP_FALLBACK_IMAGE</td><td>unset</td><td>URL or local path of the fallback image for unfetchable sources.</td></tr>
       <tr><td>CRABCROP_FONT_PATH</td><td>unset</td><td>A TTF/OTF font for the text(...) filter. Unset disables the filter.</td></tr>
       <tr><td>CRABCROP_VIDEO_ENCODER</td><td>unset</td><td>Path to the external video encoder. Unset disables video output.</td></tr>
