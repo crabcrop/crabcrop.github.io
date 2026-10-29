@@ -669,6 +669,7 @@ input[type=number].din,select.din,input[type=text].din{padding:9px 11px;border:2
       <a href="#roots">Source roots</a>
       <a href="#sources">Sources and safety</a>
       <a href="#meta">Meta endpoint</a>
+      <a href="#provenance">Provenance (C2PA)</a>
       <a href="#explain">Explain</a>
       <a href="#purge">Purge</a>
       <a href="#upload">Upload</a>
@@ -1213,7 +1214,8 @@ media = https://assets.example.com</pre></div>
       <tr><td>ssimulacra2</td><td>The verified perceptual score, present when quality(auto) verified a JPEG or JPEG XL encode. 100 is identical.</td></tr>
       <tr><td>studio</td><td>Present when a studio(...) filter ran, with a mode (product or scene). Product runs report the resolved backdrop, its source, the shadow and pad. Scene runs report the pad and a scene object: the winning subject box, the candidate subjects count, the crop window, the per-channel levels, and the saturation factor. Both report the steps and the fallbacks.</td></tr>
       <tr><td>video</td><td>Present when the source was a video and a frame: segment selected the frame: the video stream's width and height, its duration in seconds when the container reports one, and the frame_timestamp the frame was selected at, after clamping.</td></tr>
-      <tr><td>pdf</td><td>Present when the source was a PDF and a page: segment selected the page: the document's pages count, the page rendered, and the page size as page_width and page_height in points.</td></tr></table></div>
+      <tr><td>pdf</td><td>Present when the source was a PDF and a page: segment selected the page: the document's pages count, the page rendered, and the page size as page_width and page_height in points.</td></tr>
+      <tr><td>provenance</td><td>The C2PA facts for this render: whether output signing is configured on this server (signing_configured), and a summary of the manifest the source carried and the manifest the output carries (source and output, each null when the asset carries none, else {state, signer, manifests, ingredients} with state one of valid, trusted, invalid). See <a href="#provenance">Provenance (C2PA)</a>.</td></tr></table></div>
       <h3>Opt-in parameters</h3>
       <p>Parameters ride on the same <code>Accept</code> entry. Each opts in when bare, <code>1</code>, or <code>true</code>. When an opt-in cannot be answered (nothing configured, a busy inference gate, a failed run), the field reports itself unavailable with a reason, and the meta request still succeeds.</p>
       <div class="dtablewrap"><table class="dtable"><tr><th>Parameter</th><th>Adds</th></tr>
@@ -1225,6 +1227,30 @@ media = https://assets.example.com</pre></div>
       <p>With a CLIP model configured, meta responses also carry <code>tags</code> (zero-shot labels with scores) and <code>alt_text</code> composed from the best labels, whether or not placeholders were asked for. With <code>CRABCROP_AESTHETIC_HEAD</code> set, they carry <code>aesthetic</code>: a LAION-style head's score of the same embedding, with the head's and encoder's identities. The aesthetic score is descriptive only: it never gates, ranks, or alters what a URL serves. One refusal: a meta request on a video URL answers <code>400</code>, because a video result is not an image.</p>
       <div class="cb"><button class="copy-btn" type="button" data-copytarget>Copy</button><pre>curl -H "Accept: application/json; placeholders=1; detections=1" \
   "http://localhost:3000/unsafe/300x200/https://example.com/photo.jpg"</pre></div>
+    </section>
+
+    <!-- PROVENANCE -->
+    <section class="doc-sec" id="provenance">
+      <h2>Provenance (C2PA)</h2>
+      <p>Crabcrop reads and writes <a href="https://c2pa.org/" target="_blank" rel="noopener">C2PA</a> Content Credentials. The two halves are independently useful: verification reports what a source already carries, and signing attaches credentials to the outputs this server produces.</p>
+      <h3>Verify: always on</h3>
+      <p>Every meta response carries a <code>provenance</code> object; no configuration is needed and no opt-in parameter is required. It reports whether output signing is configured on this server, plus a summary of the manifest store the source carried and the one the output carries: for each, the validation state (<code>valid</code>, <code>trusted</code>, or <code>invalid</code>), the signer as a validator would show it, and the counts of manifests and ingredients in the store. Verification runs on the c2pa-rs 0.91 line, the first that enforces the specification's exclusion rules.</p>
+      <pre class="meta-json" style="max-width:820px">{
+  "provenance": {
+    "signing_configured": true,
+    "source": { "state": "trusted", "signer": "Example Newsroom", "manifests": 1, "ingredients": 2 },
+    "output": { "state": "valid", "signer": "Example Newsroom", "manifests": 2, "ingredients": 1 }
+  }
+}</pre>
+      <p>Each of <code>source</code> and <code>output</code> is <code>null</code> when that asset carries no manifest store.</p>
+      <h3>Sign: your certificate, proven at boot</h3>
+      <p>Set <code>CRABCROP_C2PA_CERT</code> to a PEM certificate chain and <code>CRABCROP_C2PA_KEY</code> to its private key in PKCS#8 PEM form, and still JPEG, PNG, WebP, and AVIF outputs are signed as they are produced. The identity is yours, like the models and the secret: the server holds no certificate of its own. It is proven at boot with a sign-and-verify round trip, so a broken identity (a bare self-signed certificate, a key that does not match, a chain outside the C2PA certificate profile) is a startup error with the reason named, never a first-request surprise. Setting only one of the pair is a startup error too. <code>CRABCROP_C2PA_TSA_URL</code> optionally adds a timestamp authority.</p>
+      <div class="cb"><button class="copy-btn" type="button" data-copytarget>Copy</button><pre>CRABCROP_C2PA_CERT=/etc/crabcrop/c2pa-chain.pem \
+CRABCROP_C2PA_KEY=/etc/crabcrop/c2pa-key.pem \
+crabcrop</pre></div>
+      <p>A manifest cannot survive a transform byte for byte: decoding and re-encoding drop the segments it lives in. So the source itself is recorded in the output's manifest as a parent ingredient, its hash always and its own manifest store whenever it carries one, and the chain stays walkable end to end. Outputs of the AI edits (background removal, studio mode, region removal, upscale, and the class and face edits) record the edit with the IPTC <code>compositeWithTrainedAlgorithmicMedia</code> digital source type. GIF, JPEG XL, video, and animated WebP outputs are served unsigned in this version.</p>
+      <h3>What a credential says</h3>
+      <p>A valid credential proves origin, not untouched pixels. It attests that this server produced the output from the ingredient it names, under the identity that signed it; the manifest itself records that the image was transformed. Whether verifiers call the result trusted depends on your certificate, not on this software: a chain issued by a CA on the C2PA trust list reads as trusted, while a private CA chain signs and validates and shows as valid but not trusted, with the signer named. Both are useful; pick with your eyes open.</p>
     </section>
 
     <!-- EXPLAIN -->
@@ -1415,7 +1441,10 @@ docker run -p 3000:3000 -e CRABCROP_SECRET=your-secret crabcrop:latest
       <tr><td>CRABCROP_OCR_DETECT_MODEL</td><td>unset</td><td>The text detection model of the PP-OCR family pair, for OCR in meta. All three OCR paths are required together.</td></tr>
       <tr><td>CRABCROP_OCR_RECOGNIZE_MODEL</td><td>unset</td><td>The text recognition model of the PP-OCR family pair, for OCR in meta. All three OCR paths are required together.</td></tr>
       <tr><td>CRABCROP_OCR_DICT</td><td>unset</td><td>The recognition model's character dictionary: one character per line, in class order.</td></tr>
-      <tr><td>CRABCROP_OCR_LANGUAGE</td><td>und</td><td>The language tag the OCR recognition model serves, echoed in meta OCR responses.</td></tr></table></div>
+      <tr><td>CRABCROP_OCR_LANGUAGE</td><td>und</td><td>The language tag the OCR recognition model serves, echoed in meta OCR responses.</td></tr>
+      <tr><td>CRABCROP_C2PA_CERT</td><td>unset</td><td>Path to a PEM certificate chain: the C2PA signing identity for output provenance. Set together with CRABCROP_C2PA_KEY; a partial set is a startup error, and the identity is proven at boot. Unset disables output signing. See <a href="#provenance">Provenance (C2PA)</a>.</td></tr>
+      <tr><td>CRABCROP_C2PA_KEY</td><td>unset</td><td>Path to the private key for CRABCROP_C2PA_CERT, in PKCS#8 PEM form (BEGIN PRIVATE KEY).</td></tr>
+      <tr><td>CRABCROP_C2PA_TSA_URL</td><td>unset</td><td>Optional timestamp authority URL recorded in output signatures. Requires the certificate pair.</td></tr></table></div>
       <p>Cache entries in the persistent tiers are authenticated: each stored entry carries an HMAC-SHA256 tag under a key derived from the server secret, verified before the entry is served, so rotating the secret also invalidates the persistent tiers' contents. Cache keys also carry a fingerprint of the configuration that shapes output, printed at startup, so restarting with any of it changed starts a fresh cache epoch. The full configuration table, including every AI model variable and the result-tier settings, is in the <a href="https://github.com/dayvson/crabcrop#configuration" target="_blank" rel="noopener">README</a>.</p>
       <p style="margin-top:22px"><a class="mono-link" href="index.html"><svg class="claw" width="16" height="16" aria-hidden="true"><use href="#clawmark"/></svg> Back to the homepage</a></p>
     </section>
