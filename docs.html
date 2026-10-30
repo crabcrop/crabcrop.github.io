@@ -15,6 +15,7 @@
 <meta name="theme-color" content="#FBF0D9">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M10 3C6.5 7 6.5 13 10 17l2 4 2-4c3.5-4 3.5-10 0-14' fill='none' stroke='%23E8482F' stroke-width='2.4' stroke-linecap='round'/%3E%3C/svg%3E">
 <style>
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 :root{
   --foam:#FFFFFF; --sand-100:#FBF0D9; --sand-200:#F3DFB4; --sand-300:#E4C88F;
   --ink:#142832; --ink-2:#47606E;
@@ -301,7 +302,7 @@ fieldset[disabled] .ctl,fieldset[disabled] .frow{opacity:.45}
 .tab.active{background:var(--abyss);color:#fff}
 .code-window{background:var(--abyss);border:2px solid var(--ink);border-radius:0 18px 18px 18px;padding:26px;position:relative;box-shadow:var(--shadow-lg)}
 .code-scroll{overflow-x:auto}
-.code-window pre{color:#DCE9F2;font-size:14px;line-height:1.75;white-space:pre}
+.code-window pre{color:#DCE9F2;font-size:14px;line-height:1.75;white-space:pre;overflow-x:auto}
 .code-pane{display:none}.code-pane.active{display:block}
 .code-window .copy-btn{position:absolute;top:14px;right:14px;background:var(--abyss-2);color:#fff;border:1px solid rgba(255,255,255,.25);padding:8px 15px;border-radius:999px;font-size:13px;font-weight:700;cursor:pointer;font-family:ui-monospace,Menlo,Consolas,monospace;min-height:40px;z-index:6}
 .code-window .copy-btn:hover{background:#24455F}
@@ -580,7 +581,9 @@ footer a{color:var(--sea-glass)}
 .nav-icons{display:flex;gap:14px;align-items:center}.nav-icons a{display:inline-flex;color:var(--ink);opacity:.78;transition:opacity .15s}.nav-icons a:hover{opacity:1}.nav-icons svg{width:22px;height:22px;display:block}</style>
 <style>
 .docs-layout{display:grid;grid-template-columns:228px minmax(0,1fr);gap:44px;align-items:start;padding:34px 0 70px}
-@media(max-width:900px){.docs-layout{grid-template-columns:1fr}}
+.docs-layout>*{min-width:0}
+@media(max-width:640px){.dtable{font-size:13px}.dtable th{padding:8px 10px}.dtable td{padding:8px 10px}.dtable td:first-child{white-space:normal;overflow-wrap:anywhere}.dtable td code{overflow-wrap:anywhere}.demo{padding:16px}}
+@media(max-width:900px){.docs-layout{grid-template-columns:minmax(0,1fr)}}
 .docs-nav{position:sticky;top:92px;background:var(--foam);border:2px solid var(--ink);border-radius:var(--shell);box-shadow:var(--shadow);padding:18px 18px 12px;max-height:calc(100vh - 120px);overflow:auto}
 @media(max-width:900px){.docs-nav{position:static;max-height:none}}
 .docs-nav .dn-title{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--tide);margin-bottom:8px}
