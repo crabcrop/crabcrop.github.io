@@ -696,12 +696,11 @@ input[type=number].din,select.din,input[type=text].din{padding:9px 11px;border:2
 curl --proto '=https' --tlsv1.2 -LsSf https://github.com/dayvson/crabcrop/releases/latest/download/crabcrop-installer.sh | sh
 
 # Docker: the base image, and the AI variant
-docker pull ghcr.io/dayvson/crabcrop
-docker pull ghcr.io/dayvson/crabcrop-ai
-
-# Homebrew: download crabcrop.rb from the latest release, then
-brew install --formula ./crabcrop.rb</pre></div>
+docker pull ghcr.io/dayvson/crabcrop:0.9.5
+docker pull ghcr.io/dayvson/crabcrop-ai:0.9.5</pre></div>
+      <p>The AI variant ships only the background removal (u2netp) and face detection (YuNet) models. Every other AI feature needs its own model configured, and answers <code>501</code> without one; see <a href="#ai">AI operations</a>.</p>
       <p>Prebuilt tarballs for macOS and Linux, on x86_64 and arm64, are on the <a href="https://github.com/dayvson/crabcrop/releases" target="_blank" rel="noopener">releases page</a>.</p>
+      <p>Building from source instead (<code>cargo run</code>, <code>cargo build</code>, or <code>cargo install crabcrop</code>) needs a C compiler and, on x86_64, nasm. Meson and ninja are needed only for the vendored AVIF decode route.</p>
       <h3>Quickstart</h3>
       <div class="cb"><button class="copy-btn" type="button" data-copytarget>Copy</button><pre># 1. Start the server. A secret is required; unsafe is for local dev only.
 CRABCROP_SECRET=local-dev-secret CRABCROP_ALLOW_UNSAFE=1 crabcrop
@@ -711,7 +710,7 @@ CRABCROP_SECRET=local-dev-secret CRABCROP_ALLOW_UNSAFE=1 crabcrop
 curl "http://localhost:3000/unsafe/300x200/https://example.com/photo.jpg" --output photo.jpg
 
 # 3. In production, drop CRABCROP_ALLOW_UNSAFE and sign the URL instead.
-curl "http://localhost:3000/3c1f6c18.../300x200/https://example.com/photo.jpg" --output photo.jpg</pre></div>
+curl "http://localhost:3000/9e24ae8bf61c0d40cb6f1ca9f9e1d3e771f6c8bc8b8ab7270e6d15458d4c14ab/300x200/https://example.com/photo.jpg" --output photo.jpg</pre></div>
       <p>Every image request has three parts: <code>GET /&lt;signature&gt;/&lt;operations&gt;/&lt;source-url&gt;</code>. Operations apply in path order. Requested outputs are capped at 16383 px per axis and 100 megapixels in total; a request past either bound fails with <code>400</code> before anything is allocated.</p>
     </section>
 
@@ -908,11 +907,11 @@ curl "http://localhost:3000/unsafe/focal:100x50:700x450/crop:800x600:smart/https
       <tr><td>sepia</td><td>none</td><td>The classic warm sepia tone.</td></tr>
       <tr><td>duotone</td><td>two hex colors</td><td>Map shadows to the first color and highlights to the second, by luminance: <code>duotone(1a1a40,ffd9a0)</code>.</td></tr>
       <tr><td>monochrome</td><td>one hex color</td><td>Single-hue rendering: each pixel's luminance scaled by the color.</td></tr>
-      <tr><td>pixelate</td><td>block size in px, at least 1</td><td>Mosaic the image into square blocks painted with their average.</td></tr>
-      <tr><td>rotate</td><td>any angle in degrees, decimals and negatives allowed</td><td>Quarter turns are exact; other angles expand the canvas and fill the corners.</td></tr>
+      <tr><td>pixelate</td><td>block size in px, 1 to 16383</td><td>Mosaic the image into square blocks painted with their average.</td></tr>
+      <tr><td>rotate</td><td>angle in degrees, up to 36000; decimals and negatives allowed</td><td>Quarter turns are exact; other angles expand the canvas and fill the corners.</td></tr>
       <tr><td>flip</td><td>flip(h) or flip(v)</td><td>Mirror the image at this point in the chain.</td></tr>
       <tr><td>trim</td><td>optional tolerance 0 to 255, default 10</td><td>Crop away the border that matches the top-left corner color.</td></tr>
-      <tr><td>radius</td><td>one value, or four in CSS corner order</td><td>Round the corners, antialiased. Output format must carry alpha.</td></tr>
+      <tr><td>radius</td><td>one value, or four in CSS corner order, each up to 16383</td><td>Round the corners, antialiased. Output format must carry alpha.</td></tr>
       <tr><td>border</td><td>width 0 to 16383 and a hex color</td><td>Paint an opaque band inside the frame. Width 0 is a no-op. Works on any format.</td></tr>
       <tr><td>mask</td><td>mask(circle) or mask(ellipse)</td><td>Keep only the inscribed shape; the rest becomes transparent.</td></tr>
       <tr><td>blur_region</td><td>x, y, w, h in pixels</td><td>Gaussian-blur one rectangle. A region that overflows the image is an error, not a partial redaction.</td></tr>
@@ -988,7 +987,7 @@ curl "http://localhost:3000/unsafe/filters:watermark(https%3A%2F%2Fcdn.example.c
       <tr><td>PNG</td><td>Yes</td><td>Yes</td></tr>
       <tr><td>WebP</td><td>Yes, still and animated</td><td>Yes; animated out is lossless</td></tr>
       <tr><td>GIF</td><td>Yes, animated</td><td>Yes, animated</td></tr>
-      <tr><td>AVIF</td><td>Yes, in the Docker image, release binaries, and Homebrew install; source builds opt in with the avif-decode feature</td><td>Yes</td></tr>
+      <tr><td>AVIF</td><td>Yes, in the Docker image and the release binaries; source builds opt in with the avif-decode feature</td><td>Yes</td></tr>
       <tr><td>JPEG XL</td><td>Yes</td><td>Yes</td></tr>
       <tr><td>HEIC / HEIF</td><td>Yes, decoded in pure Rust, primary image only</td><td>No</td></tr>
       <tr><td>SVG</td><td>Yes, sanitized then rasterized</td><td>No; output defaults to PNG for SVG sources</td></tr></table></div>
@@ -1156,7 +1155,7 @@ curl "http://localhost:3000/unsafe/filters:studio(scene,pad:25)/https://example.
 og-card = crop:1200x630:smart/filters:format(webp):quality(80)
 thumb = 300x200</pre></div>
       <div class="cb"><button class="copy-btn" type="button" data-copytarget>Copy</button><pre>curl "http://localhost:3000/&lt;signature&gt;/preset:og-card/https://example.com/photo.jpg"</pre></div>
-      <p>The signature covers the preset reference; the server expands it deterministically after verification, and cache entries key on the expanded operations. <b>Treat a preset as a stable template: never edit a definition in place.</b> Roll a change out under a new name (<code>thumb2</code>). Editing in place changes the bytes behind URLs already signed and shared, and image responses travel with an immutable cache header for a year, so downstream browsers and CDNs keep serving the old response beyond the reach of any purge. An unknown preset name is a <code>400</code>. Definitions are validated at startup, and presets cannot contain a source segment, an <code>exp:</code>, or another preset.</p>
+      <p>The signature covers the preset reference; the server expands it deterministically after verification, and cache entries key on the expanded operations. <b>Treat a preset as a stable template: never edit a definition in place.</b> Roll a change out under a new name (<code>thumb2</code>). Editing in place changes the bytes behind URLs already signed and shared, and image responses travel with an immutable cache header for a year, so downstream browsers and CDNs keep serving the old response beyond the reach of any purge. An unknown preset name is a <code>400</code>. Definitions are validated at startup, and presets cannot contain a source segment, an <code>exp:</code>, a <code>maxage:</code>, or another preset.</p>
       <p>With <code>CRABCROP_ONLY_PRESETS=1</code>, free-form operations are rejected with <code>400</code>: requests may use preset references, <code>exp:</code> and <code>maxage:</code> metadata, and bare sources only. Combined with unsafe mode it makes a public deployment where browsers and CMSs build URLs from preset names alone, with no secret to hold. Responses for preset URLs carry a <code>Cache-Group</code> header naming the preset, which is what <a href="#purge">purge-group</a> clears.</p>
     </section>
 
@@ -1187,17 +1186,17 @@ media = https://assets.example.com</pre></div>
       <tr><td>S3</td><td>s3://bucket/key</td><td>AWS S3 or an S3-compatible store via <code>CRABCROP_S3_ENDPOINT</code>. SigV4 signed when AWS credentials are in the environment; unsigned otherwise.</td></tr>
       <tr><td>GCS</td><td>gs://bucket/key</td><td>Google Cloud Storage's S3-compatible XML API, signed with the <code>CRABCROP_GCS_*</code> HMAC pair when set.</td></tr>
       <tr><td>Local file</td><td>file:///path</td><td>Must stay under <code>CRABCROP_FILE_ROOT</code>, canonicalized per request, so <code>..</code> segments and symlink escapes are refused. Unset root disables file sources.</td></tr></table></div>
-      <p>Bucket sources are gated by <code>CRABCROP_ALLOWED_BUCKETS</code> rather than the host policy. When signing credentials are configured, the allowlist is required: the server refuses to boot without it, because signed fetches would otherwise reach every bucket the credentials can read. List <code>*</code> to deliberately allow all buckets. A bucket or object key carrying a dot segment, a path component that is exactly <code>.</code> or <code>..</code>, is refused, since the request path would collapse it past the allowlisted bucket; dots inside a segment name are fine. Bucket names must follow the S3 naming rules (3 to 63 characters of lowercase letters, digits, dots, and hyphens, starting and ending with a letter or digit, no adjacent dots, not an IP address spelling): the name is interpolated into the request host, so a name carrying a host-breaking character is refused at parse time, whatever the allowlist says. Store responses are not redirected: a 3xx from a store surfaces as its status code.</p>
+      <p>Bucket sources are gated by <code>CRABCROP_ALLOWED_BUCKETS</code> rather than the host policy. When signing credentials are configured, the allowlist is required: the server refuses to boot without it, because signed fetches would otherwise reach every bucket the credentials can read. List <code>*</code> to deliberately allow all buckets. A bucket or object key carrying a dot segment, a path component that is exactly <code>.</code> or <code>..</code>, is refused, since the request path would collapse it past the allowlisted bucket; dots inside a segment name are fine. Bucket names must follow the S3 naming rules (3 to 63 characters of lowercase letters, digits, dots, and hyphens, starting and ending with a letter or digit, no adjacent dots, no dot beside a hyphen, not an IP address spelling): the name is interpolated into the request host, so a name carrying a host-breaking character is refused at parse time, whatever the allowlist says. Store responses are not redirected: a 3xx from a store surfaces as its status code.</p>
       <h3>Fetch and decode limits</h3>
       <ul>
-        <li>10 seconds total per fetch, including redirects.</li>
+        <li>10 seconds per HTTP request; each redirect hop (up to 5) gets its own 10 second budget.</li>
         <li>10 MiB maximum body; larger sources fail with <code>502</code>.</li>
         <li>A <code>Content-Type</code> header, when present, must start with <code>image/</code>: the exceptions are a <code>video/*</code> source under a <code>frame:</code> segment (see <a href="#frames">Video frames</a>) and an <code>application/pdf</code> source under a <code>page:</code> segment (see <a href="#pages">PDF pages</a>).</li>
         <li>Decoding is bounded: at most 16384 px per axis, 256 MiB of decoder allocations, and animated sources at most 200 frames and 100 million decoded pixels.</li>
       </ul>
       <h3>What decodes</h3>
       <p>JPEG, PNG, WebP, GIF, and JPEG XL sources are decoded. EXIF orientation is applied before any operation runs, so phone photos come out upright. Animated GIFs keep their frames when the output format is GIF; converting an animated GIF to a still format uses the first frame. Animated WebPs keep their frames when the output format is WebP or GIF, with frame delays and the loop count preserved; converting one to a still format uses the first frame. Animated WebP output is always encoded losslessly, and those renders run behind a dedicated gate of one encode at a time: while one is running, another animated WebP request waits up to 10 seconds for the slot and then sheds with a <code>503</code> rather than queueing behind a long encode.</p>
-      <p>AVIF sources are decoded in builds that include AVIF decoding: the Docker image, the release binaries, and the Homebrew install (which ships the release binary). A source build includes it with <code>--features avif-decode</code>, which links dav1d (a system libdav1d 1.3 or newer, or a vendored build); without it, AVIF sources fail with <code>502</code> and an error naming the feature. Animated AVIF sources decode their first frame. HEIC and HEIF sources are decoded in every build by the pure-Rust oxideav stack: the primary image only, with grid and overlay compositions resolved, EXIF orientation honored, and 10-bit sources flattened to the pipeline's 8-bit working space, as AVIF sources are.</p>
+      <p>AVIF sources are decoded in builds that include AVIF decoding: the Docker image and the release binaries. A source build includes it with <code>--features avif-decode</code>, which links dav1d (a system libdav1d 1.3 or newer, or a vendored build); without it, AVIF sources fail with <code>502</code> and an error naming the feature. Animated AVIF sources decode their first frame. HEIC and HEIF sources are decoded in every build by the pure-Rust oxideav stack: the primary image only, with grid and overlay compositions resolved, EXIF orientation honored, and 10-bit sources flattened to the pipeline's 8-bit working space, as AVIF sources are.</p>
       <h3>SVG sources</h3>
       <p>SVG sources are supported and detected by content, not by the declared content type. An SVG is sanitized before it is rendered: script elements, event handlers, and references to external resources are stripped, so a source SVG can only draw what it carries with it. The sanitized document is rasterized at the size the URL asks for (or its intrinsic size when the URL asks for none) and then runs through the normal pipeline. Output defaults to PNG for SVG sources.</p>
       <h3>Private address protection</h3>
@@ -1257,7 +1256,7 @@ media = https://assets.example.com</pre></div>
       <div class="cb"><button class="copy-btn" type="button" data-copytarget>Copy</button><pre>CRABCROP_C2PA_CERT=/etc/crabcrop/c2pa-chain.pem \
 CRABCROP_C2PA_KEY=/etc/crabcrop/c2pa-key.pem \
 crabcrop</pre></div>
-      <p>A manifest cannot survive a transform byte for byte: decoding and re-encoding drop the segments it lives in. So the source itself is recorded in the output's manifest as a parent ingredient, its hash always and its own manifest store whenever it carries one, and the chain stays walkable end to end. Outputs of the AI edits (background removal, studio mode, region removal, upscale, and the class and face edits) record the edit with the IPTC <code>compositeWithTrainedAlgorithmicMedia</code> digital source type. GIF, JPEG XL, video, and animated WebP outputs are served unsigned in this version.</p>
+      <p>A manifest cannot survive a transform byte for byte: decoding and re-encoding drop the segments it lives in. So the source itself is recorded in the output's manifest as a parent ingredient, its hash always and its own manifest store whenever it carries one, and the chain stays walkable end to end. Video and PDF sources are the exception: a frame or page render starts a fresh chain, so no source ingredient hash is recorded for them. Outputs of the AI edits (background removal, studio mode, region removal, upscale, and the class and face edits) record the edit with the IPTC <code>compositeWithTrainedAlgorithmicMedia</code> digital source type. GIF, JPEG XL, video, and animated WebP outputs are served unsigned in this version.</p>
       <h3>What a credential says</h3>
       <p>A valid credential proves origin, not untouched pixels. It attests that this server produced the output from the ingredient it names, under the identity that signed it; the manifest itself records that the image was transformed. Whether verifiers call the result trusted depends on your certificate, not on this software: a chain issued by a CA on the C2PA trust list reads as trusted, while a private CA chain signs and validates and shows as valid but not trusted, with the signer named. Both are useful; pick with your eyes open.</p>
     </section>
@@ -1312,7 +1311,7 @@ crabcrop upload ./photo.jpg heroes/photo.jpg</pre></div>
       <div class="grid3" style="margin-top:20px">
         <div class="specimen"><div class="iconring"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg></div><h3>Rust: crabcrop-url</h3><p>The crate the server verifies with, so client and server cannot drift: <code>sign</code>, <code>verify</code>, <code>build_url</code>, <code>build_srcset</code>, and the purge helpers <code>purge_signature</code> and <code>purge_group_signature</code>.</p><span class="opname">cargo add crabcrop-url</span></div>
         <div class="specimen"><div class="iconring coral"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg></div><h3>TypeScript: @crabcrop/url</h3><p><code>sign</code>, <code>verifyUrlSignature</code>, <code>buildURL</code>, <code>buildSrcSet</code>, <code>purgeSignature</code>, and <code>purgeGroupSignature</code>, plus typed operation builders (<code>ops</code>, <code>filter</code>) that validate against the grammar. Standard library only.</p><span class="opname">npm install @crabcrop/url</span></div>
-        <div class="specimen"><div class="iconring"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg></div><h3>Python: crabcrop_url</h3><p><code>sign</code>, <code>verify</code>, <code>build_url</code>, <code>build_srcset</code>, <code>purge_signature</code>, and <code>purge_group_signature</code>. Standard library only; tests run on <code>python3 -m unittest</code>.</p><span class="opname">pip install crabcrop_url</span></div>
+        <div class="specimen"><div class="iconring"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg></div><h3>Python: crabcrop_url</h3><p><code>sign</code>, <code>verify</code>, <code>build_url</code>, <code>build_srcset</code>, <code>purge_signature</code>, and <code>purge_group_signature</code>. Standard library only, except sealing, which needs the <code>crabcrop-url[seal]</code> extra; tests run on <code>python3 -m unittest</code>.</p><span class="opname">pip install crabcrop_url</span></div>
       </div>
       <h3>Framework loaders</h3>
       <p>Framework integrations sit on the TypeScript builder: a Next.js custom loader for <code>next/image</code>, a Nuxt provider for <code>@nuxt/image</code>, and a Hydrogen loader for external (non-Shopify-CDN) images. All three recommend presets as the configuration, so client-side URL building never needs the secret.</p>
@@ -1323,7 +1322,7 @@ crabcrop upload ./photo.jpg heroes/photo.jpg</pre></div>
     <!-- MCP -->
     <section class="doc-sec" id="mcp">
       <h2>MCP</h2>
-      <p>For coding agents, the repo ships a first-party MCP server (<code>sdks/mcp</code>, stdio, no dependencies) over the same SDK and HTTP surface, configured with <code>CRABCROP_BASE</code> and <code>CRABCROP_SECRET</code>. It exposes four tools:</p>
+      <p>For coding agents, the repo ships a first-party MCP server (<code>sdks/mcp</code>, stdio, nothing else to install: <code>@crabcrop/url</code> is bundled with it) over the same SDK and HTTP surface, configured with <code>CRABCROP_BASE</code> and <code>CRABCROP_SECRET</code>. It exposes four tools:</p>
       <div class="dtablewrap"><table class="dtable"><tr><th>Tool</th><th>What it does</th></tr>
       <tr><td>sign_url</td><td>Build a signed image URL from operations and a source, validated against the server grammar.</td></tr>
       <tr><td>explain_url</td><td>Explain a URL segment by segment, verifying its signature.</td></tr>
@@ -1385,9 +1384,9 @@ crabcrop convert-thumbor "unsafe/300x200/smart/https://example.com/photo.jpg"</p
     <!-- DEPLOY -->
     <section class="doc-sec" id="deploy">
       <h2>Deployment and CDN</h2>
-      <p>Run crabcrop behind a reverse proxy or CDN in production. The application bounds its own work (the processing, AI, video, and animation gates shed overload with <code>503</code>), but connection-level protections belong at the edge: request and header timeouts, connection limits, rate limiting, and TLS termination. Restrict <code>/health</code> and <code>/metrics</code> to your internal network at the proxy: both are unauthenticated, and the metrics expose traffic and error counters.</p>
+      <p>Run crabcrop behind a reverse proxy or CDN in production. The application bounds its own work (the processing, AI, video, and animation gates shed overload with <code>503</code>), but connection-level protections belong at the edge: request and header timeouts, connection limits, rate limiting, and TLS termination. Restrict <code>/health</code> to your internal network at the proxy: it is unauthenticated. <code>/metrics</code> exposes traffic and error counters and is not open either: it answers <code>403</code> until <code>CRABCROP_METRICS_TOKEN</code> is set, and then requires that bearer token, answering <code>401</code> to a missing or wrong one.</p>
       <div class="cb"><button class="copy-btn" type="button" data-copytarget>Copy</button><pre>docker build -t crabcrop:latest .
-docker run -p 3000:3000 -e CRABCROP_SECRET=your-secret crabcrop:latest
+docker run -p 3000:3000 -e CRABCROP_SECRET=your-secret-change-me crabcrop:latest
 # For the AI features, build Dockerfile.ai on top of that image.</pre></div>
       <h3>Choose a platform</h3>
       <p>One recipe per platform, each a complete walkthrough in the repo:</p>
@@ -1409,7 +1408,7 @@ docker run -p 3000:3000 -e CRABCROP_SECRET=your-secret crabcrop:latest
       <tr><td><a href="https://github.com/dayvson/crabcrop/blob/main/deploy/akamai/README.md" target="_blank" rel="noopener">Akamai</a></td><td>Origin cache headers put in charge through the Caching behavior, cache groups bridged to cache tags by per-preset rules, Image and Video Manager kept off.</td></tr></table></div>
       <p>Every recipe follows the same flow: create the signing secret, deploy, then run the smoke checklist at the end of the recipe.</p>
       <h3>Result tiers</h3>
-      <p>Results are stored in up to three tiers. The first is an in-memory LRU, per replica, bounded by <code>CRABCROP_CACHE_MAX_MB</code> (256 MB by default). An optional disk tier (<code>CRABCROP_RESULT_STORAGE_DIR</code>, 512 MB by default) sits underneath it and survives restarts on that host. An optional shared tier (<code>CRABCROP_RESULT_BUCKET</code>) sits behind both: one S3 bucket, or an S3-compatible endpoint, that every replica reads and writes, so all replicas serve the same stored results. Purges fan out to all three tiers.</p>
+      <p>Results are stored in up to three tiers. The first is an in-memory LRU, per replica, bounded by <code>CRABCROP_CACHE_MAX_MB</code> (256 MB by default). An optional disk tier (<code>CRABCROP_RESULT_STORAGE_DIR</code>, unset by default) sits underneath it and survives restarts on that host, bounded by <code>CRABCROP_RESULT_STORAGE_MAX_MB</code> (512 MB by default). An optional shared tier (<code>CRABCROP_RESULT_BUCKET</code>) sits behind both: one S3 bucket, or an S3-compatible endpoint, that every replica reads and writes, so all replicas serve the same stored results. Purges fan out to all three tiers.</p>
     </section>
 
     <!-- ERRORS -->
@@ -1418,6 +1417,7 @@ docker run -p 3000:3000 -e CRABCROP_SECRET=your-secret crabcrop:latest
       <p>Error bodies are plain text with a short message. Send <code>Accept: application/json</code> and a grammar failure (a <code>400</code>) instead answers with a JSON envelope: <code>{"error":{"code":"invalid_filters","message":"..."}}</code>. The codes are the parser's stable names, frozen as published: <code>invalid_size</code>, <code>invalid_crop</code>, <code>invalid_filters</code>, <code>unknown_preset</code>, <code>unknown_root</code>, <code>invalid_root</code>, <code>invalid_frame</code>, <code>invalid_page</code>, and the rest.</p>
       <div class="dtablewrap"><table class="dtable"><tr><th>Status</th><th>Meaning</th></tr>
       <tr><td>400</td><td>The path or operations do not parse, or the operation is not supported: a malformed segment, an unknown filter, removebg into a format without alpha, upscale past its caps, a crop-rect outside the image, a video format asked of a still source.</td></tr>
+      <tr><td>401</td><td>A /metrics request with a missing or wrong bearer token, when CRABCROP_METRICS_TOKEN is set.</td></tr>
       <tr><td>403</td><td>Bad signature, an expired exp: URL, or the source refused by the source policy.</td></tr>
       <tr><td>404</td><td>A PUT to /upload/... when uploads are not configured, or a PUT to any path that is not the upload route.</td></tr>
       <tr><td>413</td><td>An upload body larger than the CRABCROP_UPLOAD_MAX_MB cap.</td></tr>
@@ -1427,7 +1427,7 @@ docker run -p 3000:3000 -e CRABCROP_SECRET=your-secret crabcrop:latest
       <tr><td>501</td><td>The URL is valid but this server was not configured for it: an AI filter with no model, a text overlay with no font, a video format with no encoder.</td></tr>
       <tr><td>502</td><td>The source could not be fetched or decoded, the source is larger than the 10 MiB fetch limit, a watermark failed to load, or a configured encoder or model produced output the server cannot use.</td></tr>
       <tr><td>503</td><td>The server shed the request because a processing, AI, video, or animation gate waited past its timeout. The response carries Retry-After.</td></tr>
-      <tr><td>504</td><td>The source fetch timed out (10 seconds).</td></tr></table></div>
+      <tr><td>504</td><td>The source fetch timed out (10 seconds per request), or processing ran past the processing timeout (<code>CRABCROP_PROCESS_TIMEOUT_SECS</code>, 30 seconds by default, settable from 1 to 600).</td></tr></table></div>
       <p>For example, a <code>removebg</code> request to a server with no background-removal model returns <code>501</code> with the body <code>removebg is not configured on this server</code>. Errors are never cached; only <code>200</code> responses are.</p>
     </section>
 
@@ -1446,6 +1446,7 @@ docker run -p 3000:3000 -e CRABCROP_SECRET=your-secret crabcrop:latest
       <tr><td>CRABCROP_ONLY_PRESETS</td><td>off</td><td>Rejects free-form operations; preset references and metadata only.</td></tr>
       <tr><td>CRABCROP_DEFAULT_OPS</td><td>unset</td><td>Operations prepended to every request (a house format, quality, or watermark), applied after signature verification. The signature never covers the defaults.</td></tr>
       <tr><td>CRABCROP_CACHE_MAX_MB</td><td>256</td><td>Result cache budget. 0 disables the cache.</td></tr>
+      <tr><td>CRABCROP_METRICS_TOKEN</td><td>unset</td><td>Bearer token for /metrics. Unset, /metrics answers 403; set, a missing or wrong bearer answers 401.</td></tr>
       <tr><td>CRABCROP_METADATA</td><td>strip</td><td>preserve copies source EXIF/XMP (and IPTC for JPEG) into JPEG and PNG outputs, with the orientation rewritten to 1.</td></tr>
       <tr><td>CRABCROP_AVIF_SPEED</td><td>9</td><td>ravif speed tier for AVIF encodes, 1 (slowest, smallest output) to 10 (fastest, larger output). The default favors encode speed; set 8 for smaller files.</td></tr>
       <tr><td>CRABCROP_JXL_SPEED</td><td>fastest</td><td>Speed tier for JPEG XL encodes: ultrafast, fastest, fast, medium, slow, or extraslow. Slower tiers shrink output with steep latency costs.</td></tr>
