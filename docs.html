@@ -1180,9 +1180,10 @@ media = https://assets.example.com</pre></div>
     <!-- SOURCES -->
     <section class="doc-sec" id="sources">
       <h2>Sources and safety</h2>
-      <p>The source locates the original. Four kinds are supported:</p>
+      <p>The source locates the original. It takes one of five forms:</p>
       <div class="dtablewrap"><table class="dtable"><tr><th>Kind</th><th>Form</th><th>Notes</th></tr>
       <tr><td>HTTP / HTTPS</td><td>https://example.com/photo.jpg</td><td>Fetched under the source policy: <code>CRABCROP_ALLOWED_SOURCES</code> host suffixes, up to 5 redirects with the policy re-checked on every hop. Source URLs with userinfo are always refused.</td></tr>
+      <tr><td>Source root</td><td>root:&lt;name&gt;/&lt;path&gt;</td><td>A short spelling of an HTTP or HTTPS source, instead of the full URL. The server expands it against the origin configured for that name (see <a href="#roots">Source roots</a>), after signature verification and before cache keying, so the short form and the full URL it expands to share one cache entry. Every check on this page applies to the expanded URL: an unknown name is a <code>400</code> (<code>unknown_root</code>), and a path that climbs above the root is a <code>400</code> (<code>invalid_root</code>).</td></tr>
       <tr><td>S3</td><td>s3://bucket/key</td><td>AWS S3 or an S3-compatible store via <code>CRABCROP_S3_ENDPOINT</code>. SigV4 signed when AWS credentials are in the environment; unsigned otherwise.</td></tr>
       <tr><td>GCS</td><td>gs://bucket/key</td><td>Google Cloud Storage's S3-compatible XML API, signed with the <code>CRABCROP_GCS_*</code> HMAC pair when set.</td></tr>
       <tr><td>Local file</td><td>file:///path</td><td>Must stay under <code>CRABCROP_FILE_ROOT</code>, canonicalized per request, so <code>..</code> segments and symlink escapes are refused. Unset root disables file sources.</td></tr></table></div>
