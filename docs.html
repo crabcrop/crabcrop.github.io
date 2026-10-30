@@ -679,6 +679,7 @@ input[type=number].din,select.din,input[type=text].din{padding:9px 11px;border:2
       <a href="#sdks">SDKs and loaders</a>
       <a href="#mcp">MCP</a>
       <a href="#cli">Command line</a>
+      <a href="#migrating">Migrating</a>
       <a href="#deploy">Deployment and CDN</a>
       <a href="#errors">Errors</a>
       <a href="#config">Configuration</a>
@@ -1367,28 +1368,9 @@ crabcrop upload ./photo.jpg heroes/photo.jpg
 crabcrop convert-thumbor "unsafe/300x200/smart/https://example.com/photo.jpg"</pre></div>
     </section>
 
-    <!-- DEPLOY -->
-    <section class="doc-sec" id="deploy">
-      <h2>Deployment and CDN</h2>
-      <p>Run crabcrop behind a reverse proxy or CDN in production. The application bounds its own work (the processing, AI, video, and animation gates shed overload with <code>503</code>), but connection-level protections belong at the edge: request and header timeouts, connection limits, rate limiting, and TLS termination. Restrict <code>/health</code> and <code>/metrics</code> to your internal network at the proxy: both are unauthenticated, and the metrics expose traffic and error counters.</p>
-      <div class="cb"><button class="copy-btn" type="button" data-copytarget>Copy</button><pre>docker build -t crabcrop:latest .
-docker run -p 3000:3000 -e CRABCROP_SECRET=your-secret crabcrop:latest
-# For the AI features, build Dockerfile.ai on top of that image.</pre></div>
-      <ul>
-        <li><b>Kubernetes:</b> a Helm chart in <code>deploy/helm</code> and the same workload in kustomize form in <code>deploy/kustomize</code> (base, components for presets, the disk tier, and the AI variant, plus overlays). <code>deploy/compose</code> runs it under Docker Compose.</li>
-        <li><b>Clouds:</b> per-cloud recipes in <code>deploy/ecs-fargate</code>, <code>deploy/cloud-run</code>, and <code>deploy/container-apps</code>, each with its secret wiring and a smoke checklist.</li>
-        <li><b>Result tiers:</b> an in-memory LRU (256 MB default), an optional disk tier underneath that survives restarts, and an optional shared S3 tier behind both so every replica serves the same stored results. Purges fan out to all three tiers.</li>
-      </ul>
-      <h3>CDN recipes</h3>
-      <p>One recipe per CDN, each with a per-CDN config artifact, under <code>deploy/</code> in the repo:</p>
-      <div class="dtablewrap"><table class="dtable"><tr><th>CDN</th><th>Recipe covers</th></tr>
-      <tr><td>Cloudflare</td><td>Cache rules, purge mapping with cache groups bridged to cache tags, format negotiation and expiry caveats. <code>deploy/cloudflare</code></td></tr>
-      <tr><td>CloudFront</td><td>A cache policy that respects origin headers, purge by path and by cache tag, and an Accept-normalizing edge function. <code>deploy/cloudfront</code></td></tr>
-      <tr><td>Fastly</td><td>Origin cache headers left in charge, cache groups bridged to surrogate keys for group purges, Image Optimizer kept off. <code>deploy/fastly</code></td></tr>
-      <tr><td>BunnyCDN</td><td>Origin Cache-Control left in charge, cache groups bridged to CDN tags by a middleware script, Bunny Optimizer kept off. <code>deploy/bunnycdn</code></td></tr>
-      <tr><td>Akamai</td><td>Origin cache headers put in charge through the Caching behavior, cache groups bridged to cache tags by per-preset rules, Image and Video Manager kept off. <code>deploy/akamai</code></td></tr></table></div>
-      <p>Full recipes: <a href="https://github.com/dayvson/crabcrop/tree/main/deploy" target="_blank" rel="noopener">github.com/dayvson/crabcrop/tree/main/deploy</a>.</p>
-      <h3>Migrating from another service</h3>
+    <!-- MIGRATING -->
+    <section class="doc-sec" id="migrating">
+      <h2>Migrating from another service</h2>
       <ul>
         <li><a href="https://github.com/dayvson/crabcrop/blob/main/docs/migrating-from-thumbor.md" target="_blank" rel="noopener">From Thumbor</a>: concept and operation mapping, plus the convert-thumbor verb.</li>
         <li><a href="https://github.com/dayvson/crabcrop/blob/main/docs/migrating-from-imgproxy.md" target="_blank" rel="noopener">From imgproxy</a>: option-by-option mapping tables.</li>
@@ -1398,6 +1380,36 @@ docker run -p 3000:3000 -e CRABCROP_SECRET=your-secret crabcrop:latest
         <li><a href="https://github.com/dayvson/crabcrop/blob/main/docs/migrating-from-imagekit.md" target="_blank" rel="noopener">From ImageKit</a>: transformation-chain and parameter mapping.</li>
         <li><a href="https://github.com/dayvson/crabcrop/blob/main/docs/migrating-from-gumlet.md" target="_blank" rel="noopener">From Gumlet</a>: parameter-by-parameter mapping tables.</li>
       </ul>
+    </section>
+
+    <!-- DEPLOY -->
+    <section class="doc-sec" id="deploy">
+      <h2>Deployment and CDN</h2>
+      <p>Run crabcrop behind a reverse proxy or CDN in production. The application bounds its own work (the processing, AI, video, and animation gates shed overload with <code>503</code>), but connection-level protections belong at the edge: request and header timeouts, connection limits, rate limiting, and TLS termination. Restrict <code>/health</code> and <code>/metrics</code> to your internal network at the proxy: both are unauthenticated, and the metrics expose traffic and error counters.</p>
+      <div class="cb"><button class="copy-btn" type="button" data-copytarget>Copy</button><pre>docker build -t crabcrop:latest .
+docker run -p 3000:3000 -e CRABCROP_SECRET=your-secret crabcrop:latest
+# For the AI features, build Dockerfile.ai on top of that image.</pre></div>
+      <h3>Choose a platform</h3>
+      <p>One recipe per platform, each a complete walkthrough in the repo:</p>
+      <div class="dtablewrap"><table class="dtable"><tr><th>Platform</th><th>You apply</th><th>Signing secret</th><th>Shape</th></tr>
+      <tr><td><a href="https://github.com/dayvson/crabcrop/blob/main/deploy/helm/crabcrop/README.md" target="_blank" rel="noopener">Kubernetes, Helm chart</a></td><td>The chart, with a values file</td><td>A Kubernetes Secret you create first, passed to the chart as <code>existingSecret</code></td><td>One replica by default; a multi-replica values file ships with the chart</td></tr>
+      <tr><td><a href="https://github.com/dayvson/crabcrop/blob/main/deploy/kustomize/README.md" target="_blank" rel="noopener">Kubernetes, kustomize</a></td><td>A base, plus the components and overlay you choose</td><td>A Kubernetes Secret you create yourself; the base ships none</td><td>Components for presets, result storage, and the AI variant, plus single, multi-replica, and full overlays</td></tr>
+      <tr><td><a href="https://github.com/dayvson/crabcrop/blob/main/deploy/ecs-fargate/README.md" target="_blank" rel="noopener">AWS, ECS Fargate</a></td><td><code>task-definition.json</code>, plus the service and load balancer commands in the recipe</td><td>Secrets Manager</td><td>A Fargate service behind an Application Load Balancer</td></tr>
+      <tr><td><a href="https://github.com/dayvson/crabcrop/blob/main/deploy/cloud-run/README.md" target="_blank" rel="noopener">GCP, Cloud Run</a></td><td><code>service.yaml</code></td><td>Secret Manager</td><td>A Cloud Run service, with one instance kept warm</td></tr>
+      <tr><td><a href="https://github.com/dayvson/crabcrop/blob/main/deploy/container-apps/README.md" target="_blank" rel="noopener">Azure, Container Apps</a></td><td><code>containerapp.yaml</code></td><td>The app secret store, or a Key Vault reference for production</td><td>A Container Apps app with ingress, with one replica kept warm</td></tr>
+      <tr><td><a href="https://github.com/dayvson/crabcrop/blob/main/deploy/compose/README.md" target="_blank" rel="noopener">Single host, Docker Compose</a></td><td><code>docker-compose.yml</code></td><td>An environment variable; compose refuses to start without one</td><td>A one-command evaluation run on a single host</td></tr>
+      <tr><td><a href="https://github.com/dayvson/crabcrop/blob/main/deploy/vm/README.md" target="_blank" rel="noopener">Single host, a VM</a></td><td>The release binary and the systemd unit in the recipe</td><td>An environment file the unit reads</td><td>The production single-host install, behind a reverse proxy</td></tr></table></div>
+      <h3>Put a CDN in front</h3>
+      <p>Optional, after any platform above. One recipe per CDN, each with a per-CDN config artifact:</p>
+      <div class="dtablewrap"><table class="dtable"><tr><th>CDN</th><th>Recipe covers</th></tr>
+      <tr><td><a href="https://github.com/dayvson/crabcrop/blob/main/deploy/cloudflare/README.md" target="_blank" rel="noopener">Cloudflare</a></td><td>Cache rules, purge mapping with cache groups bridged to cache tags, format negotiation and expiry caveats.</td></tr>
+      <tr><td><a href="https://github.com/dayvson/crabcrop/blob/main/deploy/cloudfront/README.md" target="_blank" rel="noopener">CloudFront</a></td><td>A cache policy that respects origin headers, purge by path and by cache tag, and an Accept-normalizing edge function.</td></tr>
+      <tr><td><a href="https://github.com/dayvson/crabcrop/blob/main/deploy/fastly/README.md" target="_blank" rel="noopener">Fastly</a></td><td>Origin cache headers left in charge, cache groups bridged to surrogate keys for group purges, Image Optimizer kept off.</td></tr>
+      <tr><td><a href="https://github.com/dayvson/crabcrop/blob/main/deploy/bunnycdn/README.md" target="_blank" rel="noopener">BunnyCDN</a></td><td>Origin Cache-Control left in charge, cache groups bridged to CDN tags by a middleware script, Bunny Optimizer kept off.</td></tr>
+      <tr><td><a href="https://github.com/dayvson/crabcrop/blob/main/deploy/akamai/README.md" target="_blank" rel="noopener">Akamai</a></td><td>Origin cache headers put in charge through the Caching behavior, cache groups bridged to cache tags by per-preset rules, Image and Video Manager kept off.</td></tr></table></div>
+      <p>Every recipe follows the same flow: create the signing secret, deploy, then run the smoke checklist at the end of the recipe.</p>
+      <h3>Result tiers</h3>
+      <p>Results are stored in up to three tiers. The first is an in-memory LRU, per replica, bounded by <code>CRABCROP_CACHE_MAX_MB</code> (256 MB by default). An optional disk tier (<code>CRABCROP_RESULT_STORAGE_DIR</code>, 512 MB by default) sits underneath it and survives restarts on that host. An optional shared tier (<code>CRABCROP_RESULT_BUCKET</code>) sits behind both: one S3 bucket, or an S3-compatible endpoint, that every replica reads and writes, so all replicas serve the same stored results. Purges fan out to all three tiers.</p>
     </section>
 
     <!-- ERRORS -->
