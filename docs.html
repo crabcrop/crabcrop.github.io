@@ -1567,7 +1567,10 @@ adjRender();
 /* effect chips */
 const fxChain = [];
 function fxRender(){
-  $("#fxImg").style.filter = fxChain.map(x=>x.css).join(" ");
+  const filters = [], transforms = [];
+  fxChain.forEach(x=>{ (x.css.indexOf("scale")===0 ? transforms : filters).push(x.css); });
+  $("#fxImg").style.filter = filters.join(" ");
+  $("#fxImg").style.transform = transforms.join(" ");
   $("#fxEq").textContent = fxChain.length ? "filters:" + fxChain.map(x=>x.f).join(":") : "filters: (none yet)";
 }
 $("#fxChips").addEventListener("click", e=>{
