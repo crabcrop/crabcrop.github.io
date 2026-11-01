@@ -38,8 +38,12 @@ Shared (both pages):
   20px, gap 14px to 16px. Copy buttons padding 9px 17px to 8px 16px.
 - Sign section: `.code-window` padding 26px to 24px; its copy button padding
   8px 15px to 8px 16px; tabs padding 11px 20px to 12px 20px.
-- AI section: `.ai-demos` gap 22px to 24px and margin-top 26px to 24px;
-  `.ai-demo` card padding 18px to 20px.
+- AI section: `.ai-demos` gap 22px to 24px; `.ai-demo` card padding 18px to
+  20px. (The stylesheet `.ai-demos` margin-top was also normalised, 26px to
+  24px, but the live markup carries an inline `style="margin-top:0"` on
+  that element, which overrides it on live and preview alike, so the
+  rendered gap above the demos grid is unchanged. The inline style was
+  left untouched; removing it is a separate decision.)
 - Comparison sliders: `.ba` margin-bottom 14px to 16px; `.honest` note
   margin-top 14px to 16px.
 - Footer: top padding 46px to 48px; wrap gap 22px to 24px.
