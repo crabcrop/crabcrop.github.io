@@ -1,5 +1,15 @@
 # Spacing and motion refinement: preview notes
 
+Preview location: this preview is published at preview/refine/ instead of
+the usual site-preview/refine/. The site-preview/ prefix on GitHub Pages
+is stuck serving a stale deployment snapshot: the old previews under it
+were deleted from the repo before this work began yet still serve, and
+three separate builds (a fresh add, a probe file, and a full delete plus
+re-add) all reported "built" without the new files ever being served,
+while identical probe files at other new paths deployed immediately.
+The live pages are unaffected. If the prefix ever unsticks, this folder
+can be renamed back to site-preview/refine/ with no content changes.
+
 Scope: polish of the existing crabcrop.org pages (index.html, docs.html). No
 recomposition, no new sections, no copy, color, or typeface changes, no new
 imagery. The header block, logo lockup, menu, and favicons are byte-identical
