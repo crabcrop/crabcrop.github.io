@@ -863,7 +863,7 @@ curl "http://localhost:3000/unsafe/focalpoint:0.75x0.4:2/crop:800x600/https://ex
       <p>Pixel filters change the image itself. They chain inside one <code>filters:</code> segment, separated by <code>:</code>, and run in the order written. A filter with no parameters may omit the parentheses. When a directive repeats, the last one wins. Drag the sliders: the chain under the photo is the exact server syntax for the look.</p>
       <div class="demo">
         <div class="dlabel">Demo: adjustment sliders (CSS preview)</div>
-        <img class="dimg" id="adjImg" src="https://images.crabcrop.org/d6ef00b818934ffc2b2469f37890ff27d65781e92a4bb23c1089730212bcaefe/preset:site-photo/root:site/scene-surf.jpg" alt="A surfer scene, with the adjustment sliders applied as a CSS preview" width="1200" height="800">
+        <img class="dimg" id="adjImg" src="https://images.crabcrop.org/d6ef00b818934ffc2b2469f37890ff27d65781e92a4bb23c1089730212bcaefe/preset:site-photo/root:site/scene-surf.jpg" data-thumbhash="4gcGJYrCGESod4pyZPaGjAaFc3A4" alt="A surfer scene, with the adjustment sliders applied as a CSS preview" width="1200" height="800">
         <div style="margin-top:14px">
           <div class="sliderow"><label for="adjContrast">contrast</label><input type="range" id="adjContrast" min="-100" max="100" value="25"><span class="sval" id="adjContrastV">25</span></div>
           <div class="sliderow"><label for="adjBrighten">brighten</label><input type="range" id="adjBrighten" min="-255" max="255" value="0"><span class="sval" id="adjBrightenV">0</span></div>
@@ -895,7 +895,7 @@ curl "http://localhost:3000/unsafe/focalpoint:0.75x0.4:2/crop:800x600/https://ex
       <p>Tones, geometry, and the shape of the frame itself. Toggle the looks; radius, border, and mask need an output format that carries alpha, and the preview notes where CSS cannot follow.</p>
       <div class="demo">
         <div class="dlabel">Demo: effect chips (CSS preview)</div>
-        <img class="dimg" id="fxImg" src="https://images.crabcrop.org/7a31b3720248619d7de81676fd2e0535cc67d8f3c9b24d7649be9c6cc24f14de/preset:site-photo/root:site/scene-camera.jpg" alt="A camera scene, with the selected effects applied as a CSS preview" width="1200" height="800">
+        <img class="dimg" id="fxImg" src="https://images.crabcrop.org/7a31b3720248619d7de81676fd2e0535cc67d8f3c9b24d7649be9c6cc24f14de/preset:site-photo/root:site/scene-camera.jpg" data-thumbhash="pDgOFYamiFiPd4h7d7d3eQiCoUAY" alt="A camera scene, with the selected effects applied as a CSS preview" width="1200" height="800">
         <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:14px" id="fxChips">
           <button class="chipbtn coral" type="button" data-fx="grayscale" data-css="grayscale(1)">grayscale</button>
           <button class="chipbtn coral" type="button" data-fx="sepia" data-css="sepia(.75)">sepia</button>
@@ -1042,8 +1042,8 @@ frame:&lt;percent&gt;%</pre></div>
       <div class="ai-demos" style="margin-top:20px">
         <div class="ai-demo">
           <div class="ba" style="aspect-ratio:3/2">
-            <div class="ba-layer checker"><img src="https://images.crabcrop.org/02a88eff67e58390de62e61a0630ef0aed28eea51e050e2b2354d86da46093a8/preset:site-photo/root:site/ai-skate-removebg.webp" alt="Snap at the skate park with the background removed, over transparency" width="1000" height="667" loading="lazy"></div>
-            <div class="ba-layer ba-top"><img src="https://images.crabcrop.org/02cec789bbeaf3393167ab2535e8e74022faa65e71ded935c0a344cad0fe3cc0/preset:site-photo/root:site/ai-skate-before.jpg" alt="Snap the crochet crab at a skate park, original photo" width="1000" height="667" loading="lazy"></div>
+            <div class="ba-layer checker"><img src="https://images.crabcrop.org/02a88eff67e58390de62e61a0630ef0aed28eea51e050e2b2354d86da46093a8/preset:site-photo/root:site/ai-skate-removebg.webp" data-thumbhash="nKmCA4AkFPiqiYPqzLDfOx9xdolAmlc=" alt="Snap at the skate park with the background removed, over transparency" width="1000" height="667" loading="lazy"></div>
+            <div class="ba-layer ba-top"><img src="https://images.crabcrop.org/02cec789bbeaf3393167ab2535e8e74022faa65e71ded935c0a344cad0fe3cc0/preset:site-photo/root:site/ai-skate-before.jpg" data-thumbhash="4TgKFYaGuol5h4WEdQZ8XEqj0EMJ" alt="Snap the crochet crab at a skate park, original photo" width="1000" height="667" loading="lazy"></div>
             <span class="ba-chip l">AFTER</span><span class="ba-chip r">BEFORE</span>
             <div class="ba-div"></div>
             <input type="range" min="0" max="100" value="55" aria-label="Reveal the background removal result">
@@ -1054,8 +1054,8 @@ frame:&lt;percent&gt;%</pre></div>
         </div>
         <div class="ai-demo">
           <div class="ba" style="aspect-ratio:1100/733">
-            <div class="ba-layer"><img src="https://images.crabcrop.org/cbc36c21927ce18f7df135235c45a8b101dcab74d1aa5a5f06f6760fe44a1f51/preset:site-photo/root:site/ai-friend-redact.jpg" alt="The skate bowl photo with the skater in the background blurred by crabcrop" width="1100" height="733" loading="lazy"></div>
-            <div class="ba-layer ba-top"><img src="https://images.crabcrop.org/4385e3e78cd4ab80d6877d2136df815e22806187975d83315f31af86c0abce14/preset:site-photo/root:site/ai-friend-before.jpg" alt="Snap at the edge of a skate bowl with a skater riding in the background, original photo" width="1100" height="733" loading="lazy"></div>
+            <div class="ba-layer"><img src="https://images.crabcrop.org/cbc36c21927ce18f7df135235c45a8b101dcab74d1aa5a5f06f6760fe44a1f51/preset:site-photo/root:site/ai-friend-redact.jpg" data-thumbhash="oSgKDYaRmJVgZnmliFeHdl1i4EUH" alt="The skate bowl photo with the skater in the background blurred by crabcrop" width="1100" height="733" loading="lazy"></div>
+            <div class="ba-layer ba-top"><img src="https://images.crabcrop.org/4385e3e78cd4ab80d6877d2136df815e22806187975d83315f31af86c0abce14/preset:site-photo/root:site/ai-friend-before.jpg" data-thumbhash="oSgKDYaRmJVgZnmliFaHdl1i4EUH" alt="Snap at the edge of a skate bowl with a skater riding in the background, original photo" width="1100" height="733" loading="lazy"></div>
             <span class="ba-chip l">AFTER</span><span class="ba-chip r">BEFORE</span>
             <div class="ba-div"></div>
             <input type="range" min="0" max="100" value="55" aria-label="Reveal the blurred skater">
@@ -1066,9 +1066,9 @@ frame:&lt;percent&gt;%</pre></div>
         </div>
         <div class="ai-demo wide">
           <div class="crop3">
-            <figure><img src="https://images.crabcrop.org/6aa2cab03b41bcfc04a0bdd09fb72003803c85e00afbc70d0f8ca1df71f31f99/preset:site-photo/root:site/ai-skate-redact-before.jpg" alt="The full skate park photo, Snap left of center next to a skateboard" width="1100" height="733" loading="lazy"><figcaption>source, 1920x1280</figcaption></figure>
-            <figure><img src="https://images.crabcrop.org/cbc18b1bd3adc42da05cbdaa3ae97d06b5682e6545a47c4cc087dd52b0c567ae/preset:site-photo/root:site/ai-crop-center.jpg" alt="Plain center crop clipping Snap's raised claw at the frame edge" width="760" height="760" loading="lazy"><figcaption>crop:760x760</figcaption></figure>
-            <figure><img src="https://images.crabcrop.org/26369293ce2c09a37dcb234195fa0edcc4072c19b0355c006c8d60eba339c29d/preset:site-photo/root:site/ai-crop-smart.jpg" alt="Smart crop keeping the whole crab in frame" width="760" height="760" loading="lazy"><figcaption>crop:760x760:smart</figcaption></figure>
+            <figure><img src="https://images.crabcrop.org/6aa2cab03b41bcfc04a0bdd09fb72003803c85e00afbc70d0f8ca1df71f31f99/preset:site-photo/root:site/ai-skate-redact-before.jpg" data-thumbhash="4TgKFYaGuol5h4WEdQZ8XEqj0EMJ" alt="The full skate park photo, Snap left of center next to a skateboard" width="1100" height="733" loading="lazy"><figcaption>source, 1920x1280</figcaption></figure>
+            <figure><img src="https://images.crabcrop.org/cbc18b1bd3adc42da05cbdaa3ae97d06b5682e6545a47c4cc087dd52b0c567ae/preset:site-photo/root:site/ai-crop-center.jpg" data-thumbhash="4EgKFwhEh5d6eYiHiAdr5nRnuzgJjpQA" alt="Plain center crop clipping Snap's raised claw at the frame edge" width="760" height="760" loading="lazy"><figcaption>crop:760x760</figcaption></figure>
+            <figure><img src="https://images.crabcrop.org/26369293ce2c09a37dcb234195fa0edcc4072c19b0355c006c8d60eba339c29d/preset:site-photo/root:site/ai-crop-smart.jpg" data-thumbhash="4FgKFwhUmal6eYiGeAZa5oRXuzYJbJQA" alt="Smart crop keeping the whole crab in frame" width="760" height="760" loading="lazy"><figcaption>crop:760x760:smart</figcaption></figure>
           </div>
           <h3>Smart crop and face operations</h3>
           <p>With <code>CRABCROP_FACE_MODEL</code> (a YuNet model) configured, <code>:smart</code> centers on detected faces and shifts to keep them whole, <code>:face</code> crops around the largest face outright, and <code>blurfaces</code> / <code>pixelatefaces</code> redact every detected face. <code>facepad(0.5)</code> sets the padding around a face crop, 0 to 3, default 0.5. Face detection only ever improves a smart crop: no model, no faces, or a detection failure all fall back to the detail-based focal point.</p>
@@ -1107,8 +1107,8 @@ frame:&lt;percent&gt;%</pre></div>
       <div class="ai-demos" style="margin-top:20px">
         <div class="ai-demo wide">
           <div class="ba" style="aspect-ratio:3/2">
-            <div class="ba-layer"><img src="https://images.crabcrop.org/a5ec2a7905f2bc67b5705cb55a10d437a27f646cfe44eae67d686981cc2a8027/preset:site-photo/root:site/studio-white.webp" alt="Snap composited by studio mode onto a white backdrop with a soft contact shadow" width="1000" height="667" loading="lazy"></div>
-            <div class="ba-layer ba-top"><img src="https://images.crabcrop.org/0ba9bb844d0e7d419924bcafd30b29ea16cde17202f6cfaa8ac17e0e0bafb026/preset:site-photo/root:site/studio-before.jpg" alt="Snap the crochet crab at a skate park, original photo" width="1000" height="667" loading="lazy"></div>
+            <div class="ba-layer"><img src="https://images.crabcrop.org/a5ec2a7905f2bc67b5705cb55a10d437a27f646cfe44eae67d686981cc2a8027/preset:site-photo/root:site/studio-white.webp" data-thumbhash="dDgSFYj3eGd5h4eLdXiIigiHg3A4" alt="Snap composited by studio mode onto a white backdrop with a soft contact shadow" width="1000" height="667" loading="lazy"></div>
+            <div class="ba-layer ba-top"><img src="https://images.crabcrop.org/0ba9bb844d0e7d419924bcafd30b29ea16cde17202f6cfaa8ac17e0e0bafb026/preset:site-photo/root:site/studio-before.jpg" data-thumbhash="4TgKFYaGuol5h4WEdQZ8XEqj0EMJ" alt="Snap the crochet crab at a skate park, original photo" width="1000" height="667" loading="lazy"></div>
             <span class="ba-chip l">AFTER</span><span class="ba-chip r">BEFORE</span>
             <div class="ba-div"></div>
             <input type="range" min="0" max="100" value="55" aria-label="Reveal the studio mode result">
@@ -1118,7 +1118,7 @@ frame:&lt;percent&gt;%</pre></div>
         </div>
         <div class="ai-demo">
           <div class="ba" style="aspect-ratio:3/2">
-            <div class="ba-layer"><img src="https://images.crabcrop.org/d28338579a079406c54fa4107c3d4576d4e77d2da5a8abcc3344c56bcd074323/preset:site-photo/root:site/studio-brand.webp" alt="Snap composited by studio mode onto a tide green brand backdrop" width="1000" height="667" loading="lazy"></div>
+            <div class="ba-layer"><img src="https://images.crabcrop.org/d28338579a079406c54fa4107c3d4576d4e77d2da5a8abcc3344c56bcd074323/preset:site-photo/root:site/studio-brand.webp" data-thumbhash="V5cFLZQEnXOYWJagTJdlZwiHg3A4" alt="Snap composited by studio mode onto a tide green brand backdrop" width="1000" height="667" loading="lazy"></div>
             <span class="ba-chip l">bg:brand</span>
           </div>
           <h3>The brand backdrop</h3>
@@ -1128,7 +1128,7 @@ frame:&lt;percent&gt;%</pre></div>
         <div class="ai-demo">
           <div class="ba" style="aspect-ratio:3/2">
             <div class="ba-layer checker"></div>
-            <div class="ba-layer"><img src="https://images.crabcrop.org/b6ff3d059fb6c7e6c49d99b3f5fcb5c15193773e76f58cf203778a4548beba74/preset:site-photo/root:site/studio-none.webp" alt="Snap cut out by studio mode with no backdrop, over transparency" width="1000" height="667" loading="lazy"></div>
+            <div class="ba-layer"><img src="https://images.crabcrop.org/b6ff3d059fb6c7e6c49d99b3f5fcb5c15193773e76f58cf203778a4548beba74/preset:site-photo/root:site/studio-none.webp" data-thumbhash="nKmCA4A0hI+ZV6S8vdD6OAeIh3iDimY=" alt="Snap cut out by studio mode with no backdrop, over transparency" width="1000" height="667" loading="lazy"></div>
             <span class="ba-chip l">bg:none</span>
           </div>
           <h3>No backdrop: keep the alpha</h3>
@@ -1626,5 +1626,6 @@ function fmRender(){
 ["fmFormat","fmQuality","fmNoUp","fmDpr"].forEach(id=>{ const el = $("#"+id); el.addEventListener("change", fmRender); el.addEventListener("input", fmRender); });
 fmRender();
 </script>
+<script src="thumbhash.js"></script>
 </body>
 </html>
