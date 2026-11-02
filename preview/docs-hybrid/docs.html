@@ -1,0 +1,1631 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>crabcrop documentation: Every Operation, Endpoint, and SDK</title>
+<meta name="description" content="The full crabcrop documentation: install, signing, URL anatomy, every operation family with interactive demos, the meta and explain endpoints, purge, upload, SDKs, MCP, the CLI, and deployment recipes.">
+<link rel="canonical" href="https://crabcrop.org/docs.html">
+<meta property="og:site_name" content="crabcrop">
+<meta property="og:title" content="crabcrop documentation: Every Operation, Endpoint, and SDK">
+<meta property="og:description" content="Section by section crabcrop reference with code examples and interactive demos of what each change looks like.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://crabcrop.org/docs.html">
+<meta property="og:image" content="https://crabcrop.org/crabcrop-mascot.webp">
+<meta name="theme-color" content="#FBF0D9">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<style>@font-face{font-family:"Fraunces";src:url("fonts/fraunces-900.woff2") format("woff2");font-weight:900;font-style:normal;font-display:swap}</style>
+<style>
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+:root{
+  --foam:#FFFFFF; --sand-100:#FBF0D9; --sand-200:#F3DFB4; --sand-300:#E4C88F;
+  --ink:#142832; --ink-2:#47606E;
+  --coral:#E8482F; --coral-deep:#B92F1B; --coral-soft:#FFD9CF;
+  --tide:#0E7C7B; --tide-deep:#084F57; --sea-glass:#8FE3E1;
+  --shell-pink:#FFB59F; --sun:#FFB020; --sun-soft:#FFD88A;
+  --abyss:#0D202E; --abyss-2:#18344A;
+  --violet:#C9A7FF; --leaf:#9FE8B0; --filterblue:#A9C6FF;
+  --snap:cubic-bezier(0.2,1.4,0.3,1); --scuttle:cubic-bezier(0.3,0.9,0.2,1);
+  --shell:28px 28px 28px 6px;
+  --shadow:5px 5px 0 rgba(20,40,50,.14); --shadow-lg:7px 7px 0 rgba(20,40,50,.16);
+  --shadow-sm:3px 3px 0 rgba(20,40,50,.14); --dark-shadow:0 16px 40px rgba(13,32,46,.35);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:ui-sans-system,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--sand-100);color:var(--ink);line-height:1.6;overflow-x:hidden;
+  background-image:radial-gradient(rgba(20,40,50,.05) 1.5px, transparent 1.6px);background-size:22px 22px}
+code,pre,.mono{font-family:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,monospace}
+img{max-width:100%}
+a{color:var(--tide);text-decoration:none}
+a:hover{text-decoration:underline}
+.wrap{max-width:1160px;margin:0 auto;padding:0 24px}
+section{padding:88px 0;position:relative}
+section[id],main[id]{scroll-margin-top:96px}
+@media(max-width:900px){section[id],main[id]{scroll-margin-top:138px}}
+.band-200{background-color:var(--sand-200);background-image:radial-gradient(rgba(20,40,50,.05) 1.5px, transparent 1.6px);background-size:22px 22px;background-position:11px 11px}
+h1{font-size:clamp(42px,6.4vw,74px);line-height:1.02;letter-spacing:-.03em;font-weight:900}
+h2{font-size:clamp(30px,4.2vw,46px);line-height:1.08;letter-spacing:-.025em;font-weight:900;margin-bottom:16px}
+h2 .coral,h1 .coral{color:var(--coral)}
+h3{font-size:19px;font-weight:800;letter-spacing:-.01em;margin-bottom:8px}
+.lede{font-size:19px;color:var(--ink-2);max-width:660px}
+.tidemark{display:flex;align-items:center;gap:9px;font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:12px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--tide);margin-bottom:18px}
+.tidemark .claw{width:14px;height:14px;flex:0 0 auto}
+.tidemark.on-dark{color:var(--sea-glass)}
+.claw{display:inline-block;vertical-align:middle}
+.claw path{stroke:var(--coral);fill:none;stroke-width:2.2;stroke-linecap:round}
+.foam{position:absolute;top:-11px;left:0;right:0;height:12px;pointer-events:none;background-repeat:repeat-x;background-size:22px 12px;
+  background-image:radial-gradient(circle at 10px -4px, transparent 12px, var(--fc,#FBF0D9) 13px);box-shadow:inset 0 -1px 0 var(--fc,#FBF0D9)}
+.btn{display:inline-flex;align-items:center;gap:9px;padding:13px 24px;border-radius:var(--shell);font-weight:800;font-size:15px;border:2px solid var(--ink);cursor:pointer;background:var(--coral);color:#fff;box-shadow:var(--shadow);transition:transform .15s var(--snap),background .15s}
+.btn:hover{transform:translateX(-2px);background:var(--coral-deep);text-decoration:none}
+.btn:active{transform:translateX(0)}
+.btn-foam{background:var(--foam);color:var(--ink)}
+.btn-foam:hover{background:var(--sand-200)}
+.btn[disabled]{opacity:.55;cursor:not-allowed}
+.mono-link{font-family:ui-monospace,Menlo,Consolas,monospace;font-weight:700;font-size:15px;color:var(--ink);display:inline-flex;align-items:center;gap:8px}
+.mono-link:hover{color:var(--coral-deep)}
+.reveal-l,.reveal-r{opacity:0;transform:translateX(-24px)}
+.reveal-r{transform:translateX(24px)}
+.reveal-l,.reveal-r{transition:opacity .45s ease,transform .5s var(--scuttle)}
+.reveal-l.in-view,.reveal-r.in-view{opacity:1;transform:none}
+.d1{transition-delay:.06s}.d2{transition-delay:.12s}.d3{transition-delay:.18s}
+/* Mascot windows */
+.peek{overflow:hidden;position:relative;line-height:0}
+.peek img{width:100%;height:auto;display:block}
+.porthole{border-radius:50%;overflow:hidden;border:3px solid var(--foam);outline:2px solid var(--ink);box-shadow:var(--shadow);line-height:0;flex:0 0 auto}
+.porthole img{width:100%;height:100%;object-fit:cover;display:block}
+.pebble{border-radius:50%;overflow:hidden;border:3px solid var(--foam);outline:2px solid var(--ink);line-height:0;flex:0 0 auto;background:#fff;display:grid;place-items:center}
+.pebble .claw{width:20px;height:20px;color:var(--coral)}
+.pebble img{width:100%;height:100%;object-fit:cover;display:block}
+.bubble{position:relative;background:var(--coral-soft);color:var(--ink);font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;line-height:1.5;padding:9px 13px;border:2px solid var(--ink);border-radius:18px 18px 18px 4px;box-shadow:var(--shadow-sm);max-width:250px}
+.bubble.on-dark{background:var(--foam)}
+@keyframes snapk{0%{transform:rotate(0) scale(1)}40%{transform:rotate(-4deg) scale(1.06)}100%{transform:rotate(0) scale(1)}}
+.snap{animation:snapk .16s var(--snap)}
+.lean{transform:rotate(5deg)}
+.hidepeek{transform:translateY(70%)}
+.win{transition:transform .3s ease}
+/* Nav */
+header{position:sticky;top:0;z-index:60;background:rgba(251,240,217,.94);backdrop-filter:blur(10px)}
+header .foam{top:auto;bottom:-11px;--fc:rgba(251,240,217,.94)}
+.nav{display:flex;align-items:center;justify-content:space-between;height:68px;gap:16px}
+.logo{display:flex;align-items:center;gap:10px;font-weight:900;font-size:21px;letter-spacing:-.02em;color:var(--ink)}
+.logo:hover{text-decoration:none}
+.logo .pebble{width:36px;height:36px}
+.nav-links{display:flex;gap:24px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:14px;font-weight:700}
+.nav-links a{color:var(--ink-2)}
+.nav-links a:hover{color:var(--ink);text-decoration:none}
+@media(max-width:900px){
+  .nav{flex-wrap:wrap;height:auto;padding-top:6px;row-gap:0}
+  .logo{min-height:44px}
+  .nav .btn{min-height:44px}
+  .nav-links{order:3;flex:1 1 100%;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:none;gap:4px;padding:0 18px 8px 0;-webkit-mask-image:linear-gradient(90deg,#000 90%,transparent);mask-image:linear-gradient(90deg,#000 90%,transparent)}
+  .nav-links::-webkit-scrollbar{display:none}
+  .nav-links a{display:inline-flex;align-items:center;min-height:44px;padding:0 10px;white-space:nowrap;border-radius:999px}
+}
+.nav .btn{padding:10px 18px}
+/* Hero */
+.hero{padding:56px 0 64px}
+.hero-grid{display:grid;grid-template-columns:1.08fr .92fr;gap:48px;align-items:center}
+@media(max-width:900px){.hero-grid{grid-template-columns:1fr}}
+.hero-ctas{display:flex;gap:22px;flex-wrap:wrap;align-items:center;margin:30px 0 20px}
+.hero-note{font-size:14px;color:var(--ink-2);max-width:560px}
+.hero-note code{background:var(--sand-200);padding:1px 6px;border-radius:6px;font-size:13px}
+.frame{background:var(--foam);border:2px solid var(--ink);border-radius:6px;box-shadow:var(--shadow-lg);padding:10px;transform:rotate(-2deg);position:relative;max-width:440px;margin:0 auto;width:100%}
+.frame img{width:100%;height:auto;display:block}
+.frame figcaption{display:flex;justify-content:space-between;align-items:center;padding:10px 4px 2px;font-size:13.5px;color:var(--ink-2);font-weight:600}
+@keyframes tide{from{transform:rotate(-2deg)}to{transform:rotate(-1deg)}}
+.frame{animation:tide 7s ease-in-out infinite alternate}
+.frame:hover{animation:none;transform:rotate(0)}
+.note{position:absolute;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;font-weight:700;padding:6px 11px;border:2px solid var(--ink);box-shadow:var(--shadow-sm);z-index:3}
+.note.n1{top:22px;left:-14px;background:var(--sun-soft);transform:rotate(3deg)}
+.note.n2{bottom:64px;right:-12px;background:var(--coral-soft);transform:rotate(-3deg)}
+.hero-bubble{position:absolute;top:-26px;left:-10px;z-index:4;transform:rotate(-2deg)}
+@media(max-width:640px){.hero-bubble{position:static;transform:none;margin-bottom:14px}}
+/* Aim strip */
+.strip{display:flex;flex-wrap:wrap;gap:14px 44px;align-items:flex-end;margin-top:52px;padding:22px 4px 4px;border-top:2px solid var(--sand-300)}
+.strip .aim{font-weight:900;font-size:19px;letter-spacing:-.01em;max-width:300px;line-height:1.25}
+/* Anatomy */
+.anatomy{margin-top:30px;background:var(--abyss);border-radius:var(--shell);box-shadow:var(--dark-shadow);color:#DCE9F2;padding:30px 30px 26px;position:relative}
+.anatomy .peek{position:absolute;top:-2px;right:34px;width:132px;height:56px}
+.anatomy .peek img{transform:translateY(-8px)}
+.families{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:6px 0 16px}
+.families .flabel{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#9DB2C8;margin-right:4px}
+.fchip{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13.5px;font-weight:700;padding:9px 15px;min-height:44px;border-radius:999px;border:2px solid rgba(255,255,255,.25);background:transparent;color:#DCE9F2;cursor:pointer;transition:all .14s var(--snap)}
+.fchip:hover{border-color:#fff}
+.fchip[aria-checked="true"]{background:var(--foam);color:var(--ink);border-color:var(--foam)}
+.strip-url{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:15.5px;line-height:2.1;display:flex;flex-wrap:wrap;align-items:center;gap:2px}
+.strip-url .host{color:#9DB2C8}
+.strip-url .slash{color:#5F7A8C;padding:0 1px}
+.segbtn{display:inline-flex;align-items:center;gap:2px;font:inherit;color:inherit;background:rgba(255,255,255,.06);border:2px solid transparent;border-radius:9px;padding:3px 9px;min-height:44px;cursor:pointer;transition:background .12s,border-color .12s;text-align:left}
+.segbtn:hover{background:rgba(255,255,255,.14)}
+.segbtn:focus-visible,.fchip:focus-visible,.tokbtn:focus-visible{outline:3px solid var(--sun);outline-offset:2px}
+.segbtn[aria-pressed="true"]{border-color:currentColor;background:rgba(255,255,255,.12)}
+.segbtn.c-sig{color:var(--shell-pink)} .segbtn.c-exp{color:var(--violet)} .segbtn.c-preset{color:var(--leaf)}
+.segbtn.c-ops{color:var(--sea-glass)} .segbtn.c-src{color:var(--sun-soft)}
+.tokbtn{font:inherit;background:none;border:none;color:var(--filterblue);cursor:pointer;padding:2px 3px;border-radius:6px;text-decoration:underline dotted rgba(169,198,255,.6);text-underline-offset:3px}
+.tokbtn:hover{color:#fff}
+.ana-panel{margin-top:22px;border-top:1px solid rgba(255,255,255,.14);padding-top:22px;display:grid;grid-template-columns:1fr 250px;gap:30px;min-height:230px}
+@media(max-width:900px){.ana-panel{grid-template-columns:1fr}}
+.ana-panel h3{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:19px;letter-spacing:0;color:#fff}
+.ana-panel h3 .plain{font-family:ui-sans-system,-apple-system,"Segoe UI",Roboto,sans-serif;font-weight:800;color:#9DB2C8;font-size:16px;margin-left:10px}
+.ana-panel .def{font-size:16.5px;color:#DCE9F2;margin:8px 0 14px;max-width:620px}
+.ana-panel h4{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:#9DB2C8;margin:14px 0 7px}
+.ana-panel ul{list-style:none}
+.ana-panel ul li{font-size:15px;color:#C4D6E2;padding-left:20px;position:relative;margin-bottom:5px}
+.ana-panel ul li::before{content:"";position:absolute;left:0;top:9px;width:7px;height:7px;border-radius:50%;background:var(--tide)}
+.ana-panel ul li code,.ana-panel .def code{color:var(--sea-glass);font-size:.92em}
+.ana-ex{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13.5px;background:var(--abyss-2);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:12px 15px;color:#F2E7C9;overflow-wrap:anywhere;display:grid;grid-template-columns:auto 1fr;gap:6px 16px;align-items:baseline}
+.ana-ex .tokhl{background:rgba(255,176,32,.25);border-radius:6px;padding:1px 5px}
+#anaTeach{transition:opacity .12s}
+.segbtn.locked{border-color:currentColor;background:rgba(255,255,255,.12)}
+.tokbtn.locked{background:var(--sun);color:var(--ink);text-decoration:none}
+.peek{border:2px solid var(--ink);box-shadow:var(--shadow-sm);transition:transform .3s cubic-bezier(.3,.9,.2,1)}
+.peek.clawp{display:grid;place-items:center;background:#fff}
+.peek.clawp .claw{width:36px;height:36px;color:var(--coral)}
+.porthole.clawp{display:grid;place-items:center;background:#fff}
+.porthole.clawp .claw{width:56px;height:56px;color:var(--coral)}
+@keyframes happyk{0%{transform:rotate(0) scale(1)}25%{transform:rotate(-4deg) scale(1.06)}50%{transform:rotate(0) scale(1)}75%{transform:rotate(-4deg) scale(1.06)}100%{transform:rotate(0) scale(1)}}
+.happy{animation:happyk .34s var(--snap)}
+.built .part{font:inherit;color:inherit;background:none;border:0;cursor:pointer;padding:1px 3px;border-radius:6px;text-align:left;overflow-wrap:anywhere}
+.built .part:hover{background:rgba(255,255,255,.1)}
+.built .part.k-sig{color:var(--shell-pink)} .built .part.k-exp{color:var(--violet)} .built .part.k-ops{color:var(--sea-glass)} .built .part.k-src{color:var(--sun-soft)}
+.built .hostp{color:#9DB2C8;padding:1px 3px}
+.built .sep{color:#5E7A8F;padding:0 1px}
+.built.dim{opacity:.45}
+.noterow .nlab{font-weight:800;color:var(--tide-deep)}
+.frow input[type=number]{width:88px;padding:7px 9px;border:2px solid var(--sand-300);border-radius:10px;font:inherit;background:#fff}
+.frow input[type=range].qslider{width:130px}
+#aiPorthole{transition:transform .2s}
+#aiPorthole.rot{transform:rotate(-3deg)}
+.bubble.foot{opacity:0;visibility:hidden;transition:opacity .2s,visibility .2s}
+.bubble.foot.shown{opacity:1;visibility:visible}
+.chipbtn[aria-pressed="true"]{background:var(--ink);color:var(--foam);border-color:var(--ink)}
+.ana-watch{margin-top:14px;font-size:15px;color:#FFD9CF}
+.ana-watch b{color:var(--shell-pink)}
+.ana-rail{display:flex;flex-direction:column;gap:14px;align-items:flex-start}
+.ana-rail .clawbig{width:44px;height:44px;transition:transform .16s var(--snap)}
+.ana-rail .bubble{max-width:230px}
+@media(max-width:900px){.ana-rail{flex-direction:row;align-items:center}}
+.legend{display:flex;flex-direction:column;gap:7px;margin-top:20px}
+.legend div{display:flex;gap:10px;align-items:baseline;font-size:14px;color:var(--ink-2)}
+.legend .dot{width:10px;height:10px;border-radius:50%;flex:0 0 auto;position:relative;top:1px}
+.legend b{color:var(--ink)}
+/* Buoy row */
+.buoy{padding:34px 0 40px}
+.buoy .clusters{display:flex;flex-wrap:wrap;gap:26px 48px}
+.cluster .clabel{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--tide);margin-bottom:10px}
+.cluster .chips{display:flex;flex-wrap:wrap;gap:8px}
+.bchip{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;background:var(--foam);border:1.5px solid var(--sand-300);padding:6px 12px;border-radius:999px;color:var(--ink-2);box-shadow:var(--shadow-sm)}
+/* Demo panels */
+.panel{background:var(--foam);border:2px solid var(--ink);border-radius:var(--shell);box-shadow:var(--shadow-lg);padding:30px}
+.honest{font-size:13.5px;color:var(--ink-2);margin-top:14px}
+.honest code{background:var(--sand-200);padding:1px 5px;border-radius:5px;font-size:12.5px}
+.chipbtn{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13.5px;font-weight:700;padding:9px 15px;min-height:44px;border-radius:999px;border:2px solid var(--ink);background:var(--foam);color:var(--ink);cursor:pointer;transition:all .14s var(--snap)}
+.chipbtn:hover{transform:translateX(-1px)}
+.chipbtn.on{background:var(--ink);color:#fff}
+.chipbtn.coral.on{background:var(--coral);border-color:var(--ink);color:#fff}
+.chipbtn[disabled]{opacity:.42;cursor:not-allowed;transform:none}
+.segctl{display:inline-flex;flex-wrap:wrap;gap:6px;background:var(--sand-200);border:2px solid var(--sand-300);padding:5px;border-radius:999px}
+.segctl .chipbtn{border-color:transparent;background:transparent;min-height:38px;padding:6px 13px}
+.segctl .chipbtn.on{background:var(--ink);color:#fff}
+.segctl .chipbtn.coral.on{background:var(--coral)}
+/* Playground */
+.pg-grid{display:grid;grid-template-columns:400px 1fr;gap:30px;align-items:start;margin-top:38px}
+@media(max-width:1023px){.pg-grid{grid-template-columns:1fr}}
+.pg-out{position:sticky;top:92px}
+@media(max-width:1023px){.pg-out{position:static}}
+.ctl{margin-bottom:22px}
+.ctl>label,.ctl .clabel{display:block;font-size:12.5px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-2);margin-bottom:9px}
+.ctl input[type=text],.ctl input[type=number],.ctl select{width:100%;padding:11px 13px;border:2px solid var(--sand-300);border-radius:12px;font-size:15px;background:#fff;color:var(--ink);font-family:inherit}
+.ctl input.mono{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13.5px}
+.ctl input:focus,.ctl select:focus{border-color:var(--tide);outline:3px solid rgba(14,124,123,.25);outline-offset:1px}
+.ctl .err{color:var(--coral-deep);font-size:13.5px;font-weight:600;margin-top:7px}
+.ctl .hint{font-size:13.5px;color:var(--ink-2);margin-top:7px}
+.wh{display:flex;gap:10px}.wh>div{flex:1}
+fieldset{border:none;min-width:0}
+fieldset[disabled] .ctl,fieldset[disabled] .frow{opacity:.45}
+.fgroup{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--tide);margin:22px 0 10px}
+.frow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:8px 0;border-bottom:1px dashed var(--sand-300)}
+.frow:last-child{border-bottom:none}
+.frow .fname{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13.5px;font-weight:700;min-width:118px}
+.frow .fparams{display:none;align-items:center;gap:8px;flex-wrap:wrap}
+.frow .fparams.show{display:flex}
+.frow input[type=number]{width:84px;padding:8px 10px}
+.frow input[type=text].hex{width:84px;padding:8px 10px;font-family:ui-monospace,Menlo,Consolas,monospace}
+.frow input[type=color]{width:44px;height:38px;padding:2px;border:2px solid var(--sand-300);border-radius:10px;background:#fff;cursor:pointer}
+.frow input[type=range]{width:130px;accent-color:var(--coral)}
+.frow .ferr{color:var(--coral-deep);font-size:13px;font-weight:600;width:100%}
+.fnote{font-size:13px;color:var(--ink-2);margin-top:12px}
+.outbox{background:var(--abyss);border-radius:18px 18px 18px 5px;padding:20px 20px 22px;color:#DCE9F2;position:relative;box-shadow:var(--dark-shadow)}
+.outbox .peek{position:absolute;top:-34px;right:26px;width:110px;height:40px}
+.outbox .peek img{transform:translateY(-4px)}
+.out-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.out-head .olabel{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:#9DB2C8;margin-right:auto}
+.snapbtn{background:var(--coral);color:#fff;border:2px solid var(--foam);border-radius:999px;font-family:ui-monospace,Menlo,Consolas,monospace;font-weight:700;font-size:13.5px;padding:9px 17px;min-height:44px;cursor:pointer;transition:transform .14s var(--snap),background .14s}
+.snapbtn:hover{background:var(--coral-deep)}
+.snapbtn.ok{background:var(--tide)}
+.snapbtn[disabled]{opacity:.55;cursor:not-allowed}
+.copybtn{background:var(--abyss-2);color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:999px;font-family:ui-monospace,Menlo,Consolas,monospace;font-weight:700;font-size:13.5px;padding:9px 17px;min-height:44px;cursor:pointer}
+.copybtn:hover{background:#24455F}
+.copybtn.ok{background:var(--tide)}
+.built{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:14.5px;line-height:1.9;overflow-wrap:anywhere;transition:opacity .12s}
+.built.dim{opacity:.45}
+.built .c-sig{color:var(--shell-pink)} .built .c-exp{color:var(--violet)} .built .c-preset{color:var(--leaf)}
+.built .c-ops{color:var(--sea-glass)} .built .c-fil{color:var(--filterblue)} .built .c-src{color:var(--sun-soft)}
+.built .slash{color:#5F7A8C}
+.seal{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:var(--coral);color:#fff;font-size:13px;font-weight:900;margin-left:8px;vertical-align:middle}
+.sigline{font-size:13px;color:#9DB2C8;margin-top:12px}
+.banner{background:#FBE3DC;border:2px solid var(--coral-deep);color:#7A1F10;border-radius:12px;padding:11px 15px;font-size:14px;font-weight:600;margin-top:14px}
+.parts{margin-top:18px;display:flex;flex-direction:column;gap:8px}
+.partrow{display:flex;gap:11px;align-items:baseline;background:var(--sand-200);border:1.5px solid var(--sand-300);border-radius:12px;padding:9px 13px;font-size:14px;text-align:left;width:100%;cursor:pointer;font-family:inherit;color:var(--ink);transition:transform .14s var(--snap)}
+.partrow:hover{transform:translateX(-2px)}
+.partrow .pspell{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;font-weight:700;white-space:nowrap}
+.partrow .pdef{color:var(--ink-2)}
+.notes{margin-top:18px;display:flex;flex-direction:column;gap:9px}
+.noteitem{display:flex;gap:11px;font-size:14px;align-items:baseline}
+.noteitem .nlabel{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:3px 9px;border-radius:999px;background:var(--sand-200);border:1.5px solid var(--sand-300);color:var(--ink-2);flex:0 0 auto}
+.noteitem.warn .nlabel{background:var(--coral-soft);border-color:var(--coral-deep);color:var(--coral-deep)}
+.noteitem p{color:var(--ink-2)}
+.noteitem p code{color:var(--ink);font-size:.92em}
+.pg-bubble-row{display:flex;justify-content:flex-end;margin-top:44px}
+/* Toy */
+.toy-grid{display:grid;grid-template-columns:1.25fr .95fr;gap:30px;align-items:start;margin-top:36px}
+@media(max-width:1023px){.toy-grid{grid-template-columns:1fr}}
+.toy-stage{position:relative;border-radius:8px;overflow:hidden;border:2px solid var(--ink);box-shadow:var(--shadow-lg);background:#DFE9EF;line-height:0;touch-action:none}
+.toy-stage img.base{width:100%;height:auto;display:block;pointer-events:none}
+.toy-win{position:absolute;border:2.5px solid var(--foam);box-shadow:0 0 0 999px rgba(13,32,46,.48);cursor:move;line-height:1.2;touch-action:none}
+.toy-win:focus-visible{outline:3px solid var(--sun);outline-offset:2px}
+.clawh{position:absolute;width:44px;height:44px;display:grid;place-items:center;cursor:nwse-resize;touch-action:none}
+.clawh .claw{width:21px;height:21px}
+.clawh path{stroke:#fff;stroke-width:2.6}
+.clawh.tl{top:-22px;left:-22px}.clawh.tr{top:-22px;right:-22px;cursor:nesw-resize}
+.clawh.bl{bottom:-22px;left:-22px;cursor:nesw-resize}.clawh.br{bottom:-22px;right:-22px}
+.readout{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13.5px;margin-top:14px;color:var(--ink-2)}
+.toy-preview{position:relative;border:2px solid var(--ink);border-radius:8px;overflow:hidden;box-shadow:var(--shadow);background:#DFE9EF;line-height:0}
+.toy-preview .pv{position:absolute;inset:0;overflow:hidden}
+.toy-preview .pv img{position:absolute;max-width:none;pointer-events:none}
+.toy-preview .divider{position:absolute;top:0;bottom:0;width:3px;background:#fff;box-shadow:0 0 0 1px rgba(0,0,0,.25);z-index:3}
+.toy-preview .phandle{position:absolute;top:50%;width:48px;height:48px;margin:-24px 0 0 -24px;border-radius:50%;background:#fff;border:2px solid var(--ink);display:grid;place-items:center;z-index:4}
+#toyPreview:focus-within .phandle{outline:3px solid var(--sun);outline-offset:2px}
+.toy-preview .phandle .claw{width:19px;height:19px}
+.toy-preview input[type=range]{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:ew-resize;z-index:5;margin:0}
+.toy-tag{position:absolute;top:10px;left:10px;z-index:3;background:var(--sun-soft);border:2px solid var(--ink);font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11.5px;font-weight:700;padding:4px 9px;transform:rotate(-2deg)}
+.stack{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0;min-height:44px;align-items:center}
+.stack .empty{font-size:14px;color:var(--ink-2)}
+.schip{display:inline-flex;align-items:center;gap:6px;background:var(--ink);color:#fff;border-radius:999px;padding:5px 8px 5px 13px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;min-height:44px;cursor:grab}
+.schip .idx{background:var(--coral);color:#fff;border-radius:50%;width:19px;height:19px;display:grid;place-items:center;font-size:11px;font-weight:900;flex:0 0 auto}
+.schip button{background:rgba(255,255,255,.14);border:none;color:#fff;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:13px;line-height:1}
+.schip button:hover{background:var(--coral)}
+.eql{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13.5px;background:var(--abyss);color:var(--sea-glass);border-radius:12px;padding:13px 16px;overflow-wrap:anywhere;line-height:1.8}
+.eql .c-src{color:var(--sun-soft)}
+/* Code */
+.tabs{display:flex;gap:0;flex-wrap:wrap}
+.tab{padding:11px 20px;border-radius:20px 20px 0 5px;background:var(--sand-200);border:2px solid var(--ink);border-bottom:none;font-weight:800;font-size:14.5px;cursor:pointer;color:var(--ink-2);margin-right:6px;transition:all .14s var(--snap);min-height:44px}
+.tab.active{background:var(--abyss);color:#fff}
+.code-window{background:var(--abyss);border:2px solid var(--ink);border-radius:0 18px 18px 18px;padding:26px;position:relative;box-shadow:var(--shadow-lg)}
+.code-scroll{overflow-x:auto}
+.code-window pre{color:#DCE9F2;font-size:14px;line-height:1.75;white-space:pre;overflow-x:auto}
+.code-pane{display:none}.code-pane.active{display:block}
+.code-window .copy-btn{position:absolute;top:14px;right:14px;background:var(--abyss-2);color:#fff;border:1px solid rgba(255,255,255,.25);padding:8px 15px;border-radius:999px;font-size:13px;font-weight:700;cursor:pointer;font-family:ui-monospace,Menlo,Consolas,monospace;min-height:40px;z-index:6}
+.code-window .copy-btn:hover{background:#24455F}
+.code-window .copy-btn.ok{background:var(--tide)}
+.code-window .peek{position:absolute;bottom:0;right:30px;width:96px;height:36px}
+.k{color:var(--sea-glass)}.s{color:var(--sun-soft)}.c{color:#7E97AD}
+.vector-card{background:var(--sand-200);border:2px solid var(--ink);border-radius:var(--shell);box-shadow:var(--shadow);padding:24px 26px;margin-top:26px}
+.vector-card p{font-size:15px;color:var(--ink-2);margin-top:8px;overflow-wrap:anywhere}
+.vector-card p code{color:var(--ink);font-size:13px}
+/* Feature cards */
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+@media(max-width:900px){.grid3{grid-template-columns:1fr 1fr}}
+@media(max-width:620px){.grid3{grid-template-columns:1fr}}
+.specimen{background:var(--sand-100);border:1.5px solid var(--ink);border-radius:var(--shell);box-shadow:var(--shadow);padding:26px;transition:transform .14s var(--snap),box-shadow .14s var(--snap)}
+.band-200 .specimen{background:var(--sand-100)}
+.specimen:hover{transform:translateX(-2px);box-shadow:8px 8px 0 rgba(20,40,50,.16)}
+.specimen p{font-size:15px;color:var(--ink-2)}
+.specimen code{background:rgba(20,40,50,.06);padding:1px 6px;border-radius:6px;font-size:13px;color:var(--coral-deep)}
+.specimen .opname{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;font-weight:700;color:var(--tide);display:block;margin-top:12px}
+.iconring{width:46px;height:46px;border-radius:50%;border:2px solid var(--tide);display:grid;place-items:center;margin-bottom:14px}
+.iconring .claw{width:22px;height:22px}
+.iconring.coral{border-color:var(--coral)}
+.span2{grid-column:span 2}
+@media(max-width:620px){.span2{grid-column:span 1}}
+/* Formats matrix */
+.fmt-card{background:var(--foam);border:1.5px solid var(--ink);border-radius:var(--shell);box-shadow:var(--shadow-lg);overflow:hidden;margin-top:38px}
+.fmt-row{display:grid;grid-template-columns:1fr .55fr .55fr 1.9fr;gap:8px 18px;align-items:center;padding:17px 26px}
+.fmt-row+.fmt-row{border-top:1.5px dashed var(--sand-300)}
+.fmt-row.head{background:var(--sand-200);padding-top:13px;padding-bottom:13px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--tide-deep)}
+.fmt-row.head .fmt-name{font-size:12px}
+.fmt-name{font-family:ui-monospace,Menlo,Consolas,monospace;font-weight:700;font-size:16.5px}
+.fmt-yes{display:inline-flex;align-items:center;gap:8px;font-weight:800;font-size:14.5px;color:var(--tide-deep)}
+.fmt-no{display:inline-flex;align-items:center;gap:8px;font-weight:800;font-size:14.5px;color:var(--ink-2)}
+.fmt-yes .claw{width:16px;height:16px;flex:0 0 auto}
+.fmt-yes .claw path{stroke:var(--tide)}
+.fmt-qual{display:block;font-size:12.5px;color:var(--ink-2);margin-top:3px;max-width:180px}
+.fmt-note{font-size:14.5px;color:var(--ink-2)}
+.fmt-note code{background:rgba(20,40,50,.06);padding:1px 5px;border-radius:5px;font-size:13px;color:var(--coral-deep)}
+@media(max-width:640px){
+  .fmt-row{grid-template-columns:1fr auto auto;grid-template-areas:"name dec enc" "note note note";padding:15px 18px}
+  .fmt-row.head{grid-template-areas:"name dec enc"}
+  .fmt-row.head .fmt-note{display:none}
+  .fmt-name{grid-area:name}.fmt-dec{grid-area:dec}.fmt-enc{grid-area:enc}.fmt-note{grid-area:note}
+  .fmt-qual{max-width:130px}
+}
+/* AI */
+.ai-intro{display:flex;gap:28px;align-items:flex-start;flex-wrap:wrap}
+.ai-crab{display:flex;flex-direction:column;align-items:center;gap:10px}
+.ai-crab .porthole{width:150px;height:150px}
+.ai-crab .porthole img{transform:scale(1.5);object-position:68% 74%}
+.ai-crab figcaption{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;color:var(--ink-2);text-align:center;max-width:210px}
+.ai-rows{margin-top:14px}
+.ai-row{display:flex;gap:18px;padding:21px 10px;border-bottom:1.5px solid var(--sand-300);border-left:5px solid transparent;transition:border-color .14s}
+.ai-row:first-child{border-top:1.5px solid var(--sand-300)}
+.ai-row:hover{border-left-color:var(--tide)}
+.ai-row .marker{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;font-weight:700;color:var(--tide);flex:0 0 52px;padding-top:3px}
+.ai-row p{color:var(--ink-2);font-size:15.5px}
+.ai-row code{background:var(--sand-200);padding:1px 6px;border-radius:6px;font-size:13px;color:var(--coral-deep)}
+.rules{margin-top:30px;background:var(--coral-soft);border:2px solid var(--ink);border-radius:18px 18px 18px 4px;box-shadow:var(--shadow);padding:24px 28px;position:relative}
+.rules h3{font-size:17px}
+.rules ul{list-style:none;margin-top:10px}
+.rules li{font-size:15.5px;padding-left:22px;position:relative;margin-bottom:8px}
+.rules li::before{content:"";position:absolute;left:0;top:10px;width:8px;height:8px;border-radius:50%;background:var(--coral)}
+/* AI demos (round 4): real outputs from a running server, pre-rendered as static assets */
+.ai-proof{margin-top:26px;font-size:16.5px;color:var(--ink-2);max-width:760px}
+.ai-demos{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-top:26px}
+.ai-demo{background:#FFFDF6;border:2px solid var(--ink);border-radius:20px;padding:18px;box-shadow:7px 7px 0 rgba(21,42,51,.14)}
+.ai-demo.wide{grid-column:1/-1}
+.ai-demo h3{font-size:21px;margin-bottom:8px}
+.ai-demo p{color:var(--ink-2);font-size:15.5px}
+.ai-op{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;font-weight:600;background:var(--sand-100);border:1.5px dashed var(--sand-300);border-radius:10px;padding:8px 11px;margin-top:12px;overflow-wrap:anywhere;color:var(--ink)}
+.ba{position:relative;border:2px solid var(--ink);border-radius:14px;overflow:hidden;background:#0E2A33;margin-bottom:14px}
+.ba .ba-layer{position:absolute;inset:0}
+.ba .ba-layer img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.ba .checker{background:repeating-conic-gradient(#C9D4CE 0% 25%,#F6F1E1 0% 50%);background-size:22px 22px}
+.ba .ba-chip{position:absolute;top:10px;z-index:3;font-family:ui-monospace,Menlo,Consolas,monospace;font-weight:700;font-size:11.5px;letter-spacing:.08em;background:var(--butter);border:2px solid var(--ink);border-radius:6px;padding:3px 8px}
+.ba .ba-chip.l{left:10px}.ba .ba-chip.r{right:10px}
+.ba .ba-div{position:absolute;top:0;bottom:0;left:55%;width:3px;margin-left:-1.5px;background:#fff;box-shadow:0 0 0 1.5px rgba(21,42,51,.55);z-index:2;pointer-events:none}
+.ba .ba-div::after{content:"";position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:30px;height:30px;border-radius:50%;background:var(--coral);border:2.5px solid var(--ink);box-shadow:2px 2px 0 rgba(21,42,51,.35)}
+.ba input[type=range]{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:ew-resize;margin:0;z-index:4;-webkit-appearance:none;appearance:none;background:transparent}
+.crop3{display:grid;grid-template-columns:1.15fr 1fr 1fr;gap:12px;margin-bottom:14px}
+.crop3 figure{margin:0}
+.crop3 img{width:100%;height:auto;border:2px solid var(--ink);border-radius:12px;display:block}
+.crop3 figcaption{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11.5px;font-weight:600;margin-top:6px;color:var(--ink-2);overflow-wrap:anywhere}
+.meta-grid{display:grid;grid-template-columns:.85fr 1.15fr;gap:16px;align-items:start;margin-bottom:14px}
+.meta-grid img{width:100%;height:auto;border:2px solid var(--ink);border-radius:12px;display:block}
+.meta-json{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.8px;line-height:1.65;background:var(--ink);color:#FFE9A8;border-radius:12px;padding:14px 16px;overflow-x:auto;white-space:pre;margin:0}
+@media (max-width:640px){
+  .ai-demos{grid-template-columns:1fr}
+  .crop3{grid-template-columns:1fr 1fr}
+  .crop3 figure:first-child{grid-column:1/-1}
+  .meta-grid{grid-template-columns:1fr}
+  .meta-json{white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px}
+}
+/* CTA */
+.cta-panel{background:var(--tide-deep);border-radius:var(--shell);padding:54px 44px;color:#fff;position:relative;overflow:hidden;box-shadow:var(--shadow-lg)}
+.cta-panel h2{color:#fff}
+.cta-panel .body{color:var(--sea-glass);font-size:17.5px;max-width:560px}
+.cta-flex{display:flex;gap:30px;align-items:center;flex-wrap:wrap}
+.cta-panel .frame{max-width:120px;transform:rotate(2deg);animation:none;padding:7px;margin:0}
+.ring{position:absolute;border:3px solid rgba(255,255,255,.22);border-radius:50%}
+.dockerstrip{margin-top:30px;background:var(--abyss);border-radius:14px;padding:15px 18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.dockerstrip code{color:#DCE9F2;font-size:14px;overflow-wrap:anywhere}
+.cmdstrip{background:var(--abyss);border-radius:10px;padding:12px 14px;margin-top:14px}
+.cmdstrip code{color:#DCE9F2;font-size:13px;overflow-wrap:anywhere}
+.dockerstrip .copybtn{margin-left:auto}
+/* Footer */
+footer{background:var(--tide-deep);color:#CFE8E6;padding:46px 0 40px;position:relative}
+footer .wrap{display:flex;justify-content:space-between;gap:22px;flex-wrap:wrap;align-items:center}
+footer .fbrand{display:flex;align-items:center;gap:12px}
+footer .pebble{width:40px;height:40px;cursor:pointer}
+footer .wordmark{font-weight:900;font-size:19px;color:#fff;letter-spacing:-.02em}
+footer a{color:var(--sea-glass)}
+.signoff{text-align:center;font-size:13.5px;color:#9CC8C4;margin-top:30px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+/* Scene picker (toy) */
+.scene-picker{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 12px}
+.scene-picker .sp-label{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--tide);margin-right:2px}
+.spchip{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:6px 14px 6px 7px;border-radius:999px;border:2px solid var(--ink);background:var(--foam);font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13.5px;font-weight:700;color:var(--ink);cursor:pointer;box-shadow:var(--shadow-sm);transition:transform .14s var(--snap),background .14s}
+.spchip img{width:40px;height:28px;object-fit:cover;border-radius:999px;border:1.5px solid var(--ink);display:block}
+.spchip:hover{transform:translateX(-1px)}
+.spchip[aria-pressed="true"]{background:var(--ink);color:#fff}
+/* Features: mascot cycling through real filter looks (CSS only) */
+.filter-figure{margin:34px 0 4px;display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+.filter-frame{width:190px;max-width:62vw;flex:0 0 auto}
+.filter-frame img{background:#fff;animation:filtercycle 12s ease-in-out infinite}
+.filter-figure figcaption{max-width:300px}
+.filter-figure .fname-live{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--tide);margin-top:10px}
+@keyframes filtercycle{
+  0%,10%{filter:none}
+  17%,27%{filter:grayscale(1)}
+  34%,44%{filter:sepia(.7)}
+  51%,61%{filter:saturate(2.2)}
+  68%,78%{filter:hue-rotate(100deg)}
+  85%,92%{filter:contrast(1.35) brightness(1.15)}
+  100%{filter:none}
+}
+/* AI: gentle scan ring pulse while the porthole is in view (JS toggles .scanning) */
+#aiPorthole.scanning{animation:scanpulse 2.6s ease-out infinite}
+@keyframes scanpulse{
+  0%{box-shadow:5px 5px 0 rgba(20,40,50,.14),0 0 0 0 rgba(14,124,123,.45)}
+  70%,100%{box-shadow:5px 5px 0 rgba(20,40,50,.14),0 0 0 20px rgba(14,124,123,0)}
+}
+/* Responsive: touch targets and tablet layout (900px and under).
+   Desktop rules above are untouched; everything here is scoped. */
+@media(max-width:900px){
+  /* Backstop only. The real overflow fixes are the component rules below. */
+  html,body{overflow-x:clip}
+  .wrap{padding:0 20px}
+  section{padding:72px 0}
+  .anatomy{padding:24px 22px 22px}
+  .ana-panel{min-height:0}
+  /* Every interactive element gets a 44px tall hit area */
+  .mono-link{min-height:44px}
+  .segctl{max-width:100%}
+  .segctl .chipbtn{min-height:44px;padding:8px 13px}
+  .tokbtn{display:inline-flex;align-items:center;min-height:44px;padding:8px 5px}
+  .built .part{display:inline-flex;align-items:center;min-height:44px;padding:6px 4px}
+  .partrow{min-height:44px;flex-wrap:wrap}
+  .partrow code{overflow-wrap:anywhere}
+  .specimen .opname{overflow-wrap:anywhere}
+  .code-window .copy-btn{min-height:44px;padding:10px 15px}
+  footer .wrap>div:last-child{flex-wrap:wrap;max-width:100%}
+  footer a{display:inline-flex;align-items:center;min-height:44px}
+  /* Inputs at 16px stop iOS focus zoom */
+  .ctl input[type=text],.ctl input[type=number],.ctl select{font-size:16px}
+  .ctl input.mono{font-size:16px}
+  .frow input[type=number],.frow input[type=text].hex{font-size:16px;min-height:44px}
+  .frow input[type=color]{height:44px}
+  #pgPadColor{font-size:16px;min-height:44px}
+  #pgPadColorPick{width:48px;height:44px}
+  input[type=checkbox]{width:22px;height:22px;accent-color:var(--tide)}
+  .frow label.ftoggle{display:inline-flex;align-items:center;gap:9px;min-height:44px;cursor:pointer}
+  label:has(>input[type=checkbox]){display:inline-flex;align-items:center;gap:9px;min-height:44px;cursor:pointer}
+  /* Code tabs: a single scrolling row, by design */
+  .tabs{flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:2px}
+  .tabs::-webkit-scrollbar{display:none}
+  .tab{flex:0 0 auto}
+  .code-scroll{max-width:100%}
+  /* Toy chain chips: JS builds .snode spans with small buttons; size them for touch */
+  .stack .snode{display:inline-flex;align-items:center;gap:4px;background:var(--ink);color:#fff;border-radius:999px;padding:4px 4px 4px 12px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;min-height:44px}
+  .stack .snode button{width:44px;height:44px;min-width:44px;border-radius:50%;background:rgba(255,255,255,.14);border:none;color:#fff;cursor:pointer;font-size:14px;line-height:1}
+  .stack .snode button:hover{background:var(--coral)}
+  .schip button{width:44px;height:44px}
+}
+/* Responsive: phones (640px and under) */
+@media(max-width:640px){
+  .anatomy .peek{top:auto;bottom:-4px;right:20px}
+  .outbox .peek{width:80px;height:32px;top:-26px}
+  .panel{padding:22px}
+  .cta-panel{padding:38px 20px}
+  section{padding:56px 0}
+  .wrap{padding:0 16px}
+  h1{font-size:36px;line-height:1.05}
+  h2{font-size:28px}
+  .lede{font-size:17px}
+  .mono{overflow-wrap:anywhere}
+  .hero{padding:40px 0 48px}
+  .hero-grid{gap:30px}
+  .hero-ctas{gap:10px 16px}
+  .note.n1{left:-2px}
+  .note.n2{right:-2px}
+  .frame figcaption{flex-wrap:wrap;gap:4px 10px}
+  .strip{gap:10px;margin-top:36px}
+  /* Header row 1 keeps logo and CTA; the link row scrolls below them */
+  .nav{gap:8px}
+  .logo{font-size:19px;gap:8px}
+  .nav .btn{padding:10px 12px;font-size:14px}
+  /* Anatomy: the URL strip stacks into full width segment rows */
+  .anatomy{padding:18px 14px 20px}
+  .families .flabel{flex:1 1 100%}
+  .strip-url{flex-direction:column;align-items:stretch;gap:6px;line-height:1.5;font-size:14.5px}
+  .strip-url .host{padding:6px 10px;overflow-wrap:anywhere}
+  .strip-url .slash{display:none}
+  .segbtn{width:100%;max-width:100%;padding:9px 11px;white-space:normal;overflow-wrap:anywhere}
+  #filtersSeg{display:flex;flex-wrap:wrap;align-items:center;width:100%}
+  .tokbtn{white-space:normal;overflow-wrap:anywhere;text-align:left}
+  .ana-panel{gap:16px;padding-top:18px}
+  .ana-panel h3 .plain{display:block;margin:4px 0 0}
+  .ana-ex{grid-template-columns:1fr;gap:3px;padding:11px 12px}
+  .ana-rail .bubble{max-width:100%}
+  /* Playground */
+  .pg-grid{gap:22px;margin-top:26px}
+  .segctl{display:flex;width:100%}
+  .segctl .chipbtn{flex:1 1 auto}
+  .wh{gap:8px}
+  .wh>div{flex:1 1 0;min-width:0}
+  .frow{gap:8px}
+  .frow .fparams{flex:1 1 100%;width:100%;gap:10px}
+  .frow .fparams .hint{flex:1 1 100%}
+  .frow input[type=number]{width:92px}
+  .frow input[type=range]{flex:1 1 110px;width:auto;min-height:44px}
+  .outbox{padding:16px 14px 18px}
+  .out-head .snapbtn,.out-head .copybtn{flex:1 1 auto}
+  .built{font-size:13.5px;line-height:1.6}
+  .partrow{flex-direction:column;align-items:flex-start;gap:4px}
+  .partrow span{overflow-wrap:anywhere}
+  .pg-bubble-row{justify-content:flex-start}
+  /* Toy */
+  .toy-grid{gap:22px;margin-top:26px}
+  .toy-win{min-width:52px;min-height:40px}
+  .scene-picker{gap:6px}
+  .spchip{padding:6px 11px 6px 6px;font-size:13px}
+  .readout{font-size:12.5px;overflow-wrap:anywhere}
+  .eql{padding:12px;font-size:12.5px}
+  /* Code: the copy button gets its own clear strip above the code */
+  .code-window{padding:64px 14px 18px;border-radius:0 14px 14px 14px}
+  .code-window pre{font-size:13px}
+  /* CTA and docker line */
+  .cta-flex{gap:18px}
+  .dockerstrip{padding:13px 14px;gap:10px}
+  .dockerstrip code{flex:1 1 100%;font-size:13px}
+  .dockerstrip .copybtn{margin-left:0;flex:1 1 auto}
+  /* Features, AI, footer */
+  .filter-figure{gap:14px;margin-top:26px}
+  .ai-row{gap:12px;padding:18px 2px}
+  .ai-row .marker{flex-basis:44px}
+  .specimen{padding:20px}
+  .vector-card{padding:20px}
+  .rules{padding:20px}
+  .grid3{gap:14px}
+  .buoy .clusters{gap:20px}
+  footer{padding:38px 0 32px}
+  footer .wrap{flex-direction:column;align-items:flex-start}
+}
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important;scroll-behavior:auto!important}
+  html{scroll-behavior:auto}
+  .reveal-l,.reveal-r{opacity:1;transform:none}
+  .frame{animation:none;transform:rotate(-2deg)}
+  /* New mascot treatments are fully off: plain mascot, no filter, no pulse */
+  .filter-frame img{animation:none;filter:none}
+  #aiPorthole.scanning{animation:none}
+}
+
+.nav-icons{display:flex;gap:14px;align-items:center}.nav-icons a{display:inline-flex;color:var(--ink);opacity:.78;transition:opacity .15s}.nav-icons a:hover{opacity:1}.nav-icons svg{width:22px;height:22px;display:block}</style>
+<style>
+.docs-layout{display:grid;grid-template-columns:228px minmax(0,1fr);gap:44px;align-items:start;padding:34px 0 70px}
+.docs-layout>*{min-width:0}
+@media(max-width:640px){.dtable{font-size:13px}.dtable th{padding:8px 10px}.dtable td{padding:8px 10px}.dtable td:first-child{white-space:normal;overflow-wrap:anywhere}.dtable td code{overflow-wrap:anywhere}.demo{padding:16px}}
+@media(max-width:900px){.docs-layout{grid-template-columns:minmax(0,1fr)}}
+.docs-nav{position:sticky;top:92px;background:var(--foam);border:2px solid var(--ink);border-radius:var(--shell);box-shadow:var(--shadow);padding:18px 18px 12px;max-height:calc(100vh - 120px);overflow:auto}
+@media(max-width:900px){.docs-nav{position:static;max-height:none}}
+.docs-nav .dn-title{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--tide);margin-bottom:8px}
+.docs-nav a{display:block;padding:5px 8px;border-radius:8px;color:var(--ink-2);font-size:14.5px;font-weight:600}
+.docs-nav a:hover{background:var(--sand-200);text-decoration:none;color:var(--ink)}
+.doc-sec{padding:30px 0 38px;border-bottom:2px dashed var(--sand-300);scroll-margin-top:96px}
+.doc-sec:first-child{padding-top:6px}
+.doc-sec h2{font-size:clamp(26px,3.4vw,36px)}
+.doc-sec h3{margin-top:26px}
+.doc-sec p{color:var(--ink-2);font-size:16px;margin-top:10px;max-width:760px}
+.doc-sec p b,.doc-sec li b{color:var(--ink)}
+.doc-sec ul{margin:10px 0 0 20px;color:var(--ink-2);font-size:15.5px}
+.doc-sec li{margin-bottom:6px}
+.doc-sec code{background:rgba(20,40,50,.06);padding:1px 6px;border-radius:6px;font-size:.92em;color:var(--coral-deep)}
+.cb{position:relative;background:var(--abyss);border:2px solid var(--ink);border-radius:14px;padding:20px 22px;box-shadow:var(--shadow);margin:14px 0;max-width:820px}
+.cb pre{color:#DCE9F2;font-size:13.5px;line-height:1.7;overflow-x:auto;white-space:pre;font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace}
+.cb .copy-btn{position:absolute;top:10px;right:10px;background:var(--abyss-2);color:#fff;border:1px solid rgba(255,255,255,.25);padding:7px 14px;border-radius:999px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:ui-monospace,Menlo,Consolas,monospace;z-index:6}
+.cb .copy-btn:hover{background:#24455F}
+.cb .copy-btn.ok{background:var(--tide)}
+.dtable{width:100%;border-collapse:collapse;margin:14px 0;font-size:14.5px;background:var(--foam);border:1.5px solid var(--ink);border-radius:12px;overflow:hidden}
+.dtable th{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;letter-spacing:.1em;text-transform:uppercase;text-align:left;background:var(--sand-200);color:var(--tide-deep);padding:10px 14px}
+.dtable td{padding:9px 14px;border-top:1.5px dashed var(--sand-300);color:var(--ink-2);vertical-align:top}
+.dtable td:first-child{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13.5px;color:var(--ink);white-space:nowrap}
+.dtablewrap{overflow-x:auto}
+.demo{background:var(--foam);border:2px solid var(--ink);border-radius:var(--shell);box-shadow:var(--shadow);padding:22px;margin:18px 0;max-width:820px}
+.demo .dlabel{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--tide);margin-bottom:12px}
+.demo img.dimg{width:100%;height:auto;border:2px solid var(--ink);border-radius:12px;display:block}
+.sliderow{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:9px 0}
+.sliderow label{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;font-weight:700;min-width:118px}
+.sliderow input[type=range]{flex:1 1 160px;accent-color:var(--coral)}
+.sliderow .sval{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;min-width:44px}
+.ana-lite .defbox{margin-top:18px;border-top:1px solid rgba(255,255,255,.14);padding-top:16px;font-size:15.5px;color:#DCE9F2;min-height:56px}
+.ana-lite .defbox b{color:#fff}
+.anatomy{margin-top:20px}
+input[type=number].din,select.din,input[type=text].din{padding:9px 11px;border:2px solid var(--sand-300);border-radius:10px;font:inherit;font-size:14.5px;background:#fff}
+</style>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-56Q9ZPMWLX"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-56Q9ZPMWLX');
+</script>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<symbol id="clawmark" viewBox="0 0 24 24"><path d="M10 3C6.5 7 6.5 13 10 17l2 4 2-4c3.5-4 3.5-10 0-14"/></symbol>
+</defs></svg>
+
+<header>
+  <div class="wrap nav">
+    <a class="logo" href="index.html" style="font-family:'Fraunces',Georgia,'Times New Roman',serif;font-size:24px;letter-spacing:-0.01em;gap:10px"><svg width="30" height="30" viewBox="0 0 32 32" aria-hidden="true" style="flex:none"><circle cx="16" cy="18" r="11" fill="#E8482F"/><circle cx="11" cy="13" r="4.5" fill="#FBF2DF"/><circle cx="24" cy="6" r="3.4" fill="#E8482F"/><circle cx="8" cy="6" r="3" fill="#E8482F"/></svg> crabcrop</a>
+    <nav class="nav-links" aria-label="Sections">
+      <a href="index.html">Home</a><a href="index.html#install">Install</a><a href="index.html#formats">Formats</a>
+      <a href="index.html#features">Features</a>
+    </nav>
+    <div class="nav-icons"><a href="https://github.com/dayvson/crabcrop" target="_blank" rel="noopener" aria-label="crabcrop on GitHub"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg></a><a href="https://crates.io/crates/crabcrop-url" target="_blank" rel="noopener" aria-label="crabcrop-url on crates.io"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path opacity=".45" d="M12 2.5 21.5 7 12 11.5 2.5 7Z"/><path opacity=".7" d="M2.5 7 12 11.5v10L2.5 17Z"/><path d="M21.5 7 12 11.5v10L21.5 17Z"/></svg></a></div>
+  </div>
+  <div class="foam" aria-hidden="true"></div>
+</header>
+
+<main>
+<div class="wrap">
+  <div style="padding-top:36px">
+    <div class="tidemark"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg> Documentation</div>
+    <h1 style="font-size:clamp(34px,5vw,54px)">Every operation, <span class="coral">section by section.</span></h1>
+    <p class="lede" style="margin-top:14px">The complete reference: what each segment does, what it accepts, and what it looks like. Demos are honest previews, labeled where your browser stands in for the server. The product README in the repo carries the same contract.</p>
+  </div>
+
+  <div class="docs-layout">
+    <aside class="docs-nav" aria-label="Documentation sections">
+      <div class="dn-title">Sections</div>
+      <a href="#start">Getting started</a>
+      <a href="#signing">Signing</a>
+      <a href="#anatomy">URL anatomy and expiry</a>
+      <a href="#size">Size and crop</a>
+      <a href="#adjust">Adjustments</a>
+      <a href="#effects">Effects and shape</a>
+      <a href="#overlays">Overlays and text</a>
+      <a href="#format">Format and quality</a>
+      <a href="#frames">Video frames</a>
+      <a href="#pages">PDF pages</a>
+      <a href="#ai">AI operations</a>
+      <a href="#studio">Studio mode</a>
+      <a href="#presets">Presets</a>
+      <a href="#roots">Source roots</a>
+      <a href="#sources">Sources and safety</a>
+      <a href="#meta">Meta endpoint</a>
+      <a href="#provenance">Provenance (C2PA)</a>
+      <a href="#explain">Explain</a>
+      <a href="#purge">Purge</a>
+      <a href="#upload">Upload</a>
+      <a href="#sdks">SDKs and loaders</a>
+      <a href="#mcp">MCP</a>
+      <a href="#cli">Command line</a>
+      <a href="#migrating">Migrating</a>
+      <a href="#deploy">Deployment and CDN</a>
+      <a href="#errors">Errors</a>
+      <a href="#config">Configuration</a>
+    </aside>
+
+    <div>
+
+    <!-- GETTING STARTED -->
+    <section class="doc-sec" id="start">
+      <h2>Getting started</h2>
+      <p>Crabcrop is one Rust binary. Install it, give it a secret, and request images with the operations written into the URL. There are no pre-generated thumbnails and no build step: the URL is the API.</p>
+      <h3>Install</h3>
+      <div class="cb"><button class="copy-btn" type="button" data-copytarget>Copy</button><pre># Shell installer (macOS and Linux)
+curl --proto '=https' --tlsv1.2 -LsSf https://github.com/dayvson/crabcrop/releases/latest/download/crabcrop-installer.sh | sh
+
+# Docker: the base image, and the AI variant
+docker pull ghcr.io/dayvson/crabcrop:0.9.5
+docker pull ghcr.io/dayvson/crabcrop-ai:0.9.5</pre></div>
+      <p>The AI variant ships only the background removal (u2netp) and face detection (YuNet) models. Every other AI feature needs its own model configured, and answers <code>501</code> without one; see <a href="#ai">AI operations</a>.</p>
+      <p>Prebuilt tarballs for macOS and Linux, on x86_64 and arm64, are on the <a href="https://github.com/dayvson/crabcrop/releases" target="_blank" rel="noopener">releases page</a>.</p>
+      <p>Building from source instead (<code>cargo run</code>, <code>cargo build</code>, or <code>cargo install crabcrop</code>) needs a C compiler and, on x86_64, nasm. Meson and ninja are needed only for the vendored AVIF decode route.</p>
+      <h3>Quickstart</h3>
+      <div class="cb"><button class="copy-btn" type="button" data-copytarget>Copy</button><pre># 1. Start the server. A secret is required; unsafe is for local dev only.
+CRABCROP_SECRET=local-dev-secret CRABCROP_ALLOW_UNSAFE=1 crabcrop
+# crabcrop listening on port 3000
+
+# 2. Request an image: resize a source photo to 300x200.
+curl "http://localhost:3000/unsafe/300x200/https://example.com/photo.jpg" --output photo.jpg
+
+# 3. In production, drop CRABCROP_ALLOW_UNSAFE and sign the URL instead.
+curl "http://localhost:3000/9e24ae8bf61c0d40cb6f1ca9f9e1d3e771f6c8bc8b8ab7270e6d15458d4c14ab/300x200/https://example.com/photo.jpg" --output photo.jpg</pre></div>
+      <p>Every image request has three parts: <code>GET /&lt;signature&gt;/&lt;operations&gt;/&lt;source-url&gt;</code>. Operations apply in path order. Requested outputs are capped at 16383 px per axis and 100 megapixels in total; a request past either bound fails with <code>400</code> before anything is allocated.</p>
+    </section>
+
+    <!-- SIGNING -->
+    <section class="doc-sec" id="signing">
+      <h2>Signing</h2>
+      <p>Take the remainder of the path. The remainder is the operations and the source URL, exactly as they appear, with no leading slash. Compute HMAC-SHA256 over the remainder. Use your <code>CRABCROP_SECRET</code> as the key. Encode the result in hex. Put the result in the first path segment. A request with a bad signature gets <code>403</code> and the body <code>bad signature</code>. The literal signature <code>unsafe</code> skips verification only when the server runs with <code>CRABCROP_ALLOW_UNSAFE=1</code>. Keep it off in production.</p>
+      <div style="margin-top:18px">
+        <div class="tabs" role="tablist" aria-label="Signing examples by language">
+          <button class="tab active" data-pane="curl" type="button" role="tab" aria-selected="true">curl</button>
+          <button class="tab" data-pane="ts" type="button" role="tab" aria-selected="false">TypeScript</button>
+          <button class="tab" data-pane="py" type="button" role="tab" aria-selected="false">Python</button>
+          <button class="tab" data-pane="rs" type="button" role="tab" aria-selected="false">Rust</button>
+        </div>
+        <div class="code-window">
+          <button class="copy-btn" type="button" data-copytarget>Copy snippet</button>
+          <div class="code-scroll">
+          <div class="code-pane active" data-pane="curl" role="tabpanel"><pre>printf <span class="s">'%s'</span> <span class="s">'300x200/https://example.com/photo.jpg'</span> \
+  | openssl dgst -sha256 -hmac <span class="s">'your-secret'</span>
+<span class="c"># SHA2-256(stdin)= 3c1f6c180116661877bd4c85fd201a178087d74c1cc188cc584e819d901308c6</span></pre></div>
+          <div class="code-pane" data-pane="ts" role="tabpanel"><pre><span class="k">import</span> { buildURL, buildSrcSet, purgeSignature } <span class="k">from</span> <span class="s">"@crabcrop/url"</span>;
+
+<span class="k">const</span> url = buildURL({
+  base: <span class="s">"https://img.example.com"</span>,
+  secret: <span class="s">"your-secret"</span>,
+  operations: <span class="s">"crop:1200x630:smart/filters:format(webp):quality(80)"</span>,
+  source: <span class="s">"https://example.com/photo.jpg"</span>,
+});
+
+<span class="k">const</span> srcset = buildSrcSet({ <span class="c">/* same options */</span> }, [400, 800, 1200]);</pre></div>
+          <div class="code-pane" data-pane="py" role="tabpanel"><pre><span class="k">from</span> crabcrop_url <span class="k">import</span> build_url, build_srcset, purge_signature
+
+url = build_url(
+    base=<span class="s">"https://images.example.com"</span>,
+    secret=<span class="s">"your-secret"</span>,
+    operations=<span class="s">"300x200/filters:grayscale"</span>,
+    source=<span class="s">"https://example.com/photo.jpg"</span>,
+)
+
+srcset = build_srcset(..., widths=[400, 800, 1200])</pre></div>
+          <div class="code-pane" data-pane="rs" role="tabpanel"><pre><span class="k">use</span> crabcrop_url::{build_url, sign};
+
+<span class="k">let</span> signature = sign(secret, <span class="s">"300x200/https://example.com/photo.jpg"</span>);
+<span class="k">let</span> url = build_url(base, secret,
+    <span class="s">"crop:1200x630:smart/filters:format(avif):quality(auto)"</span>,
+    <span class="s">"https://example.com/photo.jpg"</span>)?;</pre></div>
+          </div>
+        </div>
+      </div>
+      <h3>Test vectors</h3>
+      <p>Check any implementation against these vectors. Secret <code>Jefe</code>, message <code>what do ye want for nothing?</code>, gives HMAC-SHA256 <code>ba5396e10039ec002bf1fde117eee48df8c2f06bc47b5f2d3272ea77f6862da9</code>. Secret <code>your-secret</code>, remainder <code>300x200/https://example.com/photo.jpg</code>, gives HMAC-SHA256 <code>3c1f6c180116661877bd4c85fd201a178087d74c1cc188cc584e819d901308c6</code>. Every SDK runs the standard vectors from <code>spec/test-vectors.json</code> as its test suite. So the client and the server cannot drift apart.</p>
+      <h3>Key IDs and rotation</h3>
+      <p>A signature segment can carry a key ID: <code>&lt;key-id&gt;:&lt;tag&gt;</code>. During a rotation window, the server checks two secrets. It checks the current secret (<code>CRABCROP_SECRET</code>). It checks the outgoing secret (<code>CRABCROP_SECRET_PREVIOUS</code>). So URLs that are already public keep working. They keep working until the URLs under the old key age out. An unknown key ID looks the same as a bad signature: <code>403</code>. The response gives no hint about which key IDs exist. Builders set the key ID with the <code>keyId</code> or <code>key_id</code> option. On the CLI, use <code>crabcrop sign --key-id</code>.</p>
+      <h3 id="sealed">Sealed URLs</h3>
+      <p>Signing proves that a person with the secret made the URL. But signing hides nothing. Anyone can read the operations and the source in the path. A sealed URL encrypts the whole remainder. It puts an opaque token in place of the signature. The token starts with <code>s1.</code>. After it comes base64url text: the nonce, the ciphertext, and the authentication tag. The seal uses AES-256-GCM. The key comes from the same <code>CRABCROP_SECRET</code>. You manage no second secret. Key rotation works the same as for signatures, with key IDs. Make a sealed URL with the CLI (<code>crabcrop seal</code>). Or use the seal builders in the Rust, TypeScript, and Python SDKs. Python sealing needs the <code>crabcrop-url[seal]</code> extra.</p>
+      <p>The payload is the whole remainder: the operations and the source together. So a sealed URL serves exactly what the plain form serves. The server opens the token. Then it runs the same pipeline. Both forms share one cache entry. They share one ETag. They share one purge target. Any text after the token is a friendly name. The name is cosmetic only. It makes the link read as an image in logs and in page source. The server never parses the name. You can leave the name off. Builders refuse a remainder over 2,048 bytes. The server refuses a token over 4,096 characters.</p>
+      <p>Every sealed failure returns the same <code>403</code> and the same body, <code>bad signature</code>. A malformed token gives this result. A token made under another secret gives this result. A token whose payload does not parse gives this result. You cannot tell the three apart. One case is different. A token that opens but is past its expiry returns <code>signature expired</code>. The plain form does the same. <code>/explain</code> refuses sealed URLs. It does not decrypt them. An endpoint that opens tokens gives a way to read any token. Anyone who copies a token from a public page could read it that way. To debug a sealed link, unseal it on your own machine with your own secret. Use <code>crabcrop unseal</code>, or the <code>unseal</code> builders in the SDKs. Then explain the plain form. The meta response for a sealed request also reports the result only. It never reports the recipe.</p>
+      <p>Know what sealing does not do. Sealing hides the recipe from people who read the page. These are the visitors and competitors who can see the link. Sealing does not hide the request itself. A CDN or another network intermediary still sees the request pass. TLS gives privacy for the transport. Sealing is not access control. A sealed URL is a bearer URL. Anyone can replay it, exactly as with a signed URL. Access control stays with the source allowlist, with expiry, and with the system in front of the deployment. For most links, the readable form is the better default. It stays the recommendation. Sealing is the opt-in choice. Use it for links that must be public and unreadable at the same time.</p>
+    </section>
+
+    <!-- ANATOMY -->
+    <section class="doc-sec" id="anatomy">
+      <h2>URL anatomy and expiry</h2>
+      <p>Click a segment. The strip is the whole grammar at a glance: one signature, zero or more operation segments, then the source, which starts at the first segment that is not an operation and may itself contain slashes.</p>
+      <div class="anatomy ana-lite">
+        <div class="strip-url" role="group" aria-label="Anatomy of a crabcrop URL">
+          <span class="host">https://img.example.com</span><span class="slash">/</span><button class="segbtn c-sig" type="button" data-seg="sig" aria-pressed="true">3c1f6c18…</button><span class="slash">/</span><button class="segbtn c-exp" type="button" data-seg="exp" aria-pressed="false">exp:1893456000</button><span class="slash">/</span><button class="segbtn c-ops" type="button" data-seg="ops" aria-pressed="false">crop:1200x630:smart</button><span class="slash">/</span><button class="segbtn c-ops" type="button" data-seg="filters" aria-pressed="false">filters:grayscale:quality(80)</button><span class="slash">/</span><button class="segbtn c-src" type="button" data-seg="source" aria-pressed="false">https://example.com/photo.jpg</button>
+        </div>
+        <div class="defbox" id="anaDef" aria-live="polite"><b>Signature.</b> Proof the URL came from you. The server recomputes the HMAC-SHA256 over the operations and source exactly as they appear. A match serves the image; a miss gets a 403.</div>
+      </div>
+      <h3>Expiring URLs</h3>
+      <p>Add an <code>exp:&lt;unix-seconds&gt;</code> segment anywhere among the operations. It is inside the signed remainder, so the HMAC covers it: extending the expiry without the secret breaks the signature. The URL is valid strictly before its <code>exp</code> second, with no clock skew allowance. Past it, the request gets <code>403</code> with the body <code>signature expired</code>, and expired URLs never serve from cache. URLs without <code>exp:</code> never expire.</p>
+      <div class="cb"><button class="copy-btn" type="button" data-copytarget>Copy</button><pre>/&lt;signature&gt;/exp:1893456000/300x200/https://example.com/photo.jpg</pre></div>
+      <h3>Per-request cache lifetime</h3>
+      <p>Image responses normally carry <code>Cache-Control: public, max-age=31536000, immutable</code>, because a signed URL's bytes never change. A <code>maxage:&lt;seconds&gt;</code> segment (0 to 31536000) overrides the max-age for that response only. It changes the header, never the cache key, so URLs differing only in <code>maxage</code> share one stored image. <code>maxage:0</code> drops <code>immutable</code>: caches must revalidate, and every cacheable response carries a strong <code>ETag</code> so revalidation can answer <code>304 Not Modified</code>.</p>
+    </section>
+
+    <!-- SIZE AND CROP -->
+    <section class="doc-sec" id="size">
+      <h2>Size and crop</h2>
+      <p>One sizing move per position in the path, applied in order. Try the builder: it assembles the operation exactly as the server parses it.</p>
+      <div class="demo">
+        <div class="dlabel">Demo: size operation builder</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+          <select class="din" id="szOp" aria-label="Size operation">
+            <option value="size">Resize (WxH)</option>
+            <option value="fit-in">fit-in</option>
+            <option value="pad">pad</option>
+            <option value="crop" selected>crop</option>
+            <option value="crop-rect">crop-rect</option>
+          </select>
+          <input class="din" type="number" id="szW" value="1200" min="0" max="16383" aria-label="Width or left">
+          <span class="mono">x</span>
+          <input class="din" type="number" id="szH" value="630" min="0" max="16383" aria-label="Height or top">
+          <span id="szRectWrap" hidden><span class="mono">:</span>
+          <input class="din" type="number" id="szR" value="700" min="0" max="16383" aria-label="Right">
+          <span class="mono">x</span>
+          <input class="din" type="number" id="szB" value="450" min="0" max="16383" aria-label="Bottom"></span>
+          <select class="din" id="szAlign" aria-label="Crop alignment">
+            <option value="">center (default)</option>
+            <option value="smart" selected>smart</option>
+            <option value="face">face</option>
+            <option value="top">top</option>
+            <option value="bottom">bottom</option>
+            <option value="left">left</option>
+            <option value="right">right</option>
+            <option value="top-left">top-left</option>
+            <option value="top-right">top-right</option>
+            <option value="bottom-left">bottom-left</option>
+            <option value="bottom-right">bottom-right</option>
+          </select>
+          <select class="din" id="szPadFill" aria-label="Pad fill" hidden>
+            <option value="">no fill named</option>
+            <option value="blur" selected>blur</option>
+            <option value="ff0000">ff0000 (hex)</option>
+          </select>
+        </div>
+        <p class="readout" style="margin-top:14px">Operation segment:</p>
+        <div class="eql" id="szEq">crop:1200x630:smart</div>
+        <p class="honest" id="szNote">Crop to the aspect ratio, then resize to exactly that size. smart centers on a detected face when a face model is configured, else on the point of greatest local detail.</p>
+      </div>
+      <h3>Resize</h3>
+      <div class="dtablewrap"><table class="dtable"><tr><th>Form</th><th>Result</th></tr>
+      <tr><td>300x200</td><td>Exactly 300 by 200 px.</td></tr>
+      <tr><td>300x0 or 300x</td><td>Width 300 px, height scaled proportionally.</td></tr>
+      <tr><td>0x200 or x200</td><td>Height 200 px, width scaled proportionally.</td></tr>
+      <tr><td>0x0</td><td>Original size.</td></tr>
+      <tr><td>origx100</td><td>Source width, height 100 px. <code>orig</code> works on either axis.</td></tr>
+      <tr><td>-300x200</td><td>Resize to 300 by 200 and flip horizontally. A negative height flips vertically.</td></tr></table></div>
+      <h3>Fit inside a box</h3>
+      <p><code>fit-in:&lt;width&gt;x&lt;height&gt;[:adaptive]</code> scales proportionally so the image fits inside the box. A <code>0</code> axis is unbounded. Flips are not allowed here. With <code>:adaptive</code>, the box axes swap when the source orientation disagrees with the box's, so a portrait photo in a landscape box is not squeezed by the tighter axis.</p>
+      <h3>Pad to an exact size</h3>
+      <p><code>pad:&lt;width&gt;x&lt;height&gt;[:&lt;fill&gt;]</code> fits inside the box, centers the image, and fills the rest of the canvas so the output is exactly the requested size. The fill is a 6-digit hex color, or <code>blur</code> for ambient bars made from a cover-scaled, heavily blurred copy of the image itself. Both dimensions are required: a <code>0</code> axis, <code>orig</code>, and flips are rejected.</p>
+      <h3>Crop to an aspect ratio</h3>
+      <p><code>crop:&lt;width&gt;x&lt;height&gt;[:&lt;align&gt;]</code> crops to the width:height aspect ratio, then resizes to exactly that size. Align picks what survives: <code>center</code> (the default), <code>top</code>, <code>bottom</code>, <code>left</code>, <code>right</code>, the four corners (each keeps that corner's edges on whichever axis is cut), <code>smart</code> (a window on the focal point: a detected face when a face model is configured, otherwise the point of greatest local detail; the window shifts to keep detected faces whole), and <code>face</code> (a window around the largest detected face, padded by <code>facepad</code>; falls back to the smart window when no face is found).</p>
+      <h3>Crop a rectangle, focal rectangle, focal point, debug view</h3>
+      <p><code>crop-rect:&lt;left&gt;x&lt;top&gt;:&lt;right&gt;x&lt;bottom&gt;</code> cuts the exact pixel rectangle between two corners; a rectangle outside the source fails with <code>400</code>, it is not clamped. A <code>focal:</code> segment in the same form names the rectangle the next <code>crop:</code> must keep: center and smart crops position their window on it, and a smart crop with one pending skips detection entirely. A <code>focalpoint:</code> segment names the point the next <code>crop:</code> centers on instead, as fractions of the image dimensions with an optional zoom: <code>focalpoint:&lt;x&gt;x&lt;y&gt;[:&lt;zoom&gt;]</code>, so <code>focalpoint:0.75x0.4:2</code> is three quarters across and two fifths down, at zoom 2. Center and smart crops position on the point; the directional alignments and <code>face</code> ignore it, and when a URL carries both focal forms, the last one before the crop wins. At zoom 1 the crop is the ordinary fill crop positioned on the point; above 1 the window tightens around the point, and below 1 it loosens toward the fill window, which it can never exceed. The zoom runs from above 0 to 100 and defaults to 1. Because the point is fractional it addresses whatever image is in effect at that point in the chain and can never fall outside it, so there is no bounds failure: this is the form imgix focal-point crops (<code>fp-x</code>, <code>fp-y</code>, <code>fp-z</code>) migrate to, with the fractions and the zoom carried over as written. Coordinates address source pixels and are not scaled by <code>dpr</code>. <code>debug:focal</code> renders a diagnostic image instead of the result, with the chosen focal point, face boxes, and crop window drawn on it; debug responses are never cached.</p>
+      <div class="cb"><button class="copy-btn" type="button" data-copytarget>Copy</button><pre>curl "http://localhost:3000/unsafe/crop:1200x630:top/https://example.com/photo.jpg"
+curl "http://localhost:3000/unsafe/crop-rect:100x50:700x450/https://example.com/photo.jpg"
+curl "http://localhost:3000/unsafe/focal:100x50:700x450/crop:800x600:smart/https://example.com/photo.jpg"
+curl "http://localhost:3000/unsafe/focalpoint:0.75x0.4:2/crop:800x600/https://example.com/photo.jpg"</pre></div>
+    </section>
+
+    <!-- ADJUSTMENTS -->
+    <section class="doc-sec" id="adjust">
+      <h2>Adjustments</h2>
+      <p>Pixel filters change the image itself. They chain inside one <code>filters:</code> segment, separated by <code>:</code>, and run in the order written. A filter with no parameters may omit the parentheses. When a directive repeats, the last one wins. Drag the sliders: the chain under the photo is the exact server syntax for the look.</p>
+      <div class="demo">
+        <div class="dlabel">Demo: adjustment sliders (CSS preview)</div>
+        <img class="dimg" id="adjImg" src="https://images.crabcrop.org/d6ef00b818934ffc2b2469f37890ff27d65781e92a4bb23c1089730212bcaefe/preset:site-photo/root:site/scene-surf.jpg" data-thumbhash="4gcGJYrCGESod4pyZPaGjAaFc3A4" alt="A surfer scene, with the adjustment sliders applied as a CSS preview" width="1200" height="800">
+        <div style="margin-top:14px">
+          <div class="sliderow"><label for="adjContrast">contrast</label><input type="range" id="adjContrast" min="-100" max="100" value="25"><span class="sval" id="adjContrastV">25</span></div>
+          <div class="sliderow"><label for="adjBrighten">brighten</label><input type="range" id="adjBrighten" min="-255" max="255" value="0"><span class="sval" id="adjBrightenV">0</span></div>
+          <div class="sliderow"><label for="adjSat">saturation</label><input type="range" id="adjSat" min="0" max="200" value="100"><span class="sval" id="adjSatV">1.0</span></div>
+          <div class="sliderow"><label for="adjBlur">blur</label><input type="range" id="adjBlur" min="0" max="50" value="0"><span class="sval" id="adjBlurV">0</span></div>
+        </div>
+        <div class="eql" id="adjEq" style="margin-top:12px">filters:contrast(25)</div>
+        <p class="honest">CSS preview. Your browser approximates the look; the server applies the real filters to the actual pixels. Blur strength and brighten do not map one to one.</p>
+      </div>
+      <div class="dtablewrap"><table class="dtable"><tr><th>Filter</th><th>Parameters</th><th>What it does</th></tr>
+      <tr><td>contrast</td><td>percent, -100 to 100; 0 unchanged, -100 flat gray</td><td>Adjust contrast.</td></tr>
+      <tr><td>gamma</td><td>divisor from above 0 to 10; 1 is unchanged, above 1 brightens midtones, below 1 darkens them</td><td>Gamma correction: each channel value <code>v</code> becomes <code>255 * (v / 255)^(1 / g)</code>, the levels-style midtone gamma. Black and white stay fixed at every setting, and alpha is untouched. The gamma value from another tool carries over as written: <code>filters:gamma(2.2)</code>.</td></tr>
+      <tr><td>brighten</td><td>integer -255 to 255, clamped per channel</td><td>Brighten, or darken with a negative value.</td></tr>
+      <tr><td>saturation</td><td>0 to 255; 0 is grayscale, 1 is unchanged</td><td>Scale color saturation.</td></tr>
+      <tr><td>blur</td><td>sigma, a positive number up to 512</td><td>Gaussian blur.</td></tr>
+      <tr><td>sharpen</td><td>strength, a positive number</td><td>Unsharp-mask sharpening.</td></tr>
+      <tr><td>huerotate</td><td>degrees, integer</td><td>Rotate the hue.</td></tr>
+      <tr><td>rgb</td><td>per-channel offsets, each -255 to 255</td><td>Add offsets to the red, green, and blue channels: <code>rgb(10,-5,0)</code>.</td></tr>
+      <tr><td>curve</td><td>a channel (rgb, r, g, b), then 2 to 16 x,y control points</td><td>Remap tones through the control points. The fine tone control the additive filters only approximate: <code>curve(r,0,64,255,255)</code>.</td></tr>
+      <tr><td>convolution</td><td>9 (3x3) or 25 (5x5) kernel values, then a normalize flag</td><td>Apply your own kernel, for the sharpen, blur, and edge styles the built-ins do not cover.</td></tr>
+      <tr><td>equalize</td><td>none</td><td>Histogram equalization, per channel.</td></tr>
+      <tr><td>noise</td><td>strength, integer 0 to 100, percent of full scale</td><td>Monochrome film grain, deterministic: the same request always returns the same bytes.</td></tr></table></div>
+      <div class="cb"><button class="copy-btn" type="button" data-copytarget>Copy</button><pre>curl "http://localhost:3000/unsafe/600x400/filters:sharpen(1.2):saturation(1.1)/https://example.com/photo.jpg"</pre></div>
+    </section>
+
+    <!-- EFFECTS -->
+    <section class="doc-sec" id="effects">
+      <h2>Effects and shape</h2>
+      <p>Tones, geometry, and the shape of the frame itself. Toggle the looks; radius, border, and mask need an output format that carries alpha, and the preview notes where CSS cannot follow.</p>
+      <div class="demo">
+        <div class="dlabel">Demo: effect chips (CSS preview)</div>
+        <img class="dimg" id="fxImg" src="https://images.crabcrop.org/7a31b3720248619d7de81676fd2e0535cc67d8f3c9b24d7649be9c6cc24f14de/preset:site-photo/root:site/scene-camera.jpg" data-thumbhash="pDgOFYamiFiPd4h7d7d3eQiCoUAY" alt="A camera scene, with the selected effects applied as a CSS preview" width="1200" height="800">
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:14px" id="fxChips">
+          <button class="chipbtn coral" type="button" data-fx="grayscale" data-css="grayscale(1)">grayscale</button>
+          <button class="chipbtn coral" type="button" data-fx="sepia" data-css="sepia(.75)">sepia</button>
+          <button class="chipbtn coral" type="button" data-fx="invert" data-css="invert(1)">invert</button>
+          <button class="chipbtn coral" type="button" data-fx="huerotate(90)" data-css="hue-rotate(90deg)">huerotate(90)</button>
+          <button class="chipbtn coral" type="button" data-fx="flip(h)" data-css="scaleX(-1)">flip(h)</button>
+        </div>
+        <div class="eql" id="fxEq" style="margin-top:12px">filters: (none yet)</div>
+        <p class="honest">CSS preview of the look filters. <code>radius</code>, <code>border</code>, <code>mask</code>, <code>duotone</code>, <code>monochrome</code>, <code>pixelate</code>, and <code>trim</code> run on the server's real pixels.</p>
+      </div>
+      <div class="dtablewrap"><table class="dtable"><tr><th>Filter</th><th>Parameters</th><th>What it does</th></tr>
+      <tr><td>grayscale</td><td>none</td><td>Desaturate to gray.</td></tr>
+      <tr><td>invert</td><td>none</td><td>Invert every channel.</td></tr>
+      <tr><td>sepia</td><td>none</td><td>The classic warm sepia tone.</td></tr>
+      <tr><td>duotone</td><td>two hex colors</td><td>Map shadows to the first color and highlights to the second, by luminance: <code>duotone(1a1a40,ffd9a0)</code>.</td></tr>
+      <tr><td>monochrome</td><td>one hex color</td><td>Single-hue rendering: each pixel's luminance scaled by the color.</td></tr>
+      <tr><td>pixelate</td><td>block size in px, 1 to 16383</td><td>Mosaic the image into square blocks painted with their average.</td></tr>
+      <tr><td>rotate</td><td>angle in degrees, up to 36000; decimals and negatives allowed</td><td>Quarter turns are exact; other angles expand the canvas and fill the corners.</td></tr>
+      <tr><td>flip</td><td>flip(h) or flip(v)</td><td>Mirror the image at this point in the chain.</td></tr>
+      <tr><td>trim</td><td><code>trim</code>, <code>trim(20)</code>, or <code>trim(20,5,0,5,0)</code>: tolerance 0 to 255, default 10; the five-argument form adds pixels to remove from the left, top, right, and bottom</td><td>Crop away the border that matches the top-left corner color within the tolerance. With five arguments, the named pixels come off each side of what the tolerance pass leaves, clamped so at least one pixel survives on each axis.</td></tr>
+      <tr><td>radius</td><td>one value, or four in CSS corner order, each up to 16383</td><td>Round the corners, antialiased. Output format must carry alpha.</td></tr>
+      <tr><td>border</td><td>width 0 to 16383 and a hex color</td><td>Paint an opaque band inside the frame. Width 0 is a no-op. Works on any format.</td></tr>
+      <tr><td>mask</td><td>mask(circle) or mask(ellipse)</td><td>Keep only the inscribed shape; the rest becomes transparent.</td></tr>
+      <tr><td>blur_region</td><td>x, y, w, h in pixels</td><td>Gaussian-blur one rectangle. A region that overflows the image is an error, not a partial redaction.</td></tr>
+      <tr><td>pixelate_region</td><td>x, y, w, h in pixels</td><td>Pixelate one rectangle, with the same bounds rule.</td></tr></table></div>
+    </section>
+
+    <!-- OVERLAYS -->
+    <section class="doc-sec" id="overlays">
+      <h2>Overlays and text</h2>
+      <p>Three filters composite onto the image. Overlay images are fetched through the same loader, limits, and source policy as source images, and a failed overlay fails the request with <code>502</code> instead of being skipped. These run on the server's pixels at the filter's position in the chain, so there is no honest browser stand-in: the examples below are the exact requests.</p>
+      <h3>Watermark</h3>
+      <p><code>filters:watermark(&lt;url&gt;,&lt;x&gt;,&lt;y&gt;,&lt;alpha&gt;)</code>. The URL is percent-encoded (it lives inside a path segment). Negative x and y anchor from the right and bottom edges. Alpha runs 0 (invisible) to 100 (opaque), and the watermark's own alpha is honored.</p>
+      <div class="cb"><button class="copy-btn" type="button" data-copytarget>Copy</button><pre># Overlay a logo at the bottom right, 80% opaque
+curl "http://localhost:3000/unsafe/filters:watermark(https%3A%2F%2Fcdn.example.com%2Flogo.png,-10,-10,80)/https://example.com/photo.jpg"</pre></div>
+      <h3>Overlay with blend modes</h3>
+      <p><code>filters:overlay(&lt;url&gt;,&lt;x&gt;,&lt;y&gt;,&lt;alpha&gt;,&lt;blend&gt;[,&lt;width&gt;])</code> generalizes the watermark: <code>blend</code> is <code>normal</code>, <code>multiply</code>, <code>screen</code>, or <code>overlay</code> (the CSS formulas per channel), and the optional width scales the overlay to that percentage of the base image's width before compositing. The base image's alpha channel is preserved.</p>
+      <div class="cb"><button class="copy-btn" type="button" data-copytarget>Copy</button><pre>curl "http://localhost:3000/unsafe/filters:overlay(https%3A%2F%2Fcdn.example.com%2Ftexture.png,0,0,60,multiply,100)/https://example.com/photo.jpg"</pre></div>
+      <h3>Text</h3>
+      <p><code>filters:text(&lt;text&gt;,&lt;size&gt;,&lt;color&gt;,&lt;anchor&gt;)</code> draws a label with a font configured on the server (<code>CRABCROP_FONT_PATH</code>; with no font configured, text requests fail with <code>501</code>). Size is 1 to 1000 px; color is <code>rrggbb</code> or <code>rrggbbaa</code>; anchor is one of nine grid points, from <code>top-left</code> to <code>bottom-right</code>. Put <code>text</code> after your resize so it draws sharp at the final resolution.</p>
+      <div class="cb"><button class="copy-btn" type="button" data-copytarget>Copy</button><pre>curl "http://localhost:3000/unsafe/800x600/filters:text(Sale%20ends%20soon,32,ffffff,bottom-right)/https://example.com/photo.jpg"</pre></div>
+    </section>
+
+    <!-- FORMAT -->
+    <section class="doc-sec" id="format">
+      <h2>Format and quality</h2>
+      <p>Encoding directives leave the pixels alone and steer the encoder. Build one:</p>
+      <div class="demo">
+        <div class="dlabel">Demo: encoding directive builder</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+          <select class="din" id="fmFormat" aria-label="Format">
+            <option value="">No format(): negotiated</option>
+            <option value="avif">format(avif)</option>
+            <option value="webp" selected>format(webp)</option>
+            <option value="jxl">format(jxl)</option>
+            <option value="jpeg">format(jpeg)</option>
+            <option value="png">format(png)</option>
+            <option value="gif">format(gif)</option>
+          </select>
+          <select class="din" id="fmQuality" aria-label="Quality">
+            <option value="">Default quality 80</option>
+            <option value="80" selected>quality(80)</option>
+            <option value="auto">quality(auto)</option>
+            <option value="60">quality(60)</option>
+            <option value="95">quality(95)</option>
+          </select>
+          <label style="font-weight:600;font-size:14.5px"><input type="checkbox" id="fmNoUp"> no_upscale</label>
+          <label style="font-weight:600;font-size:14.5px">dpr
+            <select class="din" id="fmDpr" aria-label="Device pixel ratio">
+              <option value="">off</option><option value="1.5">1.5</option><option value="2">2</option><option value="3">3</option>
+            </select></label>
+        </div>
+        <div class="eql" id="fmEq" style="margin-top:14px">filters:format(webp):quality(80)</div>
+        <p class="honest" id="fmNote">An explicit format() always wins over Accept negotiation.</p>
+      </div>
+      <div class="dtablewrap"><table class="dtable"><tr><th>Directive</th><th>Parameters</th><th>What it does</th></tr>
+      <tr><td>format</td><td>jpeg (or jpg), png, webp, jxl, avif, gif, mp4, webm</td><td>Output format. Overrides Accept negotiation. Video formats are explicit-only, see below.</td></tr>
+      <tr><td>quality</td><td>1 to 100, or quality(auto)</td><td>Encoding quality for JPEG, JPEG XL, AVIF, and WebP. Default 80. quality(100) selects the lossless WebP encode. No effect on PNG or GIF.</td></tr>
+      <tr><td>palette</td><td>colors from 2 to 256</td><td>Write PNG output as an indexed (palette) image with at most that many colors, quantized and dithered with the same quantizer the GIF encoder uses. Palette entries keep their alpha, carried in the file's <code>tRNS</code> chunk, so translucency survives, unlike GIF's binarized transparency. Other formats ignore the directive, the same stance quality takes on PNG. This is the PNG8 form other tools select: <code>palette(256)</code> is a full PNG8 palette. Example: <code>filters:format(png):palette(64)</code>.</td></tr>
+      <tr><td>max_bytes</td><td>byte budget, at least 1</td><td>Re-encode at decreasing quality until the output fits. If quality reaches its floor of 1 and the output is still over budget, you get the smallest encode rather than an error.</td></tr>
+      <tr><td>fill</td><td>six hex digits</td><td>Background used to flatten transparency into JPEG, and the pad fill fallback.</td></tr>
+      <tr><td>no_upscale</td><td>none</td><td>Cap every resize in the request at the source dimensions, request wide.</td></tr>
+      <tr><td>dpr</td><td>1, 1.5, 2, or 3</td><td>Scale size and crop targets by the device pixel ratio. An explicit dpr beats the DPR client hint header.</td></tr></table></div>
+      <h3>quality(auto), verified</h3>
+      <p><code>quality(auto)</code> picks a quality per image, from 50 for flat images to 95 for detailed ones. For JPEG and JPEG XL the pick is then verified: crabcrop encodes, decodes, and scores the result against the processed source with SSIMULACRA2, adjusting until it lands on target (75 by default), and reports the achieved score in meta. When crabcrop chooses the quality, the response carries an <code>X-Crabcrop-Quality</code> header with the value used.</p>
+      <h3>Negotiation</h3>
+      <p>When the URL names no <code>format(...)</code>, the request's <code>Accept</code> header decides. Among AVIF, JPEG XL, and WebP, the highest q-value wins; ties break by server preference in that order; a format refused with <code>q=0</code> is never picked; wildcards do not count as an offer. If none of the three is offered, the source format is kept. Animated sources never negotiate to JPEG XL, which would drop their frames.</p>
+      <h3>Client hints and Save-Data</h3>
+      <p>When a URL sizes nothing itself, the server honors width client hints (<code>Sec-CH-Width</code>, <code>Width</code>, viewport variants), quantized up to a multiple of 100 px so nearby viewports share one cache entry. A request with <code>Save-Data: on</code> gets the default quality stepped down one notch, from 80 to 70, on the formats that carry a quality; URLs that set <code>quality(...)</code> themselves are unaffected.</p>
+      <h3>Video output</h3>
+      <p>An animated GIF or WebP can leave as real video: <code>filters:format(mp4)</code> or <code>format(webm)</code>, the gifv pattern. Crabcrop ships no codec: the encode runs in an external program you configure with <code>CRABCROP_VIDEO_ENCODER</code> (FFmpeg is the reference), validated at startup. Unset means video URLs answer <code>501</code>, and a failed encode is an error, never a silent fallback to the GIF. At most two encodes run at a time, each under a hard timeout and an output cap.</p>
+      <h3>Formats, in and out</h3>
+      <div class="dtablewrap"><table class="dtable"><tr><th>Format</th><th>Decode</th><th>Encode</th></tr>
+      <tr><td>JPEG</td><td>Yes</td><td>Yes</td></tr>
+      <tr><td>PNG</td><td>Yes</td><td>Yes</td></tr>
+      <tr><td>WebP</td><td>Yes, still and animated</td><td>Yes; animated out is lossless</td></tr>
+      <tr><td>GIF</td><td>Yes, animated</td><td>Yes, animated</td></tr>
+      <tr><td>AVIF</td><td>Yes, in the Docker image and the release binaries; source builds opt in with the avif-decode feature</td><td>Yes</td></tr>
+      <tr><td>JPEG XL</td><td>Yes</td><td>Yes</td></tr>
+      <tr><td>TIFF</td><td>Yes; a multipage TIFF renders its first page</td><td>No</td></tr>
+      <tr><td>HEIC / HEIF</td><td>Yes, decoded in pure Rust, primary image only</td><td>No</td></tr>
+      <tr><td>SVG</td><td>Yes, sanitized then rasterized</td><td>No; output defaults to PNG for SVG sources</td></tr></table></div>
+      <p>EXIF orientation is applied at decode, so phone photos come out upright. ICC profiles are converted to sRGB before any operation runs; <code>filters:keep_profile</code> opts out per request and embeds the source profile in JPEG and PNG outputs instead. Animated GIF and WebP sources keep their frames, delays, and loop count when the output carries animation.</p>
+    </section>
+
+    <!-- VIDEO FRAMES -->
+    <section class="doc-sec" id="frames">
+      <h2>Video frames</h2>
+      <p>A video source can also be an image source: a <code>frame:</code> segment selects one frame, and that frame becomes the source image the rest of the URL operates on. It flows through crops (face-safe smart crops included), filters, studio mode, and format negotiation like any other source image. The selection applies at decode, wherever the segment sits in the path; when a URL carries several <code>frame:</code> segments, the last one wins.</p>
+      <div class="cb"><button class="copy-btn" type="button" data-copytarget>Copy</button><pre>frame:poster
+frame:&lt;seconds&gt;
+frame:&lt;percent&gt;%</pre></div>
+      <div class="cb"><button class="copy-btn" type="button" data-copytarget>Copy</button><pre>curl "http://localhost:3000/unsafe/frame:50%/800x450/filters:format(webp)/https://example.com/clip.mp4"</pre></div>
+      <p><code>frame:poster</code> is the video's first frame, <code>frame:1.5</code> is the frame at a timestamp in seconds, and <code>frame:50%</code> is the frame at a percentage of the duration. The edges:</p>
+      <ul>
+        <li>Frame selection is video-only. A <code>frame:</code> segment on a still image or an animated GIF or WebP source fails with <code>502</code>, the way a bad source fails; animated sources keep their existing behavior whenever no <code>frame:</code> segment is present.</li>
+        <li>Out-of-range selections clamp: a timestamp past the end of the video serves the last frame, and so does <code>frame:100%</code>. Nothing about the request is an error. A percentage needs the video's duration; a container that reports none fails the percentage form with <code>400</code>.</li>
+        <li>A malformed selector (a sign, an exponent, a percentage over 100, a timestamp over 86400) fails with <code>400</code> and the <code>invalid_frame</code> code, before any fetch.</li>
+      </ul>
+      <p>Extraction is an operator feature: crabcrop ships no video decoder. It runs through the external decoder configured with <code>CRABCROP_VIDEO_DECODER</code> (FFmpeg is the reference), validated at startup; with the variable unset, a <code>frame:</code> URL answers <code>501</code>. Extraction happens once per unique URL on a cache miss, and the result caches and purges like any other render. A frame render's meta response carries a <code>video</code> object: the stream's <code>width</code> and <code>height</code>, its <code>duration</code> in seconds when the container reports one, and the <code>frame_timestamp</code> the frame was selected at, after clamping. See <a href="#meta">Meta endpoint</a>.</p>
+    </section>
+
+    <!-- PDF PAGES -->
+    <section class="doc-sec" id="pages">
+      <h2>PDF pages</h2>
+      <p>A PDF source can also be an image source: a <code>page:</code> segment selects one page, rendered as the source image the rest of the URL operates on. <code>page:1</code> is the document's first page. The page renders at a fixed scale of 2 (a 144 dpi raster), and from there the request is an ordinary image request: crops, filters, studio mode, and format negotiation apply unchanged. One page per request: there are no ranges and no contact sheets. When a URL carries several <code>page:</code> segments, the last one wins.</p>
+      <div class="cb"><button class="copy-btn" type="button" data-copytarget>Copy</button><pre>page:&lt;n&gt;</pre></div>
+      <div class="cb"><button class="copy-btn" type="button" data-copytarget>Copy</button><pre>curl "http://localhost:3000/unsafe/page:2/800x1000/filters:format(webp)/https://example.com/report.pdf"</pre></div>
+      <p>The edges:</p>
+      <ul>
+        <li>Page selection is PDF-only. A <code>page:</code> segment on an image, a video, or any other source fails with <code>502</code>, the way a bad source fails.</li>
+        <li>Pages are 1-based and the number is exact: <code>page:9</code> on a three-page document fails with <code>400</code>. It never clamps to the last page, the deliberate difference from <code>frame:</code> timestamps: a frame is a position inside a stream, while a page is a numbered object a caller picks by identity, so a wrong number is a wrong request, not a position past the end.</li>
+        <li>The number is canonicalized: <code>page:007</code> is <code>page:7</code>, and both spellings share one cache entry. A malformed selector (zero, a sign, letters, more than six digits) fails with <code>400</code> and the <code>invalid_page</code> code, before any fetch.</li>
+        <li>A document that needs a password to open fails with <code>400</code>. A document that is merely permission-encrypted and opens without a password renders normally. Documents over 1000 pages are refused.</li>
+      </ul>
+      <p>Rendering is an operator feature: crabcrop ships no PDF renderer. It runs through the external renderer configured with <code>CRABCROP_PDF_RENDERER</code> (Poppler's <code>pdftocairo</code> is the reference), validated at startup; crabcrop derives the <code>pdfinfo</code> program next to it, in the same directory, and uses it to probe documents. Each run is bounded by <code>CRABCROP_PDF_TIMEOUT_SECS</code> (default 30). With the variable unset, a <code>page:</code> URL answers <code>501</code>. The tools receive only the document bytes over stdin, so external references, embedded files, and document actions or scripts have no target and no effect. A page render's meta response carries a <code>pdf</code> object: the document's <code>pages</code> count, the <code>page</code> rendered, and the page's <code>page_width</code> and <code>page_height</code> in points. See <a href="#meta">Meta endpoint</a>.</p>
+    </section>
+
+    <!-- AI -->
+    <section class="doc-sec" id="ai">
+      <h2>AI operations</h2>
+      <p>AI filters run ONNX models you supply as files, loaded at boot before the server reports ready. Crabcrop never downloads a model. A configured model that cannot load is a startup error, not a surprise for the first request. With no model configured, the filter answers a clean <code>501</code>, and nothing silently degrades: <code>upscale</code> never falls back to a plain resize, and a detection failure fails a redaction request rather than serving an unredacted image. Inference runs behind a server-wide gate of 2 concurrent inferences.</p>
+      <p>Every after image in this section is the direct output of a running crabcrop server fed these exact photos, with the operations printed under each demo. Nothing was retouched in an editor.</p>
+      <div class="ai-demos" style="margin-top:20px">
+        <div class="ai-demo">
+          <div class="ba" style="aspect-ratio:3/2">
+            <div class="ba-layer checker"><img src="https://images.crabcrop.org/02a88eff67e58390de62e61a0630ef0aed28eea51e050e2b2354d86da46093a8/preset:site-photo/root:site/ai-skate-removebg.webp" data-thumbhash="nKmCA4AkFPiqiYPqzLDfOx9xdolAmlc=" alt="Snap at the skate park with the background removed, over transparency" width="1000" height="667" loading="lazy"></div>
+            <div class="ba-layer ba-top"><img src="https://images.crabcrop.org/02cec789bbeaf3393167ab2535e8e74022faa65e71ded935c0a344cad0fe3cc0/preset:site-photo/root:site/ai-skate-before.jpg" data-thumbhash="4TgKFYaGuol5h4WEdQZ8XEqj0EMJ" alt="Snap the crochet crab at a skate park, original photo" width="1000" height="667" loading="lazy"></div>
+            <span class="ba-chip l">AFTER</span><span class="ba-chip r">BEFORE</span>
+            <div class="ba-div"></div>
+            <input type="range" min="0" max="100" value="55" aria-label="Reveal the background removal result">
+          </div>
+          <h3>Background removal</h3>
+          <p><code>removebg</code> keeps the subject and swaps the background for real alpha. Ask for a format that carries alpha: <code>png</code>, <code>webp</code>, <code>jxl</code>, or <code>avif</code>; into JPEG it fails with <code>400</code>. Configured with <code>CRABCROP_REMOVEBG_MODEL</code> (a U²-Net family model).</p>
+          <p class="ai-op">fit-in:1000x667/filters:removebg:format(webp)</p>
+        </div>
+        <div class="ai-demo">
+          <div class="ba" style="aspect-ratio:1100/733">
+            <div class="ba-layer"><img src="https://images.crabcrop.org/cbc36c21927ce18f7df135235c45a8b101dcab74d1aa5a5f06f6760fe44a1f51/preset:site-photo/root:site/ai-friend-redact.jpg" data-thumbhash="oSgKDYaRmJVgZnmliFeHdl1i4EUH" alt="The skate bowl photo with the skater in the background blurred by crabcrop" width="1100" height="733" loading="lazy"></div>
+            <div class="ba-layer ba-top"><img src="https://images.crabcrop.org/4385e3e78cd4ab80d6877d2136df815e22806187975d83315f31af86c0abce14/preset:site-photo/root:site/ai-friend-before.jpg" data-thumbhash="oSgKDYaRmJVgZnmliFaHdl1i4EUH" alt="Snap at the edge of a skate bowl with a skater riding in the background, original photo" width="1100" height="733" loading="lazy"></div>
+            <span class="ba-chip l">AFTER</span><span class="ba-chip r">BEFORE</span>
+            <div class="ba-div"></div>
+            <input type="range" min="0" max="100" value="55" aria-label="Reveal the blurred skater">
+          </div>
+          <h3>Redact people: blur</h3>
+          <p><code>blurclass(person)</code> blurs every detected object of the class and nothing else. <code>pixelateclass</code> does the same with mosaic. Repeat the filter to cover more classes; matching is case-insensitive. An unknown class is a <code>400</code>. Configured with <code>CRABCROP_DETECT_MODEL</code> (a YOLOv8 family model).</p>
+          <p class="ai-op">fit-in:1100x733/filters:blurclass(person)</p>
+        </div>
+        <div class="ai-demo wide">
+          <div class="crop3">
+            <figure><img src="https://images.crabcrop.org/6aa2cab03b41bcfc04a0bdd09fb72003803c85e00afbc70d0f8ca1df71f31f99/preset:site-photo/root:site/ai-skate-redact-before.jpg" data-thumbhash="4TgKFYaGuol5h4WEdQZ8XEqj0EMJ" alt="The full skate park photo, Snap left of center next to a skateboard" width="1100" height="733" loading="lazy"><figcaption>source, 1920x1280</figcaption></figure>
+            <figure><img src="https://images.crabcrop.org/cbc18b1bd3adc42da05cbdaa3ae97d06b5682e6545a47c4cc087dd52b0c567ae/preset:site-photo/root:site/ai-crop-center.jpg" data-thumbhash="4EgKFwhEh5d6eYiHiAdr5nRnuzgJjpQA" alt="Plain center crop clipping Snap's raised claw at the frame edge" width="760" height="760" loading="lazy"><figcaption>crop:760x760</figcaption></figure>
+            <figure><img src="https://images.crabcrop.org/26369293ce2c09a37dcb234195fa0edcc4072c19b0355c006c8d60eba339c29d/preset:site-photo/root:site/ai-crop-smart.jpg" data-thumbhash="4FgKFwhUmal6eYiGeAZa5oRXuzYJbJQA" alt="Smart crop keeping the whole crab in frame" width="760" height="760" loading="lazy"><figcaption>crop:760x760:smart</figcaption></figure>
+          </div>
+          <h3>Smart crop and face operations</h3>
+          <p>With <code>CRABCROP_FACE_MODEL</code> (a YuNet model) configured, <code>:smart</code> centers on detected faces and shifts to keep them whole, <code>:face</code> crops around the largest face outright, and <code>blurfaces</code> / <code>pixelatefaces</code> redact every detected face. <code>facepad(0.5)</code> sets the padding around a face crop, 0 to 3, default 0.5. Face detection only ever improves a smart crop: no model, no faces, or a detection failure all fall back to the detail-based focal point.</p>
+          <p class="ai-op">crop:760x760:smart</p>
+        </div>
+      </div>
+      <div class="dtablewrap"><table class="dtable"><tr><th>Filter</th><th>Configuration</th><th>What it does</th></tr>
+      <tr><td>removebg</td><td>CRABCROP_REMOVEBG_MODEL</td><td>Remove the background, subject over transparency.</td></tr>
+      <tr><td>studio</td><td>the removebg model</td><td>Product-shot composites. See the Studio mode section.</td></tr>
+      <tr><td>upscale(2) or upscale(4)</td><td>CRABCROP_UPSCALE_MODEL</td><td>Super-resolution by that factor, output capped at 4096 px per dimension, at most 262,144 input pixels per model run (a larger input is a 400). upscale(4) on a 2x model composes two runs. Source transparency is carried across.</td></tr>
+      <tr><td>blurfaces, pixelatefaces</td><td>CRABCROP_FACE_MODEL</td><td>Redact every detected face.</td></tr>
+      <tr><td>blurclass, pixelateclass</td><td>CRABCROP_DETECT_MODEL</td><td>Redact every detected object of a class.</td></tr>
+      <tr><td>recolorclass(class,hex)</td><td>CRABCROP_DETECT_MODEL</td><td>Paint every detected object of a class a solid color, alpha preserved.</td></tr>
+      <tr><td>remove_region(x,y,w,h)</td><td>CRABCROP_INPAINT_MODEL</td><td>Erase a rectangle and inpaint it from the surrounding pixels.</td></tr>
+      <tr><td>facepad</td><td>the face model</td><td>Padding for crop:...:face, 0 to 3, default 0.5.</td></tr></table></div>
+      <h3>Region removal: remove_region</h3>
+      <p>Point <code>CRABCROP_INPAINT_MODEL</code> at a LaMa family inpainting model and the <code>remove_region(x,y,w,h)</code> filter erases a rectangle and inpaints it from the surrounding pixels, with the same bounds rule as <code>blur_region</code>: a rectangle that overflows the image is a <code>400</code>. Each removal runs the model once on a square crop window around the rectangle, and only the rectangle's pixels are taken from the result: everything outside it comes back bit-identical. Meta responses for a removal carry an <code>inpaint</code> object listing the erased rectangles. Know the limit before you rely on it: the model fabricates what goes in the hole. The fill is plausible on smooth or textured surroundings and visibly wrong on structured content: text, faces, repeating patterns, straight edges that should continue. A removal takes seconds of inference behind the shared AI gate, and the result cache absorbs repeat requests for the same URL, so a given removal is normally paid for once.</p>
+      <h3>Segmentation: class operations follow the silhouette</h3>
+      <p>Point <code>CRABCROP_SEGMENT_ENCODER_MODEL</code> and <code>CRABCROP_SEGMENT_DECODER_MODEL</code> at a MobileSAM export pair (an image encoder and a box-prompt decoder; both are required together) and the class filters change shape: <code>blurclass</code> and <code>pixelateclass</code> redact each object's silhouette instead of its rectangle, and <code>recolorclass</code> paints the silhouette. Segmentation is box-prompted: each detection goes to the decoder as its own box, and the mask decides, pixel by pixel, what the operation touches; the mask's soft edge blends, so silhouettes antialias instead of stair-stepping. The image is encoded once per request however many class operations chain, and each box costs one small decode. Meta responses for a request that segmented carry a <code>segments</code> object: per object, the label, the detection score and box, the mask's tight box (the silhouette's own extent, often well inside the detection), its coverage (the share of the box the silhouette fills), and its centroid. Without the pair, the class filters keep their rectangle behavior exactly. With the pair, a segmentation failure fails the request like a detection failure does, never a silently rectangular redaction. Class operations still need a detection model: the segmenter refines boxes, it does not find them.</p>
+      <h3>OCR: text in meta</h3>
+      <p>Point <code>CRABCROP_OCR_DETECT_MODEL</code> and <code>CRABCROP_OCR_RECOGNIZE_MODEL</code> at a PP-OCR family model pair (a text detector and a text recognizer) and <code>CRABCROP_OCR_DICT</code> at the recognition model's character dictionary, and meta requests that opt in with <code>ocr=1</code> gain an <code>ocr</code> object: the lines read in the processed image, in reading order, each with its text, a confidence score, and its box, plus the lines joined as one <code>text_content</code>. All three OCR paths are required together, and the dictionary's character count is checked against the recognition model at boot, so a mismatched set fails startup instead of returning misaligned text. <code>CRABCROP_OCR_LANGUAGE</code> declares the language the recognition model serves (a BCP-47 tag, default <code>und</code>), and meta echoes it beside the model identity. The text is an annotation only: an OCR request builds and caches exactly the image entry any other request for the URL would, byte for byte. When the opt-in cannot be answered, the field reports itself unavailable with a reason, and the meta request still succeeds. See <a href="#meta">Meta endpoint</a>.</p>
+      <h3>Declared detectors</h3>
+      <p><code>CRABCROP_DETECTORS_FILE</code> points at a JSON file declaring more of your own models against two built-in contracts: <code>boxes</code> (a YOLOv8 family detector feeding class redaction and meta detections) and <code>focal</code> (a heatmap model feeding smart crops). The file is configuration only; crabcrop never loads or runs operator code. Every declaration is loaded and probed at boot.</p>
+      <div class="cb"><button class="copy-btn" type="button" data-copytarget>Copy</button><pre>[
+  { "name": "crates", "model": "/models/crates.onnx", "kind": "boxes",
+    "labels": "/models/crates.txt", "threshold": 0.4 },
+  { "name": "saliency", "model": "/models/saliency.onnx", "kind": "focal" }
+]</pre></div>
+      <p>The meta family (tags, alt text, moderation, embeddings, aesthetic scores, detections) is covered in the <a href="#meta">Meta endpoint</a> section.</p>
+    </section>
+
+    <!-- STUDIO -->
+    <section class="doc-sec" id="studio">
+      <h2>Studio mode</h2>
+      <p><code>studio(product,...)</code> names an outcome instead of a mechanism: a listing-ready product shot. One filter expands into a fixed pipeline, run at the filter's position in the chain: mask the subject with the removebg model, decontaminate edge colors against the old background, fill the canvas with the resolved backdrop, synthesize a contact shadow from the subject's own alpha, then scale and center the subject so the pad margin holds on every side.</p>
+      <div class="ai-demos" style="margin-top:20px">
+        <div class="ai-demo wide">
+          <div class="ba" style="aspect-ratio:3/2">
+            <div class="ba-layer"><img src="https://images.crabcrop.org/a5ec2a7905f2bc67b5705cb55a10d437a27f646cfe44eae67d686981cc2a8027/preset:site-photo/root:site/studio-white.webp" data-thumbhash="dDgSFYj3eGd5h4eLdXiIigiHg3A4" alt="Snap composited by studio mode onto a white backdrop with a soft contact shadow" width="1000" height="667" loading="lazy"></div>
+            <div class="ba-layer ba-top"><img src="https://images.crabcrop.org/0ba9bb844d0e7d419924bcafd30b29ea16cde17202f6cfaa8ac17e0e0bafb026/preset:site-photo/root:site/studio-before.jpg" data-thumbhash="4TgKFYaGuol5h4WEdQZ8XEqj0EMJ" alt="Snap the crochet crab at a skate park, original photo" width="1000" height="667" loading="lazy"></div>
+            <span class="ba-chip l">AFTER</span><span class="ba-chip r">BEFORE</span>
+            <div class="ba-div"></div>
+            <input type="range" min="0" max="100" value="55" aria-label="Reveal the studio mode result">
+          </div>
+          <h3>White backdrop, soft shadow</h3>
+          <p class="ai-op">fit-in:1000x667/filters:studio(product,bg:white,shadow:soft,pad:10)</p>
+        </div>
+        <div class="ai-demo">
+          <div class="ba" style="aspect-ratio:3/2">
+            <div class="ba-layer"><img src="https://images.crabcrop.org/d28338579a079406c54fa4107c3d4576d4e77d2da5a8abcc3344c56bcd074323/preset:site-photo/root:site/studio-brand.webp" data-thumbhash="V5cFLZQEnXOYWJagTJdlZwiHg3A4" alt="Snap composited by studio mode onto a tide green brand backdrop" width="1000" height="667" loading="lazy"></div>
+            <span class="ba-chip l">bg:brand</span>
+          </div>
+          <h3>The brand backdrop</h3>
+          <p><code>bg:brand</code> paints the operator's brand color, set once with <code>CRABCROP_BRAND_COLOR</code>. The URL never names a hex.</p>
+          <p class="ai-op">filters:studio(product,bg:brand,shadow:soft,pad:10)</p>
+        </div>
+        <div class="ai-demo">
+          <div class="ba" style="aspect-ratio:3/2">
+            <div class="ba-layer checker"></div>
+            <div class="ba-layer"><img src="https://images.crabcrop.org/b6ff3d059fb6c7e6c49d99b3f5fcb5c15193773e76f58cf203778a4548beba74/preset:site-photo/root:site/studio-none.webp" data-thumbhash="nKmCA4A0hI+ZV6S8vdD6OAeIh3iDimY=" alt="Snap cut out by studio mode with no backdrop, over transparency" width="1000" height="667" loading="lazy"></div>
+            <span class="ba-chip l">bg:none</span>
+          </div>
+          <h3>No backdrop: keep the alpha</h3>
+          <p><code>bg:none</code> skips the backdrop and the shadow, and the composite keeps real transparency.</p>
+          <p class="ai-op">filters:studio(product,bg:none)</p>
+        </div>
+      </div>
+      <div class="dtablewrap"><table class="dtable"><tr><th>Argument</th><th>Values</th><th>Default</th></tr>
+      <tr><td>bg</td><td>white, a six-digit hex, brand, or none</td><td>The brand color when configured, else white</td></tr>
+      <tr><td>shadow</td><td>soft, strong, or none</td><td>soft</td></tr>
+      <tr><td>pad</td><td>0 to 40, percent margin per side</td><td>10</td></tr></table></div>
+      <p>If the mask finds no subject, the fallback serves the original image centered and padded on the resolved backdrop, with no shadow, and the meta record says so. Behind a backdrop nothing transparent survives, so the composite is valid in every output format, JPEG included, and later operations apply on top: <code>filters:studio(product)/1200x1200</code> sizes the finished shot. Meta responses report the run in a <code>studio</code> field: the resolved backdrop and where it came from, the shadow and pad applied, the steps that ran, and any fallbacks taken.</p>
+      <div class="cb"><button class="copy-btn" type="button" data-copytarget>Copy</button><pre># The defaults: brand backdrop (white when none is configured), soft shadow, pad 10
+curl "http://localhost:3000/unsafe/filters:studio(product)/https://example.com/shoe.jpg"
+# Every argument named
+curl "http://localhost:3000/unsafe/filters:studio(product,bg:f5f0e8,shadow:strong,pad:25)/https://example.com/shoe.jpg"</pre></div>
+      <h3>Scene mode: studio(scene)</h3>
+      <p><code>studio(scene)</code> is the second mode: it keeps the photograph's scene instead of cutting the subject out. One filter expands into a smart crop on the detected subject plus a per-image light and color correction, run at the filter's position in the chain. The same mask model runs first; without one configured, <code>studio(scene)</code> fails with <code>501</code>, the same way. The subject is picked from the mask's connected regions at the subject threshold: the largest wins, ties break toward the frame center, then reading order. The frame is cropped to the smallest window with the frame's own aspect ratio that holds the subject with its pad margin, then resized back to the canvas in effect, so the output keeps the size the chain expects and later operations compose unchanged. The correction is driven by the reframed image's own histogram: a per-channel levels stretch between the 0.5th and 99.5th percentiles (a channel whose span is too flat to stretch is left alone), then a saturation factor that steers the image's mean saturation toward 0.30, capped at 1.35 and never below 1, so muted photographs gain color and vivid ones are never desaturated.</p>
+      <p>Scene takes one argument: <code>pad</code>, 0 to 40, default 10, the margin the subject keeps in the reframed window. The product arguments are bad arguments under scene: <code>bg</code> or <code>shadow</code> named with <code>studio(scene)</code> is a <code>400</code>. If the mask finds no subject (or only a speck not worth believing), the fallback skips the crop and serves the original framing, corrected. Meta reports scene runs in the same <code>studio</code> field, with <code>mode</code> set to <code>scene</code> and a <code>scene</code> object: the winning subject's box (or null), how many candidate subjects the mask carried, the crop window applied, the per-channel levels stretch, and the saturation factor, alongside the steps and fallbacks.</p>
+      <div class="cb"><button class="copy-btn" type="button" data-copytarget>Copy</button><pre># Reframe on the subject and correct, default pad
+curl "http://localhost:3000/unsafe/filters:studio(scene)/https://example.com/shoe.jpg"
+# A wider margin around the subject
+curl "http://localhost:3000/unsafe/filters:studio(scene,pad:25)/https://example.com/shoe.jpg"</pre></div>
+    </section>
+
+    <!-- PRESETS -->
+    <section class="doc-sec" id="presets">
+      <h2>Presets</h2>
+      <p>A preset gives a name to an operation string on the server. A preset is like a contact in a phone. You use the name. The server uses the full operation string. So URLs stay short. And the operator keeps control of the list of transformations. Write the presets in a file. Put one preset on each line. Point <code>CRABCROP_PRESETS_FILE</code> at the file.</p>
+      <div class="cb"><button class="copy-btn" type="button" data-copytarget>Copy</button><pre># /etc/crabcrop/presets.txt
+og-card = crop:1200x630:smart/filters:format(webp):quality(80)
+thumb = 300x200</pre></div>
+      <div class="cb"><button class="copy-btn" type="button" data-copytarget>Copy</button><pre>curl "http://localhost:3000/&lt;signature&gt;/preset:og-card/https://example.com/photo.jpg"</pre></div>
+      <p>The signature covers the preset reference. The server expands the preset after it checks the signature. The expansion is deterministic. Cache entries use the expanded operations as the key. <b>Treat a preset as a stable template: never edit a definition in place.</b> Give a change a new name when you roll it out (<code>thumb2</code>). An edit in place changes the bytes behind URLs that are already signed and shared. Image responses travel with a cache header that makes them immutable for a year. So browsers and CDNs downstream keep serving the old response. No purge can reach them. An unknown preset name gives a <code>400</code>. The server checks all definitions at startup. A preset cannot contain a source segment. It cannot contain an <code>exp:</code>. It cannot contain a <code>maxage:</code>. It cannot contain another preset.</p>
+      <p>With <code>CRABCROP_ONLY_PRESETS=1</code>, the server rejects free-form operations with <code>400</code>. A request can use preset references. It can use <code>exp:</code> and <code>maxage:</code> metadata. It can use bare sources. Nothing else is allowed. Combine this mode with unsafe mode for a public deployment. Then browsers and CMSs build URLs from preset names alone. They hold no secret. Responses for preset URLs carry a <code>Cache-Group</code> header. The header names the preset. <a href="#purge">purge-group</a> clears that group.</p>
+    </section>
+
+    <!-- SOURCE ROOTS -->
+    <section class="doc-sec" id="roots">
+      <h2>Source roots</h2>
+      <p>A source root gives a name to an origin on the server. So a URL can carry a short source. The URL does not spell out the full source URL. The layout of the origin stays off the URL. And URLs get shorter. Write the roots in a file. Put one root on each line. Point <code>CRABCROP_SOURCE_ROOTS_FILE</code> at the file.</p>
+      <div class="cb"><button class="copy-btn" type="button" data-copytarget>Copy</button><pre># /etc/crabcrop/roots.txt
+photos = https://cdn.example.com/photos
+media = https://assets.example.com</pre></div>
+      <div class="cb"><button class="copy-btn" type="button" data-copytarget>Copy</button><pre>curl "http://localhost:3000/&lt;signature&gt;/300x200/root:photos/cat.jpg"</pre></div>
+      <p>That request fetches <code>https://cdn.example.com/photos/cat.jpg</code>. The signature covers the short form, exactly as written. The server expands the short form after it checks the signature. It expands the form before it computes the cache key. So the short form and the full URL are one result. They share one cache entry. A purge of either form removes the entry. The server checks root definitions at startup. A name can have letters, digits, <code>_</code>, or <code>-</code>. A duplicate name makes the server refuse to start. A base must be an absolute http(s) URL. The base cannot have userinfo. It cannot have a query. It cannot have a fragment.</p>
+      <p>The safety rules:</p>
+      <ul>
+        <li>The source allowlist (<code>CRABCROP_ALLOWED_SOURCES</code>) applies to the expanded URL. Every other loader check applies too. The checks work exactly as if the client had spelled the URL out. A root never widens the set of URLs that the server fetches.</li>
+        <li>The path must stay under the root. The server normalizes dot segments. A path that climbs above the root gives a <code>400</code> (<code>invalid_root</code>). The climb can be plain or percent-encoded.</li>
+        <li>An unknown root name gives a <code>400</code> (<code>unknown_root</code>). This includes a server with no roots configured.</li>
+        <li>Root base URLs are operator configuration. They stay private. <code>explain</code> reports the source as written. It adds the name of the root. It never prints a base URL.</li>
+      </ul>
+    </section>
+
+    <!-- SOURCES -->
+    <section class="doc-sec" id="sources">
+      <h2>Sources and safety</h2>
+      <p>The source locates the original. It takes one of five forms:</p>
+      <div class="dtablewrap"><table class="dtable"><tr><th>Kind</th><th>Form</th><th>Notes</th></tr>
+      <tr><td>HTTP / HTTPS</td><td>https://example.com/photo.jpg</td><td>Fetched under the source policy: <code>CRABCROP_ALLOWED_SOURCES</code> host suffixes, up to 5 redirects with the policy re-checked on every hop. Source URLs with userinfo are always refused.</td></tr>
+      <tr><td>Source root</td><td>root:&lt;name&gt;/&lt;path&gt;</td><td>A short spelling of an HTTP or HTTPS source, instead of the full URL. The server expands it against the origin configured for that name (see <a href="#roots">Source roots</a>), after signature verification and before cache keying, so the short form and the full URL it expands to share one cache entry. Every check on this page applies to the expanded URL: an unknown name is a <code>400</code> (<code>unknown_root</code>), and a path that climbs above the root is a <code>400</code> (<code>invalid_root</code>).</td></tr>
+      <tr><td>S3</td><td>s3://bucket/key</td><td>AWS S3 or an S3-compatible store via <code>CRABCROP_S3_ENDPOINT</code>. SigV4 signed when AWS credentials are in the environment; unsigned otherwise.</td></tr>
+      <tr><td>GCS</td><td>gs://bucket/key</td><td>Google Cloud Storage's S3-compatible XML API, signed with the <code>CRABCROP_GCS_*</code> HMAC pair when set.</td></tr>
+      <tr><td>Local file</td><td>file:///path</td><td>Must stay under <code>CRABCROP_FILE_ROOT</code>, canonicalized per request, so <code>..</code> segments and symlink escapes are refused. Unset root disables file sources.</td></tr></table></div>
+      <p>Bucket sources are gated by <code>CRABCROP_ALLOWED_BUCKETS</code> rather than the host policy. When signing credentials are configured, the allowlist is required: the server refuses to boot without it, because signed fetches would otherwise reach every bucket the credentials can read. List <code>*</code> to deliberately allow all buckets. A bucket or object key carrying a dot segment, a path component that is exactly <code>.</code> or <code>..</code>, is refused, since the request path would collapse it past the allowlisted bucket; dots inside a segment name are fine. Bucket names must follow the S3 naming rules (3 to 63 characters of lowercase letters, digits, dots, and hyphens, starting and ending with a letter or digit, no adjacent dots, no dot beside a hyphen, not an IP address spelling): the name is interpolated into the request host, so a name carrying a host-breaking character is refused at parse time, whatever the allowlist says. Store responses are not redirected: a 3xx from a store surfaces as its status code.</p>
+      <h3>Fetch and decode limits</h3>
+      <ul>
+        <li>10 seconds per HTTP request; each redirect hop (up to 5) gets its own 10 second budget.</li>
+        <li>10 MiB maximum body; larger sources fail with <code>502</code>.</li>
+        <li>A <code>Content-Type</code> header, when present, must start with <code>image/</code>: the exceptions are a <code>video/*</code> source under a <code>frame:</code> segment (see <a href="#frames">Video frames</a>) and an <code>application/pdf</code> source under a <code>page:</code> segment (see <a href="#pages">PDF pages</a>).</li>
+        <li>Decoding is bounded: at most 16384 px per axis, 256 MiB of decoder allocations, and animated sources at most 200 frames and 100 million decoded pixels.</li>
+      </ul>
+      <h3>What decodes</h3>
+      <p>JPEG, PNG, WebP, GIF, JPEG XL, and TIFF sources are decoded. TIFF decoding is the pure-Rust <code>tiff</code> decoder under the same decode bounds as every other format; a multipage TIFF renders its first page. EXIF orientation is applied before any operation runs, so phone photos come out upright. Animated GIFs keep their frames when the output format is GIF; converting an animated GIF to a still format uses the first frame. Animated WebPs keep their frames when the output format is WebP or GIF, with frame delays and the loop count preserved; converting one to a still format uses the first frame. Animated WebP output is always encoded losslessly, and those renders run behind a dedicated gate of one encode at a time: while one is running, another animated WebP request waits up to 10 seconds for the slot and then sheds with a <code>503</code> rather than queueing behind a long encode.</p>
+      <p>AVIF sources are decoded in builds that include AVIF decoding: the Docker image and the release binaries. A source build includes it with <code>--features avif-decode</code>, which links dav1d (a system libdav1d 1.3 or newer, or a vendored build); without it, AVIF sources fail with <code>502</code> and an error naming the feature. Animated AVIF sources decode their first frame. HEIC and HEIF sources are decoded in every build by the pure-Rust oxideav stack: the primary image only, with grid and overlay compositions resolved, EXIF orientation honored, and 10-bit sources flattened to the pipeline's 8-bit working space, as AVIF sources are.</p>
+      <h3>SVG sources</h3>
+      <p>SVG sources are supported and detected by content, not by the declared content type. An SVG is sanitized before it is rendered: script elements, event handlers, and references to external resources are stripped, so a source SVG can only draw what it carries with it. The sanitized document is rasterized at the size the URL asks for (or its intrinsic size when the URL asks for none) and then runs through the normal pipeline. Output defaults to PNG for SVG sources.</p>
+      <h3>Private address protection</h3>
+      <p>With <code>CRABCROP_BLOCK_PRIVATE_SOURCES</code> on, the loader refuses sources whose host is, or resolves to, a non-public address: loopback, private, link-local, unspecified, shared (CGNAT), reserved, multicast, broadcast, documentation, benchmarking, and the other special-purpose ranges, including IPv4-mapped, IPv4-compatible, and 6to4 spellings of them, checked before connecting and again on every redirect hop. The loader resolves the host, checks its addresses, and pins the connection to the validated address, so the address that was checked is the address that gets connected (no DNS-rebinding gap). A policy refusal answers <code>403</code>.</p>
+      <h3>Fallback image</h3>
+      <p>With <code>CRABCROP_FALLBACK_IMAGE</code> set, a source that cannot be fetched or decoded degrades to the fallback instead of an error: the fallback runs through the same operations and is served with <code>200</code> and the header <code>X-Crabcrop-Fallback: 1</code>. Signature and parse failures never fall back, a <code>400</code> or <code>403</code> stays honest, and neither does a source-policy refusal. Fallback responses are never cached and are served with <code>Cache-Control: no-store</code>, so a recovered origin is picked up on the next request and no intermediary pins the placeholder in place of the real image.</p>
+    </section>
+
+    <!-- META -->
+    <section class="doc-sec" id="meta">
+      <h2>Meta endpoint</h2>
+      <p>Send <code>Accept: application/json</code> with any image URL and get metadata about the processed image instead of the image bytes. Meta responses are served with <code>Cache-Control: private, no-store</code> and are never cached: a URL has two representations, and intermediaries must never pin one in place of the other.</p>
+      <div class="cb"><button class="copy-btn" type="button" data-copytarget>Copy</button><pre>curl -H "Accept: application/json" "http://localhost:3000/unsafe/300x200/https://example.com/photo.jpg"</pre></div>
+      <pre class="meta-json" style="max-width:820px">{
+  "width": 300, "height": 200, "format": "jpeg", "bytes": 18234,
+  "source_width": 1200, "source_height": 800
+}</pre>
+      <div class="dtablewrap"><table class="dtable"><tr><th>Field</th><th>Meaning</th></tr>
+      <tr><td>width, height</td><td>Output dimensions in pixels.</td></tr>
+      <tr><td>format</td><td>Output format: jpeg, png, webp, jxl, avif, or gif.</td></tr>
+      <tr><td>bytes</td><td>Size of the processed image in bytes.</td></tr>
+      <tr><td>source_width, source_height</td><td>Source dimensions, after EXIF orientation.</td></tr>
+      <tr><td>ssimulacra2</td><td>The verified perceptual score, present when quality(auto) verified a JPEG or JPEG XL encode. 100 is identical.</td></tr>
+      <tr><td>studio</td><td>Present when a studio(...) filter ran, with a mode (product or scene). Product runs report the resolved backdrop, its source, the shadow and pad. Scene runs report the pad and a scene object: the winning subject box, the candidate subjects count, the crop window, the per-channel levels, and the saturation factor. Both report the steps and the fallbacks.</td></tr>
+      <tr><td>video</td><td>Present when the source was a video and a frame: segment selected the frame: the video stream's width and height, its duration in seconds when the container reports one, and the frame_timestamp the frame was selected at, after clamping.</td></tr>
+      <tr><td>pdf</td><td>Present when the source was a PDF and a page: segment selected the page: the document's pages count, the page rendered, and the page size as page_width and page_height in points.</td></tr>
+      <tr><td>provenance</td><td>The C2PA facts for this render: whether output signing is configured on this server (signing_configured), and a summary of the manifest the source carried and the manifest the output carries (source and output, each null when the asset carries none, else {state, signer, manifests, ingredients} with state one of valid, trusted, invalid). See <a href="#provenance">Provenance (C2PA)</a>.</td></tr></table></div>
+      <h3>Opt-in parameters</h3>
+      <p>Parameters ride on the same <code>Accept</code> entry. Each opts in when bare, <code>1</code>, or <code>true</code>. When an opt-in cannot be answered (nothing configured, a busy inference gate, a failed run), the field reports itself unavailable with a reason, and the meta request still succeeds.</p>
+      <div class="dtablewrap"><table class="dtable"><tr><th>Parameter</th><th>Adds</th></tr>
+      <tr><td>placeholders=1</td><td>dominant_color (the average color as #rrggbb), palette (the five most prominent colors), placeholder (a 16 px wide blurred JPEG preview as a data URI), and thumbhash (a ThumbHash string your client decodes into an aspect-correct blur while the real image loads).</td></tr>
+      <tr><td>detections=1</td><td>detections: the objects found, as {label, score, x, y, w, h, detector} in pixels, from the built-in detector and every declared detector.</td></tr>
+      <tr><td>moderation=1</td><td>moderation: the configured classifier's per-category verdict scores, or, with only a labels file configured, zero-shot CLIP signals marked review_only. Verdicts annotate meta only: no score ever changes what the image URL serves.</td></tr>
+      <tr><td>embeddings=1</td><td>embedding: the CLIP image vector, float16 little-endian, base64-encoded, with embedding_model, embedding_dim, embedding_encoding, and embedding_normalized alongside, ready to store in a vector index.</td></tr>
+      <tr><td>ocr=1</td><td>ocr: the text read from the processed image, as {model, language, text: [{text, score, x, y, w, h}], text_content}: the lines in reading order with their boxes in the image's pixels and a confidence score each, plus the lines joined into one text_content. The text annotates meta only: the image bytes are identical with or without it.</td></tr></table></div>
+      <p>With a CLIP model configured, meta responses also carry <code>tags</code> (zero-shot labels with scores) and <code>alt_text</code> composed from the best labels, whether or not placeholders were asked for. With <code>CRABCROP_AESTHETIC_HEAD</code> set, they carry <code>aesthetic</code>: a LAION-style head's score of the same embedding, with the head's and encoder's identities. The aesthetic score is descriptive only: it never gates, ranks, or alters what a URL serves. One refusal: a meta request on a video URL answers <code>400</code>, because a video result is not an image.</p>
+      <div class="cb"><button class="copy-btn" type="button" data-copytarget>Copy</button><pre>curl -H "Accept: application/json; placeholders=1; detections=1" \
+  "http://localhost:3000/unsafe/300x200/https://example.com/photo.jpg"</pre></div>
+    </section>
+
+    <!-- PROVENANCE -->
+    <section class="doc-sec" id="provenance">
+      <h2>Provenance (C2PA)</h2>
+      <p>Crabcrop reads and writes <a href="https://c2pa.org/" target="_blank" rel="noopener">C2PA</a> Content Credentials. The two halves are independently useful: verification reports what a source already carries, and signing attaches credentials to the outputs this server produces.</p>
+      <h3>Verify: always on</h3>
+      <p>Every meta response carries a <code>provenance</code> object; no configuration is needed and no opt-in parameter is required. It reports whether output signing is configured on this server, plus a summary of the manifest store the source carried and the one the output carries: for each, the validation state (<code>valid</code>, <code>trusted</code>, or <code>invalid</code>), the signer as a validator would show it, and the counts of manifests and ingredients in the store. Verification runs on the c2pa-rs 0.91 line, the first that enforces the specification's exclusion rules.</p>
+      <pre class="meta-json" style="max-width:820px">{
+  "provenance": {
+    "signing_configured": true,
+    "source": { "state": "trusted", "signer": "Example Newsroom", "manifests": 1, "ingredients": 2 },
+    "output": { "state": "valid", "signer": "Example Newsroom", "manifests": 2, "ingredients": 1 }
+  }
+}</pre>
+      <p>Each of <code>source</code> and <code>output</code> is <code>null</code> when that asset carries no manifest store.</p>
+      <h3>Sign: your certificate, proven at boot</h3>
+      <p>Set <code>CRABCROP_C2PA_CERT</code> to a PEM certificate chain and <code>CRABCROP_C2PA_KEY</code> to its private key in PKCS#8 PEM form, and still JPEG, PNG, WebP, and AVIF outputs are signed as they are produced. The identity is yours, like the models and the secret: the server holds no certificate of its own. It is proven at boot with a sign-and-verify round trip, so a broken identity (a bare self-signed certificate, a key that does not match, a chain outside the C2PA certificate profile) is a startup error with the reason named, never a first-request surprise. Setting only one of the pair is a startup error too. <code>CRABCROP_C2PA_TSA_URL</code> optionally adds a timestamp authority.</p>
+      <div class="cb"><button class="copy-btn" type="button" data-copytarget>Copy</button><pre>CRABCROP_C2PA_CERT=/etc/crabcrop/c2pa-chain.pem \
+CRABCROP_C2PA_KEY=/etc/crabcrop/c2pa-key.pem \
+crabcrop</pre></div>
+      <p>A manifest cannot survive a transform byte for byte: decoding and re-encoding drop the segments it lives in. So the source itself is recorded in the output's manifest as a parent ingredient, its hash always and its own manifest store whenever it carries one, and the chain stays walkable end to end. Video and PDF sources are the exception: a frame or page render starts a fresh chain, so no source ingredient hash is recorded for them. Outputs of the AI edits (background removal, studio mode, region removal, upscale, and the class and face edits) record the edit with the IPTC <code>compositeWithTrainedAlgorithmicMedia</code> digital source type. GIF, JPEG XL, video, and animated WebP outputs are served unsigned in this version.</p>
+      <h3>What a credential says</h3>
+      <p>A valid credential proves origin, not untouched pixels. It attests that this server produced the output from the ingredient it names, under the identity that signed it; the manifest itself records that the image was transformed. Whether verifiers call the result trusted depends on your certificate, not on this software: a chain issued by a CA on the C2PA trust list reads as trusted, while a private CA chain signs and validates and shows as valid but not trusted, with the signer named. Both are useful; pick with your eyes open.</p>
+    </section>
+
+    <!-- EXPLAIN -->
+    <section class="doc-sec" id="explain">
+      <h2>Explain</h2>
+      <p>Every crabcrop URL can explain itself. Take any image URL, put <code>explain/</code> in front of the signature segment, and the server answers with a report on that URL instead of the image. Browsers get a readable HTML page; send <code>Accept: application/json</code> for the same report as JSON.</p>
+      <div class="cb"><button class="copy-btn" type="button" data-copytarget>Copy</button><pre>curl "http://localhost:3000/explain/&lt;signature&gt;/crop:1200x630:smart/filters:format(avif):quality(auto)/https://example.com/photo.jpg"</pre></div>
+      <p>The report carries the signature verdict (valid, which key, when the link expires), the source and its probed facts (media kind, pixel dimensions, encoded size), every operation glossed in plain language in order, the referenced presets with their expansions, a forecast (output dimensions when the chain determines them, the output format, the output pixel count against the budget), the canonical form that gets cached with its cache group, and links back to the image itself.</p>
+      <p>Explain is safe to expose to the same callers who hold signed URLs. The signature and expiry are verified exactly as the image path verifies them, before any source access, so a bad or expired URL costs zero source fetches. The one probe a valid URL pays for is a single bounded fetch whose facts come from headers alone: no decode, no detection, nothing written to any cache tier. The report contains only facts derivable from the URL and the source: no secrets, no configuration values, no paths or fingerprints.</p>
+    </section>
+
+    <!-- PURGE -->
+    <section class="doc-sec" id="purge">
+      <h2>Purge</h2>
+      <p>A purge always needs an HMAC signature made with the secret. This is true in unsafe mode too. The purge signature is the HMAC-SHA256 of the target. The server computes it under a purge subkey. The subkey comes from your secret. The subkey is a separate domain from image signatures. So only the holder of the secret can invalidate a result. And no one can replay an image signature as a purge. Compute the signature with your client library (<code>purge_signature</code>, <code>purgeSignature</code>). Or compute it with the CLI.</p>
+      <div class="cb"><button class="copy-btn" type="button" data-copytarget>Copy</button><pre># Invalidate every stored variant of one result, across all cache tiers
+curl -X POST "http://localhost:3000/purge/&lt;signature&gt;/300x200/https://example.com/photo.jpg"
+# 200, body like: purged 2
+
+# Invalidate every stored result in a cache group (a preset's output set)
+curl -X POST "http://localhost:3000/purge-group/&lt;signature&gt;/small"
+# 200, body like: purged 3</pre></div>
+      <p>For <code>/purge</code>, the path is the original request path. The path has no signature. The server puts the target in standard form. It uses the same form as the cache keys. So a purge of any equal spelling removes the shared entry. The spellings include the <code>jpg</code> alias, leading zeros, a preset reference, and a root reference. <code>exp:</code> variants are included. A bad purge signature gives a <code>403</code>. It removes nothing. A purge of a path that is not stored returns <code>purged 0</code>.</p>
+      <p>Groups come from presets. A response belongs to a cache group for each preset in its URL. The <code>Cache-Group</code> header lists the groups (RFC 9875). Group membership adds up over time. So a group purge reaches entries that first came from a plain URL with no preset. Image responses also carry <code>Cache-Status</code> (RFC 9211). The header reports what the caches of the server did. The result is a memory hit, a disk hit, a shared-tier hit, or a fetch from the origin.</p>
+    </section>
+
+    <!-- UPLOAD -->
+    <section class="doc-sec" id="upload">
+      <h2>Upload</h2>
+      <p>Crabcrop is a fetch-only service by design. The upload endpoint is the one deliberate exception. It is <b>off by default</b>. Configure exactly one destination. Use <code>CRABCROP_UPLOAD_DIR</code> for a local directory. Or use <code>CRABCROP_UPLOAD_BUCKET</code> for an S3 bucket. With neither variable set, the endpoint does not exist. Then a <code>PUT</code> is a plain <code>404</code>.</p>
+      <div class="cb"><button class="copy-btn" type="button" data-copytarget>Copy</button><pre>curl -X PUT --data-binary @photo.jpg \
+  "http://localhost:3000/upload/&lt;signature&gt;/heroes/photo.jpg"
+
+# Or let the CLI sign and upload in one step
+crabcrop upload ./photo.jpg heroes/photo.jpg</pre></div>
+      <p>The signature covers the name, exactly as you present it. The server uses an upload subkey for it. The subkey comes from the secret. So only the holder of the secret can upload. No one can replay an image signature here. No one can replay a purge signature here. And <code>unsafe</code> never authorizes an upload. An upload token can carry an expiry (<code>/upload/&lt;signature&gt;/exp:&lt;unix-seconds&gt;/&lt;name&gt;</code>). Give a delegated token one. The signature covers the <code>exp:</code> segment and the name. So the token stops at that second.</p>
+      <ul>
+        <li>The name has segments. <code>/</code> separates the segments. Each segment uses <code>[A-Za-z0-9._-]</code> characters. No segment can be empty. No segment can be <code>.</code> or <code>..</code>. No segment can start with a dot. The name has at most 255 bytes.</li>
+        <li>The body must decode as an image that this server can serve. Any other body gives a <code>415</code>. The server never stores it. The server stores SVG bodies in sanitized form. The extension of the name must match the media kind of the body, as the check finds it.</li>
+        <li><code>CRABCROP_UPLOAD_MAX_MB</code> sets the cap for one upload. The default is 10 MB. An upload body over the cap gives a <code>413</code>.</li>
+        <li>An upload to a name that exists gives a <code>409</code>. Set <code>CRABCROP_UPLOAD_ALLOW_OVERWRITE=1</code> to let a PUT replace the file. A replace also purges every cached derivative of the old original. The endpoint has no list function. The endpoint has no delete function.</li>
+      </ul>
+      <p>The response body is the exact source reference for transform URLs. For a local destination, the reference is <code>file:///heroes/photo.jpg</code>. For a bucket, it is <code>s3://originals/heroes/photo.jpg</code>. The server also returns the reference in the <code>X-Crabcrop-Source</code> header. You can transform the uploaded original at once. It works from the moment the PUT returns. Uploads change the server. The server stops being fetch-only. It accepts bytes from callers and stores them. Give the destination a directory or a bucket for uploads only.</p>
+    </section>
+
+    <!-- SDKS -->
+    <section class="doc-sec" id="sdks">
+      <h2>SDKs and loaders</h2>
+      <p>The URL grammar and signing scheme are specified once, in <code>spec/url-signing.md</code> in the repo, with a canonical set of test vectors every implementation runs as its test suite. All three libraries take an optional expiry (emitted as a leading <code>exp:</code> segment) and a null secret for the <code>unsafe</code> form.</p>
+      <div class="grid3" style="margin-top:20px">
+        <div class="specimen"><div class="iconring"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg></div><h3>Rust: crabcrop-url</h3><p>The crate the server verifies with, so client and server cannot drift: <code>sign</code>, <code>verify</code>, <code>build_url</code>, <code>build_srcset</code>, and the purge helpers <code>purge_signature</code> and <code>purge_group_signature</code>.</p><span class="opname">cargo add crabcrop-url</span></div>
+        <div class="specimen"><div class="iconring coral"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg></div><h3>TypeScript: @crabcrop/url</h3><p><code>sign</code>, <code>verifyUrlSignature</code>, <code>buildURL</code>, <code>buildSrcSet</code>, <code>purgeSignature</code>, and <code>purgeGroupSignature</code>, plus typed operation builders (<code>ops</code>, <code>filter</code>) that validate against the grammar. Standard library only.</p><span class="opname">npm install @crabcrop/url</span></div>
+        <div class="specimen"><div class="iconring"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg></div><h3>Python: crabcrop_url</h3><p><code>sign</code>, <code>verify</code>, <code>build_url</code>, <code>build_srcset</code>, <code>purge_signature</code>, and <code>purge_group_signature</code>. Standard library only, except sealing, which needs the <code>crabcrop-url[seal]</code> extra; tests run on <code>python3 -m unittest</code>.</p><span class="opname">pip install crabcrop_url</span></div>
+      </div>
+      <h3>Framework loaders</h3>
+      <p>Framework integrations sit on the TypeScript builder: a Next.js custom loader for <code>next/image</code>, a Nuxt provider for <code>@nuxt/image</code>, a Hydrogen loader for external (non-Shopify-CDN) images, an Astro image service for <code>astro:assets</code> (<code>@crabcrop/framework-astro</code>), and a SvelteKit loader factory for components and load functions (<code>@crabcrop/framework-sveltekit</code>). All five recommend presets as the configuration, so client-side URL building never needs the secret.</p>
+      <h3>Playground</h3>
+      <p>The repo ships a static playground page (no build step, no server state) for building, signing, previewing, and debugging URLs in the browser: the secret never leaves the page, signatures verify locally, and pasted URLs are explained segment by segment with errors highlighted.</p>
+    </section>
+
+    <!-- MCP -->
+    <section class="doc-sec" id="mcp">
+      <h2>MCP</h2>
+      <p>For coding agents, the repo ships a first-party MCP server (<code>sdks/mcp</code>, stdio, nothing else to install: <code>@crabcrop/url</code> is bundled with it) over the same SDK and HTTP surface, configured with <code>CRABCROP_BASE</code> and <code>CRABCROP_SECRET</code>. It exposes four tools:</p>
+      <div class="dtablewrap"><table class="dtable"><tr><th>Tool</th><th>What it does</th></tr>
+      <tr><td>sign_url</td><td>Build a signed image URL from operations and a source, validated against the server grammar.</td></tr>
+      <tr><td>explain_url</td><td>Explain a URL segment by segment, verifying its signature.</td></tr>
+      <tr><td>fetch_meta</td><td>Fetch the meta JSON for an image URL.</td></tr>
+      <tr><td>purge_result</td><td>Purge one cached result by its path.</td></tr></table></div>
+      <div class="cb"><button class="copy-btn" type="button" data-copytarget>Copy</button><pre>{
+  "mcpServers": {
+    "crabcrop": {
+      "command": "npx",
+      "args": ["-y", "@crabcrop/mcp"],
+      "env": { "CRABCROP_BASE": "https://img.example.com", "CRABCROP_SECRET": "your-secret" }
+    }
+  }
+}</pre></div>
+    </section>
+
+    <!-- CLI -->
+    <section class="doc-sec" id="cli">
+      <h2>Command line</h2>
+      <p>The <code>crabcrop</code> binary doubles as its own operator CLI: when the first argument is a verb, it runs the verb and exits instead of starting the server. Configuration comes from flags over environment variables: <code>--base</code> / <code>--secret</code> over <code>CRABCROP_BASE</code> / <code>CRABCROP_SECRET</code>, with the base defaulting to <code>http://localhost:3000</code>. URLs are validated against the server grammar before they are signed.</p>
+      <div class="cb"><button class="copy-btn" type="button" data-copytarget>Copy</button><pre>export CRABCROP_BASE=http://localhost:3000
+export CRABCROP_SECRET=your-secret
+
+# Sign a URL (validated against the server grammar first)
+crabcrop sign "300x200/filters:grayscale/https://example.com/photo.jpg"
+
+# Explain a URL segment by segment, verifying its signature
+crabcrop explain "http://localhost:3000/&lt;signature&gt;/300x200/filters:grayscale/https://example.com/photo.jpg"
+
+# Fetch the meta JSON (a bare remainder is signed first)
+crabcrop meta "300x200/https://example.com/photo.jpg"
+crabcrop meta --placeholders --detections "300x200/https://example.com/photo.jpg"
+
+# Purge one URL, or a whole preset group (Cache-Group)
+crabcrop purge "300x200/https://example.com/photo.jpg"
+crabcrop purge-group thumb
+
+# Upload an original to the server's upload store
+crabcrop upload ./photo.jpg heroes/photo.jpg
+
+# Convert a Thumbor URL (re-signed; losses are reported on stderr)
+crabcrop convert-thumbor "unsafe/300x200/smart/https://example.com/photo.jpg"</pre></div>
+    </section>
+
+    <!-- MIGRATING -->
+    <section class="doc-sec" id="migrating">
+      <h2>Migrating from another service</h2>
+      <ul>
+        <li><a href="https://github.com/dayvson/crabcrop/blob/main/docs/migrating-from-thumbor.md" target="_blank" rel="noopener">From Thumbor</a>: concept and operation mapping, plus the convert-thumbor verb.</li>
+        <li><a href="https://github.com/dayvson/crabcrop/blob/main/docs/migrating-from-imgproxy.md" target="_blank" rel="noopener">From imgproxy</a>: option-by-option mapping tables.</li>
+        <li><a href="https://github.com/dayvson/crabcrop/blob/main/docs/migrating-from-cloudinary.md" target="_blank" rel="noopener">From Cloudinary</a>: transformation mapping, and what changes when assets become origin URLs.</li>
+        <li><a href="https://github.com/dayvson/crabcrop/blob/main/docs/migrating-from-imgix.md" target="_blank" rel="noopener">From imgix</a>: parameter-by-parameter tables, including the adjustment scales that change meaning in translation.</li>
+        <li><a href="https://github.com/dayvson/crabcrop/blob/main/docs/migrating-from-cloudflare-images.md" target="_blank" rel="noopener">From Cloudflare Images</a>: delivery-model and option mapping.</li>
+        <li><a href="https://github.com/dayvson/crabcrop/blob/main/docs/migrating-from-imagekit.md" target="_blank" rel="noopener">From ImageKit</a>: transformation-chain and parameter mapping.</li>
+        <li><a href="https://github.com/dayvson/crabcrop/blob/main/docs/migrating-from-gumlet.md" target="_blank" rel="noopener">From Gumlet</a>: parameter-by-parameter mapping tables.</li>
+      </ul>
+    </section>
+
+    <!-- DEPLOY -->
+    <section class="doc-sec" id="deploy">
+      <h2>Deployment and CDN</h2>
+      <p>Run crabcrop behind a reverse proxy or CDN in production. The application bounds its own work (the processing, AI, video, and animation gates shed overload with <code>503</code>), but connection-level protections belong at the edge: request and header timeouts, connection limits, rate limiting, and TLS termination. Restrict <code>/health</code> to your internal network at the proxy: it is unauthenticated. <code>/metrics</code> exposes traffic and error counters and is not open either: it answers <code>403</code> until <code>CRABCROP_METRICS_TOKEN</code> is set, and then requires that bearer token, answering <code>401</code> to a missing or wrong one.</p>
+      <div class="cb"><button class="copy-btn" type="button" data-copytarget>Copy</button><pre>docker build -t crabcrop:latest .
+docker run -p 3000:3000 -e CRABCROP_SECRET=your-secret-change-me crabcrop:latest
+# For the AI features, build Dockerfile.ai on top of that image.</pre></div>
+      <h3>Choose a platform</h3>
+      <p>One recipe per platform, each a complete walkthrough in the repo:</p>
+      <div class="dtablewrap"><table class="dtable"><tr><th>Platform</th><th>You apply</th><th>Signing secret</th><th>Shape</th></tr>
+      <tr><td><a href="https://github.com/dayvson/crabcrop/blob/main/deploy/helm/crabcrop/README.md" target="_blank" rel="noopener">Kubernetes, Helm chart</a></td><td>The chart, with a values file</td><td>A Kubernetes Secret you create first, passed to the chart as <code>existingSecret</code></td><td>One replica by default; a multi-replica values file ships with the chart</td></tr>
+      <tr><td><a href="https://github.com/dayvson/crabcrop/blob/main/deploy/kustomize/README.md" target="_blank" rel="noopener">Kubernetes, kustomize</a></td><td>A base, plus the components and overlay you choose</td><td>A Kubernetes Secret you create yourself; the base ships none</td><td>Components for presets, result storage, and the AI variant, plus single, multi-replica, and full overlays</td></tr>
+      <tr><td><a href="https://github.com/dayvson/crabcrop/blob/main/deploy/ecs-fargate/README.md" target="_blank" rel="noopener">AWS, ECS Fargate</a></td><td><code>task-definition.json</code>, plus the service and load balancer commands in the recipe</td><td>Secrets Manager</td><td>A Fargate service behind an Application Load Balancer</td></tr>
+      <tr><td><a href="https://github.com/dayvson/crabcrop/blob/main/deploy/cloud-run/README.md" target="_blank" rel="noopener">GCP, Cloud Run</a></td><td><code>service.yaml</code></td><td>Secret Manager</td><td>A Cloud Run service, with one instance kept warm</td></tr>
+      <tr><td><a href="https://github.com/dayvson/crabcrop/blob/main/deploy/container-apps/README.md" target="_blank" rel="noopener">Azure, Container Apps</a></td><td><code>containerapp.yaml</code></td><td>The app secret store, or a Key Vault reference for production</td><td>A Container Apps app with ingress, with one replica kept warm</td></tr>
+      <tr><td><a href="https://github.com/dayvson/crabcrop/blob/main/deploy/compose/README.md" target="_blank" rel="noopener">Single host, Docker Compose</a></td><td><code>docker-compose.yml</code></td><td>An environment variable; compose refuses to start without one</td><td>A one-command evaluation run on a single host</td></tr>
+      <tr><td><a href="https://github.com/dayvson/crabcrop/blob/main/deploy/vm/README.md" target="_blank" rel="noopener">Single host, a VM</a></td><td>The release binary and the systemd unit in the recipe</td><td>An environment file the unit reads</td><td>The production single-host install, behind a reverse proxy</td></tr></table></div>
+      <h3>Put a CDN in front</h3>
+      <p>Optional, after any platform above. One recipe per CDN, each with a per-CDN config artifact:</p>
+      <div class="dtablewrap"><table class="dtable"><tr><th>CDN</th><th>Recipe covers</th></tr>
+      <tr><td><a href="https://github.com/dayvson/crabcrop/blob/main/deploy/cloudflare/README.md" target="_blank" rel="noopener">Cloudflare</a></td><td>Cache rules, purge mapping with cache groups bridged to cache tags, format negotiation and expiry caveats.</td></tr>
+      <tr><td><a href="https://github.com/dayvson/crabcrop/blob/main/deploy/cloudfront/README.md" target="_blank" rel="noopener">CloudFront</a></td><td>A cache policy that respects origin headers, purge by path and by cache tag, and an Accept-normalizing edge function.</td></tr>
+      <tr><td><a href="https://github.com/dayvson/crabcrop/blob/main/deploy/fastly/README.md" target="_blank" rel="noopener">Fastly</a></td><td>Origin cache headers left in charge, cache groups bridged to surrogate keys for group purges, Image Optimizer kept off.</td></tr>
+      <tr><td><a href="https://github.com/dayvson/crabcrop/blob/main/deploy/bunnycdn/README.md" target="_blank" rel="noopener">BunnyCDN</a></td><td>Origin Cache-Control left in charge, cache groups bridged to CDN tags by a middleware script, Bunny Optimizer kept off.</td></tr>
+      <tr><td><a href="https://github.com/dayvson/crabcrop/blob/main/deploy/akamai/README.md" target="_blank" rel="noopener">Akamai</a></td><td>Origin cache headers put in charge through the Caching behavior, cache groups bridged to cache tags by per-preset rules, Image and Video Manager kept off.</td></tr></table></div>
+      <p>Every recipe follows the same flow: create the signing secret, deploy, then run the smoke checklist at the end of the recipe.</p>
+      <h3>Result tiers</h3>
+      <p>Results are stored in up to three tiers. The first is an in-memory LRU, per replica, bounded by <code>CRABCROP_CACHE_MAX_MB</code> (256 MB by default). An optional disk tier (<code>CRABCROP_RESULT_STORAGE_DIR</code>, unset by default) sits underneath it and survives restarts on that host, bounded by <code>CRABCROP_RESULT_STORAGE_MAX_MB</code> (512 MB by default). An optional shared tier (<code>CRABCROP_RESULT_BUCKET</code>) sits behind both: one S3 bucket, or an S3-compatible endpoint, that every replica reads and writes, so all replicas serve the same stored results. Purges fan out to all three tiers.</p>
+    </section>
+
+    <!-- ERRORS -->
+    <section class="doc-sec" id="errors">
+      <h2>Errors</h2>
+      <p>Error bodies are plain text with a short message. Send <code>Accept: application/json</code> with a grammar failure, and the server returns a JSON envelope instead: <code>{"error":{"code":"invalid_filters","message":"..."}}</code>. That failure gives a <code>400</code>. The codes are the stable names of the parser. The names are frozen as published. The codes are <code>invalid_size</code>, <code>invalid_crop</code>, <code>invalid_filters</code>, <code>unknown_preset</code>, <code>unknown_root</code>, <code>invalid_root</code>, <code>invalid_frame</code>, <code>invalid_page</code>, <code>invalid_focal_point</code>, and the rest.</p>
+      <div class="dtablewrap"><table class="dtable"><tr><th>Status</th><th>Meaning</th></tr>
+      <tr><td>400</td><td>The path or the operations do not parse. Or the operation is not supported. Cases include a malformed segment and an unknown filter. Cases include removebg into a format without alpha. Cases include upscale past its caps. Cases include a crop-rect outside the image. Cases include a video format on a still source.</td></tr>
+      <tr><td>401</td><td>A /metrics request with a bearer token that is missing or wrong. This applies when CRABCROP_METRICS_TOKEN is set.</td></tr>
+      <tr><td>403</td><td>Bad signature, an expired exp: URL, or the source refused by the source policy.</td></tr>
+      <tr><td>404</td><td>A PUT to /upload/... when uploads are not configured, or a PUT to any path that is not the upload route.</td></tr>
+      <tr><td>413</td><td>An upload body larger than the CRABCROP_UPLOAD_MAX_MB cap.</td></tr>
+      <tr><td>415</td><td>An upload body that does not decode as an image that this server can serve. The server never stores it.</td></tr>
+      <tr><td>409</td><td>An upload to an existing name, with overwrite off.</td></tr>
+      <tr><td>500</td><td>The encode of the output failed. Or an AI model failed at inference time. A model that cannot load at all fails at startup instead.</td></tr>
+      <tr><td>501</td><td>The URL is valid. But this server has no configuration for it. Cases: an AI filter with no model, a text overlay with no font, a video format with no encoder.</td></tr>
+      <tr><td>502</td><td>The server cannot fetch or decode the source. Or the source is larger than the fetch limit of 10 MiB. Or a watermark fails to load. Or a configured encoder or model makes output that the server cannot use.</td></tr>
+      <tr><td>503</td><td>The server shed the request. A gate waited past its timeout. The gate is a processing, AI, video, or animation gate. The response carries Retry-After.</td></tr>
+      <tr><td>504</td><td>The fetch of the source ran past its timeout. The timeout is 10 seconds per request. Or processing ran past the processing timeout. You set the timeout with <code>CRABCROP_PROCESS_TIMEOUT_SECS</code>. The default is 30 seconds. You can set it from 1 to 600.</td></tr></table></div>
+      <p>For example, a <code>removebg</code> request to a server with no background removal model returns <code>501</code>. The body is <code>removebg is not configured on this server</code>. The server never caches errors. It caches only <code>200</code> responses.</p>
+    </section>
+
+    <!-- CONFIG -->
+    <section class="doc-sec" id="config">
+      <h2>Configuration</h2>
+      <p>All configuration comes from environment variables. Invalid values are startup errors, booleans included: the server refuses to start rather than run with a wrong port, cache budget, or safety flag. Booleans accept <code>1</code>, <code>true</code>, <code>yes</code>, <code>on</code> (and their off spellings). Names follow one pattern: <code>*_MODEL</code> is an AI model artifact, <code>*_FILE</code> is a file read at boot, <code>*_DIR</code> is a directory, and <code>*_MAX_MB</code> is a size budget in megabytes. The essentials:</p>
+      <div class="dtablewrap"><table class="dtable"><tr><th>Variable</th><th>Default</th><th>What it does</th></tr>
+      <tr><td>CRABCROP_SECRET</td><td>required</td><td>The HMAC secret, at least 16 bytes. The server will not start without it.</td></tr>
+      <tr><td>PORT / CRABCROP_PORT</td><td>3000</td><td>Listen port. The namespaced alias wins when both are set.</td></tr>
+      <tr><td>CRABCROP_ALLOW_UNSAFE</td><td>off</td><td>Honors unsafe URLs. Local development only.</td></tr>
+      <tr><td>CRABCROP_ALLOWED_SOURCES</td><td>all hosts</td><td>Comma-separated host suffixes the loader may fetch from.</td></tr>
+      <tr><td>CRABCROP_BLOCK_PRIVATE_SOURCES</td><td>off</td><td>Refuses sources that resolve to non-public addresses.</td></tr>
+      <tr><td>CRABCROP_PRESETS_FILE</td><td>unset</td><td>Path to the presets file.</td></tr>
+      <tr><td>CRABCROP_SOURCE_ROOTS_FILE</td><td>unset</td><td>Path to a source roots file. See <a href="#roots">Source roots</a>.</td></tr>
+      <tr><td>CRABCROP_ONLY_PRESETS</td><td>off</td><td>Rejects free-form operations; preset references and metadata only.</td></tr>
+      <tr><td>CRABCROP_DEFAULT_OPS</td><td>unset</td><td>Operations prepended to every request (a house format, quality, or watermark), applied after signature verification. The signature never covers the defaults.</td></tr>
+      <tr><td>CRABCROP_CACHE_MAX_MB</td><td>256</td><td>Result cache budget. 0 disables the cache.</td></tr>
+      <tr><td>CRABCROP_METRICS_TOKEN</td><td>unset</td><td>Bearer token for /metrics. Unset, /metrics answers 403; set, a missing or wrong bearer answers 401.</td></tr>
+      <tr><td>CRABCROP_METADATA</td><td>strip</td><td>preserve copies source EXIF/XMP (and IPTC for JPEG) into JPEG and PNG outputs, with the orientation rewritten to 1.</td></tr>
+      <tr><td>CRABCROP_AVIF_SPEED</td><td>9</td><td>ravif speed tier for AVIF encodes, 1 (slowest, smallest output) to 10 (fastest, larger output). The default favors encode speed; set 8 for smaller files.</td></tr>
+      <tr><td>CRABCROP_JXL_SPEED</td><td>fastest</td><td>Speed tier for JPEG XL encodes: ultrafast, fastest, fast, medium, slow, or extraslow. Slower tiers shrink output with steep latency costs.</td></tr>
+      <tr><td>CRABCROP_FALLBACK_IMAGE</td><td>unset</td><td>URL or local path of the fallback image for unfetchable sources.</td></tr>
+      <tr><td>CRABCROP_FONT_PATH</td><td>unset</td><td>A TTF/OTF font for the text(...) filter. Unset disables the filter.</td></tr>
+      <tr><td>CRABCROP_VIDEO_ENCODER</td><td>unset</td><td>Path to the external video encoder. Unset disables video output.</td></tr>
+      <tr><td>CRABCROP_VIDEO_DECODER</td><td>unset</td><td>Path to the external video decoder program for frame: extraction from video sources, validated at startup. Unset disables frame selection. See <a href="#frames">Video frames</a>.</td></tr>
+      <tr><td>CRABCROP_PDF_RENDERER</td><td>unset</td><td>Path to the external PDF renderer program for page: rendering from PDF sources; the pdfinfo program next to it is derived from the path and validated alongside. Unset disables page selection. See <a href="#pages">PDF pages</a>.</td></tr>
+      <tr><td>CRABCROP_PDF_TIMEOUT_SECS</td><td>30</td><td>Hard wall-clock limit per external PDF tool run (one probe or one page render), 1 to 600 seconds.</td></tr>
+      <tr><td>CRABCROP_INPAINT_MODEL</td><td>unset</td><td>Path to a LaMa family ONNX model for the remove_region filter. See <a href="#ai">AI operations</a>.</td></tr>
+      <tr><td>CRABCROP_SEGMENT_ENCODER_MODEL</td><td>unset</td><td>The image encoder of the MobileSAM pair, for mask-tight class operations. Both segment paths are required together.</td></tr>
+      <tr><td>CRABCROP_SEGMENT_DECODER_MODEL</td><td>unset</td><td>The box-prompt decoder of the MobileSAM pair, for mask-tight class operations. Both segment paths are required together.</td></tr>
+      <tr><td>CRABCROP_OCR_DETECT_MODEL</td><td>unset</td><td>The text detection model of the PP-OCR family pair, for OCR in meta. All three OCR paths are required together.</td></tr>
+      <tr><td>CRABCROP_OCR_RECOGNIZE_MODEL</td><td>unset</td><td>The text recognition model of the PP-OCR family pair, for OCR in meta. All three OCR paths are required together.</td></tr>
+      <tr><td>CRABCROP_OCR_DICT</td><td>unset</td><td>The recognition model's character dictionary: one character per line, in class order.</td></tr>
+      <tr><td>CRABCROP_OCR_LANGUAGE</td><td>und</td><td>The language tag the OCR recognition model serves, echoed in meta OCR responses.</td></tr>
+      <tr><td>CRABCROP_C2PA_CERT</td><td>unset</td><td>Path to a PEM certificate chain: the C2PA signing identity for output provenance. Set together with CRABCROP_C2PA_KEY; a partial set is a startup error, and the identity is proven at boot. Unset disables output signing. See <a href="#provenance">Provenance (C2PA)</a>.</td></tr>
+      <tr><td>CRABCROP_C2PA_KEY</td><td>unset</td><td>Path to the private key for CRABCROP_C2PA_CERT, in PKCS#8 PEM form (BEGIN PRIVATE KEY).</td></tr>
+      <tr><td>CRABCROP_C2PA_TSA_URL</td><td>unset</td><td>Optional timestamp authority URL recorded in output signatures. Requires the certificate pair.</td></tr></table></div>
+      <p>Cache entries in the persistent tiers are authenticated: each stored entry carries an HMAC-SHA256 tag under a key derived from the server secret, verified before the entry is served, so rotating the secret also invalidates the persistent tiers' contents. Cache keys also carry a fingerprint of the configuration that shapes output, printed at startup, so restarting with any of it changed starts a fresh cache epoch. The full configuration table, including every AI model variable and the result-tier settings, is in the <a href="https://github.com/dayvson/crabcrop#configuration" target="_blank" rel="noopener">README</a>.</p>
+      <p style="margin-top:22px"><a class="mono-link" href="index.html"><svg class="claw" width="16" height="16" aria-hidden="true"><use href="#clawmark"/></svg> Back to the homepage</a></p>
+    </section>
+
+    </div>
+  </div>
+</div>
+</main>
+
+<footer>
+  <div class="foam" style="--fc:#084F57" aria-hidden="true"></div>
+  <div class="wrap">
+    <div class="fbrand">
+      <span class="pebble" aria-hidden="true"><svg class="claw"><use href="#clawmark"/></svg></span>
+      <div>
+        <div class="wordmark">crabcrop</div>
+        <div style="font-size:14px">On-demand image optimization, in Rust.</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:24px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:14px;font-weight:700;flex-wrap:wrap">
+      <a href="index.html">Home</a>
+      <a href="https://github.com/dayvson/crabcrop" target="_blank" rel="noopener">github.com/dayvson/crabcrop</a>
+      <a href="https://github.com/crabcrop" target="_blank" rel="noopener">github.com/crabcrop</a>
+      <a href="#start">Back to the top</a>
+    </div>
+  </div>
+  <p class="signoff">Built on the shore, in Rust. MIT licensed.<br>Snapped, not generated. See you at low tide. 🦀</p>
+</footer>
+
+<script>
+"use strict";
+const $ = s => document.querySelector(s);
+const $$ = s => Array.from(document.querySelectorAll(s));
+
+/* copy buttons: nearest code block's pre text */
+$$("[data-copytarget]").forEach(b=>b.addEventListener("click", ()=>{
+  const host = b.closest(".cb") || b.closest(".code-window");
+  const pre = host && host.querySelector("pre");
+  if(pre) navigator.clipboard && navigator.clipboard.writeText(pre.innerText);
+  const t = b.textContent; b.textContent = "Copied"; b.classList.add("ok");
+  setTimeout(()=>{ b.textContent = t; b.classList.remove("ok"); }, 1400);
+}));
+
+/* signing tabs */
+$$(".tabs").forEach(tabs=>{
+  tabs.addEventListener("click", e=>{
+    const tab = e.target.closest(".tab"); if(!tab) return;
+    const win = tabs.nextElementSibling;
+    tabs.querySelectorAll(".tab").forEach(t=>{ t.classList.toggle("active", t===tab); t.setAttribute("aria-selected", String(t===tab)); });
+    win.querySelectorAll(".code-pane").forEach(p=>p.classList.toggle("active", p.dataset.pane===tab.dataset.pane));
+  });
+});
+
+/* anatomy strip */
+const ANA_DEF = {
+  sig:"<b>Signature.</b> Proof the URL came from you. The server recomputes the HMAC-SHA256 over the operations and source exactly as they appear. A match serves the image; a miss gets a 403.",
+  exp:"<b>Expiry.</b> A signed deadline in Unix seconds, valid strictly before that second. It sits inside the signed remainder, so nobody can extend it without the secret. Past it: 403, and expired URLs never serve from cache.",
+  ops:"<b>Operations.</b> The recipe, in path order: size, crop, fit-in, pad, crop-rect, focal, focalpoint, presets, and metadata segments like exp: and maxage:. Each runs in the order written.",
+  filters:"<b>Filters.</b> A chain of looks and encoder orders in one segment, run left to right: filters:grayscale:quality(80). When a directive repeats, the last one wins.",
+  source:"<b>Source.</b> The source locator: a full URL with its scheme, a bucket or file locator, or a root:&lt;name&gt;/&lt;path&gt; short source naming a source root. It starts at the first segment that is not an operation, and may itself contain slashes."
+};
+$$(".ana-lite .segbtn").forEach(b=>b.addEventListener("click", ()=>{
+  $$(".ana-lite .segbtn").forEach(x=>x.setAttribute("aria-pressed", String(x===b)));
+  if(ANA_DEF[b.dataset.seg]) $("#anaDef").innerHTML = ANA_DEF[b.dataset.seg];
+}));
+
+/* before and after sliders */
+$$(".ba").forEach(ba=>{
+  const top = ba.querySelector(".ba-top"), div = ba.querySelector(".ba-div"), range = ba.querySelector("input[type=range]");
+  if(!top || !range) return;
+  const set = v=>{ top.style.clipPath = "inset(0 0 0 " + v + "%)"; if(div) div.style.left = v + "%"; };
+  set(range.value);
+  range.addEventListener("input", ()=>set(range.value));
+});
+
+/* size operation builder */
+const SZ_NOTES = {
+  "size":"Resize to exactly W x H. 0 on an axis scales proportionally, orig keeps the source dimension, and a negative dimension flips as it resizes.",
+  "fit-in":"Scale proportionally to fit inside the box. A 0 axis is unbounded. Add :adaptive (in a real URL) to swap the box axes when the source orientation disagrees.",
+  "pad":"Fit inside the box, center, and fill the rest so the output is exactly W x H. The fill is a hex color, or blur for ambient bars from the image itself.",
+  "crop":"Crop to the aspect ratio, then resize to exactly that size. smart centers on a detected face when a face model is configured, else on the point of greatest local detail; face crops on the largest face and falls back to smart.",
+  "crop-rect":"Cut the exact pixel rectangle between the two corners, in source pixels. A rectangle outside the source fails with 400; it is not clamped."
+};
+function szRender(){
+  const op = $("#szOp").value, w = $("#szW").value, h = $("#szH").value;
+  const rect = op==="crop-rect";
+  $("#szRectWrap").hidden = !rect;
+  $("#szAlign").hidden = op!=="crop";
+  $("#szPadFill").hidden = op!=="pad";
+  let s;
+  if(op==="size") s = w + "x" + h;
+  else if(op==="fit-in") s = "fit-in:" + w + "x" + h;
+  else if(op==="pad") s = "pad:" + w + "x" + h + ($("#szPadFill").value ? ":" + $("#szPadFill").value : "");
+  else if(op==="crop") s = "crop:" + w + "x" + h + ($("#szAlign").value ? ":" + $("#szAlign").value : "");
+  else s = "crop-rect:" + w + "x" + h + ":" + $("#szR").value + "x" + $("#szB").value;
+  $("#szEq").textContent = s;
+  $("#szNote").textContent = SZ_NOTES[op];
+}
+["szOp","szW","szH","szR","szB","szAlign","szPadFill"].forEach(id=>{ const el = $("#"+id); el.addEventListener("input", szRender); el.addEventListener("change", szRender); });
+szRender();
+
+/* adjustment sliders */
+function adjRender(){
+  const c = +$("#adjContrast").value, b = +$("#adjBrighten").value, s = +$("#adjSat").value, bl = +$("#adjBlur").value;
+  $("#adjContrastV").textContent = c;
+  $("#adjBrightenV").textContent = b;
+  $("#adjSatV").textContent = (s/100).toFixed(2).replace(/0$/,"");
+  $("#adjBlurV").textContent = (bl/10).toFixed(1);
+  $("#adjImg").style.filter = "contrast(" + (1 + c/100) + ") brightness(" + (1 + b/255) + ") saturate(" + (s/100) + ") blur(" + (bl/10) + "px)";
+  const toks = [];
+  if(c!==0) toks.push("contrast(" + c + ")");
+  if(b!==0) toks.push("brighten(" + b + ")");
+  if(s!==100) toks.push("saturation(" + (s/100) + ")");
+  if(bl!==0) toks.push("blur(" + (bl/10).toFixed(1).replace(/\.0$/,"") + ")");
+  $("#adjEq").textContent = toks.length ? "filters:" + toks.join(":") : "filters: (identity: every slider at its neutral value)";
+}
+["adjContrast","adjBrighten","adjSat","adjBlur"].forEach(id=>$("#"+id).addEventListener("input", adjRender));
+adjRender();
+
+/* effect chips */
+const fxChain = [];
+function fxRender(){
+  const filters = [], transforms = [];
+  fxChain.forEach(x=>{ (x.css.indexOf("scale")===0 ? transforms : filters).push(x.css); });
+  $("#fxImg").style.filter = filters.join(" ");
+  $("#fxImg").style.transform = transforms.join(" ");
+  $("#fxEq").textContent = fxChain.length ? "filters:" + fxChain.map(x=>x.f).join(":") : "filters: (none yet)";
+}
+$("#fxChips").addEventListener("click", e=>{
+  const b = e.target.closest("[data-fx]"); if(!b) return;
+  const i = fxChain.findIndex(x=>x.f===b.dataset.fx);
+  if(i>=0){ fxChain.splice(i,1); b.classList.remove("on"); }
+  else { fxChain.push({f:b.dataset.fx, css:b.dataset.css}); b.classList.add("on"); }
+  fxRender();
+});
+
+/* format builder */
+function fmRender(){
+  const f = $("#fmFormat").value, q = $("#fmQuality").value;
+  const toks = [];
+  if(f) toks.push("format(" + f + ")");
+  if(q) toks.push("quality(" + q + ")");
+  if($("#fmNoUp").checked) toks.push("no_upscale");
+  if($("#fmDpr").value) toks.push("dpr(" + $("#fmDpr").value + ")");
+  $("#fmEq").textContent = toks.length ? "filters:" + toks.join(":") : "filters: (no directives: negotiated format, quality 80)";
+  $("#fmNote").textContent = f ? "An explicit format() always wins over Accept negotiation." :
+    q==="auto" ? "quality(auto) verifies its pick perceptually for JPEG and JPEG XL, and reports the score in meta." :
+    "With no format() in the URL, the Accept header decides: AVIF, then JPEG XL, then WebP, by q-value.";
+}
+["fmFormat","fmQuality","fmNoUp","fmDpr"].forEach(id=>{ const el = $("#"+id); el.addEventListener("change", fmRender); el.addEventListener("input", fmRender); });
+fmRender();
+</script>
+<script src="thumbhash.js"></script>
+</body>
+</html>
