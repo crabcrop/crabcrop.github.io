@@ -72,9 +72,13 @@ value.
 - Table label cells (filter names, parameter forms, defaults) and the
   demo readouts and operation strings under the AI demos. These are
   labels and syntax, not prose. Three demo paragraphs carry JavaScript
-  hooks (ids `szNote`, `fmNote`, and the size builder readout) and were
-  left byte-identical so the demos behave exactly as on the live page.
-  The static demo notes (the "honest" notes) were rewritten.
+  hooks (ids `szNote`, `fmNote`, and the size builder readout), and
+  the URL anatomy definition box (`anaDef`) is filled by the page
+  script from strings inside that script. All were left byte-identical
+  so the demos behave exactly as on the live page, and so the box
+  shows the same text before and after a click. The anatomy box text
+  is short and plain in the original, so nothing is lost there. The
+  static demo notes (the "honest" notes) were rewritten.
 - The footer signoff. It is brand voice, not documentation.
 - The test-vector paragraph keeps its telegram style ("Secret X,
   message Y, gives HMAC-SHA256 Z") because the values are code and the
