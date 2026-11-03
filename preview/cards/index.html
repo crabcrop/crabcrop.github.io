@@ -627,7 +627,7 @@ a.strip-card:focus-visible{outline:3px solid var(--sun);outline-offset:2px}
 #features .strip-card .opname{margin-top:auto;padding-top:10px}
 @media(min-width:641px){#features #formats{grid-column:span 2}}
 @media(max-width:1023px){#features .strip-scroll{grid-template-columns:repeat(2,1fr)}}
-@media(max-width:640px){#features .strip-scroll{grid-template-columns:1fr}}
+@media(max-width:640px){#features .strip-scroll{display:flex;gap:18px;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch}#features .strip-card{flex:0 0 300px;scroll-snap-align:start}}
 @media(min-width:1500px){#features .wrap{max-width:1408px}#features .strip-scroll{grid-template-columns:repeat(4,1fr)}}
 </style>
 </head>
