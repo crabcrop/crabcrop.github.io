@@ -620,15 +620,18 @@ a.strip-card:focus-visible{outline:3px solid var(--sun);outline-offset:2px}
 /* Feature cards preview: grid layout for the features section only.
    Scoped under #features so the strip elsewhere (AI gallery) is untouched.
    Cards carry no hidden start state: they are fully visible with or
-   without JavaScript, and nothing here animates them. */
+   without JavaScript, and nothing here animates them.
+   The max-width:640px strip block is last in this block on purpose:
+   at equal specificity it must come after the grid rules to win the
+   cascade on small screens. */
 #features .strip-scroll{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;overflow:visible;padding:8px 4px 20px;scroll-snap-type:none;-webkit-overflow-scrolling:auto}
 #features .strip-card{flex:none;scroll-snap-align:none;display:flex;flex-direction:column}
 #features .strip-card .sc-body{padding:20px;display:flex;flex-direction:column;flex:1}
 #features .strip-card .opname{margin-top:auto;padding-top:10px}
 @media(min-width:641px){#features #formats{grid-column:span 2}}
 @media(max-width:1023px){#features .strip-scroll{grid-template-columns:repeat(2,1fr)}}
-@media(max-width:640px){#features .strip-scroll{display:flex;gap:18px;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch}#features .strip-card{flex:0 0 300px;scroll-snap-align:start}}
 @media(min-width:1500px){#features .wrap{max-width:1408px}#features .strip-scroll{grid-template-columns:repeat(4,1fr)}}
+@media(max-width:640px){#features .strip-scroll{display:flex;gap:18px;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch}#features .strip-card{flex:0 0 300px;scroll-snap-align:start}}
 </style>
 </head>
 <body>
@@ -754,59 +757,6 @@ url = build_url(
     <p class="honest" style="margin-top:14px">Each snippet signs the same example with the sample secret <code>demo-secret</code>. Swap in your base, your secret, and your operations.</p>
     <p class="honest" style="margin-top:10px">The source can be a short root reference instead of a full URL, like <code>root:photos/cat.jpg</code>: the server expands it against an origin configured on the server, so the origin itself never appears in the URL.</p>
     <p class="honest" style="margin-top:10px">A URL can also be sealed: the whole recipe, operations and source, encrypted into one opaque token in the signature slot, for links that have to stay public but unreadable. The readable form stays the default. See <a href="docs.html#sealed">sealed URLs in the docs</a>.</p>
-  </div>
-</section>
-
-<!-- STUDIO MODE -->
-<section id="studio">
-  <div class="wrap">
-    <div class="tidemark"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg> Studio mode</div>
-    <h2>Studio product shots, <span class="coral">in one URL.</span></h2>
-    <p class="lede" style="margin-bottom:26px"><code>studio(product)</code> cuts the subject out of a photo taken anywhere and composites it onto a clean backdrop (white, a hex color, or your brand color) over a soft contact shadow: a finished product shot, in one URL. The skate park photo below is a real output from a running server. Drag the slider.</p>
-    <div style="max-width:880px">
-<div class="ba" style="aspect-ratio:3/2">
-          <div class="ba-layer"><img src="https://images.crabcrop.org/a5ec2a7905f2bc67b5705cb55a10d437a27f646cfe44eae67d686981cc2a8027/preset:site-photo/root:site/studio-white.webp" data-thumbhash="dDgSFYj3eGd5h4eLdXiIigiHg3A4" alt="Snap composited by studio mode onto a white backdrop with a soft contact shadow" width="1000" height="667"></div>
-          <div class="ba-layer ba-top"><img src="https://images.crabcrop.org/0ba9bb844d0e7d419924bcafd30b29ea16cde17202f6cfaa8ac17e0e0bafb026/preset:site-photo/root:site/studio-before.jpg" data-thumbhash="4TgKFYaGuol5h4WEdQZ8XEqj0EMJ" alt="Snap the crochet crab at a skate park, original photo" width="1000" height="667"></div>
-          <span class="ba-chip l">studio(product)</span><span class="ba-chip r">BEFORE</span>
-          <div class="ba-div"></div>
-          <input type="range" min="0" max="100" value="55" aria-label="Reveal the studio mode result">
-        </div>
-        <p class="ai-op" style="margin-top:10px">fit-in:1000x667/filters:studio(product,bg:white,shadow:soft,pad:10)</p>
-    </div>
-  </div>
-</section>
-
-<!-- AI SIDE BY SIDE -->
-<section id="ai">
-  <div class="wrap">
-    <div class="tidemark"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg> AI features</div>
-    <h2>Models you supply. <span class="coral">Inference in process.</span></h2>
-    <p class="lede" style="margin-bottom:26px">Real outputs from a running server, nothing retouched. No model configured means a clean 501, never a silent fallback.</p>
-    <div class="ai-demos" style="margin-top:0">
-      <div class="ai-demo">
-        <div class="ba" style="aspect-ratio:3/2">
-          <div class="ba-layer checker"><img src="https://images.crabcrop.org/02a88eff67e58390de62e61a0630ef0aed28eea51e050e2b2354d86da46093a8/preset:site-photo/root:site/ai-skate-removebg.webp" data-thumbhash="nKmCA4AkFPiqiYPqzLDfOx9xdolAmlc=" alt="Snap at the skate park with the background removed, over transparency" width="1000" height="667" loading="lazy"></div>
-          <div class="ba-layer ba-top"><img src="https://images.crabcrop.org/02cec789bbeaf3393167ab2535e8e74022faa65e71ded935c0a344cad0fe3cc0/preset:site-photo/root:site/ai-skate-before.jpg" data-thumbhash="4TgKFYaGuol5h4WEdQZ8XEqj0EMJ" alt="Snap the crochet crab at a skate park, original photo" width="1000" height="667" loading="lazy"></div>
-          <span class="ba-chip l">AFTER</span><span class="ba-chip r">BEFORE</span>
-          <div class="ba-div"></div>
-          <input type="range" min="0" max="100" value="55" aria-label="Reveal the background removal result">
-        </div>
-        <h3>Background removal</h3>
-        <p class="ai-op">fit-in:1000x667/filters:removebg:format(webp)</p>
-      </div>
-      <div class="ai-demo">
-        <div class="ba" style="aspect-ratio:1100/733">
-          <div class="ba-layer"><img src="https://images.crabcrop.org/cf792475da4f1056111813260cfdffd06baa666a7de4c46f60ef9b12cdeeef1d/preset:site-photo/root:site/ai-skate-redact.jpg" data-thumbhash="4TgKFYaGuol5h4WEdQZ8XEqj0EMJ" alt="The skate park photo with the skateboard pixelated by crabcrop" width="1100" height="733" loading="lazy"></div>
-          <div class="ba-layer ba-top"><img src="https://images.crabcrop.org/6aa2cab03b41bcfc04a0bdd09fb72003803c85e00afbc70d0f8ca1df71f31f99/preset:site-photo/root:site/ai-skate-redact-before.jpg" data-thumbhash="4TgKFYaGuol5h4WEdQZ8XEqj0EMJ" alt="Snap at the skate park next to a skateboard, original photo" width="1100" height="733" loading="lazy"></div>
-          <span class="ba-chip l">AFTER</span><span class="ba-chip r">BEFORE</span>
-          <div class="ba-div"></div>
-          <input type="range" min="0" max="100" value="55" aria-label="Reveal the pixelated skateboard">
-        </div>
-        <h3>Redact a class: pixelate</h3>
-        <p class="ai-op">fit-in:1100x733/filters:pixelateclass(skateboard)</p>
-      </div>
-    </div>
-    <p class="honest">Plus upscale, region removal by inpainting, face redaction, smart crops, and the meta family: <a href="docs.html#ai">AI in the documentation</a>.</p>
   </div>
 </section>
 
