@@ -100,6 +100,7 @@ header .foam{top:auto;bottom:-11px;--fc:rgba(251,240,217,.94)}
 .logo .pebble{width:36px;height:36px}
 .nav-links{display:flex;gap:24px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:14px;font-weight:700}
 .nav-links a{color:var(--ink-2)}
+.nav-links a{display:inline-flex;align-items:center;min-height:44px}
 .nav-links a:hover{color:var(--ink);text-decoration:none}
 @media(max-width:900px){
   .nav{flex-wrap:wrap;height:auto;padding-top:6px;row-gap:0}
@@ -590,7 +591,7 @@ footer a{color:var(--sea-glass)}
   #aiPorthole.scanning{animation:none}
 }
 
-.nav-icons{display:flex;gap:14px;align-items:center}.nav-icons a{display:inline-flex;color:var(--ink);opacity:.78;transition:opacity .15s}.nav-icons a:hover{opacity:1}.nav-icons svg{width:22px;height:22px;display:block}</style>
+.nav-icons{display:flex;gap:14px;align-items:center;margin:0 -11px}.nav-icons a{display:inline-flex;color:var(--ink);opacity:.78;transition:opacity .15s;padding:11px}.nav-icons a:hover{opacity:1}.nav-icons svg{width:22px;height:22px;display:block}</style>
 <style>
 .docs-layout{display:grid;grid-template-columns:228px minmax(0,1fr);gap:44px;align-items:start;padding:34px 0 70px}
 .docs-layout>*{min-width:0}
