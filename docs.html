@@ -709,8 +709,8 @@ input[type=number].din,select.din,input[type=text].din{padding:9px 11px;border:2
 curl --proto '=https' --tlsv1.2 -LsSf https://github.com/dayvson/crabcrop/releases/latest/download/crabcrop-installer.sh | sh
 
 # Docker: the base image, and the AI variant
-docker pull ghcr.io/dayvson/crabcrop:0.9.7
-docker pull ghcr.io/dayvson/crabcrop-ai:0.9.7</pre></div>
+docker pull ghcr.io/dayvson/crabcrop:0.9.9
+docker pull ghcr.io/dayvson/crabcrop-ai:0.9.9</pre></div>
       <p>The AI variant ships only the background removal (u2netp) and face detection (YuNet) models. Every other AI feature needs its own model configured, and answers <code>501</code> without one; see <a href="#ai">AI operations</a>.</p>
       <p>Prebuilt tarballs for macOS and Linux, on x86_64 and arm64, are on the <a href="https://github.com/dayvson/crabcrop/releases" target="_blank" rel="noopener">releases page</a>.</p>
       <p>Building from source instead (<code>cargo run</code>, <code>cargo build</code>, or <code>cargo install crabcrop</code>) needs a C compiler and, on x86_64, nasm. Meson and ninja are needed only for the vendored AVIF decode route.</p>
