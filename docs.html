@@ -737,46 +737,57 @@ curl "http://localhost:3000/9e24ae8bf61c0d40cb6f1ca9f9e1d3e771f6c8bc8b8ab7270e6d
       <p>Compute HMAC-SHA256 over the remainder of the path, the operations and the source URL exactly as they appear, with no leading slash, keyed with your <code>CRABCROP_SECRET</code>, and hex-encode the result as the first path segment. A request with a bad signature gets <code>403</code> and the body <code>bad signature</code>. The literal signature <code>unsafe</code> skips verification only when the server runs with <code>CRABCROP_ALLOW_UNSAFE=1</code>. Keep it off in production.</p>
       <div style="margin-top:18px">
         <div class="tabs" role="tablist" aria-label="Signing examples by language">
-          <button class="tab active" data-pane="curl" type="button" role="tab" aria-selected="true">curl</button>
-          <button class="tab" data-pane="ts" type="button" role="tab" aria-selected="false">TypeScript</button>
-          <button class="tab" data-pane="py" type="button" role="tab" aria-selected="false">Python</button>
-          <button class="tab" data-pane="rs" type="button" role="tab" aria-selected="false">Rust</button>
+          <button class="tab active" data-pane="curl" type="button" role="tab" id="sign-tab-curl" aria-controls="sign-pane-curl" aria-selected="true" tabindex="0">curl</button>
+          <button class="tab" data-pane="ts" type="button" role="tab" id="sign-tab-ts" aria-controls="sign-pane-ts" aria-selected="false" tabindex="-1">TypeScript</button>
+          <button class="tab" data-pane="py" type="button" role="tab" id="sign-tab-py" aria-controls="sign-pane-py" aria-selected="false" tabindex="-1">Python</button>
+          <button class="tab" data-pane="rs" type="button" role="tab" id="sign-tab-rs" aria-controls="sign-pane-rs" aria-selected="false" tabindex="-1">Rust</button>
         </div>
         <div class="code-window">
           <button class="copy-btn" type="button" data-copytarget>Copy snippet</button>
           <div class="code-scroll">
-          <div class="code-pane active" data-pane="curl" role="tabpanel"><pre>printf <span class="s">'%s'</span> <span class="s">'300x200/https://example.com/photo.jpg'</span> \
+          <div class="code-pane active" data-pane="curl" role="tabpanel" id="sign-pane-curl" aria-labelledby="sign-tab-curl" tabindex="0"><pre>printf <span class="s">'%s'</span> <span class="s">'300x200/https://example.com/photo.jpg'</span> \
   | openssl dgst -sha256 -hmac <span class="s">'your-secret'</span>
 <span class="c"># SHA2-256(stdin)= 3c1f6c180116661877bd4c85fd201a178087d74c1cc188cc584e819d901308c6</span></pre></div>
-          <div class="code-pane" data-pane="ts" role="tabpanel"><pre><span class="k">import</span> { buildURL, buildSrcSet, purgeSignature } <span class="k">from</span> <span class="s">"@crabcrop/url"</span>;
+          <div class="code-pane" data-pane="ts" role="tabpanel" id="sign-pane-ts" aria-labelledby="sign-tab-ts" tabindex="0"><pre><span class="k">import</span> { buildURL, buildSrcSet } <span class="k">from</span> <span class="s">"@crabcrop/url"</span>;
 
-<span class="k">const</span> url = buildURL({
-  base: <span class="s">"https://img.example.com"</span>,
-  secret: <span class="s">"your-secret"</span>,
-  operations: <span class="s">"crop:1200x630:smart/filters:format(webp):quality(80)"</span>,
-  source: <span class="s">"https://example.com/photo.jpg"</span>,
-});
+<span class="k">const</span> base = <span class="s">"https://img.example.com"</span>;
+<span class="k">const</span> secret = <span class="s">"your-secret"</span>; <span class="c">// read it from the environment in real code</span>
+<span class="k">const</span> source = <span class="s">"https://example.com/photo.jpg"</span>;
 
-<span class="k">const</span> srcset = buildSrcSet({ <span class="c">/* same options */</span> }, [400, 800, 1200]);</pre></div>
-          <div class="code-pane" data-pane="py" role="tabpanel"><pre><span class="k">from</span> crabcrop_url <span class="k">import</span> build_url, build_srcset, purge_signature
+<span class="c">// buildURL(base, secret, operations, source, { expires?, keyId? })</span>
+<span class="k">const</span> url = buildURL(base, secret, <span class="s">"300x200"</span>, source);
 
-url = build_url(
-    base=<span class="s">"https://images.example.com"</span>,
-    secret=<span class="s">"your-secret"</span>,
-    operations=<span class="s">"300x200/filters:grayscale"</span>,
-    source=<span class="s">"https://example.com/photo.jpg"</span>,
-)
+<span class="c">// buildSrcSet(base, secret, source, widths): one {width}x0 URL per width</span>
+<span class="k">const</span> srcset = buildSrcSet(base, secret, source, [400, 800, 1200]);</pre></div>
+          <div class="code-pane" data-pane="py" role="tabpanel" id="sign-pane-py" aria-labelledby="sign-tab-py" tabindex="0"><pre><span class="k">from</span> crabcrop_url <span class="k">import</span> build_url, build_srcset
 
-srcset = build_srcset(..., widths=[400, 800, 1200])</pre></div>
-          <div class="code-pane" data-pane="rs" role="tabpanel"><pre><span class="k">use</span> crabcrop_url::{build_url, sign};
+base = <span class="s">"https://img.example.com"</span>
+secret = <span class="s">"your-secret"</span>  <span class="c"># read it from the environment in real code</span>
+source = <span class="s">"https://example.com/photo.jpg"</span>
 
+<span class="c"># build_url(base, secret, operations, source, expires=None, key_id=None)</span>
+url = build_url(base, secret, <span class="s">"300x200"</span>, source)
+
+<span class="c"># build_srcset(base, secret, source, widths): one {width}x0 URL per width</span>
+srcset = build_srcset(base, secret, source, [400, 800, 1200])</pre></div>
+          <div class="code-pane" data-pane="rs" role="tabpanel" id="sign-pane-rs" aria-labelledby="sign-tab-rs" tabindex="0"><pre><span class="k">use</span> crabcrop_url::{build_srcset, build_url, sign};
+
+<span class="k">let</span> base = <span class="s">"https://img.example.com"</span>;
+<span class="k">let</span> secret: &amp;[u8] = <span class="s">b"your-secret"</span>; <span class="c">// read it from the environment in real code</span>
+<span class="k">let</span> source = <span class="s">"https://example.com/photo.jpg"</span>;
+
+<span class="c">// sign(secret, remainder): the hex tag the curl tab prints</span>
 <span class="k">let</span> signature = sign(secret, <span class="s">"300x200/https://example.com/photo.jpg"</span>);
-<span class="k">let</span> url = build_url(base, secret,
-    <span class="s">"crop:1200x630:smart/filters:format(avif):quality(auto)"</span>,
-    <span class="s">"https://example.com/photo.jpg"</span>)?;</pre></div>
+
+<span class="c">// build_url(base, secret, operations, source, expires); a None secret builds the unsafe form</span>
+<span class="k">let</span> url = build_url(base, Some(secret), <span class="s">"300x200"</span>, source, None)?;
+
+<span class="c">// build_srcset(base, secret, source, widths, expires): one {width}x0 URL per width</span>
+<span class="k">let</span> srcset = build_srcset(base, Some(secret), source, &amp;[400, 800, 1200], None)?;</pre></div>
           </div>
         </div>
       </div>
+      <p class="honest" style="margin-top:14px">Every tab signs the same example, the second test vector below, so each one mints the same URL. The builders take positional arguments in the same order in all three languages: base, secret, operations, source. A <code>null</code> secret in TypeScript (<code>None</code> in Python and Rust) builds the <code>unsafe</code> form. The expiry comes last: an options object in TypeScript, a keyword argument in Python, a fifth argument in Rust. A srcset entry is a bare <code>{width}x0</code> resize; to keep a preset or a format in every entry, build each width with the URL builder instead.</p>
       <h3>Test vectors</h3>
       <p>Verify any implementation against these. Secret <code>Jefe</code>, message <code>what do ye want for nothing?</code>, HMAC-SHA256 <code>ba5396e10039ec002bf1fde117eee48df8c2f06bc47b5f2d3272ea77f6862da9</code>. Secret <code>your-secret</code>, remainder <code>300x200/https://example.com/photo.jpg</code>, HMAC-SHA256 <code>3c1f6c180116661877bd4c85fd201a178087d74c1cc188cc584e819d901308c6</code>. Every SDK runs the canonical vectors from <code>spec/test-vectors.json</code> as its test suite, so client and server cannot drift.</p>
       <h3>Key IDs and rotation</h3>
@@ -1522,22 +1533,42 @@ docker run -p 3000:3000 -e CRABCROP_SECRET=your-secret-change-me crabcrop:latest
 const $ = s => document.querySelector(s);
 const $$ = s => Array.from(document.querySelectorAll(s));
 
-/* copy buttons: nearest code block's pre text */
+/* copy buttons: say "Copied" only when the clipboard took the text */
+function copyText(btn, text){
+  const label = btn.dataset.label || (btn.dataset.label = btn.textContent);
+  const show = ok=>{
+    btn.textContent = ok ? "Copied" : "Copy failed";
+    btn.classList.toggle("ok", ok);
+    clearTimeout(btn.copyTimer);
+    btn.copyTimer = setTimeout(()=>{ btn.textContent = label; btn.classList.remove("ok"); }, 1400);
+  };
+  if(!text || !navigator.clipboard || !navigator.clipboard.writeText){ show(false); return; }
+  navigator.clipboard.writeText(text).then(()=>show(true), ()=>show(false));
+}
+$$("[data-copy]").forEach(b=>b.addEventListener("click", ()=>copyText(b, b.dataset.copy)));
+/* a tabbed code window copies its active pane; a plain code block copies its own pre */
 $$("[data-copytarget]").forEach(b=>b.addEventListener("click", ()=>{
-  const host = b.closest(".cb") || b.closest(".code-window");
-  const pre = host && host.querySelector("pre");
-  if(pre) navigator.clipboard && navigator.clipboard.writeText(pre.innerText);
-  const t = b.textContent; b.textContent = "Copied"; b.classList.add("ok");
-  setTimeout(()=>{ b.textContent = t; b.classList.remove("ok"); }, 1400);
+  const win = b.closest(".code-window"), block = b.closest(".cb");
+  const pre = win ? win.querySelector(".code-pane.active pre") : block && block.querySelector("pre");
+  copyText(b, pre && pre.innerText);
 }));
 
-/* signing tabs */
+/* signing tabs: WAI-ARIA tabs, arrow keys and Home/End move a roving tabindex */
 $$(".tabs").forEach(tabs=>{
-  tabs.addEventListener("click", e=>{
-    const tab = e.target.closest(".tab"); if(!tab) return;
-    const win = tabs.nextElementSibling;
-    tabs.querySelectorAll(".tab").forEach(t=>{ t.classList.toggle("active", t===tab); t.setAttribute("aria-selected", String(t===tab)); });
+  const list = Array.from(tabs.querySelectorAll(".tab"));
+  const win = tabs.nextElementSibling;
+  const select = (tab, focus)=>{
+    list.forEach(t=>{ const on = t===tab; t.classList.toggle("active", on); t.setAttribute("aria-selected", String(on)); t.tabIndex = on ? 0 : -1; });
     win.querySelectorAll(".code-pane").forEach(p=>p.classList.toggle("active", p.dataset.pane===tab.dataset.pane));
+    if(focus) tab.focus();
+  };
+  tabs.addEventListener("click", e=>{ const tab = e.target.closest(".tab"); if(tab) select(tab, false); });
+  tabs.addEventListener("keydown", e=>{
+    const i = list.indexOf(document.activeElement); if(i<0) return;
+    const next = {ArrowRight:i+1, ArrowLeft:i-1, Home:0, End:list.length-1}[e.key];
+    if(next===undefined) return;
+    e.preventDefault();
+    select(list[(next+list.length)%list.length], true);
   });
 });
 

@@ -730,26 +730,27 @@ a.strip-card:focus-visible{outline:3px solid var(--sun);outline-offset:2px}
 
   <div class="wrap" style="margin-top:28px">
     <div class="tabs" role="tablist" aria-label="Signing examples by language">
-      <button class="tab active" data-pane="curl" type="button" role="tab" aria-selected="true">curl</button>
-      <button class="tab" data-pane="ts" type="button" role="tab" aria-selected="false">TypeScript</button>
-      <button class="tab" data-pane="py" type="button" role="tab" aria-selected="false">Python</button>
-      <button class="tab" data-pane="rs" type="button" role="tab" aria-selected="false">Rust</button>
+      <button class="tab active" data-pane="curl" type="button" role="tab" id="sign-tab-curl" aria-controls="sign-pane-curl" aria-selected="true" tabindex="0">curl</button>
+      <button class="tab" data-pane="ts" type="button" role="tab" id="sign-tab-ts" aria-controls="sign-pane-ts" aria-selected="false" tabindex="-1">TypeScript</button>
+      <button class="tab" data-pane="py" type="button" role="tab" id="sign-tab-py" aria-controls="sign-pane-py" aria-selected="false" tabindex="-1">Python</button>
+      <button class="tab" data-pane="rs" type="button" role="tab" id="sign-tab-rs" aria-controls="sign-pane-rs" aria-selected="false" tabindex="-1">Rust</button>
     </div>
     <div class="code-window">
       <button class="copy-btn" type="button" data-copytarget>Copy snippet</button>
       <div class="code-scroll">
-      <div class="code-pane active" data-pane="curl" role="tabpanel"><pre>printf <span class="s">'%s'</span> <span class="s">'crop:1200x630:smart/filters:format(webp):quality(80)/https://example.com/photo.jpg'</span> \
+      <div class="code-pane active" data-pane="curl" role="tabpanel" id="sign-pane-curl" aria-labelledby="sign-tab-curl" tabindex="0"><pre>printf <span class="s">'%s'</span> <span class="s">'crop:1200x630:smart/filters:format(webp):quality(80)/https://example.com/photo.jpg'</span> \
   | openssl dgst -sha256 -hmac <span class="s">'demo-secret'</span>
 <span class="c"># SHA2-256(stdin)= ca3d1f22f4cc3860926608df02383f46dcf74af9a4e1bc26b1a00c644f55f300</span></pre></div>
-      <div class="code-pane" data-pane="ts" role="tabpanel"><pre><span class="k">import</span> { buildURL } <span class="k">from</span> <span class="s">"@crabcrop/url"</span>;
+      <div class="code-pane" data-pane="ts" role="tabpanel" id="sign-pane-ts" aria-labelledby="sign-tab-ts" tabindex="0"><pre><span class="k">import</span> { buildURL } <span class="k">from</span> <span class="s">"@crabcrop/url"</span>;
 
-<span class="k">const</span> url = buildURL({
-  base: <span class="s">"https://img.example.com"</span>,
-  secret: <span class="s">"demo-secret"</span>,
-  operations: <span class="s">"crop:1200x630:smart/filters:format(webp):quality(80)"</span>,
-  source: <span class="s">"https://example.com/photo.jpg"</span>,
-});</pre></div>
-      <div class="code-pane" data-pane="py" role="tabpanel"><pre><span class="k">from</span> crabcrop_url <span class="k">import</span> build_url
+<span class="c">// buildURL(base, secret, operations, source, options?)</span>
+<span class="k">const</span> url = buildURL(
+  <span class="s">"https://img.example.com"</span>,
+  <span class="s">"demo-secret"</span>,
+  <span class="s">"crop:1200x630:smart/filters:format(webp):quality(80)"</span>,
+  <span class="s">"https://example.com/photo.jpg"</span>,
+);</pre></div>
+      <div class="code-pane" data-pane="py" role="tabpanel" id="sign-pane-py" aria-labelledby="sign-tab-py" tabindex="0"><pre><span class="k">from</span> crabcrop_url <span class="k">import</span> build_url
 
 url = build_url(
     base=<span class="s">"https://img.example.com"</span>,
@@ -757,12 +758,19 @@ url = build_url(
     operations=<span class="s">"crop:1200x630:smart/filters:format(webp):quality(80)"</span>,
     source=<span class="s">"https://example.com/photo.jpg"</span>,
 )</pre></div>
-      <div class="code-pane" data-pane="rs" role="tabpanel"><pre><span class="k">use</span> crabcrop_url::{build_url, sign};
+      <div class="code-pane" data-pane="rs" role="tabpanel" id="sign-pane-rs" aria-labelledby="sign-tab-rs" tabindex="0"><pre><span class="k">use</span> crabcrop_url::{build_url, sign};
 
+<span class="k">let</span> secret: &amp;[u8] = <span class="s">b"demo-secret"</span>;
 <span class="k">let</span> signature = sign(secret, <span class="s">"crop:1200x630:smart/filters:format(webp):quality(80)/https://example.com/photo.jpg"</span>);
-<span class="k">let</span> url = build_url(base, secret,
+
+<span class="c">// build_url(base, secret, operations, source, expires)</span>
+<span class="k">let</span> url = build_url(
+    <span class="s">"https://img.example.com"</span>,
+    Some(secret),
     <span class="s">"crop:1200x630:smart/filters:format(webp):quality(80)"</span>,
-    <span class="s">"https://example.com/photo.jpg"</span>)?;</pre></div>
+    <span class="s">"https://example.com/photo.jpg"</span>,
+    None,
+)?;</pre></div>
       </div>
     </div>
     <p class="honest" style="margin-top:14px">Each snippet signs the same example with the sample secret <code>demo-secret</code>. Swap in your base, your secret, and your operations.</p>
@@ -811,26 +819,42 @@ url = build_url(
 const $ = s => document.querySelector(s);
 const $$ = s => Array.from(document.querySelectorAll(s));
 
-$$("[data-copy]").forEach(b=>b.addEventListener("click", ()=>{
-  navigator.clipboard && navigator.clipboard.writeText(b.dataset.copy);
-  const t = b.textContent; b.textContent = "Copied"; b.classList.add("ok");
-  setTimeout(()=>{ b.textContent = t; b.classList.remove("ok"); }, 1400);
-}));
+/* copy buttons: say "Copied" only when the clipboard took the text */
+function copyText(btn, text){
+  const label = btn.dataset.label || (btn.dataset.label = btn.textContent);
+  const show = ok=>{
+    btn.textContent = ok ? "Copied" : "Copy failed";
+    btn.classList.toggle("ok", ok);
+    clearTimeout(btn.copyTimer);
+    btn.copyTimer = setTimeout(()=>{ btn.textContent = label; btn.classList.remove("ok"); }, 1400);
+  };
+  if(!text || !navigator.clipboard || !navigator.clipboard.writeText){ show(false); return; }
+  navigator.clipboard.writeText(text).then(()=>show(true), ()=>show(false));
+}
+$$("[data-copy]").forEach(b=>b.addEventListener("click", ()=>copyText(b, b.dataset.copy)));
+/* a tabbed code window copies its active pane; a plain code block copies its own pre */
 $$("[data-copytarget]").forEach(b=>b.addEventListener("click", ()=>{
-  const win = b.closest(".code-window");
-  const pre = win && (win.querySelector(".code-pane.active pre") || win.querySelector("pre"));
-  if(pre) navigator.clipboard && navigator.clipboard.writeText(pre.innerText);
-  const t = b.textContent; b.textContent = "Copied"; b.classList.add("ok");
-  setTimeout(()=>{ b.textContent = t; b.classList.remove("ok"); }, 1400);
+  const win = b.closest(".code-window"), block = b.closest(".cb");
+  const pre = win ? win.querySelector(".code-pane.active pre") : block && block.querySelector("pre");
+  copyText(b, pre && pre.innerText);
 }));
 
-/* signing tabs */
+/* signing tabs: WAI-ARIA tabs, arrow keys and Home/End move a roving tabindex */
 $$(".tabs").forEach(tabs=>{
-  tabs.addEventListener("click", e=>{
-    const tab = e.target.closest(".tab"); if(!tab) return;
-    const win = tabs.nextElementSibling;
-    tabs.querySelectorAll(".tab").forEach(t=>{ t.classList.toggle("active", t===tab); t.setAttribute("aria-selected", String(t===tab)); });
+  const list = Array.from(tabs.querySelectorAll(".tab"));
+  const win = tabs.nextElementSibling;
+  const select = (tab, focus)=>{
+    list.forEach(t=>{ const on = t===tab; t.classList.toggle("active", on); t.setAttribute("aria-selected", String(on)); t.tabIndex = on ? 0 : -1; });
     win.querySelectorAll(".code-pane").forEach(p=>p.classList.toggle("active", p.dataset.pane===tab.dataset.pane));
+    if(focus) tab.focus();
+  };
+  tabs.addEventListener("click", e=>{ const tab = e.target.closest(".tab"); if(tab) select(tab, false); });
+  tabs.addEventListener("keydown", e=>{
+    const i = list.indexOf(document.activeElement); if(i<0) return;
+    const next = {ArrowRight:i+1, ArrowLeft:i-1, Home:0, End:list.length-1}[e.key];
+    if(next===undefined) return;
+    e.preventDefault();
+    select(list[(next+list.length)%list.length], true);
   });
 });
 
