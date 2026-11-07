@@ -1495,40 +1495,94 @@ docker run -p 3000:3000 -e CRABCROP_SECRET=your-secret-change-me crabcrop:latest
     <!-- CONFIG -->
     <section class="doc-sec" id="config">
       <h2>Configuration</h2>
-      <p>All configuration comes from environment variables. Invalid values are startup errors, booleans included: the server refuses to start rather than run with a wrong port, cache budget, or safety flag. Booleans accept <code>1</code>, <code>true</code>, <code>yes</code>, <code>on</code> (and their off spellings). Names follow one pattern: <code>*_MODEL</code> is an AI model artifact, <code>*_FILE</code> is a file read at boot, <code>*_DIR</code> is a directory, and <code>*_MAX_MB</code> is a size budget in megabytes. The essentials:</p>
-      <div class="dtablewrap"><table class="dtable"><tr><th>Variable</th><th>Default</th><th>What it does</th></tr>
-      <tr><td>CRABCROP_SECRET</td><td>required</td><td>The HMAC secret, at least 16 bytes. The server will not start without it.</td></tr>
+      <p>All configuration comes from environment variables. Invalid values are startup errors, booleans included: the server refuses to start rather than run with a wrong port, cache budget, or safety flag. Booleans accept <code>1</code>, <code>true</code>, <code>yes</code>, or <code>on</code> for on and <code>0</code>, <code>false</code>, <code>no</code>, or <code>off</code> for off, in any case; anything else fails the boot with the variable named. Names follow one pattern: <code>*_MODEL</code> is an AI model artifact, <code>*_FILE</code> is a file read at boot, <code>*_DIR</code> is a directory, and <code>*_MAX_MB</code> is a size budget in megabytes. Every variable, by area; the long descriptions are in <a href="https://github.com/dayvson/crabcrop/blob/main/docs/configuration.md" target="_blank" rel="noopener">docs/configuration.md</a>:</p>
+      <h3>Server and signing</h3>
+      <div class="dtablewrap"><table class="dtable" data-config-table><tr><th>Variable</th><th>Default</th><th>What it does</th></tr>
+      <tr><td>CRABCROP_SECRET</td><td>required</td><td>The HMAC secret that signs and verifies URLs, at least 16 bytes. The server will not start without it.</td></tr>
+      <tr><td>CRABCROP_SECRET_KEY_ID</td><td>current</td><td>The current secret's key ID, which keyed signature segments (<code>&lt;key-id&gt;:&lt;tag&gt;</code>) name. See <a href="#signing">Key IDs and rotation</a>.</td></tr>
+      <tr><td>CRABCROP_SECRET_PREVIOUS</td><td>unset</td><td>The outgoing secret during a rotation window, verified alongside the current one. Same minimum length.</td></tr>
+      <tr><td>CRABCROP_SECRET_PREVIOUS_KEY_ID</td><td>previous</td><td>The previous secret's key ID. Must differ from the current one.</td></tr>
       <tr><td>PORT / CRABCROP_PORT</td><td>3000</td><td>Listen port. The namespaced alias wins when both are set.</td></tr>
-      <tr><td>CRABCROP_ALLOW_UNSAFE</td><td>off</td><td>Honors unsafe URLs. Local development only.</td></tr>
-      <tr><td>CRABCROP_ALLOWED_SOURCES</td><td>unset (no allowlist)</td><td>Comma-separated host suffixes the loader may fetch from. A listed host is exempt from the private address check and its connection pinning.</td></tr>
-      <tr><td>CRABCROP_BLOCK_PRIVATE_SOURCES</td><td>on</td><td>Refuses sources that are, or resolve to, non-public addresses, and pins each checked connection. See <a href="#private-sources">Private address protection</a>.</td></tr>
+      <tr><td>CRABCROP_ALLOW_UNSAFE</td><td>off</td><td>Honors <code>unsafe</code> URLs. Local development only, unless paired with presets-only mode.</td></tr>
+      <tr><td>CRABCROP_METRICS_TOKEN</td><td>unset</td><td>Bearer token for <code>GET /metrics</code>. Unset, /metrics answers 403 to everyone; set, a missing or wrong bearer answers 401.</td></tr>
+      <tr><td>CRABCROP_META_MODE</td><td>on</td><td>Meta mode, the JSON a signed URL answers to <code>Accept: application/json</code>. Set 0 to switch it off; meta requests then answer 403 <code>meta_disabled</code>. It bypasses every cache tier on every request, so turn it off where it is unused. New in 0.9.11.</td></tr></table></div>
+      <h3>Operations</h3>
+      <div class="dtablewrap"><table class="dtable" data-config-table><tr><th>Variable</th><th>Default</th><th>What it does</th></tr>
+      <tr><td>CRABCROP_DEFAULT_OPS</td><td>unset</td><td>Operations prepended to every request (a house format, quality, or watermark), validated at boot and applied after signature verification: the signature never covers them. For format, quality, fill, dpr, and max_bytes the URL's own directive wins.</td></tr>
+      <tr><td>CRABCROP_PRESETS_FILE</td><td>unset</td><td>Path to the presets file. See <a href="#presets">Presets</a>.</td></tr>
+      <tr><td>CRABCROP_ONLY_PRESETS</td><td>off</td><td>Rejects free-form operations, signed requests included: only preset references and <code>exp:</code> / <code>maxage:</code> metadata. Requires at least one preset.</td></tr>
+      <tr><td>CRABCROP_SOURCE_ROOTS_FILE</td><td>unset</td><td>Path to a source roots file. See <a href="#roots">Source roots</a>.</td></tr></table></div>
+      <h3>Sources</h3>
+      <div class="dtablewrap"><table class="dtable" data-config-table><tr><th>Variable</th><th>Default</th><th>What it does</th></tr>
+      <tr><td>CRABCROP_ALLOWED_SOURCES</td><td>unset (no allowlist)</td><td>Comma-separated host suffixes the loader may fetch from; a suffix matches the host and its subdomains. A listed host is exempt from the private address check and its connection pinning.</td></tr>
+      <tr><td>CRABCROP_BLOCK_PRIVATE_SOURCES</td><td>on</td><td>Refuses sources that are, or resolve to, non-public addresses, before connecting and on every redirect hop, and pins each checked connection. See <a href="#private-sources">Private address protection</a>.</td></tr>
       <tr><td>CRABCROP_ALLOW_ANY_SOURCE</td><td>off</td><td>Deliberately allows every source: switches the private address refusal off. A configured allowlist still applies.</td></tr>
-      <tr><td>CRABCROP_PRESETS_FILE</td><td>unset</td><td>Path to the presets file.</td></tr>
-      <tr><td>CRABCROP_SOURCE_ROOTS_FILE</td><td>unset</td><td>Path to a source roots file. See <a href="#roots">Source roots</a>.</td></tr>
-      <tr><td>CRABCROP_ONLY_PRESETS</td><td>off</td><td>Rejects free-form operations; preset references and metadata only.</td></tr>
-      <tr><td>CRABCROP_DEFAULT_OPS</td><td>unset</td><td>Operations prepended to every request (a house format, quality, or watermark), applied after signature verification. The signature never covers the defaults.</td></tr>
-      <tr><td>CRABCROP_CACHE_MAX_MB</td><td>256</td><td>Result cache budget. 0 disables the cache.</td></tr>
-      <tr><td>CRABCROP_METRICS_TOKEN</td><td>unset</td><td>Bearer token for /metrics. Unset, /metrics answers 403; set, a missing or wrong bearer answers 401.</td></tr>
+      <tr><td>CRABCROP_S3_ENDPOINT</td><td>unset (AWS)</td><td>Base URL of an S3-compatible store for <code>s3://</code> sources, path-style. <code>CRABCROP_S3_REGION</code> sets the region (default us-east-1); credentials come from <code>AWS_ACCESS_KEY_ID</code> / <code>AWS_SECRET_ACCESS_KEY</code> / <code>AWS_SESSION_TOKEN</code>, and unset means unsigned.</td></tr>
+      <tr><td>CRABCROP_GCS_ENDPOINT</td><td>https://storage.googleapis.com</td><td>Base URL of the GCS XML API for <code>gs://</code> sources. <code>CRABCROP_GCS_REGION</code> (default auto) is the signing region; the HMAC pair is <code>CRABCROP_GCS_ACCESS_KEY</code> / <code>CRABCROP_GCS_SECRET_KEY</code>.</td></tr>
+      <tr><td>CRABCROP_ALLOWED_BUCKETS</td><td>unset</td><td>Comma-separated bucket names the <code>s3://</code> and <code>gs://</code> schemes may read; * allows all. Unset refuses every bucket fetch, and with bucket credentials configured the server will not boot without it.</td></tr>
+      <tr><td>CRABCROP_FILE_ROOT</td><td>unset</td><td>Directory that <code>file://</code> sources must stay under, canonicalized at boot and per request. Unset disables file sources.</td></tr>
+      <tr><td>CRABCROP_FALLBACK_IMAGE</td><td>unset</td><td>URL or local path of the image served when a source cannot be fetched or decoded. See <a href="#sources">Fallback image</a>.</td></tr></table></div>
+      <h3>Output</h3>
+      <div class="dtablewrap"><table class="dtable" data-config-table><tr><th>Variable</th><th>Default</th><th>What it does</th></tr>
+      <tr><td>CRABCROP_SSIM_TARGET</td><td>75</td><td>SSIMULACRA2 target, 0 to 100, that <code>quality(auto)</code> verifies against for JPEG and JPEG XL output.</td></tr>
       <tr><td>CRABCROP_METADATA</td><td>strip</td><td>preserve copies source EXIF/XMP (and IPTC for JPEG) into JPEG and PNG outputs, with the orientation rewritten to 1.</td></tr>
+      <tr><td>CRABCROP_WIDTH_STEP</td><td>100</td><td>Quantization step in pixels for width client hints: hinted widths round up to a multiple of this, stop at 3840, and never enlarge a raster source past its own size. The 3840 stop and the no-enlarge rule are new in 0.9.11. See <a href="#format">Client hints</a>.</td></tr>
       <tr><td>CRABCROP_AVIF_SPEED</td><td>9</td><td>ravif speed tier for AVIF encodes, 1 (slowest, smallest output) to 10 (fastest, larger output). The default favors encode speed; set 8 for smaller files.</td></tr>
       <tr><td>CRABCROP_JXL_SPEED</td><td>fastest</td><td>Speed tier for JPEG XL encodes: ultrafast, fastest, fast, medium, slow, or extraslow. Slower tiers shrink output with steep latency costs.</td></tr>
-      <tr><td>CRABCROP_FALLBACK_IMAGE</td><td>unset</td><td>URL or local path of the fallback image for unfetchable sources.</td></tr>
-      <tr><td>CRABCROP_FONT_PATH</td><td>unset</td><td>A TTF/OTF font for the text(...) filter. Unset disables the filter.</td></tr>
-      <tr><td>CRABCROP_VIDEO_ENCODER</td><td>unset</td><td>Path to the external video encoder. Unset disables video output.</td></tr>
-      <tr><td>CRABCROP_VIDEO_DECODER</td><td>unset</td><td>Path to the external video decoder program for frame: extraction from video sources, validated at startup. Unset disables frame selection. See <a href="#frames">Video frames</a>.</td></tr>
-      <tr><td>CRABCROP_PDF_RENDERER</td><td>unset</td><td>Path to the external PDF renderer program for page: rendering from PDF sources; the pdfinfo program next to it is derived from the path and validated alongside. Unset disables page selection. See <a href="#pages">PDF pages</a>.</td></tr>
-      <tr><td>CRABCROP_PDF_TIMEOUT_SECS</td><td>30</td><td>Hard wall-clock limit per external PDF tool run (one probe or one page render), 1 to 600 seconds.</td></tr>
-      <tr><td>CRABCROP_INPAINT_MODEL</td><td>unset</td><td>Path to a LaMa family ONNX model for the remove_region filter. See <a href="#ai">AI operations</a>.</td></tr>
-      <tr><td>CRABCROP_SEGMENT_ENCODER_MODEL</td><td>unset</td><td>The image encoder of the MobileSAM pair, for mask-tight class operations. Both segment paths are required together.</td></tr>
-      <tr><td>CRABCROP_SEGMENT_DECODER_MODEL</td><td>unset</td><td>The box-prompt decoder of the MobileSAM pair, for mask-tight class operations. Both segment paths are required together.</td></tr>
-      <tr><td>CRABCROP_OCR_DETECT_MODEL</td><td>unset</td><td>The text detection model of the PP-OCR family pair, for OCR in meta. All three OCR paths are required together.</td></tr>
-      <tr><td>CRABCROP_OCR_RECOGNIZE_MODEL</td><td>unset</td><td>The text recognition model of the PP-OCR family pair, for OCR in meta. All three OCR paths are required together.</td></tr>
+      <tr><td>CRABCROP_BRAND_COLOR</td><td>unset</td><td>Brand color for <code>studio(...)</code> backdrops, six hex digits (a leading # is allowed); unset means white. See <a href="#studio">Studio mode</a>.</td></tr>
+      <tr><td>CRABCROP_FONT_PATH</td><td>unset</td><td>A TTF/OTF font for the <code>text(...)</code> filter, loaded at startup. Unset disables the filter.</td></tr></table></div>
+      <h3>Time limits, video, and PDF</h3>
+      <div class="dtablewrap"><table class="dtable" data-config-table><tr><th>Variable</th><th>Default</th><th>What it does</th></tr>
+      <tr><td>CRABCROP_PROCESS_TIMEOUT_SECS</td><td>30</td><td>Hard wall-clock limit on processing one request, 1 to 600 seconds, gate waits included. Past it the request answers 504.</td></tr>
+      <tr><td>CRABCROP_SLOW_LANE_PERMITS</td><td>1</td><td>How many long renders (animated WebP encodes, video encodes, <code>frame:</code> extractions, <code>page:</code> renders) run at once, 1 to 64, on a lane stills never use. Overflow waits up to 10 seconds, then sheds with 503.</td></tr>
+      <tr><td>CRABCROP_VIDEO_ENCODER</td><td>unset</td><td>Path to the external video encoder for <code>format(mp4)</code> / <code>format(webm)</code>, validated at startup. Unset disables video output.</td></tr>
+      <tr><td>CRABCROP_VIDEO_DECODER</td><td>unset</td><td>Path to the external video decoder for <code>frame:</code> extraction, validated at startup. It must be FFmpeg 6.0 or newer; an older build answers every <code>frame:</code> request with 502. Unset disables frame selection. See <a href="#frames">Video frames</a>.</td></tr>
+      <tr><td>CRABCROP_VIDEO_TIMEOUT_SECS</td><td>30</td><td>Hard wall-clock limit per external video tool run, 1 to 600 seconds.</td></tr>
+      <tr><td>CRABCROP_VIDEO_MAX_MB</td><td>64</td><td>Output cap per video encode in megabytes, 1 to 1024. The encode aborts the moment it is crossed.</td></tr>
+      <tr><td>CRABCROP_PDF_RENDERER</td><td>unset</td><td>Path to the external PDF renderer for <code>page:</code> rendering; the <code>pdfinfo</code> program next to it is derived and validated alongside. Unset disables page selection. See <a href="#pages">PDF pages</a>.</td></tr>
+      <tr><td>CRABCROP_PDF_TIMEOUT_SECS</td><td>30</td><td>Hard wall-clock limit per external PDF tool run (one probe or one page render), 1 to 600 seconds.</td></tr></table></div>
+      <h3>AI models</h3>
+      <div class="dtablewrap"><table class="dtable" data-config-table><tr><th>Variable</th><th>Default</th><th>What it does</th></tr>
+      <tr><td>CRABCROP_REMOVEBG_MODEL</td><td>unset</td><td>A U²-Net-family ONNX model for <code>removebg</code>.</td></tr>
+      <tr><td>CRABCROP_UPSCALE_MODEL</td><td>unset</td><td>A super-resolution ONNX model for <code>upscale</code>.</td></tr>
+      <tr><td>CRABCROP_INPAINT_MODEL</td><td>unset</td><td>A LaMa-family ONNX model (fixed 512×512) for <code>remove_region</code>.</td></tr>
+      <tr><td>CRABCROP_SEGMENT_ENCODER_MODEL / CRABCROP_SEGMENT_DECODER_MODEL</td><td>unset</td><td>A MobileSAM pair (image encoder, box-prompt decoder) for mask-tight class operations. Both paths are required together.</td></tr>
+      <tr><td>CRABCROP_FACE_MODEL</td><td>unset</td><td>A YuNet ONNX model for face-aware <code>smart</code> crops, <code>crop:...:face</code>, and face redaction.</td></tr>
+      <tr><td>CRABCROP_CLIP_IMAGE_MODEL / CRABCROP_CLIP_TEXT_MODEL</td><td>unset</td><td>A CLIP model pair for meta <code>tags</code> and <code>alt_text</code>. All four CLIP paths are required together.</td></tr>
+      <tr><td>CRABCROP_CLIP_TOKENIZER</td><td>unset</td><td>The CLIP export's <code>tokenizer.json</code>.</td></tr>
+      <tr><td>CRABCROP_CLIP_LABELS</td><td>unset</td><td>Text file with one tag label per line.</td></tr>
+      <tr><td>CRABCROP_CLIP_THRESHOLD</td><td>0.05</td><td>Minimum zero-shot score for a label to appear in <code>tags</code>.</td></tr>
+      <tr><td>CRABCROP_MODERATION_MODEL</td><td>unset</td><td>A ViT classifier ONNX model for meta moderation verdicts.</td></tr>
+      <tr><td>CRABCROP_MODERATION_LABELS</td><td>unset</td><td>One label per line: the verdict model's output names in order, or zero-shot prompt labels for the CLIP fallback when no model is set.</td></tr>
+      <tr><td>CRABCROP_AESTHETIC_HEAD</td><td>unset</td><td>A LAION-style linear aesthetic head scored against the CLIP embedding in meta. Requires the CLIP set.</td></tr>
+      <tr><td>CRABCROP_OCR_DETECT_MODEL / CRABCROP_OCR_RECOGNIZE_MODEL</td><td>unset</td><td>A PP-OCR-family pair (detection, recognition) for OCR in meta. All three OCR paths are required together.</td></tr>
       <tr><td>CRABCROP_OCR_DICT</td><td>unset</td><td>The recognition model's character dictionary: one character per line, in class order.</td></tr>
-      <tr><td>CRABCROP_OCR_LANGUAGE</td><td>und</td><td>The language tag the OCR recognition model serves, echoed in meta OCR responses.</td></tr>
-      <tr><td>CRABCROP_C2PA_CERT</td><td>unset</td><td>Path to a PEM certificate chain: the C2PA signing identity for output provenance. Set together with CRABCROP_C2PA_KEY; a partial set is a startup error, and the identity is proven at boot. Unset disables output signing. See <a href="#provenance">Provenance (C2PA)</a>.</td></tr>
-      <tr><td>CRABCROP_C2PA_KEY</td><td>unset</td><td>Path to the private key for CRABCROP_C2PA_CERT, in PKCS#8 PEM form (BEGIN PRIVATE KEY).</td></tr>
-      <tr><td>CRABCROP_C2PA_TSA_URL</td><td>unset</td><td>Optional timestamp authority URL recorded in output signatures. Requires the certificate pair.</td></tr></table></div>
-      <p>Cache entries in the persistent tiers are authenticated: each stored entry carries an HMAC-SHA256 tag under a key derived from the server secret, verified before the entry is served, so rotating the secret also invalidates the persistent tiers' contents. Cache keys also carry a fingerprint of the configuration that shapes output, printed at startup, so restarting with any of it changed starts a fresh cache epoch. The full configuration table, including every AI model variable and the result-tier settings, is in the <a href="https://github.com/dayvson/crabcrop#configuration" target="_blank" rel="noopener">README</a>.</p>
+      <tr><td>CRABCROP_OCR_LANGUAGE</td><td>und</td><td>The language tag the recognition model serves, echoed in meta OCR responses.</td></tr>
+      <tr><td>CRABCROP_DETECT_MODEL</td><td>unset</td><td>A YOLOv8-family ONNX model for <code>blurclass</code> / <code>pixelateclass</code> / <code>recolorclass</code>, <code>objects(...)</code> crops, and meta detections. Operator-supplied; Ultralytics' own YOLO weights are AGPL-3.0.</td></tr>
+      <tr><td>CRABCROP_DETECT_LABELS</td><td>unset</td><td>Class names file, one per line in index order, for exports that carry no <code>names</code> metadata.</td></tr>
+      <tr><td>CRABCROP_DETECT_THRESHOLD</td><td>0.5</td><td>Minimum detection score.</td></tr>
+      <tr><td>CRABCROP_DETECTORS_FILE</td><td>unset</td><td>A JSON file declaring more detectors from your own models. See <a href="#ai">Declared detectors</a>.</td></tr>
+      <tr><td>CRABCROP_ORT_DYLIB</td><td>unset</td><td>Path to the ONNX Runtime shared library, when it is not on the library search path.</td></tr></table></div>
+      <h3>Provenance</h3>
+      <div class="dtablewrap"><table class="dtable" data-config-table><tr><th>Variable</th><th>Default</th><th>What it does</th></tr>
+      <tr><td>CRABCROP_C2PA_CERT</td><td>unset</td><td>Path to a PEM certificate chain: the C2PA signing identity for output provenance. Set together with <code>CRABCROP_C2PA_KEY</code>; a partial set is a startup error, and the identity is proven at boot. Unset disables output signing. See <a href="#provenance">Provenance (C2PA)</a>.</td></tr>
+      <tr><td>CRABCROP_C2PA_KEY</td><td>unset</td><td>Path to the private key for <code>CRABCROP_C2PA_CERT</code>, in PKCS#8 PEM form (<code>BEGIN PRIVATE KEY</code>).</td></tr>
+      <tr><td>CRABCROP_C2PA_TSA_URL</td><td>unset</td><td>Optional timestamp authority URL recorded in output signatures. Requires the certificate pair. Calls are bounded at 5 seconds to connect and 15 overall, and redirects are not followed.</td></tr></table></div>
+      <h3>Result tiers</h3>
+      <div class="dtablewrap"><table class="dtable" data-config-table><tr><th>Variable</th><th>Default</th><th>What it does</th></tr>
+      <tr><td>CRABCROP_CACHE_MAX_MB</td><td>256</td><td>In-memory result cache budget, per replica. 0 disables the cache.</td></tr>
+      <tr><td>CRABCROP_RESULT_STORAGE_DIR</td><td>unset</td><td>Directory for the disk result tier, created if missing; the server exits at boot when it is not writable. The container images run as nobody (65534). Unset disables the tier.</td></tr>
+      <tr><td>CRABCROP_RESULT_STORAGE_MAX_MB</td><td>512</td><td>Disk result tier budget. 0 disables the tier even with a directory set.</td></tr>
+      <tr><td>CRABCROP_RESULT_BUCKET</td><td>unset</td><td>S3 bucket for the shared result tier that every replica reads and writes. Unset disables it.</td></tr>
+      <tr><td>CRABCROP_RESULT_PREFIX</td><td>empty</td><td>Object prefix namespacing the shared tier's entries.</td></tr></table></div>
+      <h3>Uploads</h3>
+      <div class="dtablewrap"><table class="dtable" data-config-table><tr><th>Variable</th><th>Default</th><th>What it does</th></tr>
+      <tr><td>CRABCROP_UPLOAD_DIR</td><td>unset</td><td>Local directory destination for the upload endpoint. Exactly one of this and <code>CRABCROP_UPLOAD_BUCKET</code> may be set; neither disables uploads. Also serves as the <code>file://</code> root when <code>CRABCROP_FILE_ROOT</code> is unset. See <a href="#upload">Upload</a>.</td></tr>
+      <tr><td>CRABCROP_UPLOAD_BUCKET</td><td>unset</td><td>S3 bucket destination for uploads, reusing the source S3 endpoint, region, and AWS credentials from the environment. The bucket must also be in CRABCROP_ALLOWED_BUCKETS.</td></tr>
+      <tr><td>CRABCROP_UPLOAD_PREFIX</td><td>empty</td><td>Object prefix namespacing the upload bucket's objects.</td></tr>
+      <tr><td>CRABCROP_UPLOAD_MAX_MB</td><td>10</td><td>Cap on one upload in megabytes, 1 to 10 (the source fetch cap).</td></tr>
+      <tr><td>CRABCROP_UPLOAD_ALLOW_OVERWRITE</td><td>off</td><td>Lets an upload PUT replace an existing object. Off, an existing name is a 409.</td></tr></table></div>
+      <p>Cache entries in the persistent tiers are authenticated: each stored entry carries an HMAC-SHA256 tag under a key derived from the server secret, verified before the entry is served, so rotating the secret also invalidates the persistent tiers' contents. Cache keys also carry a fingerprint of the configuration that shapes output, printed at startup, so restarting with any of it changed starts a fresh cache epoch. Rotating the secret without breaking URLs already in the wild is a three-step window; the steps are in <a href="https://github.com/dayvson/crabcrop/blob/main/docs/configuration.md#rotating-the-secret" target="_blank" rel="noopener">docs/configuration.md</a>.</p>
       <p style="margin-top:22px"><a class="mono-link" href="index.html"><svg class="claw" width="16" height="16" aria-hidden="true"><use href="#clawmark"/></svg> Back to the homepage</a></p>
     </section>
 
