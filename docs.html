@@ -42,8 +42,8 @@ a{color:var(--tide);text-decoration:none}
 a:hover{text-decoration:underline}
 .wrap{max-width:1160px;margin:0 auto;padding:0 24px}
 section{padding:88px 0;position:relative}
-section[id],main[id]{scroll-margin-top:96px}
-@media(max-width:900px){section[id],main[id]{scroll-margin-top:138px}}
+section[id],main[id],h3[id]{scroll-margin-top:96px}
+@media(max-width:900px){section[id],main[id],h3[id]{scroll-margin-top:138px}}
 .band-200{background-color:var(--sand-200);background-image:radial-gradient(rgba(20,40,50,.05) 1.5px, transparent 1.6px);background-size:22px 22px;background-position:11px 11px}
 h1{font-size:clamp(42px,6.4vw,74px);line-height:1.02;letter-spacing:-.03em;font-weight:900}
 h2{font-size:clamp(30px,4.2vw,46px);line-height:1.08;letter-spacing:-.025em;font-weight:900;margin-bottom:16px}
@@ -1214,7 +1214,7 @@ media = https://assets.example.com</pre></div>
       <h2>Sources and safety</h2>
       <p>The source locates the original. It takes one of five forms:</p>
       <div class="dtablewrap"><table class="dtable"><tr><th>Kind</th><th>Form</th><th>Notes</th></tr>
-      <tr><td>HTTP / HTTPS</td><td>https://example.com/photo.jpg</td><td>Fetched under the source policy: <code>CRABCROP_ALLOWED_SOURCES</code> host suffixes, up to 5 redirects with the policy re-checked on every hop. Source URLs with userinfo are always refused.</td></tr>
+      <tr><td>HTTP / HTTPS</td><td>https://example.com/photo.jpg</td><td>Fetched under the source policy: the <code>CRABCROP_ALLOWED_SOURCES</code> host suffixes when an allowlist is set, and the <a href="#private-sources">private address refusal</a> (on by default), with up to 5 redirects and the policy re-checked on every hop. Source URLs with userinfo are always refused.</td></tr>
       <tr><td>Source root</td><td>root:&lt;name&gt;/&lt;path&gt;</td><td>A short spelling of an HTTP or HTTPS source, instead of the full URL. The server expands it against the origin configured for that name (see <a href="#roots">Source roots</a>), after signature verification and before cache keying, so the short form and the full URL it expands to share one cache entry. Every check on this page applies to the expanded URL: an unknown name is a <code>400</code> (<code>unknown_root</code>), and a path that climbs above the root is a <code>400</code> (<code>invalid_root</code>).</td></tr>
       <tr><td>S3</td><td>s3://bucket/key</td><td>AWS S3 or an S3-compatible store via <code>CRABCROP_S3_ENDPOINT</code>. SigV4 signed when AWS credentials are in the environment; unsigned otherwise.</td></tr>
       <tr><td>GCS</td><td>gs://bucket/key</td><td>Google Cloud Storage's S3-compatible XML API, signed with the <code>CRABCROP_GCS_*</code> HMAC pair when set.</td></tr>
@@ -1232,8 +1232,13 @@ media = https://assets.example.com</pre></div>
       <p>AVIF sources are decoded in builds that include AVIF decoding: the Docker image and the release binaries. A source build includes it with <code>--features avif-decode</code>, which links dav1d (a system libdav1d 1.3 or newer, or a vendored build); without it, AVIF sources fail with <code>502</code> and an error naming the feature. Animated AVIF sources decode their first frame. HEIC and HEIF sources are decoded in every build by the pure-Rust oxideav stack: the primary image only, with grid and overlay compositions resolved, EXIF orientation honored, and 10-bit sources flattened to the pipeline's 8-bit working space, as AVIF sources are.</p>
       <h3>SVG sources</h3>
       <p>SVG sources are supported and detected by content, not by the declared content type. An SVG is sanitized before it is rendered: script elements, event handlers, and references to external resources are stripped, so a source SVG can only draw what it carries with it. The sanitized document is rasterized at the size the URL asks for (or its intrinsic size when the URL asks for none) and then runs through the normal pipeline. Output defaults to PNG for SVG sources.</p>
-      <h3>Private address protection</h3>
-      <p>With <code>CRABCROP_BLOCK_PRIVATE_SOURCES</code> on, the loader refuses sources whose host is, or resolves to, a non-public address: loopback, private, link-local, unspecified, shared (CGNAT), reserved, multicast, broadcast, documentation, benchmarking, and the other special-purpose ranges, including IPv4-mapped, IPv4-compatible, and 6to4 spellings of them, checked before connecting and again on every redirect hop. The loader resolves the host, checks its addresses, and pins the connection to the validated address, so the address that was checked is the address that gets connected (no DNS-rebinding gap). A policy refusal answers <code>403</code>.</p>
+      <h3 id="private-sources">Private address protection</h3>
+      <p><code>CRABCROP_BLOCK_PRIVATE_SOURCES</code> is on by default: the loader refuses sources whose host is, or resolves to, a non-public address: loopback, private, link-local, unspecified, shared (CGNAT), reserved, multicast, broadcast, documentation, benchmarking, and the other special-purpose ranges, including IPv4-mapped, IPv4-compatible, and 6to4 spellings of them, checked before connecting and again on every redirect hop. For a hostname, the loader resolves it, checks every address, and pins the connection to the validated address, so the address that was checked is the address that gets connected: a name that rebinds between the check and the connect cannot reach a private address. A policy refusal answers <code>403</code> (<code>source_forbidden</code>).</p>
+      <p>Two exceptions are deliberate, and both drop the pinning along with the check:</p>
+      <ul>
+        <li><b>An allowlisted host is exempt.</b> Listing a host in <code>CRABCROP_ALLOWED_SOURCES</code> is how a deployment vouches for a loopback or internal source, so a host that matches the allowlist is neither address-checked nor pinned, and its DNS may answer with any address, private ones included. The rebinding protection above covers only hosts off the allowlist. Allowlist suffixes whose DNS you control, and do not sign source URLs supplied by someone else under a suffix whose DNS they can influence.</li>
+        <li><b>The check can be switched off.</b> <code>CRABCROP_BLOCK_PRIVATE_SOURCES=0</code> turns it off, and so does <code>CRABCROP_ALLOW_ANY_SOURCE=1</code>, the deliberate opt-out, whatever the first is set to. With the check off, no source is address-checked or pinned; an allowlist, when one is set, still applies.</li>
+      </ul>
       <h3>Fallback image</h3>
       <p>With <code>CRABCROP_FALLBACK_IMAGE</code> set, a source that cannot be fetched or decoded degrades to the fallback instead of an error: the fallback runs through the same operations and is served with <code>200</code> and the header <code>X-Crabcrop-Fallback: 1</code>. Signature and parse failures never fall back, a <code>400</code> or <code>403</code> stays honest, and neither does a source-policy refusal. Fallback responses are never cached and are served with <code>Cache-Control: no-store</code>, so a recovered origin is picked up on the next request and no intermediary pins the placeholder in place of the real image.</p>
     </section>
@@ -1472,8 +1477,9 @@ docker run -p 3000:3000 -e CRABCROP_SECRET=your-secret-change-me crabcrop:latest
       <tr><td>CRABCROP_SECRET</td><td>required</td><td>The HMAC secret, at least 16 bytes. The server will not start without it.</td></tr>
       <tr><td>PORT / CRABCROP_PORT</td><td>3000</td><td>Listen port. The namespaced alias wins when both are set.</td></tr>
       <tr><td>CRABCROP_ALLOW_UNSAFE</td><td>off</td><td>Honors unsafe URLs. Local development only.</td></tr>
-      <tr><td>CRABCROP_ALLOWED_SOURCES</td><td>all hosts</td><td>Comma-separated host suffixes the loader may fetch from.</td></tr>
-      <tr><td>CRABCROP_BLOCK_PRIVATE_SOURCES</td><td>off</td><td>Refuses sources that resolve to non-public addresses.</td></tr>
+      <tr><td>CRABCROP_ALLOWED_SOURCES</td><td>unset (no allowlist)</td><td>Comma-separated host suffixes the loader may fetch from. A listed host is exempt from the private address check and its connection pinning.</td></tr>
+      <tr><td>CRABCROP_BLOCK_PRIVATE_SOURCES</td><td>on</td><td>Refuses sources that are, or resolve to, non-public addresses, and pins each checked connection. See <a href="#private-sources">Private address protection</a>.</td></tr>
+      <tr><td>CRABCROP_ALLOW_ANY_SOURCE</td><td>off</td><td>Deliberately allows every source: switches the private address refusal off. A configured allowlist still applies.</td></tr>
       <tr><td>CRABCROP_PRESETS_FILE</td><td>unset</td><td>Path to the presets file.</td></tr>
       <tr><td>CRABCROP_SOURCE_ROOTS_FILE</td><td>unset</td><td>Path to a source roots file. See <a href="#roots">Source roots</a>.</td></tr>
       <tr><td>CRABCROP_ONLY_PRESETS</td><td>off</td><td>Rejects free-form operations; preset references and metadata only.</td></tr>
