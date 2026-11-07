@@ -58,7 +58,8 @@ h3{font-size:19px;font-weight:800;letter-spacing:-.01em;margin-bottom:8px}
 .tidemark .claw{width:14px;height:14px;flex:0 0 auto}
 .tidemark.on-dark{color:var(--sea-glass)}
 .claw{display:inline-block;vertical-align:middle}
-.claw path{stroke:var(--coral);fill:none;stroke-width:2.2;stroke-linecap:round}
+/* The stroke sits on the <svg> and inherits into the <use> copy of #clawmark: a .claw path selector cannot reach that shadow tree, and the path then fell back to a solid black fill. */
+.claw{fill:none;stroke:var(--coral);stroke-width:2.2;stroke-linecap:round}
 .foam{position:absolute;top:-11px;left:0;right:0;height:12px;pointer-events:none;background-repeat:repeat-x;background-size:22px 12px;
   background-image:radial-gradient(circle at 10px -4px, transparent 12px, var(--fc,#FBF0D9) 13px);box-shadow:inset 0 -1px 0 var(--fc,#FBF0D9)}
 .btn{display:inline-flex;align-items:center;gap:9px;padding:13px 24px;border-radius:var(--shell);font-weight:800;font-size:15px;border:2px solid var(--ink);cursor:pointer;background:var(--coral);color:#fff;box-shadow:var(--shadow);transition:transform .15s var(--snap),background .15s}
@@ -290,7 +291,7 @@ fieldset[disabled] .ctl,fieldset[disabled] .frow{opacity:.45}
 .toy-win:focus-visible{outline:3px solid var(--sun);outline-offset:2px}
 .clawh{position:absolute;width:44px;height:44px;display:grid;place-items:center;cursor:nwse-resize;touch-action:none}
 .clawh .claw{width:21px;height:21px}
-.clawh path{stroke:#fff;stroke-width:2.6}
+.clawh .claw{stroke:#fff;stroke-width:2.6}
 .clawh.tl{top:-22px;left:-22px}.clawh.tr{top:-22px;right:-22px;cursor:nesw-resize}
 .clawh.bl{bottom:-22px;left:-22px;cursor:nesw-resize}.clawh.br{bottom:-22px;right:-22px}
 .readout{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13.5px;margin-top:14px;color:var(--ink-2)}
@@ -352,7 +353,7 @@ fieldset[disabled] .ctl,fieldset[disabled] .frow{opacity:.45}
 .fmt-yes{display:inline-flex;align-items:center;gap:8px;font-weight:800;font-size:14.5px;color:var(--tide-deep)}
 .fmt-no{display:inline-flex;align-items:center;gap:8px;font-weight:800;font-size:14.5px;color:var(--ink-2)}
 .fmt-yes .claw{width:16px;height:16px;flex:0 0 auto}
-.fmt-yes .claw path{stroke:var(--tide)}
+.fmt-yes .claw{stroke:var(--tide)}
 .fmt-qual{display:block;font-size:12.5px;color:var(--ink-2);margin-top:3px;max-width:180px}
 .fmt-note{font-size:14.5px;color:var(--ink-2)}
 .fmt-note code{background:rgba(20,40,50,.06);padding:1px 5px;border-radius:5px;font-size:13px;color:var(--coral-deep)}
