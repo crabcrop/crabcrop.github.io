@@ -49,6 +49,54 @@
    },
    "thumbhash": "5McNK4oHd3d4iJh3l3B6Cac="
   },
+  "z2": {
+   "w": 6336,
+   "h": 2688,
+   "widths": [
+    1600,
+    2400,
+    3200
+   ],
+   "bytes": {
+    "1600": {
+     "avif": 64522,
+     "webp": 96966
+    },
+    "2400": {
+     "avif": 114664,
+     "webp": 164086
+    },
+    "3200": {
+     "avif": 167938,
+     "webp": 237498
+    }
+   },
+   "thumbhash": "VfgNE4QHmHh7dphnuZ+Mz9g="
+  },
+  "z3": {
+   "w": 6336,
+   "h": 2688,
+   "widths": [
+    1600,
+    2400,
+    3200
+   ],
+   "bytes": {
+    "1600": {
+     "avif": 81843,
+     "webp": 137400
+    },
+    "2400": {
+     "avif": 145922,
+     "webp": 238468
+    },
+    "3200": {
+     "avif": 214720,
+     "webp": 338966
+    }
+   },
+   "thumbhash": "o/cJK4oHiHaNeKdoeZCmCFk="
+  },
   "z0p": {
    "w": 3072,
    "h": 5504,
@@ -87,6 +135,44 @@
     }
    },
    "thumbhash": "pccFLAyPl3jYeIWGZ3eHcGoIqA=="
+  },
+  "z2p": {
+   "w": 1520,
+   "h": 2688,
+   "widths": [
+    720,
+    1080
+   ],
+   "bytes": {
+    "720": {
+     "avif": 38656,
+     "webp": 54232
+    },
+    "1080": {
+     "avif": 62879,
+     "webp": 88142
+    }
+   },
+   "thumbhash": "XfgJFASP+InJeXSIeIdWjS/G+A=="
+  },
+  "z3p": {
+   "w": 1521,
+   "h": 2688,
+   "widths": [
+    720,
+    1080
+   ],
+   "bytes": {
+    "720": {
+     "avif": 51891,
+     "webp": 85560
+    },
+    "1080": {
+     "avif": 87476,
+     "webp": 137364
+    }
+   },
+   "thumbhash": "4PcJNAyr+IiXeHmWqXd5gJkHeA=="
   }
  },
  "snapChain": {
@@ -167,6 +253,18 @@
   "icon-reel": {
    "avif": 7521,
    "webp": 13002
+  },
+  "icon-drops": {
+   "avif": 7052,
+   "webp": 11844
+  },
+  "icon-crop": {
+   "avif": 6751,
+   "webp": 11280
+  },
+  "icon-gear": {
+   "avif": 8696,
+   "webp": 15014
   }
  },
  "seagrass": {
@@ -189,7 +287,9 @@
   "z0-loop": 1165886,
   "z0p-loop": 718065,
   "z1-loop": 1301551,
-  "z1p-loop": 559694
+  "z1p-loop": 555664,
+  "z2-loop": 1287278,
+  "z2p-loop": 628536
  },
  "t1": {
   "frames": 96,
@@ -204,7 +304,7 @@
   ],
   "bytes": {
    "d": 3545379,
-   "p": 994288
+   "p": 1296274
   }
  },
  "clips": {
@@ -535,6 +635,30 @@
   "bytes": {
    "avif": 28219,
    "webp": 49236
+  }
+ },
+ "kelp": {
+  "w": 397,
+  "h": 1100,
+  "bytes": {
+   "avif": 50151,
+   "webp": 87676
+  }
+ },
+ "t2": {
+  "frames": 96,
+  "fps": 12,
+  "d": [
+   1600,
+   677
+  ],
+  "p": [
+   528,
+   936
+  ],
+  "bytes": {
+   "d": 4036699,
+   "p": 1685065
   }
  }
 }

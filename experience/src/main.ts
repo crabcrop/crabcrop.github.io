@@ -25,7 +25,9 @@ document.getElementById('placeholder')!.style.backgroundImage =
   `url(${thumbHashToDataURL(Uint8Array.from(atob(hash), (c) => c.charCodeAt(0)))})`;
 
 const gl = !reduce && hasWebGL();
-root.classList.add(gl ? 'gl' : 'static');
+// The page head already guessed 'gl' so the still plates don't start loading; correct it here.
+root.classList.toggle('gl', gl);
+root.classList.toggle('static', !gl);
 if (wide) root.classList.add('wide');
 
 let world: World | null = null;
@@ -36,6 +38,9 @@ const ui = new UI({
   onFormat: (f) => world?.setFormat(f, now()),
   onFocus: (f: Fmt | null) => world?.focusFormat(f),
   onRaceView: () => world?.raceOnce(now()),
+  onLook: (l) => world?.setLook(l),
+  onLookPreview: (l) => world?.previewLook(l),
+  onFreeFish: () => world?.freeFish(),
 });
 
 if (gl) start();

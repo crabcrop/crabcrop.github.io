@@ -85,10 +85,14 @@ def bbox(alpha, thr=0.5, pad=0):
 
 
 # ---------------------------------------------------------------- images
+# Phone windows of the 21:9 masters, as shares of their width (production-log.md).
+PHONE = {'z1': (0.62, 0.86), 'z2': (0.52, 0.76), 'z3': (0.68, 0.92)}
+
+
 def images():
     plates = {}
     # Desktop plates, 21:9. Waterline as a share of plate height (Z0 only).
-    for key, name in (('z0', 'z0-plate.png'), ('z1', 'z1-plate.png')):
+    for key, name in (('z0', 'z0-plate.png'), ('z1', 'z1-plate.png'), ('z2', 'z2-plate.png'), ('z3', 'z3-plate.png')):
         im = Image.open(src(name)).convert('RGB')
         files = {}
         for w in (1600, 2400, 3200):
@@ -98,11 +102,14 @@ def images():
         print(key, files)
     # Phone plates, 9:16. Z0 has a native one; Z1 is a crop of its master
     # (62 to 86 percent of the width, see production-log.md).
-    z0p = Image.open(src('z0-phone.png')).convert('RGB')
-    z1 = Image.open(src('z1-plate.png')).convert('RGB')
-    x0, x1 = round(0.62 * z1.size[0]), round(0.86 * z1.size[0])
-    z1p = z1.crop((x0, 0, x1, z1.size[1]))
-    for key, im in (('z0p', z0p), ('z1p', z1p)):
+    def window(name, a, b):
+        im = Image.open(src(name)).convert('RGB')
+        return im.crop((round(a * im.size[0]), 0, round(b * im.size[0]), im.size[1]))
+    phone = {'z0p': Image.open(src('z0-phone.png')).convert('RGB'),
+             'z1p': window('z1-plate.png', PHONE['z1'][0], PHONE['z1'][1]),
+             'z2p': window('z2-plate.png', PHONE['z2'][0], PHONE['z2'][1]),
+             'z3p': window('z3-plate.png', PHONE['z3'][0], PHONE['z3'][1])}
+    for key, im in phone.items():
         files = {}
         for w in (720, 1080):
             files[w] = save_pair(resize_w(im, w), f'{key}-{w}')
@@ -220,7 +227,8 @@ def images():
     # Card icons: round patches from the I01b sheet (crop-rect boxes in the log).
     ic = Image.open(src('icons.png')).convert('RGB')
     boxes = {'icon-chain': (220, 252, 1368, 1428), 'icon-fish': (1484, 252, 2632, 1428),
-             'icon-reel': (2740, 252, 3900, 1428)}
+             'icon-reel': (2740, 252, 3900, 1428), 'icon-drops': (220, 1520, 1368, 2720),
+             'icon-crop': (1484, 1520, 2632, 2716), 'icon-gear': (2740, 2760, 3904, 3996)}
     man['icons'] = {}
     for name, b in boxes.items():
         c = np.asarray(ic.crop(b)).astype(np.float32)
@@ -236,7 +244,7 @@ def images():
         man['icons'][name] = save_pair(spr, name, 62, 84)
 
     # Foreground cutouts (already RGBA from Higgsfield).
-    for name, key, h in (('cut-seagrass.png', 'seagrass', 900), ('cut-rope-buoy.png', 'rope-buoy', 640)):
+    for name, key, h in (('cut-seagrass.png', 'seagrass', 900), ('cut-rope-buoy.png', 'rope-buoy', 640), ('cut-kelp.png', 'kelp', 1100)):
         im = Image.open(src(name)).convert('RGBA')
         a = np.asarray(im)[..., 3]
         ys, xs = np.where(a > 8)
@@ -259,31 +267,41 @@ def video():
     ff('-i', src('z0-phone-loop.mp4'), '-vf', 'scale=720:-2:flags=lanczos', *enc, out('z0p-loop.mp4'))
     ff('-i', src('z1-loop.mp4'), '-vf', 'scale=1600:-2:flags=lanczos', *enc, out('z1-loop.mp4'))
     # Z1 phone: the same 62 to 86 percent window as the phone plate.
-    ff('-i', src('z1-loop.mp4'), '-vf', 'crop=528:936:1372:0', *enc, out('z1p-loop.mp4'))
-    for n in ('z0-loop', 'z0p-loop', 'z1-loop', 'z1p-loop'):
+    ff('-i', src('z1-loop.mp4'), '-vf', f"crop=528:936:{round(PHONE['z1'][0] * 2212)}:0", *enc, out('z1p-loop.mp4'))
+    ff('-i', src('z2-loop.mp4'), '-vf', 'scale=1600:-2:flags=lanczos', *enc, out('z2-loop.mp4'))
+    ff('-i', src('z2-loop.mp4'), '-vf', f"crop=528:936:{round(PHONE['z2'][0] * 2212)}:0", *enc, out('z2p-loop.mp4'))
+    for n in ('z0-loop', 'z0p-loop', 'z1-loop', 'z1p-loop', 'z2-loop', 'z2p-loop'):
         loops[n] = os.path.getsize(out(n + '.mp4'))
     man['loops'] = loops
     print('loops', loops)
 
 
 def sequence():
-    """T1, the plunge: 96 frames for scrubbing, desktop and a phone window."""
-    tmp = os.path.join(ROOT, '.cache', 't1-frames')
-    os.makedirs(tmp, exist_ok=True)
-    ff('-i', src('t1-plunge.mp4'), '-vf', 'fps=12', os.path.join(tmp, '%03d.png'))
-    frames = sorted(f for f in os.listdir(tmp) if f.endswith('.png'))[:96]
-    total = {'d': 0, 'p': 0}
-    for i, f in enumerate(frames):
-        im = Image.open(os.path.join(tmp, f)).convert('RGB')
-        d = resize_w(im, 1600)
-        d.save(out(f't1/d-{i:03d}.avif'), quality=48, speed=6)
-        x0 = round(0.5 * im.size[0] - 264)
-        p = im.crop((x0, 0, x0 + 528, im.size[1]))
-        p.save(out(f't1/p-{i:03d}.avif'), quality=50, speed=6)
-        total['d'] += os.path.getsize(out(f't1/d-{i:03d}.avif'))
-        total['p'] += os.path.getsize(out(f't1/p-{i:03d}.avif'))
-    man['t1'] = {'frames': len(frames), 'fps': 12, 'd': [1600, 677], 'p': [528, 936], 'bytes': total}
-    print('t1', man['t1'])
+    """The transitions as image sequences for scrubbing: 96 frames each, for
+    desktop and for phones. The phone window pans across the frame so it
+    starts and ends where the neighbouring phone plates are cropped."""
+    seqs = {'t1': ('t1-plunge.mp4', 0.5, sum(PHONE['z1']) / 2),
+            't2': ('t2-into-reef.mp4', sum(PHONE['z2']) / 2, sum(PHONE['z3']) / 2)}
+    for key, (name, c0, c1) in seqs.items():
+        tmp = os.path.join(ROOT, '.cache', f'{key}-frames')
+        os.makedirs(tmp, exist_ok=True)
+        for f in os.listdir(tmp):
+            os.remove(os.path.join(tmp, f))
+        ff('-i', src(name), '-vf', 'fps=12', os.path.join(tmp, '%03d.png'))
+        frames = sorted(f for f in os.listdir(tmp) if f.endswith('.png'))[:96]
+        total = {'d': 0, 'p': 0}
+        for i, f in enumerate(frames):
+            im = Image.open(os.path.join(tmp, f)).convert('RGB')
+            d = resize_w(im, 1600)
+            d.save(out(f'{key}/d-{i:03d}.avif'), quality=48, speed=6)
+            c = c0 + (c1 - c0) * i / max(1, len(frames) - 1)
+            x0 = int(min(max(0, round(c * im.size[0] - 264)), im.size[0] - 528))
+            p = im.crop((x0, 0, x0 + 528, im.size[1]))
+            p.save(out(f'{key}/p-{i:03d}.avif'), quality=50, speed=6)
+            total['d'] += os.path.getsize(out(f'{key}/d-{i:03d}.avif'))
+            total['p'] += os.path.getsize(out(f'{key}/p-{i:03d}.avif'))
+        man[key] = {'frames': len(frames), 'fps': 12, 'd': [1600, 677], 'p': [528, 936], 'bytes': total}
+        print(key, man[key])
 
 
 def snap():

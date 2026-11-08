@@ -3,6 +3,7 @@ import { media, makeVideo, whenPlayable, loadPicture, type Clip } from '../media
 import { quad, place, videoTexture, imageTexture, type Stage } from './stage';
 import type { Hold } from './chain';
 import { clamp } from '../scroll';
+import { LOOK, LOOK_GLSL } from './look';
 
 const VERT = /* glsl */ `
 varying vec2 vUv;
@@ -15,12 +16,13 @@ uniform sampler2D uMap;
 uniform float uOpacity, uCutX;
 uniform vec3 uGrade;
 varying vec2 vUv;
+${LOOK_GLSL}
 void main() {
   vec3 c = texture2D(uMap, vec2(vUv.x, 0.5 + vUv.y * 0.498)).rgb;
   float a = texture2D(uMap, vec2(vUv.x, vUv.y * 0.498)).r;
   a *= 1.0 - smoothstep(uCutX - 0.04, uCutX, vUv.x);
   if (a < 0.004) discard;
-  gl_FragColor = vec4(c * uGrade, a * uOpacity);
+  gl_FragColor = vec4(applyLook(c * uGrade), a * uOpacity);
 }`;
 
 const SPRITE_FRAG = /* glsl */ `
@@ -29,10 +31,11 @@ uniform sampler2D uMap;
 uniform float uOpacity;
 uniform vec3 uGrade;
 varying vec2 vUv;
+${LOOK_GLSL}
 void main() {
   vec4 c = texture2D(uMap, vUv);
   if (c.a < 0.004) discard;
-  gl_FragColor = vec4(c.rgb * uGrade, c.a * uOpacity);
+  gl_FragColor = vec4(applyLook(c.rgb * uGrade), c.a * uOpacity);
 }`;
 
 type ClipKey = 'm01' | 'm02' | 'm03';
@@ -60,7 +63,7 @@ const PRINT_AT = 0.83;
 const easeOutBack = (x: number) => 1 + 2.4 * Math.pow(x - 1, 3) + 1.4 * Math.pow(x - 1, 2);
 
 function spriteMaterial() {
-  const u = { uMap: { value: null as THREE.Texture | null }, uOpacity: { value: 1 }, uGrade: { value: new THREE.Vector3(1, 1, 1) } };
+  const u = { uMap: { value: null as THREE.Texture | null }, uOpacity: { value: 1 }, uGrade: { value: new THREE.Vector3(1, 1, 1) }, ...LOOK };
   return { u, m: new THREE.ShaderMaterial({ vertexShader: VERT, fragmentShader: SPRITE_FRAG, uniforms: u, transparent: true, depthTest: false, depthWrite: false }) };
 }
 
@@ -87,7 +90,7 @@ export class Snap {
   get riding() { return this.state === 'chain'; }
 
   constructor(stage: Stage) {
-    this.clipU = { uMap: { value: null }, uOpacity: { value: 1 }, uCutX: { value: 2 }, uGrade: { value: new THREE.Vector3(1, 1, 1) } };
+    this.clipU = { uMap: { value: null }, uOpacity: { value: 1 }, uCutX: { value: 2 }, uGrade: { value: new THREE.Vector3(1, 1, 1) }, ...LOOK };
     const cm = new THREE.ShaderMaterial({ vertexShader: VERT, fragmentShader: CLIP_FRAG, uniforms: this.clipU, transparent: true, depthTest: false, depthWrite: false });
     this.clipMesh = quad(cm, 5);
     this.clipMesh.visible = false;

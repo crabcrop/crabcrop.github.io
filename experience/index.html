@@ -4,16 +4,17 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>crabcrop · All the Way Down</title>
-<meta name="description" content="Ride the anchor chain with Snap through crabcrop, the Rust image API. A preview of the marina, the plunge and the shallows.">
+<meta name="description" content="Ride the anchor chain with Snap through crabcrop, the Rust image API. A preview of the marina, the shallows and the kelp forest.">
 <meta name="robots" content="noindex">
 <meta name="theme-color" content="#CFE8EE">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-<script>document.documentElement.classList.replace('no-js', 'js')</script>
+<script>(function (d) { d.classList.replace('no-js', 'js'); if (!matchMedia('(prefers-reduced-motion: reduce)').matches) d.classList.add('gl'); })(document.documentElement)</script>
 </head>
 <body>
 <a class="skip" href="https://crabcrop.org/">Skip the dive</a>
 <div class="placeholder" id="placeholder" aria-hidden="true"></div>
 <canvas id="world" aria-hidden="true"></canvas>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><filter id="duotone" color-interpolation-filters="sRGB"><feColorMatrix type="matrix" values="0.2126 0.7152 0.0722 0 0  0.2126 0.7152 0.0722 0 0  0.2126 0.7152 0.0722 0 0  0 0 0 1 0"/><feComponentTransfer><feFuncR type="table" tableValues="0.051 1"/><feFuncG type="table" tableValues="0.125 0.847"/><feFuncB type="table" tableValues="0.180 0.541"/></feComponentTransfer></filter></svg>
 <div class="overlay" id="overlay" aria-hidden="true"><svg class="threads" id="threads"></svg></div>
 
 <header class="top">
@@ -31,8 +32,8 @@
   <ol>
     <li><a href="#s0" data-zone="s0" aria-current="true"><span class="d">0 m</span> <span class="name">The Marina</span></a></li>
     <li><a href="#s1" data-zone="s1"><span class="d">−5 m</span> <span class="name">The Shallows</span></a></li>
-    <li class="soon"><span class="d">−15 m</span> <span class="name">The Kelp Forest</span></li>
-    <li class="soon"><span class="d">−30 m</span> <span class="name">The Coral Reef</span></li>
+    <li><a href="#s2" data-zone="s2"><span class="d">−15 m</span> <span class="name">The Kelp Forest</span></a></li>
+    <li><a href="#next" data-zone="next"><span class="d">−30 m</span> <span class="name">The Coral Reef</span></a></li>
     <li class="soon"><span class="d">−60 m</span> <span class="name">The Shipwreck</span></li>
     <li class="soon"><span class="d">−500 m</span> <span class="name">The Twilight Zone</span></li>
     <li class="soon"><span class="d">−2,500 m</span> <span class="name">The Vents</span></li>
@@ -84,11 +85,11 @@
     </div>
 
     <ol class="tags" id="tags" aria-label="Your URL, link by link">
-      <li class="tag sig" data-link="2"><code>3c1f6c18…</code><span>Proof the URL came from you</span></li>
-      <li class="tag fmt blank" data-link="5" id="tag-format"><code>format</code><span>Choice 1: pick below</span></li>
-      <li class="tag blank later" data-link="17"><code>look</code></li>
-      <li class="tag blank later" data-link="20"><code>crop</code></li>
-      <li class="tag blank later" data-link="23"><code>finish</code></li>
+      <li class="tag sig"><code>3c1f6c18…</code><span>Proof the URL came from you</span></li>
+      <li class="tag fmt blank" id="tag-format"><code>format</code><span>Choice 1: pick below</span></li>
+      <li class="tag blank" id="tag-look"><code>look</code><span>Choice 2: in the kelp</span></li>
+      <li class="tag blank later"><code>crop</code></li>
+      <li class="tag blank later"><code>finish</code></li>
     </ol>
 
     <div class="cards">
@@ -150,12 +151,97 @@
     <img class="snap-static on-chain" src="media/snap-chain.webp" alt="" width="640" height="687" loading="lazy">
   </section>
 
-  <section id="next" class="slice-end">
-    <div class="panel">
+
+  <section id="s2" class="zone s2" aria-labelledby="s2-title">
+    <picture class="zone-bg">
+      <source media="(orientation: portrait)" type="image/avif" srcset="media/z2p-720.avif 720w, media/z2p-1080.avif 1080w" sizes="100vw">
+      <source media="(orientation: portrait)" type="image/webp" srcset="media/z2p-720.webp 720w, media/z2p-1080.webp 1080w" sizes="100vw">
+      <source type="image/avif" srcset="media/z2-1600.avif 1600w, media/z2-2400.avif 2400w, media/z2-3200.avif 3200w" sizes="(min-aspect-ratio: 21/9) 100vw, 233vh">
+      <img src="media/z2-1600.webp" srcset="media/z2-1600.webp 1600w, media/z2-2400.webp 2400w, media/z2-3200.webp 3200w" sizes="(min-aspect-ratio: 21/9) 100vw, 233vh" alt="" loading="lazy" decoding="async">
+    </picture>
+
+    <div class="zone-head panel">
       <p class="tidemark">−15 m · The Kelp Forest</p>
-      <h2>The rest of the dive is <span class="coral">on its way down.</span></h2>
-      <p>This preview covers the marina, the plunge and the shallows. Your URL so far:</p>
-      <p class="url"><code id="url-so-far">https://img.example.com/3c1f6c18…/root:photos/print.jpg</code></p>
+      <h2 id="s2-title">51 filters, <span class="coral">one chain.</span></h2>
+      <p>Resize, crop, fit-in and pad are their own path segments. The filters chain inside one <code>filters:</code> segment and run in the order written.</p>
+    </div>
+
+    <div class="cards">
+      <article class="card" id="card-filters">
+        <div class="specimen spec-look" aria-hidden="true"><img class="look-demo" src="media/print.webp" alt="" width="360" height="282" loading="lazy"><span class="look-chain" id="look-chain">filters:sharpen(1.2):saturation(1.1)</span></div>
+        <div class="card-top">
+          <picture><source type="image/avif" srcset="media/icon-drops.avif"><img class="icon" src="media/icon-drops.webp" alt="" width="56" height="56" loading="lazy"></picture>
+          <h3>51 filters, one chain</h3>
+        </div>
+        <p>Sharpen, saturate, tone, blur, duotone and more, chained in one <code>filters:</code> segment and applied in the order you write them.</p>
+        <code class="chip">filters:sharpen(1.2):saturation(1.1)</code>
+        <a class="docs" href="https://crabcrop.org/docs.html#adjust">Read the docs</a>
+      </article>
+
+      <fieldset class="choice panel" id="choice-look">
+        <legend><span class="step">Choice 2 of 5</span> Pick a look</legend>
+        <p class="help on-wide">Sweep across the silk curtains to see a look on the whole forest. Pick one and it goes on your chain.</p>
+        <p class="help on-narrow">Tap a look to see it on the whole forest. It goes on your chain.</p>
+        <div class="looks">
+          <label class="look"><input type="radio" name="look" value="crisp" checked><span class="swatch crisp" aria-hidden="true"></span><span class="lab">Crisp</span><span class="sub">sharpen(1.2):saturation(1.1)</span></label>
+          <label class="look"><input type="radio" name="look" value="deep"><span class="swatch deep" aria-hidden="true"></span><span class="lab">Deep sea</span><span class="sub">duotone(0d202e,ffd88a)</span></label>
+          <label class="look"><input type="radio" name="look" value="vintage"><span class="swatch vintage" aria-hidden="true"></span><span class="lab">Vintage</span><span class="sub">sepia</span></label>
+        </div>
+        <p class="sr-only" aria-live="polite" id="look-status"></p>
+      </fieldset>
+
+      <article class="card" id="card-size">
+        <div class="specimen spec-size" aria-hidden="true">
+          <figure><span class="frame crop"><img src="media/print.webp" alt="" width="360" height="282" loading="lazy"></span><figcaption>crop:1200x630:smart</figcaption></figure>
+          <figure><span class="frame fit"><img src="media/print.webp" alt="" width="360" height="282" loading="lazy"></span><figcaption>fit-in</figcaption></figure>
+          <figure><span class="frame pad"><img src="media/print.webp" alt="" width="360" height="282" loading="lazy"></span><figcaption>pad</figcaption></figure>
+        </div>
+        <div class="card-top">
+          <picture><source type="image/avif" srcset="media/icon-crop.avif"><img class="icon" src="media/icon-crop.webp" alt="" width="56" height="56" loading="lazy"></picture>
+          <h3>Size, crop, fit and pad</h3>
+        </div>
+        <p>Resize to exact pixels, crop to a window that finds the subject, fit inside a box, or pad out to a shape. Each is its own path segment.</p>
+        <code class="chip">crop:1200x630:smart · fit-in · pad</code>
+        <a class="docs" href="https://crabcrop.org/docs.html#size">Read the docs</a>
+      </article>
+
+      <article class="card" id="card-presets">
+        <div class="specimen spec-preset" aria-hidden="true"><b>preset:og-card</b><span> = crop:1200x630:smart/filters:format(webp)</span></div>
+        <div class="card-top">
+          <picture><source type="image/avif" srcset="media/icon-gear.avif"><img class="icon" src="media/icon-gear.webp" alt="" width="56" height="56" loading="lazy"></picture>
+          <h3>Presets and purge</h3>
+        </div>
+        <p>Server-side preset names keep templates short. Purge one result, or a whole preset group, with signatures from their own subkey.</p>
+        <code class="chip">preset:og-card · POST /purge-group</code>
+        <a class="docs" href="https://crabcrop.org/docs.html#presets">Read the docs</a>
+      </article>
+    </div>
+
+    <ul class="curtains" id="curtains" aria-label="Filter curtains: hover to preview a look, click to pick it">
+      <li><button type="button" class="silk" data-look="vintage" data-u="0.585" data-v="0.27" aria-pressed="false"><span class="pill">Vintage <code>sepia</code></span></button></li>
+      <li><button type="button" class="silk" data-look="deep" data-u="0.65" data-v="0.30" aria-pressed="false"><span class="pill">Deep sea <code>duotone</code></span></button></li>
+      <li><button type="button" class="silk" data-look="crisp" data-u="0.705" data-v="0.30" aria-pressed="true"><span class="pill">Crisp <code>sharpen · saturation</code></span></button></li>
+    </ul>
+
+    <button type="button" class="free-fish" id="free-fish">Free the fish</button>
+    <p class="story panel kind" id="kind">A little fish is caught in an old fishing line. Snap clicks his claw, snips it, and the fish spins free. It follows him for a while.</p>
+    <img class="snap-static on-chain" src="media/snap-chain.webp" alt="" width="640" height="687" loading="lazy">
+  </section>
+
+  <section id="t2" class="plunge" aria-hidden="true"></section>
+
+  <section id="next" class="zone slice-end">
+    <picture class="zone-bg">
+      <source media="(orientation: portrait)" type="image/avif" srcset="media/z3p-720.avif 720w, media/z3p-1080.avif 1080w" sizes="100vw">
+      <source media="(orientation: portrait)" type="image/webp" srcset="media/z3p-720.webp 720w, media/z3p-1080.webp 1080w" sizes="100vw">
+      <source type="image/avif" srcset="media/z3-1600.avif 1600w, media/z3-2400.avif 2400w, media/z3-3200.avif 3200w" sizes="(min-aspect-ratio: 21/9) 100vw, 233vh">
+      <img src="media/z3-1600.webp" srcset="media/z3-1600.webp 1600w, media/z3-2400.webp 2400w, media/z3-3200.webp 3200w" sizes="(min-aspect-ratio: 21/9) 100vw, 233vh" alt="" loading="lazy" decoding="async">
+    </picture>
+    <div class="panel">
+      <p class="tidemark">−30 m · The Coral Reef</p>
+      <h2>The reef is <span class="coral">next.</span></h2>
+      <p>This preview covers the marina, the shallows and the kelp forest. Your URL so far:</p>
+      <p class="url"><code id="url-so-far">https://<wbr>img.example.com/<wbr>3c1f6c18…/<wbr>filters:sharpen(1.2):saturation(1.1)/<wbr>root:photos/<wbr>print.jpg</code></p>
       <div class="ctas">
         <a class="btn" href="https://crabcrop.org/docs.html">Read the docs</a>
         <a class="btn btn-foam" href="#s0">Back to the surface</a>

@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { media, loadPicture } from '../media';
 import type { Stage } from './stage';
 import { clamp } from '../scroll';
+import { LOOK, LOOK_GLSL } from './look';
 
 const VERT = /* glsl */ `
 attribute vec4 aRect;
@@ -22,11 +23,12 @@ uniform float uOpacity;
 uniform vec3 uGrade;
 varying vec2 vUv;
 varying float vA;
+${LOOK_GLSL}
 void main() {
   vec4 c = texture2D(uMap, vUv);
   float a = c.a * vA * uOpacity;
   if (a < 0.004) discard;
-  gl_FragColor = vec4(c.rgb * uGrade, a);
+  gl_FragColor = vec4(applyLook(c.rgb * uGrade), a);
 }`;
 
 export const FORMATS = ['avif', 'webp', 'jpeg', 'jxl', 'png', 'gif'] as const;
@@ -69,7 +71,7 @@ export class Schools {
     this.fx = new THREE.InstancedBufferAttribute(new Float32Array(this.total * 2), 2);
     geo.setAttribute('aRect', this.rect);
     geo.setAttribute('aFx', this.fx);
-    this.u = { uMap: { value: null }, uOpacity: { value: 0 }, uGrade: { value: new THREE.Vector3(1, 1, 1) } };
+    this.u = { uMap: { value: null }, uOpacity: { value: 0 }, uGrade: { value: new THREE.Vector3(1, 1, 1) }, ...LOOK };
     const mat = new THREE.ShaderMaterial({ vertexShader: VERT, fragmentShader: FRAG, uniforms: this.u, transparent: true, depthTest: false, depthWrite: false });
     this.mesh = new THREE.InstancedMesh(geo, mat, this.total);
     this.mesh.frustumCulled = false;

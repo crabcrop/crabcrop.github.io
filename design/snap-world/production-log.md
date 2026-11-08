@@ -283,21 +283,31 @@ right place. Background removal takes no folder: attach its results with
 
 Failed jobs were refunded.
 
-## Next
+## Build
 
-Every asset in `higgsfield-prompts.md` is made, except the optional
-puppet parts (C04). Next is the build (phase 3 in `experience-plan.md`).
-Build-time steps for what was generated:
+The page is built in `experience/` and previewed from `preview/dive/`.
 
-- Zone loops and transitions: strip the audio tracks, encode the
-  transitions as image sequences for scrubbing, and grade each loop to its
-  zone palette.
-- Snap clips: run `tools/snap-matte.py` on each clip and its cutout, with
-  the trims above (M02 from 1.2 s, M03 from about 3 s), strip the audio,
-  and grade Snap to each zone's light in the shader.
-- Icons: cut the I01b patches with the `crop-rect` segments above.
+- **Slice 1: the marina, the plunge and the shallows.** Plates Z0 and Z1
+  with their loops, T01 as 96 scrubbed frames, Snap's clips M01 to M03 as
+  stacked-alpha video, the pose-2 sprite on the chain, the fish schools,
+  the cargo hotspots and the format choice.
+- **Slice 2: the kelp forest and the glide to the reef.** Plate Z2 and its
+  loop, the kelp cutout, T02 as 96 scrubbed frames and Z3-1 behind the end
+  card. New in the code: one look grade shared by every shader (Crisp,
+  Deep sea, Vintage), silk curtains that preview a look on the whole
+  forest, foreground kelp that bends away from the cursor, light shafts,
+  and the fish Snap snips free.
+
+Still open from the generation phase:
+
 - Earlier leftovers: retouch KA01's smile to gold, and cut the F01 fish
   with crabcrop's `removebg`.
+
+## Next
+
+The reef (S3 and S3b): the pinned sideways scuttle with the four Z3
+stations, the crop and finish choices, and the Clam Studio. The plates,
+cutouts and the scuttle clip (M04b) are made.
 
 ## What we learned
 

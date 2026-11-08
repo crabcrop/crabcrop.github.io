@@ -5,13 +5,15 @@ export interface Clip { w: number; h: number; duration: number; box: Box; boxEnd
 export interface Plate { w: number; h: number; widths: number[]; waterline?: number; thumbhash: string }
 
 export const media = manifest as unknown as {
-  plates: Record<'z0' | 'z0p' | 'z1' | 'z1p', Plate>;
+  plates: Record<'z0' | 'z0p' | 'z1' | 'z1p' | 'z2' | 'z2p' | 'z3' | 'z3p', Plate>;
   snapChain: { w: number; h: number; chainX: number; chainTop: number; chainBottom: number; linkLen: number };
   snapStand: { w: number; h: number };
   print: { w: number; h: number };
   fish: { w: number; h: number; rects: Record<string, [number, number, number, number]> };
   seagrass: { w: number; h: number };
+  kelp: { w: number; h: number };
   t1: { frames: number; fps: number; d: [number, number]; p: [number, number]; bytes: { d: number; p: number } };
+  t2: { frames: number; fps: number; d: [number, number]; p: [number, number]; bytes: { d: number; p: number } };
   clips: Record<'m01' | 'm02' | 'm03', Clip>;
 };
 

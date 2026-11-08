@@ -24,9 +24,9 @@ G): Snap, the world look, every zone background, the ambient loops and
 transitions, Snap's nine clips with their cutouts, and the card icons;
 see `production-log.md`. The live site is unchanged.
 
-The build has started: the first slice (the marina, the plunge and the
-shallows) is in `experience/`, built to `preview/dive/`. See
-`experience/README.md`.
+The build has started: the marina, the plunge, the shallows, the kelp
+forest and the glide to the reef are in `experience/`, built to
+`preview/dive/`. See `experience/README.md`.
 
 Next step: the rest of the zones, from the kelp forest down, phase 3 in
 `experience-plan.md`.
