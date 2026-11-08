@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en" class="no-js">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>crabcrop · All the Way Down</title>
+<meta name="description" content="Ride the anchor chain with Snap through crabcrop, the Rust image API. A preview of the marina, the plunge and the shallows.">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#CFE8EE">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<script>document.documentElement.classList.replace('no-js', 'js')</script>
+</head>
+<body>
+<a class="skip" href="https://crabcrop.org/">Skip the dive</a>
+<div class="placeholder" id="placeholder" aria-hidden="true"></div>
+<canvas id="world" aria-hidden="true"></canvas>
+<div class="overlay" id="overlay" aria-hidden="true"><svg class="threads" id="threads"></svg></div>
+
+<header class="top">
+  <a class="logo" href="#s0"><svg width="28" height="28" viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="18" r="11" fill="#E8482F"/><circle cx="11" cy="13" r="4.5" fill="#FBF2DF"/><circle cx="24" cy="6" r="3.4" fill="#E8482F"/><circle cx="8" cy="6" r="3" fill="#E8482F"/></svg> crabcrop</a>
+  <nav class="top-links" aria-label="Site">
+    <a href="https://crabcrop.org/#install">Install</a>
+    <a href="https://crabcrop.org/docs.html">Docs</a>
+    <a href="https://github.com/dayvson/crabcrop">GitHub</a>
+    <a class="skip-inline" href="https://crabcrop.org/">Skip the dive</a>
+  </nav>
+</header>
+
+<nav class="gauge" aria-label="Depth">
+  <p class="gauge-readout" aria-hidden="true"><span id="depth">0 m</span> · <span id="zone">The Marina</span></p>
+  <ol>
+    <li><a href="#s0" data-zone="s0" aria-current="true"><span class="d">0 m</span> <span class="name">The Marina</span></a></li>
+    <li><a href="#s1" data-zone="s1"><span class="d">−5 m</span> <span class="name">The Shallows</span></a></li>
+    <li class="soon"><span class="d">−15 m</span> <span class="name">The Kelp Forest</span></li>
+    <li class="soon"><span class="d">−30 m</span> <span class="name">The Coral Reef</span></li>
+    <li class="soon"><span class="d">−60 m</span> <span class="name">The Shipwreck</span></li>
+    <li class="soon"><span class="d">−500 m</span> <span class="name">The Twilight Zone</span></li>
+    <li class="soon"><span class="d">−2,500 m</span> <span class="name">The Vents</span></li>
+    <li class="soon"><span class="d">0 m</span> <span class="name">Back to the Surface</span></li>
+  </ol>
+  <div class="gauge-bar" aria-hidden="true"><span id="gauge-fill"></span></div>
+</nav>
+
+<main>
+  <section id="s0" class="zone s0" aria-labelledby="s0-title">
+    <picture class="zone-bg">
+      <source media="(orientation: portrait)" type="image/avif" srcset="media/z0p-720.avif 720w, media/z0p-1080.avif 1080w" sizes="100vw">
+      <source media="(orientation: portrait)" type="image/webp" srcset="media/z0p-720.webp 720w, media/z0p-1080.webp 1080w" sizes="100vw">
+      <source type="image/avif" srcset="media/z0-1600.avif 1600w, media/z0-2400.avif 2400w, media/z0-3200.avif 3200w" sizes="(min-aspect-ratio: 21/9) 100vw, 233vh">
+      <img src="media/z0-1600.webp" srcset="media/z0-1600.webp 1600w, media/z0-2400.webp 2400w, media/z0-3200.webp 3200w" sizes="(min-aspect-ratio: 21/9) 100vw, 233vh" alt="" loading="lazy" decoding="async">
+    </picture>
+    <div class="hero panel">
+      <p class="tidemark">0 m · The Marina</p>
+      <h1 id="s0-title">Blazing fast,<br><span class="coral">on-demand images.</span></h1>
+      <p class="lede">Crabcrop is a Rust-built, lightning-fast on-demand image API supporting all major formats in and out, with over 50 filters and AI features like background removal. It resizes, crops, converts, and filters your images straight from a signed URL.</p>
+      <div class="cmdstrip">
+        <code>curl --proto '=https' --tlsv1.2 -LsSf https://github.com/dayvson/crabcrop/releases/latest/download/crabcrop-installer.sh | sh</code>
+        <button class="copybtn" type="button" data-copy="curl --proto '=https' --tlsv1.2 -LsSf https://github.com/dayvson/crabcrop/releases/latest/download/crabcrop-installer.sh | sh">Copy</button>
+      </div>
+      <div class="ctas">
+        <a class="btn" href="https://crabcrop.org/#install">Install</a>
+        <a class="btn btn-foam" href="https://crabcrop.org/docs.html">Docs</a>
+      </div>
+      <p class="hint" aria-hidden="true">Scroll to follow Snap down</p>
+    </div>
+    <p class="story panel" id="story">A gust lifts Snap's favorite photo print off the pier and it sinks. He doesn't hesitate: he grabs the anchor chain and goes after it.</p>
+    <img class="snap-static stand" src="media/snap-stand.webp" alt="" width="445" height="409" loading="lazy">
+  </section>
+
+  <section id="t1" class="plunge" aria-hidden="true"></section>
+
+  <section id="s1" class="zone s1" aria-labelledby="s1-title">
+    <picture class="zone-bg">
+      <source media="(orientation: portrait)" type="image/avif" srcset="media/z1p-720.avif 720w, media/z1p-1080.avif 1080w" sizes="100vw">
+      <source media="(orientation: portrait)" type="image/webp" srcset="media/z1p-720.webp 720w, media/z1p-1080.webp 1080w" sizes="100vw">
+      <source type="image/avif" srcset="media/z1-1600.avif 1600w, media/z1-2400.avif 2400w, media/z1-3200.avif 3200w" sizes="(min-aspect-ratio: 21/9) 100vw, 233vh">
+      <img src="media/z1-1600.webp" srcset="media/z1-1600.webp 1600w, media/z1-2400.webp 2400w, media/z1-3200.webp 3200w" sizes="(min-aspect-ratio: 21/9) 100vw, 233vh" alt="" loading="lazy" decoding="async">
+    </picture>
+
+    <div class="zone-head panel">
+      <p class="tidemark">−5 m · The Shallows</p>
+      <h2 id="s1-title">One URL does <span class="coral">the whole job.</span></h2>
+      <p>A crabcrop URL is a chain: a signature, then operations, then the source. Every link Snap passes is one part of it, and you pick some of them on the way down.</p>
+    </div>
+
+    <ol class="tags" id="tags" aria-label="Your URL, link by link">
+      <li class="tag sig" data-link="2"><code>3c1f6c18…</code><span>Proof the URL came from you</span></li>
+      <li class="tag fmt blank" data-link="5" id="tag-format"><code>format</code><span>Choice 1: pick below</span></li>
+      <li class="tag blank later" data-link="17"><code>look</code></li>
+      <li class="tag blank later" data-link="20"><code>crop</code></li>
+      <li class="tag blank later" data-link="23"><code>finish</code></li>
+    </ol>
+
+    <div class="cards">
+      <article class="card" id="card-signing">
+        <div class="specimen spec-sig" aria-hidden="true"><span class="u">https://img.example.com/</span><b>3c1f6c18…</b><span class="u">/filters:format(avif)/root:photos/print.jpg</span></div>
+        <div class="card-top">
+          <picture><source type="image/avif" srcset="media/icon-chain.avif"><img class="icon" src="media/icon-chain.webp" alt="" width="56" height="56" loading="lazy"></picture>
+          <h3>Signed URLs, from any stack</h3>
+        </div>
+        <p>Every URL carries an HMAC-SHA256 signature over the operations and the source. Sign it from TypeScript, Python, Rust or plain curl: same inputs, same URL.</p>
+        <code class="chip">HMAC-SHA256 · curl · TS · Python · Rust</code>
+        <a class="docs" href="https://crabcrop.org/docs.html#signing">Read the docs</a>
+      </article>
+
+      <article class="card" id="card-format">
+        <div class="specimen spec-fmt" id="spec-fmt"><span>This page's marina, 3200 px wide:</span> <b>AVIF 141 KB</b> · <b>WebP 214 KB</b></div>
+        <div class="card-top">
+          <picture><source type="image/avif" srcset="media/icon-fish.avif"><img class="icon" src="media/icon-fish.webp" alt="" width="56" height="56" loading="lazy"></picture>
+          <h3>All major formats, in and out</h3>
+        </div>
+        <p>JPEG, PNG, WebP, GIF, AVIF and JPEG XL, in and out. Name no format and the Accept header decides: AVIF first, then JPEG XL, then WebP.</p>
+        <code class="chip">format(avif) · format(jxl) · format(webp)</code>
+        <a class="docs" href="https://crabcrop.org/docs.html#format">Read the docs</a>
+      </article>
+
+      <fieldset class="choice panel" id="choice-format">
+        <legend><span class="step">Choice 1 of 5</span> Pick a format</legend>
+        <p class="help">Each school of fish is one format. Pick one and it goes on your chain.</p>
+        <div class="schools">
+          <label class="school"><input type="radio" name="format" value="auto" checked><span class="fish none" aria-hidden="true"></span><span class="lab">Auto</span><span class="sub">Accept decides</span></label>
+          <label class="school"><input type="radio" name="format" value="avif"><span class="fish avif" aria-hidden="true"></span><span class="lab">AVIF</span><span class="sub">format(avif)</span></label>
+          <label class="school"><input type="radio" name="format" value="webp"><span class="fish webp" aria-hidden="true"></span><span class="lab">WebP</span><span class="sub">format(webp)</span></label>
+          <label class="school"><input type="radio" name="format" value="jxl"><span class="fish jxl" aria-hidden="true"></span><span class="lab">JPEG XL</span><span class="sub">format(jxl)</span></label>
+        </div>
+        <p class="race">With no format named, the schools race: AVIF wins, then JPEG XL, then WebP. That's the order of your browser's Accept header.</p>
+        <p class="sr-only" aria-live="polite" id="choice-status"></p>
+      </fieldset>
+
+      <article class="card" id="card-sources">
+        <div class="specimen spec-src" aria-hidden="true"><span class="on-wide">Hover the cargo on the sea floor.</span><span class="on-narrow">Tap a source below.</span></div>
+        <div class="card-top">
+          <picture><source type="image/avif" srcset="media/icon-reel.avif"><img class="icon" src="media/icon-reel.webp" alt="" width="56" height="56" loading="lazy"></picture>
+          <h3>More than photos</h3>
+        </div>
+        <p>The source can be one frame of a video, one page of a PDF, an object in S3 or GCS, a local file, or a short <code>root:</code> reference.</p>
+        <code class="chip">frame:50% · page:2 · root:photos/cat.jpg</code>
+        <a class="docs" href="https://crabcrop.org/docs.html#sources">Read the docs</a>
+      </article>
+    </div>
+
+    <ul class="cargo" id="cargo" aria-label="Sources on the sea floor">
+      <li><button type="button" class="hot" data-u="0.656" data-v="0.70" aria-expanded="false">Film reel</button><span class="tip"><code>frame:50%</code> One frame of a video</span></li>
+      <li><button type="button" class="hot" data-u="0.742" data-v="0.705" aria-expanded="false">Folded pages</button><span class="tip"><code>page:2</code> One page of a PDF</span></li>
+      <li><button type="button" class="hot" data-u="0.735" data-v="0.60" aria-expanded="false">Sand pails</button><span class="tip"><code>s3:// · gs://</code> Objects in S3 and GCS</span></li>
+      <li><button type="button" class="hot" data-u="0.888" data-v="0.635" aria-expanded="false">Shoebox</button><span class="tip"><code>file</code> A local file</span></li>
+      <li><button type="button" class="hot" data-u="0.858" data-v="0.785" aria-expanded="false">Mooring buoy</button><span class="tip"><code>root:photos/cat.jpg</code> A short root reference</span></li>
+    </ul>
+
+    <img class="snap-static on-chain" src="media/snap-chain.webp" alt="" width="640" height="687" loading="lazy">
+  </section>
+
+  <section id="next" class="slice-end">
+    <div class="panel">
+      <p class="tidemark">−15 m · The Kelp Forest</p>
+      <h2>The rest of the dive is <span class="coral">on its way down.</span></h2>
+      <p>This preview covers the marina, the plunge and the shallows. Your URL so far:</p>
+      <p class="url"><code id="url-so-far">https://img.example.com/3c1f6c18…/root:photos/print.jpg</code></p>
+      <div class="ctas">
+        <a class="btn" href="https://crabcrop.org/docs.html">Read the docs</a>
+        <a class="btn btn-foam" href="#s0">Back to the surface</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="foot">
+  <p>Built on the shore, in Rust. MIT licensed.<br>Handmade Snap, real light, worlds made with Higgsfield.</p>
+</footer>
+
+<script type="module" src="/src/main.ts"></script>
+</body>
+</html>

@@ -1,0 +1,27 @@
+{
+  "base": "https://d8j0ntlcm91z4.cloudfront.net/user_3LUWrZdQQHs5RCQGXWn1K4r2h7J/",
+  "note": "Approved Higgsfield outputs used by the dive. Job IDs match design/snap-world/production-log.md.",
+  "files": {
+    "z0-plate.png":        { "job": "10c47555-fe77-4156-b2cf-2eb52330742c", "file": "hf_20261108_161358_10c47555-fe77-4156-b2cf-2eb52330742c.png" },
+    "z0-phone.png":        { "job": "f160bb58-325b-4671-a939-a3d03d56fc28", "file": "hf_20261108_164003_f160bb58-325b-4671-a939-a3d03d56fc28.png" },
+    "z0-loop.mp4":         { "job": "2f80f45b-91fc-4e3e-8769-468dcff1e09a", "file": "hf_20261108_171550_2f80f45b-91fc-4e3e-8769-468dcff1e09a.mp4" },
+    "z0-phone-loop.mp4":   { "job": "6258bb2b-4817-4cdb-bc97-fabc5c785d96", "file": "hf_20261108_172404_6258bb2b-4817-4cdb-bc97-fabc5c785d96.mp4" },
+    "t1-plunge.mp4":       { "job": "0b81c961-2167-4f16-ac70-7d15c3b2cf7b", "file": "hf_20261108_170107_0b81c961-2167-4f16-ac70-7d15c3b2cf7b.mp4" },
+    "z1-plate.png":        { "job": "58d5245c-1744-4fd4-a863-0a84328a0ce1", "file": "hf_20261108_163233_58d5245c-1744-4fd4-a863-0a84328a0ce1.png" },
+    "z1-loop.mp4":         { "job": "60873dab-81ec-4b0b-b268-b985e506be6a", "file": "hf_20261108_170923_60873dab-81ec-4b0b-b268-b985e506be6a.mp4" },
+    "cut-rope-buoy.png":   { "job": "906c1ebc-5cb2-44fe-b99f-709eb8360cea", "file": "hf_20261108_164202_906c1ebc-5cb2-44fe-b99f-709eb8360cea.png" },
+    "cut-seagrass.png":    { "job": "0e205aa6-843c-43b3-b0cc-0d61b71e85cb", "file": "hf_20261108_164203_0e205aa6-843c-43b3-b0cc-0d61b71e85cb.png" },
+    "fish-sheet.png":      { "job": "9499d710-a798-4e9a-a275-0d96e0002f5b", "file": "hf_20261108_163736_9499d710-a798-4e9a-a275-0d96e0002f5b.png" },
+    "snap-poses.png":      { "job": "0fdd9dad-8734-4477-9f69-3ee1ab3c0bb4", "file": "hf_20261108_161801_0fdd9dad-8734-4477-9f69-3ee1ab3c0bb4.png" },
+    "snap-print.png":      { "job": "b2ce82be-f524-4f07-b692-c345b8ed38f7", "file": "hf_20261108_162407_b2ce82be-f524-4f07-b692-c345b8ed38f7.png" },
+    "icons.png":           { "job": "dffa4364-5804-4420-865b-1f8fabe2224f", "file": "hf_20261108_175106_dffa4364-5804-4420-865b-1f8fabe2224f.png" },
+    "m01-wave.mp4":        { "job": "323c87bb-16a1-4a9d-830f-c37fd4daa4f3", "file": "hf_20261108_174706_323c87bb-16a1-4a9d-830f-c37fd4daa4f3.mp4" },
+    "m01-wave-cut.mp4":    { "job": "387afd06-05ef-4c82-aad0-0f952c0dfd61", "file": "hf_20261108_175738_387afd06-05ef-4c82-aad0-0f952c0dfd61.mp4" },
+    "m02-gust.mp4":        { "job": "cc22161a-2720-46ce-853a-4327e3fc3cda", "file": "hf_20261108_174433_cc22161a-2720-46ce-853a-4327e3fc3cda.mp4" },
+    "m02-gust-cut.mp4":    { "job": "cb45eeda-dc2c-4465-ae85-bb446927382b", "file": "hf_20261108_175739_cb45eeda-dc2c-4465-ae85-bb446927382b.mp4" },
+    "m03-hop.mp4":         { "job": "6dc60dc0-a213-4bef-9a7f-f20800a0f691", "file": "hf_20261108_174944_6dc60dc0-a213-4bef-9a7f-f20800a0f691.mp4" },
+    "m03-hop-cut.mp4":     { "job": "5a40470c-774a-4f91-adc7-c673e9bb5fce", "file": "hf_20261108_175741_5a40470c-774a-4f91-adc7-c673e9bb5fce.mp4" },
+    "m05-snap.mp4":        { "job": "8ed431ff-4299-4fb0-87e9-1857f1e6c1e1", "file": "hf_20261108_174706_8ed431ff-4299-4fb0-87e9-1857f1e6c1e1.mp4" },
+    "m05-snap-cut.mp4":    { "job": "618f5ee2-5316-456e-9eb8-4813fcf79294", "file": "hf_20261108_175710_618f5ee2-5316-456e-9eb8-4813fcf79294.mp4" }
+  }
+}
