@@ -104,6 +104,45 @@ Fine-tune on real phones during the build.
 | Tube worms (Z6) | `346fe6bc-8434-49a0-a8a2-7df3989124f6` | `10692a69-c7e7-4430-b8f9-ce3fbdf5f2f0` |
 | F01 format fish (sheet of 8) | `9499d710-a798-4e9a-a275-0d96e0002f5b` | Not yet: Higgsfield's remover failed three times on this sheet. Cut the fish with crabcrop's own `removebg` in the site build |
 
+## Phase D and E: loops and transitions
+
+All clips are Kling 4.0 (`image-to-video`), 21:9, 1080p (2212 × 936),
+24 fps, 8 s, H.264 with an audio track to strip in the build. 26 credits
+each.
+
+### Transitions (folder 07)
+
+| Clip | Frames | Job | Status | Notes |
+| --- | --- | --- | --- | --- |
+| T01 The plunge | Z0 → Z1 | `0b81c961-2167-4f16-ac70-7d15c3b2cf7b` | Approved | Sinks through the waterline, settles on the shallows set. No need for the premium Seedance try |
+| T02 Into the reef | Z2 → Z3-1 | `0ec958e5-0f1a-4385-8b7b-03e50735a7c3` | Approved | Glides out of the kelp, over the rocks, onto the reef and the turtle |
+| T03 Into the wreck | Z4-EXT → Z4 | `2d3ff41b-5d8d-4f7c-973c-cdf1c8986b9b` | Approved | Pushes through the hull breach into the lantern-lit cabin |
+| T04 The drop | Z4-EXT → Z5 | `53ed72ea-519d-4159-81f2-681a95cf3607` | Approved | Glides past the wreck to a trench in the seabed and dives into the dark, where the glowing creatures appear |
+| T04 first try | Z4-EXT → Z5 | `9e3eaf7d-57f7-438d-8161-e225ba8e281a` | Rejected | Mid-way the camera passes through the sea floor like a diorama tier |
+
+### Loops (folder 06)
+
+Start frame and end frame are the same plate, so the clip returns to
+where it began.
+
+| Loop | Plate | Job | Status | Notes |
+| --- | --- | --- | --- | --- |
+| L-Z0 The Marina | Z0 | `2f80f45b-91fc-4e3e-8769-468dcff1e09a` | Approved | Ripples, sails, gulls; seam as smooth as a normal frame step |
+| L-Z1 The Shallows | Z1 | `60873dab-81ec-4b0b-b268-b985e506be6a` | Approved | Seam difference 1.7 of 255 between last and first frame; steady motion |
+| L-Z1 alternate | Z1 | `f770d645-e55e-4edb-baff-860cedcab645` | Alternate | MiniMax H3, start frame only, 2944 × 1248. Doesn't return to its first frame: needs a crossfade to loop |
+| L-Z2 The Kelp Forest | Z2 | `fe4c79d5-e406-408b-be50-3e61b2a9f416` | Approved | Kelp sway, light shafts; noticeable slow push-in and return |
+| L-Z3-1 Reef, turtle | Z3-1 | `11af9eb6-f1ed-476f-b537-1bca09ecf58e` | Approved | Turtle paddles, fish dart; noticeable slow push-in and return |
+| L-Z3b The Clam Studio | Z3b | `fd1820ed-b217-4aff-9ea1-458e7f56cb9b` | Approved | Lamps pulse, tentacles sway; the calmest loop |
+
+No loop for the twilight zone: the lantern effect reveals the still lit
+plate under the cursor, and creatures moving in a loop wouldn't line up
+with it. Its life comes from code (marine snow, slow glow pulses).
+
+Measured in Higgsfield's sandbox: each loop's last-to-first frame
+difference is about the size of one normal frame step, so the seam is
+invisible. Kling adds a slow push-in and return even when told to lock
+the camera; it reads as gentle breathing.
+
 ## Higgsfield project
 
 Everything approved lives in the project **crabcrop · All the Way Down**
