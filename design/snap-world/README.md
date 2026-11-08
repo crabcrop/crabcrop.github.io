@@ -16,9 +16,9 @@ the finished image is served live at the surface.
 | [`art-direction.md`](art-direction.md) | The concept, world rules, camera, the nine zones with palettes and set pieces, type, interface, motion, sound, references |
 | [`experience-plan.md`](experience-plan.md) | Scene-by-scene storyboard, the URL builder, the cards, how it's built, performance, accessibility, phones, phases, risks |
 | [`higgsfield-prompts.md`](higgsfield-prompts.md) | Every asset to generate, in order, with model, settings, references, prompt, prices and budget |
+| [`production-log.md`](production-log.md) | What has been generated and approved, the Higgsfield Element IDs, and lessons learned |
 
-Status: plan only. No images or clips have been generated yet, and the
-live site is unchanged.
+Status: Phase A (Snap) and Phase B (world look) are locked in Higgsfield;
+see `production-log.md`. The live site is unchanged.
 
-Next step: Phase A in `higgsfield-prompts.md`. Generate Snap's master
-reference, check it against the bible, and save it as the `snap` Element.
+Next step: Phase C in `higgsfield-prompts.md`, the zone plates.

@@ -65,6 +65,11 @@ model, pass the reference images as `image_references` instead.
 - Keep Snap out of the backgrounds. The only exceptions are the key art
   (`KA01`) and the world map variant (`W00-snap`).
 - No words inside images. All copy is HTML.
+- Nano Banana Pro at 4K returns at most 2 images per call. Keep about 6
+  jobs in flight; larger batches get refused.
+- The real Element IDs, chosen job IDs and lessons so far are in
+  `production-log.md`. Replace `<<<snap>>>` and friends with
+  `<<<element-id>>>` from there.
 
 ## 1. Prompt blocks
 
@@ -188,19 +193,26 @@ every view, no props.
 Nano Banana Pro · 16:9 · 4K · Element `snap` + C01, C02
 
 ```
-Pose and expression sheet of <<<snap>>>, nine poses in a 3 by 3 grid on a
-pure white seamless background, each pose the same size, the identical toy
-in all nine: (1) waving with the left claw while holding the photo print,
-(2) hugging an invisible vertical pole with both claws, legs tucked,
-(3) scuttling sideways mid-step, eyestalks pointing forward, (4) presenting
-with one claw open toward the right, (5) right claw raised mid-click like a
-finger snap, (6) surprised, both eyestalks stretched up and both claws up,
-(7) a wink with one coral crochet eyelid closed, chest out proudly,
-(8) holding a small vintage film camera up to his eyes, (9) sleepy, both
-coral eyelids half closed. Soft even studio light.
+Pose and expression reference sheet of <<<snap>>>, the same crochet crab
+toy shown nine times in a 3 by 3 grid on a pure white seamless background,
+each pose the same size: (1) waving with the left claw while holding a
+small cream felt photo print in the right claw, (2) holding on to a short
+vertical piece of rusty iron chain with both claws, legs tucked up,
+(3) walking sideways mid-step, eyestalks pointing forward, (4) presenting
+with one claw open toward the right, (5) right claw raised and clicking
+like a finger snap, (6) surprised, both eyestalks stretched up and both
+claws up, (7) winking with one coral crochet eyelid closed, looking proud,
+(8) holding a small vintage film camera up with both claws in front of his
+face, his two eyestalks peeking over the top of the camera, (9) sleepy,
+both coral eyelids half closed. In every pose his two eyestalks stay
+clearly visible; the eyes are never placed directly on his body. Soft even
+studio light, the identical toy in every pose.
 {SNAP_DNA}
 {SNAP_AVOID}, no grid lines, no numbers
 ```
+
+Use 16:9. The same sheet at 1:1 4K failed three times without an error
+message. Avoid the word "pole" for the chain pose.
 
 ### C04. Puppet parts (optional, for the Rive animator)
 
@@ -224,13 +236,18 @@ front view instead.
 Nano Banana Pro · 4:3 · 2K · references: C01, `ai-skate-before.jpg`
 
 ```
-Close-up product photograph of a small handmade photo print, 6 by 8 cm:
-cream felt card with a stitched cream border, an embroidered teal mountain
-range with satin-stitch texture and a round yellow embroidered sun with
-short rays, on a pure white background, soft daylight, macro lens, every
-thread visible. Exactly the print Snap holds in the reference images.
-no text, no logo
+Close-up product photograph of a small handmade photo print, 6 by 8 cm: a
+cream felt card with a stitched cream border; inside it, two soft rounded
+teal hills embroidered in satin stitch, overlapping like gentle mounds
+along the bottom, and a small round mustard-yellow embroidered sun with a
+few short rays at the upper right. Exactly the print the crab toy holds in
+the reference images, shown alone with no crab, on a pure white
+background, soft daylight, macro lens, every thread visible.
+no pointy peaks, no jagged mountains, no text, no logo
 ```
+
+Without "rounded" the model draws pointy peaks, which don't match the print
+in every existing photo of Snap.
 
 Create the Element `photo-print` (category: prop).
 

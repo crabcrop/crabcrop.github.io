@@ -105,9 +105,10 @@ real material under real light.
 ## 3. Props and wardrobe
 
 **Signature prop: the photo print.** A small cream felt card with a
-stitched border, showing an embroidered teal mountain and a yellow sun. It
-is the universal "image" icon made by hand, and it is the hero object of
-the landing page story. Snap holds it in his right claw.
+stitched border, showing two soft rounded teal hills (not pointy peaks)
+and a small yellow sun at the upper right. It is the universal "image"
+icon made by hand, and it is the hero object of the landing page story.
+Snap holds it in his right claw.
 
 Other recurring props, one at a time, each tied to a feature:
 
@@ -225,12 +226,17 @@ proportions.
 ### `SNAP_AVOID`
 
 ```
-no realistic crab shell, no spikes, no segmented or jointed legs, no
-antennae, no teeth, no open mouth, no eyebrows, no extra eyes, no extra
-legs or claws, no human hands or fingers, no plastic or glossy 3D-render
-look, no cartoon outlines, no color change, no clothing unless specified,
-no text, no logo, no watermark
+no eyes on the body, no missing eyestalks, no realistic crab shell, no
+spikes, no segmented or jointed legs, no antennae, no teeth, no open
+mouth, no eyebrows, no extra eyes, no extra legs or claws, no human hands
+or fingers, no plastic or glossy 3D-render look, no cartoon outlines, no
+color change, no clothing unless specified, no text, no logo, no
+watermark
 ```
+
+In multi-pose sheets and close-ups, also say that both eyestalks stay
+clearly visible in every pose. Without that line the model sometimes sets
+the eyes straight onto the body.
 
 ## 9. Keeping Snap consistent in Higgsfield
 
@@ -261,9 +267,11 @@ prompt contains `<<<element_id>>>`.
 ### Drift checklist
 
 - [ ] Six legs, two claws, two eyestalks, nothing extra
+- [ ] Both eyestalks present in every pose; eyes never sit on the body
 - [ ] Heart-shaped peach pads on both claws
 - [ ] White ring around both black eyes
-- [ ] Pink cheeks and gold smile present, no other facial features
+- [ ] Pink cheeks and a gold (not cream) smile, no other facial features
+- [ ] The print shows rounded hills, not pointy peaks
 - [ ] Spiral cream belly, low on the body
 - [ ] Coral within the canon range under the scene's light
 - [ ] Visible crochet stitches, matte yarn
