@@ -86,7 +86,7 @@ felt and embroidery, with visible stitches, bobbles and fibers. Hard props
 and sets are real miniature materials: weathered wood, rope, brass, rusty
 iron, glass, stone, sand. Water, light and air are real and physical:
 caustics, god rays, bubbles, mist, floating particles. Macro photography at
-a crab's-eye level, 50-100 mm lens look, shallow depth of field with creamy
+a low camera at the height of a small toy, 50-100 mm lens look, shallow depth of field with creamy
 bokeh, subtle tilt-shift miniature feel, natural light, rich but believable
 color, fine film grain.
 ```
@@ -95,10 +95,14 @@ color, fine film grain.
 
 ```
 no text, no letters, no numbers, no logos, no watermarks, no signage, no
-people, no human hands, no plastic or CGI render look, no cartoon
-outlines, no flat illustration, no fisheye distortion, no lens flare
-streaks, no chain or rope hanging through the center of the frame
+people, no human hands, no crabs, no plastic or CGI render look, no
+cartoon outlines, no flat illustration, no fisheye distortion, no lens
+flare streaks, no chain or rope hanging through the center of the frame
 ```
+
+Don't describe the camera as a "crab's-eye view" in plates: the model
+adds a crab to match, sometimes a realistic one. Say "a low camera at the
+height of a small toy" instead. Snap is composited later.
 
 ### `PLATE_LAYOUT` (desktop, 21:9)
 
@@ -364,7 +368,7 @@ glass #8FE3E1, sand #F3DFB4, weathered wood #9C7A5B, sun #FFB020.
 ### Z1. The Shallows
 
 ```
-Underwater five meters down in a handmade miniature sea, crab's-eye view
+Underwater five meters down in a handmade miniature sea, seen from a low camera
 just above rippled golden sand. Bright dancing caustic light on the sand,
 clear turquoise water fading to sea-glass blue in the distance, sun shafts
 from the surface. Felt seagrass at the left and right edges in soft focus,
@@ -380,7 +384,7 @@ sea glass #8FE3E1, wet sand #E9D3A1, caustic light #FFF3C4, tide #0D7372.
 
 ```
 Inside a towering handmade kelp forest fifteen meters underwater,
-crab's-eye view looking up and across. Tall knitted kelp stalks in olive
+seen from a low camera looking up and across. Tall knitted kelp stalks in olive
 and gold rise from rocky ground to a sunlit canopy, with round crocheted
 float bulbs and long felt blades; a few blades are translucent dyed silk in
 amber, rose, teal and violet, glowing where the light passes through them.
@@ -398,7 +402,7 @@ reef to the right, same horizon height, same light." Use
 `{PLATE_LAYOUT_PATH}` instead of `{PLATE_LAYOUT}`.
 
 ```
-A vivid handmade coral reef thirty meters underwater, crab's-eye view
+A vivid handmade coral reef thirty meters underwater, seen from a low camera
 along the reef floor. Ruffled hyperbolic-crochet coral in coral pink,
 tangerine and violet, round crochet brain coral, lacy knitted sea fans,
 anemones with felt tentacles, tiny crochet fish darting, clear blue water
@@ -445,7 +449,7 @@ Palette: wreck teal #0F4C5C, deep green #123B3A, aged oak #6B4E37.
 
 ```
 Inside the captain's cabin of an old wooden shipwreck lying on its side
-sixty meters underwater, crab's-eye view from the floor. Tilted oak planks
+sixty meters underwater, seen from a low camera on the floor. Tilted oak planks
 and beams covered with barnacles made of tiny crochet bobbles and felt
 seaweed, round brass portholes letting in cold teal light shafts, a small
 wooden desk with a brass wax seal stamp, rolled paper scrolls, an open

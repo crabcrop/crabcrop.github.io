@@ -42,15 +42,98 @@ Higgsfield library; Element IDs go in prompts as `<<<element-id>>>`.
 | KA01 key art | `d47191c3-4b50-4759-aef8-8e8efe95b8cf` | Approved | Snap small on the pier with his print, the chain dropping from the boat into turquoise water. Passes the checklist except the smile reads cream: retouch to gold before use. Made with the retired `photo-print` Element; the print still came out rounded |
 | KA01 alternate | `67a3d5c9-0342-49b8-99fc-9dd5946f5a19` | Rejected | Snap oversized and floating, eyes lost their white rings |
 
-## Credits
+## Phase C: zone plates, phone plates, cutouts
 
-Phase A and B together: **47 credits** (estimate was about 85). Balance
-after: 3,563.
+All plates are 6336 × 2688 (21:9, 4K) unless noted, made with Nano Banana
+Pro and the `snap-world` Element as the style reference.
+
+| Asset | Job | Status | Notes |
+| --- | --- | --- | --- |
+| Z1 The Shallows | `58d5245c-1744-4fd4-a863-0a84328a0ce1` | Approved | Fish schools both sides, bottle, the spilled cargo of sources on the right, sunlit center lane |
+| Z2 The Kelp Forest | `f7a2e07b-533c-4dce-834b-b2e4df46ad75` | Approved | Knitted stalks, crochet floats, glowing silk "filter curtains", net tangle. Edit of `d2fe7a71` (rejected: a crab crept in) |
+| Z3-1 Reef, turtle (smart crop) | `5206e93c-4288-4402-a277-64713b34410b` | Approved | Hyperbolic crochet coral, turtle upper right, sandy path |
+| Z3-2 Reef, fish school (faces) | `686778f5-a138-48ec-ba3d-0411f6d7bbce` | Approved | Rock arch, seven fish facing the camera. Replaces `0f0c6cd8` (rejected: copied panel 1) |
+| Z3-3 Reef, cuttlefish (redaction) | `2f8cae14-553b-4bb7-bba2-ba28c8527f23` | Approved | Cuttlefish by a lilac sea fan, left of center |
+| Z3-4 Reef, soda can (object removal) | `da2465d1-bda3-4e82-9914-96fb6a63aee5` | Approved | Unbranded can in tangerine coral |
+| Z3-4 clean (the "after") | `1766e98b-fc04-44b4-9490-05f2ee5ed12d` | Approved | Same frame, can gone, coral restored |
+| Z3b The Clam Studio | `b8a93f69-3d53-476b-83e2-fe36bd818baa` | Approved | Two open shells facing each other, jellyfish lamps left, pearl right, open lane between |
+| Z4-EXT The Shipwreck, outside | `502fd02d-b3b3-4e37-96b8-7a9f7336ec7c` | Approved | Ship centered with the hull breach; start frame for the "into the wreck" transition |
+| Z4 The Shipwreck, cabin | `7a9ac2db-70ab-4728-9b48-e2234f227d9e` | Approved | Lantern, desk, wax seal, log, locked chest. Edit of `4f166be9` (rejected: a realistic crab on the floor) |
+| Z5 The Twilight Zone | `3872346f-78d1-4547-9f2d-361d83d49ae6` | Approved | Glow-yarn jellyfish, siphonophore, anglerfish, bottle, marine snow |
+| Z5-LIT | `c923aaf6-3d2e-4980-9204-690ffbd86112` | Approved | Same frame lit by a lantern; revealed under the cursor |
+| Z6 The Vents | `b71b1c0a-04ce-448e-bac2-1566a6da2ae9` | Approved, note | Chimneys, tube worms, yeti crabs, submersible, glowing geode. The chimney tops show small flames that read a little volcanic: tone down in grading or the loop |
+| Z7 Back to the Surface | `0e47089e-c94e-4ab8-b108-70723f4f2626` | Approved | The marina relit at sunset, string lights, friends gathered under the waterline |
+| Z0 phone (9:16, 3072 × 5504) | `f160bb58-325b-4671-a939-a3d03d56fc28` | Approved | Tall over-under hero, left edge clear for the chain |
+| Z7 phone (9:16, 3072 × 5504) | `a1a45d6d-69a8-4bde-820c-6b89f5251386` | Approved | The phone hero at sunset with the friends |
+
+### Phone versions of the other zones
+
+Only the hero and the finale got native 9:16 plates. Every other zone's
+phone background is a crop of its 4K master, served by crabcrop itself
+with `crop-rect`, so desktop and phone always match and no extra credits
+are spent. A 9:16 window is about 24 percent of a plate's width. Starting
+points (left and right edge of the window, as a share of plate width):
+
+| Plate | Window | What it shows |
+| --- | --- | --- |
+| Z1 | 62–86% | The cargo and the right fish school |
+| Z2 | 52–76% | The silk curtains |
+| Z3-1 | 68–92% | The turtle |
+| Z3-2 | 55–79% | The fish school |
+| Z3-3 | 22–46% | The cuttlefish |
+| Z3-4 and clean | 20–44% | The can, and where it was |
+| Z3b | 55–79% | The pearl shell |
+| Z4-EXT | 38–62% | The hull breach |
+| Z4 | 54–78% | Desk, log and chest |
+| Z5 and Z5-LIT | 52–76% | Anglerfish and bottle |
+| Z6 | 42–66% | Geode and submersible |
+
+Fine-tune on real phones during the build.
+
+### Cutouts and sprites (background removed, RGBA)
+
+| Element | Source job | Cutout job |
+| --- | --- | --- |
+| Rope coil and crochet buoy (Z0) | `9ddbaa86-4db5-4a0b-afa5-bd0cad6afc68` | `906c1ebc-5cb2-44fe-b99f-709eb8360cea` |
+| Felt seagrass (Z1) | `9c06daf8-0550-4b36-bfb0-860c57e3996c` | `0e205aa6-843c-43b3-b0cc-0d61b71e85cb` |
+| Knitted kelp stalk (Z2) | `df68fb0e-f683-45f1-bd58-981b97708a5b` | `66c2562f-4334-4614-9a37-7f1c9219c878` |
+| Coral cluster and sea fan (Z3) | `b9b456a8-1bd1-4a35-8e3d-d7d0a71d03f8` | `a7015f21-ff82-4244-8946-dd0d06587ef3` |
+| Jellyfish lamp (Z3b) | `68ff4137-5821-4c07-ac7c-6a2d0174508e` | `7ed0bdd2-016d-4da7-9770-0f12258ea85b` |
+| Barnacled beam (Z4) | `abcf0529-c54e-4a58-91f1-2250388c24c4` | `e8a64676-8595-4eb0-a671-ae30dee62b84` |
+| Glow jellyfish (Z5) | `64c6bacb-238f-462a-b15a-163bc385efe1` | none: kept on black for additive blending |
+| Tube worms (Z6) | `346fe6bc-8434-49a0-a8a2-7df3989124f6` | `10692a69-c7e7-4430-b8f9-ce3fbdf5f2f0` |
+| F01 format fish (sheet of 8) | `9499d710-a798-4e9a-a275-0d96e0002f5b` | Not yet: Higgsfield's remover failed three times on this sheet. Cut the fish with crabcrop's own `removebg` in the site build |
+
+## Higgsfield project
+
+Everything approved lives in the project **crabcrop · All the Way Down**
+(`03b58f25-49d0-4a18-bcf3-77a8b41d7dc1`, private workspace
+`7073b137-2c9e-49e6-935e-16b6ed8dbe08`).
+
+| Folder | ID | Contents |
+| --- | --- | --- |
+| 01 Snap | `d1df73ab-53c8-4e38-a5db-2414227dd544` | Master reference, turnaround, pose sheets, print |
+| 02 World | `7e24e84e-5792-41e4-b50e-f06ebabd0c90` | World map, marina style frame and alternate, key art |
+| 03 Zone plates | `15a35d9b-1714-4923-8467-6c506b7c7eb5` | Every approved desktop plate |
+| 04 Phone plates | `d051214c-2bcc-4406-97ce-c16d8fc411e3` | Native 9:16 hero and finale |
+| 05 Cutouts and sprites | `1c6b9ce1-22f1-4f2f-88cc-fcefa117c05a` | Cutout sources, cutouts, fish sheet |
+| 99 Rejected | `2c5eef11-ab80-4def-a266-d1cbf1d0b640` | Kept for the record |
+
+Pass the folder ID as `folder_id` on new generations so they land in the
+right place.
+
+## Credits so far
+
+| Phase | Credits |
+| --- | --- |
+| A and B: Snap and the world look | 47 |
+| C: plates, phone plates, cutouts, sprites | 103 |
+| **Total** | **150** (balance 3,460) |
 
 ## Next
 
-Phase C: zone plates Z1 to Z7 with `snap-world` as the style reference,
-desktop first, then phone.
+Phase D (ambient loops) and E (signature transitions). Then F (Snap
+clips) and G (icons).
 
 ## What we learned
 
@@ -68,3 +151,18 @@ desktop first, then phone.
   full 4K and billed at the Pro price.
 - This build sandbox can't download from Higgsfield's CDN; review images
   in Higgsfield's own sandbox instead.
+- "Crab's-eye view" in a plate prompt makes the model add a crab, twice
+  a realistic one. Say "a low camera at the height of a small toy" and add
+  "no crabs".
+- A panel generated with the previous panel as its reference copies that
+  panel's layout. For panorama stations, write each composition in text
+  with only the style Element as a reference, and hide the joins with
+  foreground coral passing in front.
+- Small fixes and relights work well as edits: pass the plate as the
+  reference and say exactly what to remove or change and that everything
+  else stays. Used for the two crabs, the clean reef, the lantern-lit
+  twilight and the sunset.
+- Background removal works on single objects at 2K; it failed three times
+  on a 16:9 4K sheet of eight fish.
+- Background removals count toward the jobs in flight; a removal started
+  next to five generations was refused.

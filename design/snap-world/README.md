@@ -18,7 +18,9 @@ the finished image is served live at the surface.
 | [`higgsfield-prompts.md`](higgsfield-prompts.md) | Every asset to generate, in order, with model, settings, references, prompt, prices and budget |
 | [`production-log.md`](production-log.md) | What has been generated and approved, the Higgsfield Element IDs, and lessons learned |
 
-Status: Phase A (Snap) and Phase B (world look) are locked in Higgsfield;
-see `production-log.md`. The live site is unchanged.
+Status: Phase A (Snap), B (world look) and C (zone backgrounds, phone
+plates, cutouts) are done in Higgsfield; see `production-log.md`. The live
+site is unchanged.
 
-Next step: Phase C in `higgsfield-prompts.md`, the zone plates.
+Next step: Phase D and E in `higgsfield-prompts.md`, the loops and
+transitions.
