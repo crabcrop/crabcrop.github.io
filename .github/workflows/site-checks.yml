@@ -1,0 +1,63 @@
+name: Site checks
+
+# Keeps the site honest against the crabcrop repo:
+#   - the signing snippets on index.html and docs.html run against the
+#     TypeScript and Python SDKs and the crabcrop-url crate, and every
+#     pane on a page mints the same URL as its curl pane;
+#   - the configuration tables on docs.html list every variable in
+#     docs/configuration.md, with the same defaults.
+# The checks run against the latest crabcrop release, the version the
+# site's install pulls name, not main: main documents variables and
+# behavior that no published image has yet. The weekly run catches a
+# release the site has not caught up with. Run it by hand with the
+# crabcrop_ref input (main, or any branch, tag, or commit) to see what
+# the next release will change.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "23 7 * * 1"
+  workflow_dispatch:
+    inputs:
+      crabcrop_ref:
+        description: crabcrop branch, tag, or commit to check against (empty for the latest release)
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: site
+      - name: Pick the crabcrop ref
+        id: crabcrop
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REQUESTED: ${{ inputs.crabcrop_ref }}
+        run: |
+          ref="${REQUESTED:-$(gh api repos/dayvson/crabcrop/releases/latest --jq .tag_name)}"
+          test -n "$ref"
+          echo "Checking the site against dayvson/crabcrop $ref"
+          echo "ref=$ref" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: dayvson/crabcrop
+          ref: ${{ steps.crabcrop.outputs.ref }}
+          path: crabcrop
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+      - name: Configuration tables match docs/configuration.md
+        run: node site/.github/site-checks/config-table.mjs crabcrop
+      - name: Build the TypeScript SDK
+        working-directory: crabcrop/sdks/typescript
+        run: npm ci && npm run build
+      - name: Signing snippets run and agree
+        run: node site/.github/site-checks/snippets.mjs crabcrop

@@ -58,7 +58,8 @@ h3{font-size:19px;font-weight:800;letter-spacing:-.01em;margin-bottom:8px}
 .tidemark .claw{width:14px;height:14px;flex:0 0 auto}
 .tidemark.on-dark{color:var(--sea-glass)}
 .claw{display:inline-block;vertical-align:middle}
-.claw path{stroke:var(--coral);fill:none;stroke-width:2.2;stroke-linecap:round}
+/* The stroke sits on the <svg> and inherits into the <use> copy of #clawmark: a .claw path selector cannot reach that shadow tree, and the path then fell back to a solid black fill. */
+.claw{fill:none;stroke:var(--coral);stroke-width:2.2;stroke-linecap:round}
 .foam{position:absolute;top:-11px;left:0;right:0;height:12px;pointer-events:none;background-repeat:repeat-x;background-size:22px 12px;
   background-image:radial-gradient(circle at 10px -4px, transparent 12px, var(--fc,#FBF0D9) 13px);box-shadow:inset 0 -1px 0 var(--fc,#FBF0D9)}
 .btn{display:inline-flex;align-items:center;gap:9px;padding:13px 24px;border-radius:var(--shell);font-weight:800;font-size:15px;border:2px solid var(--ink);cursor:pointer;background:var(--coral);color:#fff;box-shadow:var(--shadow);transition:transform .15s var(--snap),background .15s}
@@ -106,14 +107,17 @@ header .foam{top:auto;bottom:-11px;--fc:rgba(251,240,217,.94)}
 .nav-links a{color:var(--ink-2)}
 .nav-links a{display:inline-flex;align-items:center;min-height:44px}
 .nav-links a:hover{color:var(--ink);text-decoration:none}
+.nav-links a[aria-current="page"]{color:var(--ink);text-decoration:underline;text-underline-offset:5px}
 @media(max-width:900px){
   .nav{flex-wrap:wrap;height:auto;padding-top:6px;row-gap:0}
   .logo{min-height:44px}
   .nav .btn{min-height:44px}
-  .nav-links{order:3;flex:1 1 100%;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:none;gap:4px;padding:0 18px 8px 0;-webkit-mask-image:linear-gradient(90deg,#000 90%,transparent);mask-image:linear-gradient(90deg,#000 90%,transparent)}
+  /* No fade mask: it hid the last link even when every link fit. Four short labels fit on one row down to 320px. */
+  .nav-links{order:3;flex:1 1 100%;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:none;gap:2px;padding:0 0 8px}
   .nav-links::-webkit-scrollbar{display:none}
-  .nav-links a{display:inline-flex;align-items:center;min-height:44px;padding:0 10px;white-space:nowrap;border-radius:999px}
+  .nav-links a{display:inline-flex;align-items:center;min-height:44px;padding:0 8px;white-space:nowrap;border-radius:999px}
 }
+@media(max-width:360px){.nav-links a{padding:0 5px;font-size:13px}}
 .nav .btn{padding:10px 18px}
 /* Hero */
 .hero{padding:56px 0 64px}
@@ -290,7 +294,7 @@ fieldset[disabled] .ctl,fieldset[disabled] .frow{opacity:.45}
 .toy-win:focus-visible{outline:3px solid var(--sun);outline-offset:2px}
 .clawh{position:absolute;width:44px;height:44px;display:grid;place-items:center;cursor:nwse-resize;touch-action:none}
 .clawh .claw{width:21px;height:21px}
-.clawh path{stroke:#fff;stroke-width:2.6}
+.clawh .claw{stroke:#fff;stroke-width:2.6}
 .clawh.tl{top:-22px;left:-22px}.clawh.tr{top:-22px;right:-22px;cursor:nesw-resize}
 .clawh.bl{bottom:-22px;left:-22px;cursor:nesw-resize}.clawh.br{bottom:-22px;right:-22px}
 .readout{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13.5px;margin-top:14px;color:var(--ink-2)}
@@ -352,7 +356,7 @@ fieldset[disabled] .ctl,fieldset[disabled] .frow{opacity:.45}
 .fmt-yes{display:inline-flex;align-items:center;gap:8px;font-weight:800;font-size:14.5px;color:var(--tide-deep)}
 .fmt-no{display:inline-flex;align-items:center;gap:8px;font-weight:800;font-size:14.5px;color:var(--ink-2)}
 .fmt-yes .claw{width:16px;height:16px;flex:0 0 auto}
-.fmt-yes .claw path{stroke:var(--tide)}
+.fmt-yes .claw{stroke:var(--tide)}
 .fmt-qual{display:block;font-size:12.5px;color:var(--ink-2);margin-top:3px;max-width:180px}
 .fmt-note{font-size:14.5px;color:var(--ink-2)}
 .fmt-note code{background:rgba(20,40,50,.06);padding:1px 5px;border-radius:5px;font-size:13px;color:var(--coral-deep)}
@@ -600,6 +604,7 @@ section{padding:56px 0}
 .hero-b .ba{box-shadow:var(--shadow-lg)}
 .strip-scroll{display:flex;gap:18px;overflow-x:auto;padding:8px 4px 20px;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch}
 .strip-card{scroll-snap-align:start;flex:0 0 300px;background:var(--foam);border:2px solid var(--ink);border-radius:var(--shell);box-shadow:var(--shadow);overflow:hidden}
+.strip-card picture{display:block}
 .strip-card img{width:100%;height:170px;object-fit:cover;display:block}
 .strip-card .sc-body{padding:16px 18px 18px}
 .strip-card p{font-size:16px;color:var(--ink-2)}
@@ -650,7 +655,7 @@ a.strip-card:focus-visible{outline:3px solid var(--sun);outline-offset:2px}
     <a class="logo" href="#top" style="font-family:'Fraunces',Georgia,'Times New Roman',serif;font-size:24px;letter-spacing:-0.01em;gap:10px"><svg width="30" height="30" viewBox="0 0 32 32" aria-hidden="true" style="flex:none"><circle cx="16" cy="18" r="11" fill="#E8482F"/><circle cx="11" cy="13" r="4.5" fill="#FBF2DF"/><circle cx="24" cy="6" r="3.4" fill="#E8482F"/><circle cx="8" cy="6" r="3" fill="#E8482F"/></svg> crabcrop</a>
     <nav class="nav-links" aria-label="Sections">
       <a href="#install">Install</a><a href="#features">Features</a>
-      <a href="docs.html">Documentation</a><a href="https://play.crabcrop.org">Playground</a>
+      <a href="docs.html">Docs</a><a href="https://play.crabcrop.org">Playground</a>
     </nav>
     <div class="nav-icons"><a href="https://github.com/dayvson/crabcrop" target="_blank" rel="noopener" aria-label="crabcrop on GitHub"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg></a><a href="https://crates.io/crates/crabcrop" target="_blank" rel="noopener" aria-label="crabcrop on crates.io"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path opacity=".45" d="M12 2.5 21.5 7 12 11.5 2.5 7Z"/><path opacity=".7" d="M2.5 7 12 11.5v10L2.5 17Z"/><path d="M21.5 7 12 11.5v10L21.5 17Z"/></svg></a></div>
   </div>
@@ -694,9 +699,9 @@ a.strip-card:focus-visible{outline:3px solid var(--sun);outline-offset:2px}
     <div class="tidemark"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg> Major features</div>
     <h2>Everything an image pipeline does, <span class="coral">in one signed URL.</span></h2>
     <div class="strip-scroll">
-      <a class="strip-card" href="docs.html#format" id="formats" style="scroll-margin-top:96px"><img src="https://images.crabcrop.org/b6c61efe3275a8f72718286173ae5ab8379c33d3bb70e469befde6dc252cd177/preset:site-anim/root:site/crabcrop-mascot-magician.webp" data-thumbhash="KmkOHwj4pohoaZWLeJdpyXd4mkIJKZUA" alt="Snap the crab as a stage magician" loading="lazy" width="400" height="400"><div class="sc-body"><h3>All major formats, in and out</h3><p>JPEG, PNG, WebP, GIF, AVIF, and JPEG XL, in and out. HEIC and HEIF decode only; SVG decodes, sanitized and rasterized. Name no format and the <code>Accept</code> header decides: AVIF first, then JPEG XL, then WebP. An explicit <code>format(...)</code> always wins.</p><span class="opname">format(avif) · format(jxl) · format(webp) · frame:50% · page:2</span></div></a>
-      <a class="strip-card" href="docs.html#sources"><img src="https://images.crabcrop.org/fb437bd6bd6cc199869ed6536a19823473d934846e093d62d334a36f5dc34e48/preset:site-anim/root:site/crabcrop-mascot.webp" data-thumbhash="LWkKFwj413dbd4aNdodqyZh3m1AKGZYA" alt="Snap waving while holding a photo print" loading="lazy" width="400" height="400"><div class="sc-body"><h3>More than photos</h3><p>The source can be one frame of a video, one page of a PDF, an object in S3 or GCS, a local file, or a short <code>root:</code> reference the server expands against its own origins. Originals can also arrive through the signed upload endpoint, off by default.</p><span class="opname">frame:50% · page:2 · root:photos/cat.jpg · PUT /upload/&lt;name&gt;</span></div></a>
-      <a class="strip-card" href="docs.html#adjust"><img src="https://images.crabcrop.org/a0363c7d321d3c3fbb52ae16f9f559197426e15cc7dd22e96ce0c3e3afd50bcf/preset:site-anim/root:site/snap-features.webp" data-thumbhash="7VgKFwj2yZhdl4eeZUd46HeV2WIHPXcA" alt="Snap flipping photo prints on a grill" loading="lazy" width="400" height="400"><div class="sc-body"><h3>51 filters, one chain</h3><p>Resize, crop, fit-in, and pad are their own path segments. The 51 filters chain inside one <code>filters:</code> segment, everything running in the order written.</p><span class="opname">filters:sharpen(1.2):saturation(1.1)</span></div></a>
+      <a class="strip-card" href="docs.html#format" id="formats" style="scroll-margin-top:96px"><picture><source media="(prefers-reduced-motion: reduce)" srcset="crabcrop-mascot-magician-still.webp" width="400" height="400"><img src="https://images.crabcrop.org/b6c61efe3275a8f72718286173ae5ab8379c33d3bb70e469befde6dc252cd177/preset:site-anim/root:site/crabcrop-mascot-magician.webp" data-thumbhash="KmkOHwj4pohoaZWLeJdpyXd4mkIJKZUA" alt="Snap the crab as a stage magician" loading="lazy" width="400" height="400"></picture><div class="sc-body"><h3>All major formats, in and out</h3><p>JPEG, PNG, WebP, GIF, AVIF, and JPEG XL, in and out. HEIC and HEIF decode only; SVG decodes, sanitized and rasterized. Name no format and the <code>Accept</code> header decides: AVIF first, then JPEG XL, then WebP. An explicit <code>format(...)</code> always wins.</p><span class="opname">format(avif) · format(jxl) · format(webp) · frame:50% · page:2</span></div></a>
+      <a class="strip-card" href="docs.html#sources"><picture><source media="(prefers-reduced-motion: reduce)" srcset="crabcrop-mascot-still.webp" width="400" height="400"><img src="https://images.crabcrop.org/fb437bd6bd6cc199869ed6536a19823473d934846e093d62d334a36f5dc34e48/preset:site-anim/root:site/crabcrop-mascot.webp" data-thumbhash="LWkKFwj413dbd4aNdodqyZh3m1AKGZYA" alt="Snap waving while holding a photo print" loading="lazy" width="400" height="400"></picture><div class="sc-body"><h3>More than photos</h3><p>The source can be one frame of a video, one page of a PDF, an object in S3 or GCS, a local file, or a short <code>root:</code> reference the server expands against its own origins. Originals can also arrive through the signed upload endpoint, off by default.</p><span class="opname">frame:50% · page:2 · root:photos/cat.jpg · PUT /upload/&lt;name&gt;</span></div></a>
+      <a class="strip-card" href="docs.html#adjust"><picture><source media="(prefers-reduced-motion: reduce)" srcset="snap-features-still.webp" width="400" height="400"><img src="https://images.crabcrop.org/a0363c7d321d3c3fbb52ae16f9f559197426e15cc7dd22e96ce0c3e3afd50bcf/preset:site-anim/root:site/snap-features.webp" data-thumbhash="7VgKFwj2yZhdl4eeZUd46HeV2WIHPXcA" alt="Snap flipping photo prints on a grill" loading="lazy" width="400" height="400"></picture><div class="sc-body"><h3>51 filters, one chain</h3><p>Resize, crop, fit-in, and pad are their own path segments. The 51 filters chain inside one <code>filters:</code> segment, everything running in the order written.</p><span class="opname">filters:sharpen(1.2):saturation(1.1)</span></div></a>
       <a class="strip-card" href="docs.html#size"><img src="https://images.crabcrop.org/26369293ce2c09a37dcb234195fa0edcc4072c19b0355c006c8d60eba339c29d/preset:site-photo/root:site/ai-crop-smart.jpg" data-thumbhash="4FgKFwhUmal6eYiGeAZa5oRXuzYJbJQA" alt="Smart crop keeping the whole crab in frame" loading="lazy" width="760" height="760"><div class="sc-body"><h3>Smart crop, face safe</h3><p>The crop window finds the subject, and keeps detected faces whole instead of clipping them at the edge.</p><span class="opname">crop:760x760:smart</span></div></a>
       <a class="strip-card" href="docs.html#studio"><img src="https://images.crabcrop.org/d28338579a079406c54fa4107c3d4576d4e77d2da5a8abcc3344c56bcd074323/preset:site-photo/root:site/studio-brand.webp" data-thumbhash="V5cFLZQEnXOYWJagTJdlZwiHg3A4" alt="Snap composited onto a tide green brand backdrop" loading="lazy" width="1000" height="667"><div class="sc-body"><h3>Studio mode</h3><p>The listing shot in one filter: cut out, backdrop, contact shadow, margin. Backdrops resolve on the server, brand color included. Or keep the photo: <code>studio(scene)</code> reframes on the subject and corrects the light and color.</p><span class="opname">filters:studio(product,bg:brand) · filters:studio(scene)</span></div></a>
       <a class="strip-card" href="docs.html#ai"><img src="https://images.crabcrop.org/02a88eff67e58390de62e61a0630ef0aed28eea51e050e2b2354d86da46093a8/preset:site-photo/root:site/ai-skate-removebg.webp" data-thumbhash="nKmCA4AkFPiqiYPqzLDfOx9xdolAmlc=" alt="Snap with the background removed, over transparency" loading="lazy" width="1000" height="667"><div class="sc-body"><h3>Background removal</h3><p>Your ONNX model, in process. The subject stays, the background becomes real alpha.</p><span class="opname">filters:removebg:format(webp)</span></div></a>
@@ -704,13 +709,13 @@ a.strip-card:focus-visible{outline:3px solid var(--sun);outline-offset:2px}
       <a class="strip-card" href="docs.html#ai"><img src="https://images.crabcrop.org/d8bf8371386c7863ff0324948746d31ced41c1723fa73fe38728b9ae44582b65/preset:site-photo/root:site/scene-bbq.jpg" data-thumbhash="IUkODYZpmXhvh4aKd4eIakw24FQG" alt="Snap beside a grill on the beach at sunset" loading="lazy" width="1200" height="800"><div class="sc-body"><h3>Object removal</h3><p>Name a rectangle and a LaMa family inpainting model fills it in from the surrounding pixels. Everything outside the rectangle comes back bit-identical.</p><span class="opname">filters:remove_region(40,120,300,200)</span></div></a>
       <a class="strip-card" href="docs.html#ai"><img src="https://images.crabcrop.org/4385e3e78cd4ab80d6877d2136df815e22806187975d83315f31af86c0abce14/preset:site-photo/root:site/ai-friend-before.jpg" data-thumbhash="oSgKDYaRmJVgZnmliFaHdl1i4EUH" alt="Snap at the edge of a skate bowl with a skater riding in the background" loading="lazy" width="1100" height="733"><div class="sc-body"><h3>Face detection</h3><p>A YuNet model finds the faces in the frame. Smart crops center on them and keep them whole, <code>:face</code> crops to the largest face, and <code>blurfaces</code> or <code>pixelatefaces</code> redact every face found.</p><span class="opname">crop:760x760:face · filters:blurfaces</span></div></a>
       <a class="strip-card" href="docs.html#ai"><img src="https://images.crabcrop.org/cbc36c21927ce18f7df135235c45a8b101dcab74d1aa5a5f06f6760fe44a1f51/preset:site-photo/root:site/ai-friend-redact.jpg" data-thumbhash="oSgKDYaRmJVgZnmliFeHdl1i4EUH" alt="A background skater blurred by class redaction" loading="lazy" width="1100" height="733"><div class="sc-body"><h3>Redaction</h3><p>Blur or pixelate faces, or every detected object of a class. Redaction never guesses: a detection failure fails the request. With a segmentation model, class redaction follows the object's silhouette instead of its box, and <code>recolorclass</code> paints it a solid color.</p><span class="opname">filters:blurclass(person) · filters:recolorclass(car,ff0000)</span></div></a>
-      <a class="strip-card" href="docs.html#meta"><img src="https://images.crabcrop.org/c5195cb939ac7a139e1a0e3cd7d7f4e5a9dca033ae25766cd09136f998f6b36e/preset:site-anim/root:site/snap-ai.webp" data-thumbhash="q1gKDwTo1pZbd4aPh3ZpuIiICmFNFMYA" alt="Snap scanning a photo with a magnifying glass" loading="lazy" width="400" height="400"><div class="sc-body"><h3>Metadata that describes the picture</h3><p>JSON meta for every render: dimensions, format, byte size, provenance. Richer answers are opt-ins with their own model sets: CLIP tags and alt text, detections, moderation verdicts, embeddings, an aesthetic score, OCR text.</p><span class="opname">Accept: application/json; detections=1</span></div></a>
+      <a class="strip-card" href="docs.html#meta"><picture><source media="(prefers-reduced-motion: reduce)" srcset="snap-ai-still.webp" width="400" height="400"><img src="https://images.crabcrop.org/c5195cb939ac7a139e1a0e3cd7d7f4e5a9dca033ae25766cd09136f998f6b36e/preset:site-anim/root:site/snap-ai.webp" data-thumbhash="q1gKDwTo1pZbd4aPh3ZpuIiICmFNFMYA" alt="Snap scanning a photo with a magnifying glass" loading="lazy" width="400" height="400"></picture><div class="sc-body"><h3>Metadata that describes the picture</h3><p>JSON meta for every render: dimensions, format, byte size, provenance. Richer answers are opt-ins with their own model sets: CLIP tags and alt text, detections, moderation verdicts, embeddings, an aesthetic score, OCR text.</p><span class="opname">Accept: application/json; detections=1</span></div></a>
       <a class="strip-card" href="docs.html#meta"><img src="https://images.crabcrop.org/d6ef00b818934ffc2b2469f37890ff27d65781e92a4bb23c1089730212bcaefe/preset:site-photo/root:site/scene-surf.jpg" data-thumbhash="4gcGJYrCGESod4pyZPaGjAaFc3A4" alt="A surfer scene at the beach" loading="lazy" width="1200" height="800"><div class="sc-body"><h3>Reads the text in the picture</h3><p>Opt a meta request in and the answer reads the picture: the text lines in reading order, each with its box and a confidence score, from a PP-OCR model pair you supply. The annotation never touches the image bytes.</p><span class="opname">Accept: application/json; ocr=1</span></div></a>
       <a class="strip-card" href="docs.html#provenance"><img src="https://images.crabcrop.org/7a31b3720248619d7de81676fd2e0535cc67d8f3c9b24d7649be9c6cc24f14de/preset:site-photo/root:site/scene-camera.jpg" data-thumbhash="pDgOFYamiFiPd4h7d7d3eQiCoUAY" alt="Snap on the beach beside a film camera on a tripod" loading="lazy" width="1200" height="800"><div class="sc-body"><h3>Provenance, checked and signed</h3><p>Meta reports the C2PA Content Credentials a source carries: manifest present, whether it validates, who signed it. With your own certificate, still JPEG, PNG, WebP, and AVIF outputs are signed as served, the source recorded as an ingredient, so the chain survives the transform.</p><span class="opname">CRABCROP_C2PA_CERT · CRABCROP_C2PA_KEY</span></div></a>
       <a class="strip-card" href="docs.html#sealed"><img src="https://images.crabcrop.org/d206865beef4b3d2a66b9f87de423fe50327cf6f96e611573820dabf3b9aba04/preset:site-photo/root:site/snap-sealed.webp" data-thumbhash="L1kKFwb6uIVseXV6h4dHmneHakAoBnUB" alt="Snap holding a photo tucked inside an envelope closed with a wax seal" loading="lazy" width="400" height="400"><div class="sc-body"><h3>Sealed URLs</h3><p>For links that stay public but unreadable: the whole recipe, operations and source, encrypted into one opaque token in the signature slot. Only the server opens it, and it serves the same render as the readable spelling.</p><span class="opname">s1.&lt;token&gt;/photo.jpg</span></div></a>
-      <a class="strip-card" href="docs.html#presets"><img src="https://images.crabcrop.org/05aadcb06552bdda28ebeef1612b54acb05047154fdcd9f2cfa2e7553fb75d6b/preset:site-anim/root:site/snap-sign.webp" data-thumbhash="7FgOHwjop3h/h3Z4hZhod4h5hQFYCHMC" alt="Snap stamping a wax seal onto a scroll" loading="lazy" width="400" height="400"><div class="sc-body"><h3>Presets and purge</h3><p>Server-side preset names keep templates short. Purge one result, or a whole preset group, with signatures from their own subkey.</p><span class="opname">preset:og-card · POST /purge-group</span></div></a>
-      <a class="strip-card" href="docs.html#explain"><img src="https://images.crabcrop.org/4d806b18e025233c4b8ade389a134a62ae755c8ba3f75b718a8ec4845f25bbb3/preset:site-anim/root:site/snap-anatomy.webp" data-thumbhash="7VgKJwr1qHmLeHd9hYZ6t4pmelA5CJcB" alt="Snap clicking colored blocks into a row at a workbench" loading="lazy" width="400" height="400"><div class="sc-body"><h3>URLs that explain themselves</h3><p>Put <code>explain/</code> in front of any signed URL and the server reports on it instead of serving the image.</p><span class="opname">GET /explain/&lt;signature&gt;/...</span></div></a>
-      <a class="strip-card" href="docs.html#sdks"><img src="https://images.crabcrop.org/5c79651d4c39d9f0c7caa40a1ce282a6ca5e9c479be6da40b604d95fa3b787de/preset:site-anim/root:site/snap-toy.webp" data-thumbhash="bxgKFwj7s5iLeYaMh3Zm2VeDafQVR18E" alt="Snap peeking over a picture, half sketch and half finished color" loading="lazy" width="400" height="400"><div class="sc-body"><h3>SDKs and loaders</h3><p>Build and sign URLs from code: TypeScript and Python SDKs, the <code>crabcrop-url</code> Rust crate, an MCP server that lets coding agents sign, explain, and inspect URLs, and loaders for Next.js, Nuxt, and Hydrogen.</p><span class="opname">@crabcrop/url · crabcrop_url · crabcrop-url · @crabcrop/mcp</span></div></a>
+      <a class="strip-card" href="docs.html#presets"><picture><source media="(prefers-reduced-motion: reduce)" srcset="snap-sign-still.webp" width="400" height="400"><img src="https://images.crabcrop.org/05aadcb06552bdda28ebeef1612b54acb05047154fdcd9f2cfa2e7553fb75d6b/preset:site-anim/root:site/snap-sign.webp" data-thumbhash="7FgOHwjop3h/h3Z4hZhod4h5hQFYCHMC" alt="Snap stamping a wax seal onto a scroll" loading="lazy" width="400" height="400"></picture><div class="sc-body"><h3>Presets and purge</h3><p>Server-side preset names keep templates short. Purge one result, or a whole preset group, with signatures from their own subkey.</p><span class="opname">preset:og-card · POST /purge-group</span></div></a>
+      <a class="strip-card" href="docs.html#explain"><picture><source media="(prefers-reduced-motion: reduce)" srcset="snap-anatomy-still.webp" width="400" height="400"><img src="https://images.crabcrop.org/4d806b18e025233c4b8ade389a134a62ae755c8ba3f75b718a8ec4845f25bbb3/preset:site-anim/root:site/snap-anatomy.webp" data-thumbhash="7VgKJwr1qHmLeHd9hYZ6t4pmelA5CJcB" alt="Snap clicking colored blocks into a row at a workbench" loading="lazy" width="400" height="400"></picture><div class="sc-body"><h3>URLs that explain themselves</h3><p>Put <code>explain/</code> in front of any signed URL and the server reports on it instead of serving the image.</p><span class="opname">GET /explain/&lt;signature&gt;/...</span></div></a>
+      <a class="strip-card" href="docs.html#sdks"><picture><source media="(prefers-reduced-motion: reduce)" srcset="snap-toy-still.webp" width="400" height="400"><img src="https://images.crabcrop.org/5c79651d4c39d9f0c7caa40a1ce282a6ca5e9c479be6da40b604d95fa3b787de/preset:site-anim/root:site/snap-toy.webp" data-thumbhash="bxgKFwj7s5iLeYaMh3Zm2VeDafQVR18E" alt="Snap peeking over a picture, half sketch and half finished color" loading="lazy" width="400" height="400"></picture><div class="sc-body"><h3>SDKs and loaders</h3><p>Build and sign URLs from code: TypeScript and Python SDKs, the <code>crabcrop-url</code> Rust crate, an MCP server that lets coding agents sign, explain, and inspect URLs, and loaders for Next.js, Nuxt, Hydrogen, Astro, and SvelteKit.</p><span class="opname">@crabcrop/url · crabcrop_url · crabcrop-url · @crabcrop/mcp</span></div></a>
     </div>
   </div>
 </section>
@@ -725,26 +730,27 @@ a.strip-card:focus-visible{outline:3px solid var(--sun);outline-offset:2px}
 
   <div class="wrap" style="margin-top:28px">
     <div class="tabs" role="tablist" aria-label="Signing examples by language">
-      <button class="tab active" data-pane="curl" type="button" role="tab" aria-selected="true">curl</button>
-      <button class="tab" data-pane="ts" type="button" role="tab" aria-selected="false">TypeScript</button>
-      <button class="tab" data-pane="py" type="button" role="tab" aria-selected="false">Python</button>
-      <button class="tab" data-pane="rs" type="button" role="tab" aria-selected="false">Rust</button>
+      <button class="tab active" data-pane="curl" type="button" role="tab" id="sign-tab-curl" aria-controls="sign-pane-curl" aria-selected="true" tabindex="0">curl</button>
+      <button class="tab" data-pane="ts" type="button" role="tab" id="sign-tab-ts" aria-controls="sign-pane-ts" aria-selected="false" tabindex="-1">TypeScript</button>
+      <button class="tab" data-pane="py" type="button" role="tab" id="sign-tab-py" aria-controls="sign-pane-py" aria-selected="false" tabindex="-1">Python</button>
+      <button class="tab" data-pane="rs" type="button" role="tab" id="sign-tab-rs" aria-controls="sign-pane-rs" aria-selected="false" tabindex="-1">Rust</button>
     </div>
     <div class="code-window">
       <button class="copy-btn" type="button" data-copytarget>Copy snippet</button>
       <div class="code-scroll">
-      <div class="code-pane active" data-pane="curl" role="tabpanel"><pre>printf <span class="s">'%s'</span> <span class="s">'crop:1200x630:smart/filters:format(webp):quality(80)/https://example.com/photo.jpg'</span> \
+      <div class="code-pane active" data-pane="curl" role="tabpanel" id="sign-pane-curl" aria-labelledby="sign-tab-curl" tabindex="0"><pre>printf <span class="s">'%s'</span> <span class="s">'crop:1200x630:smart/filters:format(webp):quality(80)/https://example.com/photo.jpg'</span> \
   | openssl dgst -sha256 -hmac <span class="s">'demo-secret'</span>
 <span class="c"># SHA2-256(stdin)= ca3d1f22f4cc3860926608df02383f46dcf74af9a4e1bc26b1a00c644f55f300</span></pre></div>
-      <div class="code-pane" data-pane="ts" role="tabpanel"><pre><span class="k">import</span> { buildURL } <span class="k">from</span> <span class="s">"@crabcrop/url"</span>;
+      <div class="code-pane" data-pane="ts" role="tabpanel" id="sign-pane-ts" aria-labelledby="sign-tab-ts" tabindex="0"><pre><span class="k">import</span> { buildURL } <span class="k">from</span> <span class="s">"@crabcrop/url"</span>;
 
-<span class="k">const</span> url = buildURL({
-  base: <span class="s">"https://img.example.com"</span>,
-  secret: <span class="s">"demo-secret"</span>,
-  operations: <span class="s">"crop:1200x630:smart/filters:format(webp):quality(80)"</span>,
-  source: <span class="s">"https://example.com/photo.jpg"</span>,
-});</pre></div>
-      <div class="code-pane" data-pane="py" role="tabpanel"><pre><span class="k">from</span> crabcrop_url <span class="k">import</span> build_url
+<span class="c">// buildURL(base, secret, operations, source, options?)</span>
+<span class="k">const</span> url = buildURL(
+  <span class="s">"https://img.example.com"</span>,
+  <span class="s">"demo-secret"</span>,
+  <span class="s">"crop:1200x630:smart/filters:format(webp):quality(80)"</span>,
+  <span class="s">"https://example.com/photo.jpg"</span>,
+);</pre></div>
+      <div class="code-pane" data-pane="py" role="tabpanel" id="sign-pane-py" aria-labelledby="sign-tab-py" tabindex="0"><pre><span class="k">from</span> crabcrop_url <span class="k">import</span> build_url
 
 url = build_url(
     base=<span class="s">"https://img.example.com"</span>,
@@ -752,12 +758,19 @@ url = build_url(
     operations=<span class="s">"crop:1200x630:smart/filters:format(webp):quality(80)"</span>,
     source=<span class="s">"https://example.com/photo.jpg"</span>,
 )</pre></div>
-      <div class="code-pane" data-pane="rs" role="tabpanel"><pre><span class="k">use</span> crabcrop_url::{build_url, sign};
+      <div class="code-pane" data-pane="rs" role="tabpanel" id="sign-pane-rs" aria-labelledby="sign-tab-rs" tabindex="0"><pre><span class="k">use</span> crabcrop_url::{build_url, sign};
 
+<span class="k">let</span> secret: &amp;[u8] = <span class="s">b"demo-secret"</span>;
 <span class="k">let</span> signature = sign(secret, <span class="s">"crop:1200x630:smart/filters:format(webp):quality(80)/https://example.com/photo.jpg"</span>);
-<span class="k">let</span> url = build_url(base, secret,
+
+<span class="c">// build_url(base, secret, operations, source, expires)</span>
+<span class="k">let</span> url = build_url(
+    <span class="s">"https://img.example.com"</span>,
+    Some(secret),
     <span class="s">"crop:1200x630:smart/filters:format(webp):quality(80)"</span>,
-    <span class="s">"https://example.com/photo.jpg"</span>)?;</pre></div>
+    <span class="s">"https://example.com/photo.jpg"</span>,
+    None,
+)?;</pre></div>
       </div>
     </div>
     <p class="honest" style="margin-top:14px">Each snippet signs the same example with the sample secret <code>demo-secret</code>. Swap in your base, your secret, and your operations.</p>
@@ -806,26 +819,42 @@ url = build_url(
 const $ = s => document.querySelector(s);
 const $$ = s => Array.from(document.querySelectorAll(s));
 
-$$("[data-copy]").forEach(b=>b.addEventListener("click", ()=>{
-  navigator.clipboard && navigator.clipboard.writeText(b.dataset.copy);
-  const t = b.textContent; b.textContent = "Copied"; b.classList.add("ok");
-  setTimeout(()=>{ b.textContent = t; b.classList.remove("ok"); }, 1400);
-}));
+/* copy buttons: say "Copied" only when the clipboard took the text */
+function copyText(btn, text){
+  const label = btn.dataset.label || (btn.dataset.label = btn.textContent);
+  const show = ok=>{
+    btn.textContent = ok ? "Copied" : "Copy failed";
+    btn.classList.toggle("ok", ok);
+    clearTimeout(btn.copyTimer);
+    btn.copyTimer = setTimeout(()=>{ btn.textContent = label; btn.classList.remove("ok"); }, 1400);
+  };
+  if(!text || !navigator.clipboard || !navigator.clipboard.writeText){ show(false); return; }
+  navigator.clipboard.writeText(text).then(()=>show(true), ()=>show(false));
+}
+$$("[data-copy]").forEach(b=>b.addEventListener("click", ()=>copyText(b, b.dataset.copy)));
+/* a tabbed code window copies its active pane; a plain code block copies its own pre */
 $$("[data-copytarget]").forEach(b=>b.addEventListener("click", ()=>{
-  const win = b.closest(".code-window");
-  const pre = win && (win.querySelector(".code-pane.active pre") || win.querySelector("pre"));
-  if(pre) navigator.clipboard && navigator.clipboard.writeText(pre.innerText);
-  const t = b.textContent; b.textContent = "Copied"; b.classList.add("ok");
-  setTimeout(()=>{ b.textContent = t; b.classList.remove("ok"); }, 1400);
+  const win = b.closest(".code-window"), block = b.closest(".cb");
+  const pre = win ? win.querySelector(".code-pane.active pre") : block && block.querySelector("pre");
+  copyText(b, pre && pre.innerText);
 }));
 
-/* signing tabs */
+/* signing tabs: WAI-ARIA tabs, arrow keys and Home/End move a roving tabindex */
 $$(".tabs").forEach(tabs=>{
-  tabs.addEventListener("click", e=>{
-    const tab = e.target.closest(".tab"); if(!tab) return;
-    const win = tabs.nextElementSibling;
-    tabs.querySelectorAll(".tab").forEach(t=>{ t.classList.toggle("active", t===tab); t.setAttribute("aria-selected", String(t===tab)); });
+  const list = Array.from(tabs.querySelectorAll(".tab"));
+  const win = tabs.nextElementSibling;
+  const select = (tab, focus)=>{
+    list.forEach(t=>{ const on = t===tab; t.classList.toggle("active", on); t.setAttribute("aria-selected", String(on)); t.tabIndex = on ? 0 : -1; });
     win.querySelectorAll(".code-pane").forEach(p=>p.classList.toggle("active", p.dataset.pane===tab.dataset.pane));
+    if(focus) tab.focus();
+  };
+  tabs.addEventListener("click", e=>{ const tab = e.target.closest(".tab"); if(tab) select(tab, false); });
+  tabs.addEventListener("keydown", e=>{
+    const i = list.indexOf(document.activeElement); if(i<0) return;
+    const next = {ArrowRight:i+1, ArrowLeft:i-1, Home:0, End:list.length-1}[e.key];
+    if(next===undefined) return;
+    e.preventDefault();
+    select(list[(next+list.length)%list.length], true);
   });
 });
 
