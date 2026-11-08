@@ -132,7 +132,15 @@ where it began.
 | L-Z1 alternate | Z1 | `f770d645-e55e-4edb-baff-860cedcab645` | Alternate | MiniMax H3, start frame only, 2944 × 1248. Doesn't return to its first frame: needs a crossfade to loop |
 | L-Z2 The Kelp Forest | Z2 | `fe4c79d5-e406-408b-be50-3e61b2a9f416` | Approved | Kelp sway, light shafts; noticeable slow push-in and return |
 | L-Z3-1 Reef, turtle | Z3-1 | `11af9eb6-f1ed-476f-b537-1bca09ecf58e` | Approved | Turtle paddles, fish dart; noticeable slow push-in and return |
-| L-Z3b The Clam Studio | Z3b | `fd1820ed-b217-4aff-9ea1-458e7f56cb9b` | Approved | Lamps pulse, tentacles sway; the calmest loop |
+| L-Z3-2 Reef, fish school | Z3-2 | `efc47398-c7cf-4d2f-9d1d-fae77bd00b68` | Approved | Fish hover and bob, sea whips sway |
+| L-Z3-3 Reef, cuttlefish | Z3-3 | `e1bdf3dc-92a2-40d4-8de3-f942b579d356` | Approved | Cuttlefish fins ripple, sea fan sways |
+| L-Z3-4 Reef, soda can | Z3-4 | `21293e50-80d7-4e24-bf75-e4777aaafcb8` | Approved | Coral and fish move, the can stays put |
+| L-Z3b The Clam Studio | Z3b | `fd1820ed-b217-4aff-9ea1-458e7f56cb9b` | Approved | Lamps pulse, tentacles sway |
+| L-Z4 The cabin | Z4 | `0c66fd54-c3dd-4b4c-91b6-c35c36c89b50` | Approved | Lantern flicker, dust in the light shafts; very calm |
+| L-Z6 The Vents | Z6 | `4e85ea12-5781-4e80-858e-62c5da1a2acb` | Approved | Glow breathes, worms sway; the flames didn't grow |
+| L-Z7 Back to the Surface | Z7 | `98c8a211-3702-4f82-9670-114e6744ad14` | Approved | Sunset sparkle, string lights, friends bobbing |
+| L-Z0 phone (9:16) | Z0 phone | `6258bb2b-4817-4cdb-bc97-fabc5c785d96` | Approved | The tall hero, morning |
+| L-Z7 phone (9:16) | Z7 phone | `508dee6b-b2bd-4b79-aae2-c603f6ba5c7b` | Approved | The tall finale, sunset |
 
 No loop for the twilight zone: the lantern effect reveals the still lit
 plate under the cursor, and creatures moving in a loop wouldn't line up
@@ -156,6 +164,8 @@ Everything approved lives in the project **crabcrop · All the Way Down**
 | 03 Zone plates | `15a35d9b-1714-4923-8467-6c506b7c7eb5` | Every approved desktop plate |
 | 04 Phone plates | `d051214c-2bcc-4406-97ce-c16d8fc411e3` | Native 9:16 hero and finale |
 | 05 Cutouts and sprites | `1c6b9ce1-22f1-4f2f-88cc-fcefa117c05a` | Cutout sources, cutouts, fish sheet |
+| 06 Loops | `46dfb83e-dcb6-4825-9a72-7640ff4a2f13` | Ambient loops, desktop and phone |
+| 07 Transitions | `f1602e59-ea3e-4b28-b048-449f596d34a4` | The four camera moves between zones |
 | 99 Rejected | `2c5eef11-ab80-4def-a266-d1cbf1d0b640` | Kept for the record |
 
 Pass the folder ID as `folder_id` on new generations so they land in the
@@ -167,12 +177,15 @@ right place.
 | --- | --- |
 | A and B: Snap and the world look | 47 |
 | C: plates, phone plates, cutouts, sprites | 103 |
-| **Total** | **150** (balance 3,460) |
+| D and E: 13 loops, 5 transition takes, 1 test | 484 |
+| **Total** | **634** (balance 2,976) |
 
 ## Next
 
-Phase D (ambient loops) and E (signature transitions). Then F (Snap
-clips) and G (icons).
+Phase F (Snap clips on grey, then background removal) and G (icons).
+Build-time steps for the clips made so far: strip the audio tracks,
+encode the transitions as image sequences for scrubbing, and grade each
+loop to its zone palette.
 
 ## What we learned
 
@@ -205,3 +218,17 @@ clips) and G (icons).
   on a 16:9 4K sheet of eight fish.
 - Background removals count toward the jobs in flight; a removal started
   next to five generations was refused.
+- MiniMax H3 failed with the same image as start and end frame (no error
+  given). With a start frame only it works, but the clip doesn't return to
+  its first frame. Kling 4.0 handles start = end and loops cleanly, at 26
+  credits per 8 s.
+- Kling 4.0 adds a slow push-in and return to loops even when told to
+  lock the camera, and every clip carries an audio track.
+- A transition can take the shortest path through the scenery: the first
+  "drop" went down through the sea floor. Describe a physical route (over
+  a cliff edge, into a trench) and say "never through the sea floor".
+- Video takes 6 to 10 minutes per clip; 6 in flight works for video too.
+- Check loops by measuring, not by eye: sample the clip at 6 fps, take
+  the mean absolute pixel difference between neighboring frames, then
+  between the last frame and the first. A seam about the size of one
+  normal step is invisible.
