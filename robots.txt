@@ -1,0 +1,13 @@
+# crabcrop.org is two pages, / (index.html) and /docs.html, plus the
+# files they load. Crawlers may read all of it.
+#
+# The old /preview/ design experiments were deleted. They are not listed
+# under Disallow on purpose: a deleted page answers 404, and the 404 is
+# what drops it from search indexes. A Disallow would hide that 404 from
+# crawlers and keep stale entries listed.
+#
+# Do not disallow the images either: link-preview bots such as Twitterbot
+# read robots.txt before they fetch the og:image.
+
+User-agent: *
+Allow: /

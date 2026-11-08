@@ -5,7 +5,10 @@ name: Site checks
 #     TypeScript and Python SDKs and the crabcrop-url crate, and every
 #     pane on a page mints the same URL as its curl pane;
 #   - the configuration tables on docs.html list every variable in
-#     docs/configuration.md, with the same defaults.
+#     docs/configuration.md, with the same defaults;
+#   - every tracked image is used by index.html or docs.html, and every
+#     local file the pages use is tracked (this one needs no crabcrop
+#     checkout, so it runs first).
 # The checks run against the latest crabcrop release, the version the
 # site's install pulls name, not main: main documents variables and
 # behavior that no published image has yet. The weekly run catches a
@@ -36,6 +39,11 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           path: site
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+      - name: Every image is used and every referenced file exists
+        run: node site/.github/site-checks/assets.mjs site
       - name: Pick the crabcrop ref
         id: crabcrop
         env:
@@ -51,9 +59,6 @@ jobs:
           repository: dayvson/crabcrop
           ref: ${{ steps.crabcrop.outputs.ref }}
           path: crabcrop
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: 22
       - name: Configuration tables match docs/configuration.md
         run: node site/.github/site-checks/config-table.mjs crabcrop
       - name: Build the TypeScript SDK
