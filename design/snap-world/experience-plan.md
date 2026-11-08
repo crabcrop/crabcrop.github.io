@@ -326,7 +326,9 @@ Video can't look at the cursor. The plan uses both:
    1080p loops and transitions, Snap clips on plain backgrounds.
 2. Clean up: background removal on Snap clips, deflicker, upscale where
    needed, color-match each zone to its palette with a LUT, fix loop seams
-   with a short crossfade.
+   with a short crossfade. Higgsfield's video remover returns Snap on
+   black with no alpha channel; `tools/snap-matte.py` turns it and the
+   grey original into the stacked-alpha MP4 below.
 3. Depth maps: Depth Anything V2 Small, run offline, saved as 8-bit WebP.
 4. Encode:
    - Plates through crabcrop itself, with presets, in AVIF and WebP at

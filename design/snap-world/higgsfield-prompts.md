@@ -1,9 +1,9 @@
 # All the Way Down: Higgsfield prompt pack
 
 Every image and clip the dive needs, in the order to make them, with the
-model, settings, references and prompt for each. Nothing has been generated
-yet. Read `snap-character-bible.md` (for Snap) and `art-direction.md` (for
-the world) first.
+model, settings, references and prompt for each. What has been made, with
+job IDs, is in `production-log.md`. Read `snap-character-bible.md` (for
+Snap) and `art-direction.md` (for the world) first.
 
 ## 0. How to run it
 
@@ -31,15 +31,19 @@ They can change; re-check with a cost preflight before a big batch.
 | Transitions (start + end frame) | Kling 4.0 | 21:9, 1080p, 8 s | 26 |
 | Transitions, premium | Seedance 2.0 | 21:9, 1080p, 8 s, no audio | 96 |
 | Transitions, premium alternative | Cinema Studio Video 3.0 | 21:9, 1080p, 8 s | 104 |
-| Snap clips | Kling 3.0 | pro, 5 s, no sound, start image required | 8.75 |
+| Snap clips, one-shot | Kling 3.0 | pro, 5 s, no sound, start image required | 8.75 |
+| Snap clips, loops (start = end frame) | Kling 4.0 | image-to-video, 16:9, 1080p, 5 s | 16.25 |
 | Snap clips, square or 16:9 alternative | Kling 3.0 Omni (frames) | pro, 8 s | 10 |
+| Video background removal | | per clip | 1 |
 
 Which models accept the Snap Element (`<<<id>>>` in the prompt): images on
 GPT Image 2.6, Nano Banana Pro, Nano Banana 2, GPT Image 2, Seedream 4.5 and
 5.0 lite, Cinema Studio Image 2.5; video on Seedance 2.0, Cinema Studio
 Video 2 and 3.0, and Kling 3.0 (only with a start image). Kling 4.0 takes
-up to seven reference IDs through `kling_element_ids`. For every other
-model, pass the reference images as `image_references` instead.
+up to seven reference IDs through `kling_element_ids`, but not in
+image-to-video mode, where the start and end frames carry the look. For
+every other model, pass the reference images as `image_references`
+instead.
 
 ### Budget
 
@@ -580,33 +584,94 @@ code version feels thin.
 
 ## 7. Phase F: Snap clips
 
-Kling 3.0 · pro · 5 s · sound off · 16:9 or 1:1 · start image = an
-approved Snap still on the same background · Element `snap` in the prompt.
 Background: plain mid-grey seamless (`#8C959C`) for clean background
 removal and no colored spill on the coral yarn. Snap is graded to each
 zone's light in code.
 
+**Start stills first.** Nano Banana Pro · 16:9 · 2K · `<<<snap>>>` (plus
+`<<<snap-print>>>` where the print shows) · C01 as an image reference. One
+still per starting pose; clips that start from the same still can cut into
+each other on that frame.
+
+| Still | Pose | Clips |
+| --- | --- | --- |
+| S-A | Default pose: waving, holding the print | M01, M02 |
+| S-B | Neutral, claws low, wide framing | M03, M04, M05, M08, M09 |
+| S-C | Neutral, the print lying on the floor beside him | M06 |
+| S-D | Holding a small vintage rangefinder camera at chest height | M07 |
+
+```
+<<<snap>>> <pose>.
+Plain mid-grey seamless studio background: a flat, even #8C959C grey on
+both floor and wall with no horizon line, no texture, no props. Soft,
+even, neutral daylight from the upper left, no colored light, a soft
+contact shadow under his feet. Locked-off camera at his eye level. He
+stands in the center of the frame. Both eyestalks clearly visible; the
+eyes never sit on the body.
+{SNAP_DNA}
+{SNAP_AVOID}
+```
+
+Asked for "45 percent of the frame height", the model fills about three
+quarters of it. S-B has to leave room to hop, so its prompt starts with
+"Wide shot with a lot of empty space." and gives the proportions: his
+full body about half the frame height, a quarter of the frame empty
+above him.
+
+**Clips.** Two models, because neither does everything:
+
+- One-shot clips (M02, M03, M06, M07): Kling 3.0 · pro · 5 s (M06: 6 s)
+  · sound off · 16:9 · start image = the still · `<<<snap>>>` in the
+  prompt.
+- Loops (M01, M04, M05, M08, M09): Kling 4.0 · image-to-video · 1080p ·
+  5 s (M04: 4 s) · 16:9 · start and end image = the same still. Kling 3.0
+  fails when the start and end frame are the same image, and Kling 4.0
+  refuses Elements in image-to-video mode, so the loop prompt names Snap
+  in words and the still carries his look.
+
 ```
 <<<snap>>> on a plain mid-grey seamless background. <action below>
-Locked-off camera, full body always in frame.
+Locked-off camera, no camera movement, no zoom, his full body always in frame.
 {SNAP_DNA_SHORT}
-{VIDEO_RULES}
+{SNAP_VIDEO_RULES}
 ```
 
-| ID | Action | Used in |
-| --- | --- | --- |
-| M01 | He stands holding the photo print in his right claw and waves with his left, blinks once, then settles back to the start pose. | S0 hero (loop) |
-| M02 | A gust pulls the photo print out of his right claw and it flutters out of frame to the right; his eyestalks stretch straight up and both claws fly up in surprise. | S0 story beat |
-| M03 | He looks down, gives one small determined nod, crouches and hops up and out of the top of the frame. | S0 to the chain |
-| M04 | He scuttles sideways to the right in place, six legs stepping in rhythm, body bobbing gently, eyestalks forward. | S3 reef (loop) |
-| M05 | He raises his right claw and clicks it twice quickly, like a finger snap; a tiny sparkle at the claw tip. | Before each demo |
-| M06 | He spots something below, his eyestalks stretch up, then he hugs <<<photo-print>>> to his chest and does a happy little wiggle. | S6 the source |
-| M07 | He raises a small vintage film camera to his eyes with both claws, clicks it, and a soft flash goes off. | S7 finale |
-| M08 | He hops in place and claps his claws above his head twice. | Celebrations |
-| M09 | His coral eyelids droop slowly, he sways a little, blinks awake, then droops again. | Idle (loop) |
+For loops, open with "Snap, the crocheted crab toy, on a plain mid-grey
+seamless background." and replace the camera line with "The camera is
+fixed on a tripod and never moves or zooms; only Snap moves. Seamless
+loop: the last frame matches the first frame." For M03, the camera line
+ends "the camera does not follow him".
 
-Post: Higgsfield background removal (video) → stacked-alpha MP4 for the
-site.
+`SNAP_VIDEO_RULES` is `VIDEO_RULES` for a character: weighty toy motion
+instead of slow motion, and his anatomy held in every frame. For M05 and
+M07, "No new objects appear" becomes "Apart from the sparkle (the flash),
+nothing new appears".
+
+```
+Single continuous shot, no cuts, no scene changes. Physical, weighty
+motion like a real crocheted toy brought to life. Stable exposure and
+color. Keep the handmade crochet yarn, the plain grey background and the
+exact lighting of the start frame. Both eyestalks stay visible, six legs
+and two claws at all times. No new objects appear, nothing morphs into
+something else, no text.
+```
+
+| ID | Still | Action | Used in |
+| --- | --- | --- | --- |
+| M01 | S-A | He stands holding the photo print in one claw and waves his raised claw gently side to side twice, blinks once (his coral eyelids slide down over the eyes and back up), then settles back into exactly the start pose. | S0 hero (loop) |
+| M02 | S-A | A sudden gust of wind pulls the photo print out of his claw and it flutters away and out of the frame to the right; his eyestalks stretch straight up and both claws fly up in surprise, then he holds still, staring after it. | S0 story beat |
+| M03 | S-B | He looks down, gives one small determined nod, crouches low on his six legs, then springs up and hops straight up and out of the top of the frame, leaving only the empty grey background. | S0 to the chain |
+| M04 | S-B | A walk cycle on the spot: his six stubby legs step in a quick, even sideways rhythm, as if he were scuttling to the right on a treadmill, and his round body bobs gently up and down with each step. His body stays exactly in the center of the frame and never travels left or right; only his legs, the small bob and a little sway of his eyestalks move. | S3 reef (loop) |
+| M05 | S-B | He raises one claw beside his head and clicks it shut twice, quickly, like a magician's finger snap; a tiny bright sparkle pops at the claw tip on each click. Then he lowers the claw and settles back into exactly the start pose. | Before each demo (loop) |
+| M06 | S-C | He notices the photo print lying on the floor beside him: his eyestalks turn toward it and stretch up in delight, he scoots sideways over to it, picks it up with both claws, hugs it to his chest and does a happy little wiggle. | S6 the source |
+| M07 | S-D | He lifts the small film camera up in front of his eyes with both claws, holds it still for a moment and takes a picture: a soft white flash blinks from the camera. Then he lowers the camera a little and peeks over the top of it, pleased. | S7 finale |
+| M08 | S-B | He hops in place and claps his claws together above his head twice, happy, then lands softly with a small bounce and settles back into exactly the start pose. | Celebrations (loop) |
+| M09 | S-B | He gets sleepy: his coral eyelids slowly droop halfway over his eyes, his body sways gently and his eyestalks sag a little as he dozes; then he blinks awake with a tiny start, his eyestalks perk up, and he settles back into exactly the start pose with his eyes open. | Idle (loop) |
+
+Post: Higgsfield background removal (video, 1 credit a clip). It returns
+Snap on black in an ordinary MP4 with no alpha channel, and drops his
+black eyes along with the background. `tools/snap-matte.py` combines that
+copy with the grey original into the stacked-alpha MP4 the site plays.
 
 ## 8. Phase G: sprites and icons
 
@@ -636,17 +701,26 @@ GIF (animation), outline fish = SVG (decoded and rasterized), hermit crab
 GPT Image 2.6 for drafts, Nano Banana Pro for finals · 1:1 · 4K
 
 ```
-A 3 by 3 grid of round embroidered felt patches on a white background,
-each about the same size, stitched in coral red, teal, cream and mustard
-thread, one simple icon per patch: a chain link, a fish, a film reel,
-three drops of dye, crop corner brackets, a magnifying glass, a wax seal,
-a lantern, a gear. Satin-stitch fill, a stitched border on every patch,
-soft daylight from above.
-{WORLD_AVOID}
+A 3 by 3 grid of round embroidered felt patches on a plain white
+background, flat lay shot straight down from above, each patch about the
+same size, evenly spaced with clear white gaps so no patch touches
+another. Stitched in coral red, teal, cream and mustard thread, one simple
+icon per patch: a chain link, a fish, a film reel, three drops of dye,
+crop corner brackets, a magnifying glass, a wax seal, a lantern, a gear.
+Satin-stitch fill, a stitched border on every patch, visible thread
+texture, soft daylight from above, soft shadows under the patches.
+no text, no letters, no numbers, no logos, no watermarks, no signage, no
+people, no human hands, no crabs, no plastic or CGI render look, no
+cartoon outlines, no flat illustration
 ```
 
-If the patches look busy at 48 px, draw the icons as SVG in the style of
-the site's existing claw icon instead.
+The avoid line is `WORLD_AVOID` without its plate-only clauses: "no chain
+... through the center of the frame" would fight the chain-link icon.
+
+Two runs of the same prompt came back in two styles: bold machine-made
+patches and fine hand-stitched ones. Test them at 48 px before choosing;
+the bold set read, the fine stitches faded. If neither reads, draw the
+icons as SVG in the style of the site's existing claw icon instead.
 
 ## 9. Acceptance checklist
 
@@ -675,4 +749,7 @@ For the record, the calls this pack maps to:
 4. `generate_image_batch` / `generate_video_batch` for a zone's
    variants, with a cost preflight (`get_cost: true`) before each batch.
 5. `remove_background` (media type video) for Snap clips and cutouts;
-   `outpaint_image` or `reframe` if a phone plate needs more room.
+   `outpaint_image` or `reframe` if a phone plate needs more room. The
+   video remover returns Snap on black without alpha; build the matte with
+   `tools/snap-matte.py`. It takes no folder, so attach its results with
+   `attach_project_asset`.

@@ -151,6 +151,103 @@ difference is about the size of one normal frame step, so the seam is
 invisible. Kling adds a slow push-in and return even when told to lock
 the camera; it reads as gentle breathing.
 
+## Phase F: Snap clips
+
+Start stills are Nano Banana Pro, 16:9, 2K (2752 × 1536), made with the
+`snap` Element (plus `snap-print` where the print shows) and C01 as an
+image reference, on plain mid-grey `#8C959C`. One-shot clips are Kling
+3.0 (pro, 16:9, no sound, the `snap` Element in the prompt): 8.75 credits
+per 5 s, 10.5 per 6 s. Loops are Kling 4.0 (image-to-video, 16:9, 1080p)
+with the same still as start and end frame: 16.25 credits per 5 s, 13 per
+4 s. Every clip is 1928 × 1076 at 24 fps.
+
+### Start stills (folder 08)
+
+| Still | Pose | Job | Status | Used by |
+| --- | --- | --- | --- | --- |
+| S-A | Default pose: waving, holding the print | `2ab89515-1f75-44c7-b27c-637fda6b86a2` | Approved | M01, M02 |
+| S-B | Neutral, claws low, wide framing with headroom for hops | `ea3ba6fe-e589-4fe1-a236-32ccd1d43810` | Approved | M03, M04, M05, M08, M09 |
+| S-C | Neutral, the print lying on the floor beside him | `2bc0286e-4fe7-4fee-b882-0e8c506648b9` | Approved | M06. The pads read round rather than heart-shaped; one checklist item, accepted |
+| S-D | Holding a vintage rangefinder camera at chest height | `2a685065-a212-4e85-86d0-fa0891fabf79` | Approved | M07 |
+| Alternates | S-A `b12fbd6a-59ac-41a2-90b9-2e673e49ada3`; S-B `d75e1d9e-3fda-4d63-aff0-9b4f30ab921a`, `72362af6-7423-4bab-a158-c14611e4447d`, `fde82ec3-1153-49a7-8ade-08a3a2e2ddeb` | | Alternate | The first two S-B stills fill three quarters of the frame: too little room above him to hop |
+
+The S-A wave is on the viewer's left and the print on the right, as in
+C01.
+
+### Clips (folder 08)
+
+| Clip | Model | Still | Job | Status | Notes |
+| --- | --- | --- | --- | --- | --- |
+| M01 Wave (loop) | Kling 4.0, 5 s | S-A | `323c87bb-16a1-4a9d-830f-c37fd4daa4f3` | Approved | Waves twice, blinks once. Seam 0.6 |
+| M02 The gust | Kling 3.0, 5 s | S-A | `cc22161a-2720-46ce-853a-4327e3fc3cda` | Approved | Start playback at 1.2 s: before that he flinches with a claw across his face. Then the print flies off to the right, claws up, and he settles facing the camera |
+| M03 Hop to the chain | Kling 3.0, 5 s | S-B | `6dc60dc0-a213-4bef-9a7f-f20800a0f691` | Approved | Looks down, nods, crouches at 3.8 s and springs out of the top of the frame by 5.0 s. Start playback at about 3 s |
+| M04 Scuttle (loop) | Kling 4.0, 4 s | S-B | `d2fb25ad-ee54-4ecd-9b46-753464303db0` | Approved | Steps in place; his body's center stays within 1 percent of the frame width. Seam 0.6 |
+| M04 first take | Kling 4.0, 5 s | S-B | `2dbdbb4d-3a48-462a-8427-4d7984225119` | Alternate | Paces right, then left, then back: his center moves between 39 and 60 percent of the width |
+| M05 The snap (loop) | Kling 4.0, 5 s | S-B | `8ed431ff-4299-4fb0-87e9-1857f1e6c1e1` | Approved | Claw up beside his head, three sparkling clicks, back down. Seam 0.5 |
+| M06 Finds the print | Kling 3.0, 6 s | S-C | `04e8b82f-d566-4221-826b-d38b279d4411` | Approved | Looks at the print for 2.5 s, scoots over, picks it up and holds it to his chest; no wiggle |
+| M07 The photo | Kling 3.0, 5 s | S-D | `1fdc13df-6aec-41e0-96da-7d15eb1c9a1b` | Approved | Camera up to his eyes, the flash glows from 2.7 to 3.5 s, then he peeks over it |
+| M08 Hop and clap (loop) | Kling 4.0, 5 s | S-B | `99c783d7-de5a-4a7b-81a5-a738650e00bb` | Approved | Three hops with a clap above his head, lands in the start pose. Seam 0.5 |
+| M09 Sleepy (loop) | Kling 4.0, 5 s | S-B | `2b26715f-024b-483a-9b92-b27da93333ea` | Approved | Eyelids droop, eyes close, a startled hop awake at 3.2 s, back to the start pose. For a calmer idle, play 0.5 to 2.8 s back and forth. Seam 0.5 |
+| Failed (refunded, in 99 Rejected) | Kling 3.0 | | `e814ecd0-6554-46d4-b77d-e2e6bc7474a6`, `5e2361c6-9370-4589-9bc0-630fc8325f62`, `a12ebaf3-8733-4dd6-a6fb-252b3113b16f`, `65f7c8e1-a2b1-49d5-8506-e459e6ef9b68` | Failed | The first three are M01, M04 and M05 with the same start and end frame. The last is M07's first try; the same request worked the second time |
+
+Seams measured as for the zone loops: 0.5 to 0.6 out of 255 between the
+last and first frame, against normal frame steps of 1.8 to 6.8. Kling 4.0
+added no push-in on the grey background: Snap's size stays constant. The
+Kling 4.0 clips carry an audio track to strip; the Kling 3.0 clips have
+none.
+
+### Cutouts (folder 08)
+
+Higgsfield's video background remover, 1 credit a clip. It returns an
+ordinary H.264 MP4 of Snap on black, with no alpha channel, and it drops
+his black eyes along with the background. `tools/snap-matte.py` combines
+each cutout with its grey original into a stacked-alpha MP4 for the site
+(color on top, matte below, 960 px wide, about 0.6 to 1.1 MB): it fills the
+eyes back in, repairs edges the remover cut into, and keeps the floor
+shadow out. Tested on all nine clips over the zone colors. It keeps the
+print, the camera and the flash glow; M05's sparkle is lost, so draw it in
+code at the clicks (about 1.5, 2.0, 2.5 and 3.0 s).
+
+| Clip | Cutout job |
+| --- | --- |
+| M01 | `387afd06-05ef-4c82-aad0-0f952c0dfd61` |
+| M02 | `cb45eeda-dc2c-4465-ae85-bb446927382b` |
+| M03 | `5a40470c-774a-4f91-adc7-c673e9bb5fce` |
+| M04 | `3aaed242-b7cf-479a-be7d-74a7f4afa741` |
+| M05 | `618f5ee2-5316-456e-9eb8-4813fcf79294` |
+| M06 | `1f6d1482-7323-4797-b792-eadf5c8862e4` |
+| M07 | `eb2f3d4b-3c31-43d0-916d-e1a26d0bed02` |
+| M08 | `43c539d5-a8c7-4040-802a-5bbcb6ed7a4a` |
+| M09 | `8c9f2883-28d9-4ad7-8366-99aed290a4c4` |
+
+## Phase G: card icons (folder 09)
+
+Nano Banana Pro, 1:1, 4K (4096 × 4096), no Element. The prompt is I01
+with `WORLD_AVOID` minus its plate-only clauses (the chain clause would
+fight the chain-link icon), asked as a flat lay with clear gaps between
+patches.
+
+| Asset | Job | Status | Notes |
+| --- | --- | --- | --- |
+| I01b card icons | `dffa4364-5804-4420-865b-1f8fabe2224f` | Approved | Bold machine-embroidered patches with satin borders; every icon reads at 48 px |
+| I01a | `66f09d53-bd50-4b29-80e9-0e19f8e18359` | Alternate | Hand-stitched running-stitch patches: prettier up close, but the thin stitches fade at 48 px. Use at 96 px and up |
+
+Each I01b patch cut from the sheet by crabcrop itself: the `crop-rect`
+segment below (corners in pixels of the 4096 sheet), then
+`filters:removebg:format(webp)`.
+
+| Icon | `crop-rect` | Cards |
+| --- | --- | --- |
+| Chain link | `crop-rect:220x252:1368x1428` | Signed URLs |
+| Fish | `crop-rect:1484x252:2632x1428` | Formats |
+| Film reel | `crop-rect:2740x252:3900x1428` | More than photos (video frames, PDF pages) |
+| Three drops | `crop-rect:220x1520:1368x2720` | Filters |
+| Crop brackets | `crop-rect:1484x1520:2632x2716` | Size and crop, smart crop |
+| Magnifying glass | `crop-rect:2740x1520:3904x2720` | Faces, explain |
+| Wax seal | `crop-rect:220x2772:1368x3996` | Sealed URLs, provenance |
+| Lantern | `crop-rect:1484x2760:2632x3996` | Metadata and OCR |
+| Gear | `crop-rect:2740x2760:3904x3996` | The binary, SDKs, MCP |
+
 ## Higgsfield project
 
 Everything approved lives in the project **crabcrop · All the Way Down**
@@ -166,10 +263,13 @@ Everything approved lives in the project **crabcrop · All the Way Down**
 | 05 Cutouts and sprites | `1c6b9ce1-22f1-4f2f-88cc-fcefa117c05a` | Cutout sources, cutouts, fish sheet |
 | 06 Loops | `46dfb83e-dcb6-4825-9a72-7640ff4a2f13` | Ambient loops, desktop and phone |
 | 07 Transitions | `f1602e59-ea3e-4b28-b048-449f596d34a4` | The four camera moves between zones |
+| 08 Snap clips | `e0c57cb5-0fee-400f-b9ee-81346f46851e` | Snap's start stills and clips, on grey and cut out |
+| 09 Icons | `06d37f39-279f-4705-9301-ffc111e6e7e6` | Card icon patches |
 | 99 Rejected | `2c5eef11-ab80-4def-a266-d1cbf1d0b640` | Kept for the record |
 
 Pass the folder ID as `folder_id` on new generations so they land in the
-right place.
+right place. Background removal takes no folder: attach its results with
+`attach_project_asset`.
 
 ## Credits so far
 
@@ -178,14 +278,26 @@ right place.
 | A and B: Snap and the world look | 47 |
 | C: plates, phone plates, cutouts, sprites | 103 |
 | D and E: 13 loops, 5 transition takes, 1 test | 484 |
-| **Total** | **634** (balance 2,976) |
+| F and G: 8 start stills, 10 clip takes, 9 cutouts, 2 icon sheets | 164 |
+| **Total** | **798** |
+
+Failed jobs were refunded.
 
 ## Next
 
-Phase F (Snap clips on grey, then background removal) and G (icons).
-Build-time steps for the clips made so far: strip the audio tracks,
-encode the transitions as image sequences for scrubbing, and grade each
-loop to its zone palette.
+Every asset in `higgsfield-prompts.md` is made, except the optional
+puppet parts (C04). Next is the build (phase 3 in `experience-plan.md`).
+Build-time steps for what was generated:
+
+- Zone loops and transitions: strip the audio tracks, encode the
+  transitions as image sequences for scrubbing, and grade each loop to its
+  zone palette.
+- Snap clips: run `tools/snap-matte.py` on each clip and its cutout, with
+  the trims above (M02 from 1.2 s, M03 from about 3 s), strip the audio,
+  and grade Snap to each zone's light in the shader.
+- Icons: cut the I01b patches with the `crop-rect` segments above.
+- Earlier leftovers: retouch KA01's smile to gold, and cut the F01 fish
+  with crabcrop's `removebg`.
 
 ## What we learned
 
@@ -232,3 +344,19 @@ loop to its zone palette.
   the mean absolute pixel difference between neighboring frames, then
   between the last frame and the first. A seam about the size of one
   normal step is invisible.
+- Kling 3.0 fails, with no reason given, when the start and end frame are
+  the same image. Kling 4.0 loops fine but refuses Elements in
+  image-to-video mode ("Image-to-video requires images only"), so for
+  loops the start frame carries the character. Failed jobs are refunded,
+  and an identical second try can succeed (M07 did).
+- Asked for a share of the frame ("45 percent of the frame height"), Nano
+  Banana Pro fills about three quarters of it. "Wide shot with a lot of
+  empty space" plus explicit proportions gives real headroom.
+- Asked to scuttle "in place", Kling paced right and left across the
+  frame. "A walk cycle on the spot" with "his body stays exactly in the
+  center and never travels left or right", at 4 s, held him within 1
+  percent of center.
+- Higgsfield's video background remover returns an ordinary MP4 on black,
+  not video with alpha, and drops dark parts inside the subject (Snap's
+  eyes). Rebuild the matte from the grey original with
+  `tools/snap-matte.py`.

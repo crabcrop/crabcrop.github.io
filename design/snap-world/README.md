@@ -17,11 +17,13 @@ the finished image is served live at the surface.
 | [`experience-plan.md`](experience-plan.md) | Scene-by-scene storyboard, the URL builder, the cards, how it's built, performance, accessibility, phones, phases, risks |
 | [`higgsfield-prompts.md`](higgsfield-prompts.md) | Every asset to generate, in order, with model, settings, references, prompt, prices and budget |
 | [`production-log.md`](production-log.md) | What has been generated and approved, the Higgsfield Element IDs, and lessons learned |
+| [`tools/snap-matte.py`](tools/snap-matte.py) | Turns a Snap clip and its Higgsfield cutout into the stacked-alpha MP4 the site plays |
 
-Status: Phases A to E are done in Higgsfield: Snap, the world look, every
-zone background, the ambient loops and the transitions; see
-`production-log.md`. The live
-site is unchanged.
+Status: every asset in the prompt pack is made in Higgsfield (Phases A to
+G): Snap, the world look, every zone background, the ambient loops and
+transitions, Snap's nine clips with their cutouts, and the card icons;
+see `production-log.md`. The live site is unchanged.
 
-Next step: Phase F and G in `higgsfield-prompts.md`, Snap's clips and the
-icons.
+Next step: the build, phase 3 in `experience-plan.md`. The build-time
+steps for the generated assets are listed under "Next" in
+`production-log.md`.
