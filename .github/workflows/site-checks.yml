@@ -6,8 +6,12 @@ name: Site checks
 #     pane on a page mints the same URL as its curl pane;
 #   - the configuration tables on docs.html list every variable in
 #     docs/configuration.md, with the same defaults.
-# The weekly run catches drift when the repo changes and the site does
-# not. Run it by hand against a tag with the crabcrop_ref input.
+# The checks run against the latest crabcrop release, the version the
+# site's install pulls name, not main: main documents variables and
+# behavior that no published image has yet. The weekly run catches a
+# release the site has not caught up with. Run it by hand with the
+# crabcrop_ref input (main, or any branch, tag, or commit) to see what
+# the next release will change.
 
 on:
   push:
@@ -18,8 +22,8 @@ on:
   workflow_dispatch:
     inputs:
       crabcrop_ref:
-        description: crabcrop branch, tag, or commit to check against
-        default: main
+        description: crabcrop branch, tag, or commit to check against (empty for the latest release)
+        default: ""
 
 permissions:
   contents: read
@@ -32,10 +36,20 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           path: site
+      - name: Pick the crabcrop ref
+        id: crabcrop
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REQUESTED: ${{ inputs.crabcrop_ref }}
+        run: |
+          ref="${REQUESTED:-$(gh api repos/dayvson/crabcrop/releases/latest --jq .tag_name)}"
+          test -n "$ref"
+          echo "Checking the site against dayvson/crabcrop $ref"
+          echo "ref=$ref" >> "$GITHUB_OUTPUT"
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: dayvson/crabcrop
-          ref: ${{ inputs.crabcrop_ref || 'main' }}
+          ref: ${{ steps.crabcrop.outputs.ref }}
           path: crabcrop
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:

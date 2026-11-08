@@ -38,7 +38,8 @@ function decode(html) {
     .replace(/&amp;/g, "&");
 }
 
-// The repo: rows of the first table in docs/configuration.md.
+// The repo: every table row of docs/configuration.md whose first cell
+// is code, which today is the one variables table.
 const md = readFileSync(mdPath, "utf8");
 const repo = new Map();
 for (const line of md.split("\n")) {
