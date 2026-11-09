@@ -2,7 +2,7 @@
 // tiny PNGs that encode-media.py writes. Python hands over raw RGBA because
 // Node has no PNG decoder without extra packages.
 import { execFileSync } from 'node:child_process';
-import { readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { rgbaToThumbHash } from 'thumbhash';
 
 const media = new URL('../../preview/dive/media/', import.meta.url);
@@ -10,6 +10,7 @@ const manPath = new URL('manifest.json', media);
 const man = JSON.parse(readFileSync(manPath, 'utf8'));
 for (const key of Object.keys(man.plates)) {
   const png = new URL(`${key}-tiny.png`, media).pathname;
+  if (!existsSync(png)) continue; // encoded in an earlier run: keep its hash
   const raw = execFileSync('python3', ['-c',
     'import sys,json,base64;from PIL import Image;im=Image.open(sys.argv[1]).convert("RGBA");im.thumbnail((100,100));' +
     'print(json.dumps({"w":im.size[0],"h":im.size[1],"d":base64.b64encode(im.tobytes()).decode()}))', png]);

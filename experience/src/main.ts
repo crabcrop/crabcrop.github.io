@@ -41,12 +41,17 @@ const ui = new UI({
   onLook: (l) => world?.setLook(l),
   onLookPreview: (l) => world?.previewLook(l),
   onFreeFish: () => world?.freeFish(),
+  onRemove: (rect) => world?.removeRegion(rect),
+  onUpscale: (again) => world?.upscalePearl(again),
+  onReefFocus: (i) => { if (world) scrollRef?.to(world.reefStopY(i)); },
 });
+let scrollRef: Scroll | null = null;
 
 if (gl) start();
 
 async function start() {
   const scroll = new Scroll(true);
+  scrollRef = scroll;
   const { World } = await import('./world');
   const canvas = document.getElementById('world') as HTMLCanvasElement;
   const w = new World(canvas, scroll, phone);
@@ -84,7 +89,7 @@ async function start() {
     scroll.update(time);
     w.frame(dt, now());
     const doc = document.documentElement.scrollHeight - innerHeight;
-    ui.update(w.out, now(), scroll.v, doc > 0 ? scroll.y / doc : 0);
+    ui.update(w.out, now(), scroll.v, doc > 0 ? scroll.y / doc : 0, dt, w.mouse);
     if (!lowered && frames++ > 30) { slow = slow * 0.95 + (dt > 0.024 ? 1 : 0) * 0.05; if (slow > 0.6) { w.stage.setMaxDpr(1); lowered = true; } }
     requestAnimationFrame(loop);
   };

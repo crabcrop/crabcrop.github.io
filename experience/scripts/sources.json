@@ -105,6 +105,42 @@
     "z3-plate.png": {
       "job": "5206e93c-4288-4402-a277-64713b34410b",
       "file": "hf_20261108_163233_5206e93c-4288-4402-a277-64713b34410b.png"
+    },
+    "z3-2-plate.png": {
+      "job": "686778f5-a138-48ec-ba3d-0411f6d7bbce",
+      "file": "hf_20261108_164006_686778f5-a138-48ec-ba3d-0411f6d7bbce.png"
+    },
+    "z3-3-plate.png": {
+      "job": "2f8cae14-553b-4bb7-bba2-ba28c8527f23",
+      "file": "hf_20261108_164004_2f8cae14-553b-4bb7-bba2-ba28c8527f23.png"
+    },
+    "z3-4-plate.png": {
+      "job": "da2465d1-bda3-4e82-9914-96fb6a63aee5",
+      "file": "hf_20261108_164004_da2465d1-bda3-4e82-9914-96fb6a63aee5.png"
+    },
+    "z3-4-clean.png": {
+      "job": "1766e98b-fc04-44b4-9490-05f2ee5ed12d",
+      "file": "hf_20261108_164519_1766e98b-fc04-44b4-9490-05f2ee5ed12d.png"
+    },
+    "z3b-plate.png": {
+      "job": "b8a93f69-3d53-476b-83e2-fe36bd818baa",
+      "file": "hf_20261108_163233_b8a93f69-3d53-476b-83e2-fe36bd818baa.png"
+    },
+    "cut-coral.png": {
+      "job": "a7015f21-ff82-4244-8946-dd0d06587ef3",
+      "file": "hf_20261108_164207_a7015f21-ff82-4244-8946-dd0d06587ef3.png"
+    },
+    "cut-jellyfish-lamp.png": {
+      "job": "7ed0bdd2-016d-4da7-9770-0f12258ea85b",
+      "file": "hf_20261108_164632_7ed0bdd2-016d-4da7-9770-0f12258ea85b.png"
+    },
+    "m04-scuttle.mp4": {
+      "job": "d2fb25ad-ee54-4ecd-9b46-753464303db0",
+      "file": "hf_20261108_175253_d2fb25ad-ee54-4ecd-9b46-753464303db0.mp4"
+    },
+    "m04-scuttle-cut.mp4": {
+      "job": "3aaed242-b7cf-479a-be7d-74a7f4afa741",
+      "file": "hf_20261108_175742_3aaed242-b7cf-479a-be7d-74a7f4afa741.mp4"
     }
   }
 }

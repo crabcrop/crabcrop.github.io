@@ -13,13 +13,14 @@ void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(
 const CLIP_FRAG = /* glsl */ `
 precision highp float;
 uniform sampler2D uMap;
-uniform float uOpacity, uCutX;
+uniform float uOpacity, uCutX, uFlip;
 uniform vec3 uGrade;
 varying vec2 vUv;
 ${LOOK_GLSL}
 void main() {
-  vec3 c = texture2D(uMap, vec2(vUv.x, 0.5 + vUv.y * 0.498)).rgb;
-  float a = texture2D(uMap, vec2(vUv.x, vUv.y * 0.498)).r;
+  float x = uFlip > 0.5 ? 1.0 - vUv.x : vUv.x;
+  vec3 c = texture2D(uMap, vec2(x, 0.5 + vUv.y * 0.498)).rgb;
+  float a = texture2D(uMap, vec2(x, vUv.y * 0.498)).r;
   a *= 1.0 - smoothstep(uCutX - 0.04, uCutX, vUv.x);
   if (a < 0.004) discard;
   gl_FragColor = vec4(applyLook(c * uGrade), a * uOpacity);
@@ -38,7 +39,7 @@ void main() {
   gl_FragColor = vec4(applyLook(c.rgb * uGrade), c.a * uOpacity);
 }`;
 
-type ClipKey = 'm01' | 'm02' | 'm03';
+type ClipKey = 'm01' | 'm02' | 'm03' | 'm04';
 type State = 'wave' | 'gust' | 'surprised' | 'hop' | 'drop' | 'chain';
 
 export interface SnapCtx {
@@ -57,6 +58,13 @@ export interface SnapCtx {
   /** Lean from the chain above him, radians. */
   lean: number;
   grade: [number, number, number];
+  /**
+   * On the reef: sliding down the chain to the sand (land 0 to 1), walking
+   * there with the chain in his left claw, then back on the chain (ret 0 to 1)
+   * and lowered out of view (drop, px). feet and body place the walk; hold
+   * places him on the chain; vel is how fast he walks, px per second.
+   */
+  reef?: { land: number; ret: number; drop: number; feet: [number, number]; body: number; vel: number; hold: [number, number] };
 }
 
 const PRINT_AT = 0.83;
@@ -86,11 +94,15 @@ export class Snap {
   private clipBox = { left: 0, top: 0, w: 0, h: 0 };
   /** Holds on the chain while he rides it. */
   holds: { top: [number, number]; bottom: [number, number] } | null = null;
+  /** His left claw on screen while he walks the reef: the chain hangs from it. */
+  claw: [number, number] | null = null;
+  private flip = true;
+  private landedAt = -1;
   /** True once he has landed on the chain. */
   get riding() { return this.state === 'chain'; }
 
   constructor(stage: Stage) {
-    this.clipU = { uMap: { value: null }, uOpacity: { value: 1 }, uCutX: { value: 2 }, uGrade: { value: new THREE.Vector3(1, 1, 1) }, ...LOOK };
+    this.clipU = { uMap: { value: null }, uOpacity: { value: 1 }, uCutX: { value: 2 }, uFlip: { value: 0 }, uGrade: { value: new THREE.Vector3(1, 1, 1) }, ...LOOK };
     const cm = new THREE.ShaderMaterial({ vertexShader: VERT, fragmentShader: CLIP_FRAG, uniforms: this.clipU, transparent: true, depthTest: false, depthWrite: false });
     this.clipMesh = quad(cm, 5);
     this.clipMesh.visible = false;
@@ -133,6 +145,14 @@ export class Snap {
     await Promise.all([this.ready('m02'), this.ready('m03')]);
   }
 
+  /** The sideways walk, for the reef. */
+  async loadReef() {
+    if (this.clips.m04) return;
+    const v = makeVideo('snap-m04.mp4', true);
+    this.clips.m04 = { v, tex: videoTexture(v), ready: false, meta: media.clips.m04 };
+    await this.ready('m04');
+  }
+
   private use(k: ClipKey) {
     if (this.cur !== k) {
       this.clips[this.cur].v.pause();
@@ -165,11 +185,12 @@ export class Snap {
     this.since = t;
   }
 
-  private placeClip(ctx: SnapCtx, dy = 0) {
+  private placeClip(ctx: { feet: [number, number]; body: number }, dy = 0, flip = false) {
     const m = this.clips[this.cur].meta;
     const scale = ctx.body / ((m.box[3] - m.box[1]) * m.h);
     const qw = m.w * scale, qh = m.h * scale;
-    const cx = (m.crop[1] / 2 - m.crop[0]) / m.w;
+    const cx0 = (m.crop[1] / 2 - m.crop[0]) / m.w;
+    const cx = flip ? 1 - cx0 : cx0;
     const left = ctx.feet[0] - cx * qw, top = ctx.feet[1] - m.box[3] * qh + dy;
     place(this.clipMesh, left, top, qw, qh);
     this.clipBox = { left, top, w: qw, h: qh };
@@ -290,6 +311,63 @@ export class Snap {
         : null;
     } else {
       this.holds = null;
+    }
+    this.claw = null;
+    if (ctx.reef && ride) this.reef(t, ctx, ctx.reef);
+  }
+
+  /** The reef: down the chain to the sand, the sideways walk, and back. */
+  private reef(t: number, ctx: SnapCtx, r: NonNullable<SnapCtx['reef']>) {
+    const m04 = this.clips.m04;
+    const walking = r.land >= 1 && r.ret <= 0 && !!m04?.ready;
+    const sc = media.snapChain;
+    const h = ctx.chainBody, w = h * (sc.w / sc.h);
+    if (!walking) {
+      // On the chain: sliding down to the sand, or back up on it at the end.
+      this.landedAt = -1;
+      if (m04 && !m04.v.paused) m04.v.pause();
+      this.clipMesh.visible = false;
+      const [hx, hy0] = r.hold;
+      const hy = hy0 + r.drop;
+      this.chain.position.set(hx, -hy, 0);
+      this.chain.rotation.z = 0;
+      place(this.chainSprite, -sc.chainX * w, -sc.chainTop * h, w, h);
+      const span = (sc.chainBottom - sc.chainTop) * h;
+      this.holds = { top: [hx, hy], bottom: [hx, hy + span] };
+      return;
+    }
+    // Walking, mirrored so the tracked claw is his left one on screen when he heads right.
+    this.chain.visible = false;
+    this.holds = null;
+    if (this.landedAt < 0) this.landedAt = t;
+    this.use('m04');
+    const c = m04!;
+    const speed = Math.abs(r.vel);
+    if (speed > 30) {
+      c.v.playbackRate = clamp(speed / 240, 0.7, 2.4);
+      if (c.v.paused) c.v.play().catch(() => {});
+      this.flip = r.vel > 0;
+    } else if (!c.v.paused) {
+      c.v.pause();
+    }
+    const b = clamp((t - this.landedAt) / 0.4);
+    const bounce = -Math.sin(b * Math.PI) * r.body * 0.08 * (1 - b);
+    this.placeClip(r, bounce, this.flip);
+    this.clipMesh.visible = true;
+    this.clipU.uFlip.value = this.flip ? 1 : 0;
+    this.clipU.uCutX.value = 2;
+    this.clipU.uGrade.value.set(...ctx.grade);
+    // His left claw: the tracked right claw, mirrored when the clip is.
+    const track = c.meta.claw ?? [];
+    if (track.length) {
+      const dur = c.meta.duration || 4;
+      const tt = (c.v.currentTime % dur);
+      const i = Math.min(track.length - 1, Math.floor((tt / dur) * track.length));
+      const [, xr, yr] = track[i];
+      const centre = (c.meta.box[0] + c.meta.box[2]) / 2;
+      const xq = this.flip ? 1 - xr : 2 * centre - xr;
+      const bx = this.clipBox;
+      this.claw = [bx.left + xq * bx.w, bx.top + yr * bx.h];
     }
   }
 

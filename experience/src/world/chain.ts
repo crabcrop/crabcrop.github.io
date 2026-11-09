@@ -111,6 +111,8 @@ export class Chain {
   update(dt: number, t: number, o: {
     ax: number; ay: number; len: number; tail: number; holds: Hold[];
     sway: number; mouse: [number, number] | null; visible: boolean; linkLen: number;
+    /** Rope length above the top hold, as a share of the straight distance: a little over 1 hangs loose, under 1 pulls taut. */
+    slack?: number;
   }) {
     this.mesh.visible = o.visible;
     this.linkLen = o.linkLen;
@@ -120,7 +122,7 @@ export class Chain {
     const n = this.n, p = this.p, q = this.q, rest = this.rest;
     const [h0, h1] = o.holds;
     if (h0) {
-      const above = Math.max(Math.hypot(h0.x - o.ax, h0.y - o.ay) * 1.002, 30) / h0.i;
+      const above = Math.max(Math.hypot(h0.x - o.ax, h0.y - o.ay) * (o.slack ?? 1.002), 30) / h0.i;
       const last = h1 ?? h0;
       const between = h1 ? Math.hypot(h1.x - h0.x, h1.y - h0.y) / (h1.i - h0.i) : 0;
       const below = o.tail / (n - 1 - last.i);
@@ -152,20 +154,34 @@ export class Chain {
       p[0] = o.ax; p[1] = o.ay;
       for (const h of o.holds) { p[h.i * 2] = h.x; p[h.i * 2 + 1] = h.y; q[h.i * 2] = h.x; q[h.i * 2 + 1] = h.y; }
     };
-    for (let k = 0; k < 16; k++) {
+    const link = (i: number) => {
+      const pa = pinned(i - 1), pb = pinned(i);
+      if (pa && pb) return;
+      const dx = p[i * 2] - p[i * 2 - 2], dy = p[i * 2 + 1] - p[i * 2 - 1];
+      const d = Math.hypot(dx, dy) || 1e-6;
+      const diff = (d - rest[i]) / d;
+      const wa = pa ? 0 : pb ? 1 : 0.5, wb = pb ? 0 : pa ? 1 : 0.5;
+      p[i * 2 - 2] += dx * diff * wa; p[i * 2 - 1] += dy * diff * wa;
+      p[i * 2] -= dx * diff * wb; p[i * 2 + 1] -= dy * diff * wb;
+    };
+    // Sweep down from the anchor and back up from the holds in turn, so
+    // corrections reach both ends and a long stretch does not sag under its weight.
+    for (let k = 0; k < 24; k++) {
       pin();
-      for (let i = 1; i < n; i++) {
-        const pa = pinned(i - 1), pb = pinned(i);
-        if (pa && pb) continue;
-        const dx = p[i * 2] - p[i * 2 - 2], dy = p[i * 2 + 1] - p[i * 2 - 1];
-        const d = Math.hypot(dx, dy) || 1e-6;
-        const diff = (d - rest[i]) / d;
-        const wa = pa ? 0 : pb ? 1 : 0.5, wb = pb ? 0 : pa ? 1 : 0.5;
-        p[i * 2 - 2] += dx * diff * wa; p[i * 2 - 1] += dy * diff * wa;
-        p[i * 2] -= dx * diff * wb; p[i * 2 + 1] -= dy * diff * wb;
-      }
+      if (k & 1) for (let i = n - 1; i >= 1; i--) link(i);
+      else for (let i = 1; i < n; i++) link(i);
     }
     pin();
+    // Pulled taut (Snap towing it across the reef), the rope above his hold is
+    // a straight line with a slow sway, not a sagging simulation.
+    if (h0 && (o.slack ?? 1) < 1) {
+      for (let i = 1; i < h0.i; i++) {
+        const f = i / h0.i;
+        const sway = Math.sin(t * 0.9 + f * 3) * 6 * Math.sin(Math.PI * f);
+        p[i * 2] = q[i * 2] = o.ax + (h0.x - o.ax) * f + sway;
+        p[i * 2 + 1] = q[i * 2 + 1] = o.ay + (h0.y - o.ay) * f;
+      }
+    }
     this.draw();
   }
 

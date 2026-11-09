@@ -298,6 +298,18 @@ The page is built in `experience/` and previewed from `preview/dive/`.
   forest, foreground kelp that bends away from the cursor, light shafts,
   and the fish Snap snips free.
 
+- **Slice 3: the reef and the Clam Studio.** The four Z3 stations, Z3-4
+  clean and Z3b as one sideways panorama, with the coral and sea fan cutout
+  passing in front of each join, and M04 for Snap's walk (his left claw
+  tracked through the cycle so the chain hangs from it). The stations: a
+  crop frame that snaps around the turtle, face boxes on the seven fish, the
+  cuttlefish going to mosaic, and a box dragged over the can filling in from
+  Z3-4 clean. In the studio the softboxes flicker on, the pearl is rebuilt
+  from a mosaic, and Snap shows the finish choices. No zone loops on the
+  reef: the effects are pinned to the stills, and Kling's push-in would
+  move the subjects out from under them. T01 and T02 were cut to 72 frames
+  to keep the preview under its file limit.
+
 Still open from the generation phase:
 
 - Earlier leftovers: retouch KA01's smile to gold, and cut the F01 fish
@@ -305,9 +317,9 @@ Still open from the generation phase:
 
 ## Next
 
-The reef (S3 and S3b): the pinned sideways scuttle with the four Z3
-stations, the crop and finish choices, and the Clam Studio. The plates,
-cutouts and the scuttle clip (M04b) are made.
+The shipwreck (S4): T03 into the wreck, the cabin, sealed URLs and
+provenance, and Choice 5, the seal. Its plates, loop and transition are
+made.
 
 ## What we learned
 

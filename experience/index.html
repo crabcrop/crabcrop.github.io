@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>crabcrop · All the Way Down</title>
-<meta name="description" content="Ride the anchor chain with Snap through crabcrop, the Rust image API. A preview of the marina, the shallows and the kelp forest.">
+<meta name="description" content="Ride the anchor chain with Snap through crabcrop, the Rust image API. A preview from the marina down to the reef and its Clam Studio.">
 <meta name="robots" content="noindex">
 <meta name="theme-color" content="#CFE8EE">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
@@ -33,7 +33,7 @@
     <li><a href="#s0" data-zone="s0" aria-current="true"><span class="d">0 m</span> <span class="name">The Marina</span></a></li>
     <li><a href="#s1" data-zone="s1"><span class="d">−5 m</span> <span class="name">The Shallows</span></a></li>
     <li><a href="#s2" data-zone="s2"><span class="d">−15 m</span> <span class="name">The Kelp Forest</span></a></li>
-    <li><a href="#next" data-zone="next"><span class="d">−30 m</span> <span class="name">The Coral Reef</span></a></li>
+    <li><a href="#s3" data-zone="s3"><span class="d">−30 m</span> <span class="name">The Coral Reef</span></a></li>
     <li class="soon"><span class="d">−60 m</span> <span class="name">The Shipwreck</span></li>
     <li class="soon"><span class="d">−500 m</span> <span class="name">The Twilight Zone</span></li>
     <li class="soon"><span class="d">−2,500 m</span> <span class="name">The Vents</span></li>
@@ -88,8 +88,8 @@
       <li class="tag sig"><code>3c1f6c18…</code><span>Proof the URL came from you</span></li>
       <li class="tag fmt blank" id="tag-format"><code>format</code><span>Choice 1: pick below</span></li>
       <li class="tag blank" id="tag-look"><code>look</code><span>Choice 2: in the kelp</span></li>
-      <li class="tag blank later"><code>crop</code></li>
-      <li class="tag blank later"><code>finish</code></li>
+      <li class="tag blank" id="tag-crop"><code>crop</code><span>Choice 3: on the reef</span></li>
+      <li class="tag blank" id="tag-finish"><code>finish</code><span>Choice 4: in the studio</span></li>
     </ol>
 
     <div class="cards">
@@ -230,18 +230,203 @@
 
   <section id="t2" class="plunge" aria-hidden="true"></section>
 
-  <section id="next" class="zone slice-end">
+  <section id="s3" class="zone s3 reef" aria-labelledby="s3-title">
     <picture class="zone-bg">
       <source media="(orientation: portrait)" type="image/avif" srcset="media/z3p-720.avif 720w, media/z3p-1080.avif 1080w" sizes="100vw">
       <source media="(orientation: portrait)" type="image/webp" srcset="media/z3p-720.webp 720w, media/z3p-1080.webp 1080w" sizes="100vw">
       <source type="image/avif" srcset="media/z3-1600.avif 1600w, media/z3-2400.avif 2400w, media/z3-3200.avif 3200w" sizes="(min-aspect-ratio: 21/9) 100vw, 233vh">
       <img src="media/z3-1600.webp" srcset="media/z3-1600.webp 1600w, media/z3-2400.webp 2400w, media/z3-3200.webp 3200w" sizes="(min-aspect-ratio: 21/9) 100vw, 233vh" alt="" loading="lazy" decoding="async">
     </picture>
+    <div class="reef-pin" id="reef-pin">
+      <div class="reef-fx" id="reef-fx" aria-hidden="true">
+        <div class="crop-frame" id="crop-frame"><span class="crop-label" id="crop-label">crop:1200x630:smart</span></div>
+        <div class="faces" id="faces"></div>
+        <div class="reef-drag" id="reef-drag"></div>
+        <div class="drag-rect" id="drag-rect"></div>
+      </div>
+      <div class="station" data-st="0">
+        <div class="station-body">
+          <div class="zone-head panel">
+            <p class="tidemark">−30 m · The Coral Reef</p>
+            <h2 id="s3-title">It sees <span class="coral">what matters.</span></h2>
+            <p>Smart crops that keep faces whole, face detection, redaction and object removal. Snap hops down to the sand and walks past all four, the chain in his claw.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="station" data-st="1" data-phone="bottom">
+        <div class="station-body">
+          <article class="card reef-card" id="card-smartcrop">
+            <div class="card-top">
+              <picture><source type="image/avif" srcset="media/icon-crop.avif"><img class="icon" src="media/icon-crop.webp" alt="" width="56" height="56" loading="lazy"></picture>
+              <h3>Smart crop, face safe</h3>
+            </div>
+            <p>Ask for any shape and the crop window moves to the subject. Faces stay whole, never cut at the edge.</p>
+            <code class="chip">crop:760x760:smart</code>
+            <a class="docs" href="https://crabcrop.org/docs.html#size">Read the docs</a>
+          </article>
+          <fieldset class="choice panel compact" id="choice-crop">
+            <legend><span class="step">Choice 3 of 5</span> Pick a crop</legend>
+            <p class="help on-wide">The frame finds the turtle. Move the cursor and it follows, then snaps back.</p>
+            <p class="help on-narrow">The frame finds the turtle by itself. Pick its shape.</p>
+            <div class="crops">
+              <label class="crop-opt"><input type="radio" name="crop" value="wide" checked><span class="shape wide" aria-hidden="true"></span><span class="lab">Wide card</span><span class="sub">crop:1200x630:smart</span></label>
+              <label class="crop-opt"><input type="radio" name="crop" value="square"><span class="shape square" aria-hidden="true"></span><span class="lab">Square</span><span class="sub">crop:760x760:smart</span></label>
+              <label class="crop-opt"><input type="radio" name="crop" value="whole"><span class="shape whole" aria-hidden="true"></span><span class="lab">Whole picture</span><span class="sub">fit-in:1200x630</span></label>
+            </div>
+            <p class="sr-only" aria-live="polite" id="crop-status"></p>
+          </fieldset>
+        </div>
+      </div>
+
+      <div class="station" data-st="2">
+    <picture class="zone-bg station-bg">
+      <source media="(orientation: portrait)" type="image/avif" srcset="media/z3_2p-1080.avif 1080w" sizes="100vw">
+      <source media="(orientation: portrait)" type="image/webp" srcset="media/z3_2p-1080.webp 1080w" sizes="100vw">
+      <source type="image/avif" srcset="media/z3_2-1600.avif 1600w, media/z3_2-2400.avif 2400w, media/z3_2-3200.avif 3200w" sizes="(min-aspect-ratio: 21/9) 100vw, 233vh">
+      <img src="media/z3_2-1600.webp" srcset="media/z3_2-1600.webp 1600w, media/z3_2-2400.webp 2400w, media/z3_2-3200.webp 3200w" sizes="(min-aspect-ratio: 21/9) 100vw, 233vh" alt="" loading="lazy" decoding="async">
+    </picture>
+        <div class="station-body">
+          <article class="card reef-card" id="card-faces">
+            <div class="card-top">
+              <picture><source type="image/avif" srcset="media/icon-glass.avif"><img class="icon" src="media/icon-glass.webp" alt="" width="56" height="56" loading="lazy"></picture>
+              <h3>Face detection</h3>
+            </div>
+            <p>Find every face in a picture, then crop to them or blur them. All seven of these fish count.</p>
+            <code class="chip">crop:760x760:face · filters:blurfaces</code>
+            <a class="docs" href="https://crabcrop.org/docs.html#ai">Read the docs</a>
+            <p class="try on-wide">Move the cursor over the school.</p>
+          </article>
+        </div>
+      </div>
+
+      <div class="station" data-st="3">
+    <picture class="zone-bg station-bg">
+      <source media="(orientation: portrait)" type="image/avif" srcset="media/z3_3p-1080.avif 1080w" sizes="100vw">
+      <source media="(orientation: portrait)" type="image/webp" srcset="media/z3_3p-1080.webp 1080w" sizes="100vw">
+      <source type="image/avif" srcset="media/z3_3-1600.avif 1600w, media/z3_3-2400.avif 2400w, media/z3_3-3200.avif 3200w" sizes="(min-aspect-ratio: 21/9) 100vw, 233vh">
+      <img src="media/z3_3-1600.webp" srcset="media/z3_3-1600.webp 1600w, media/z3_3-2400.webp 2400w, media/z3_3-3200.webp 3200w" sizes="(min-aspect-ratio: 21/9) 100vw, 233vh" alt="" loading="lazy" decoding="async">
+    </picture>
+        <div class="station-body">
+          <article class="card reef-card" id="card-redact">
+            <div class="card-top">
+              <picture><source type="image/avif" srcset="media/icon-seal.avif"><img class="icon" src="media/icon-seal.webp" alt="" width="56" height="56" loading="lazy"></picture>
+              <h3>Redaction</h3>
+            </div>
+            <p>Blur a whole class of thing, like people, before a picture goes out. <em>Privacy is a kindness.</em></p>
+            <code class="chip">filters:blurclass(person)</code>
+            <a class="docs" href="https://crabcrop.org/docs.html#ai">Read the docs</a>
+            <p class="try on-wide">Get close to the cuttlefish.</p>
+            <p class="try on-narrow">Tap the cuttlefish.</p>
+          </article>
+        </div>
+      </div>
+
+      <div class="station" data-st="4">
+    <picture class="zone-bg station-bg">
+      <source media="(orientation: portrait)" type="image/avif" srcset="media/z3_4p-1080.avif 1080w" sizes="100vw">
+      <source media="(orientation: portrait)" type="image/webp" srcset="media/z3_4p-1080.webp 1080w" sizes="100vw">
+      <source type="image/avif" srcset="media/z3_4-1600.avif 1600w, media/z3_4-2400.avif 2400w, media/z3_4-3200.avif 3200w" sizes="(min-aspect-ratio: 21/9) 100vw, 233vh">
+      <img src="media/z3_4-1600.webp" srcset="media/z3_4-1600.webp 1600w, media/z3_4-2400.webp 2400w, media/z3_4-3200.webp 3200w" sizes="(min-aspect-ratio: 21/9) 100vw, 233vh" alt="" loading="lazy" decoding="async">
+    </picture>
+        <div class="station-body">
+          <article class="card reef-card" id="card-remove">
+            <div class="card-top">
+              <picture><source type="image/avif" srcset="media/icon-drops.avif"><img class="icon" src="media/icon-drops.webp" alt="" width="56" height="56" loading="lazy"></picture>
+              <h3>Object removal</h3>
+            </div>
+            <p>Mark a box and it fills in with what should be behind it. The reef keeps its coral, not the can.</p>
+            <code class="chip" id="remove-chip">filters:remove_region(40,120,300,200)</code>
+            <a class="docs" href="https://crabcrop.org/docs.html#ai">Read the docs</a>
+            <p class="try on-wide">Drag a box over the can, or</p>
+            <button type="button" class="btn btn-foam small" id="remove-can">Remove the can</button>
+          </article>
+        </div>
+      </div>
+    </div>
+
+  </section>
+
+  <section id="s3b" class="zone s3b" aria-labelledby="s3b-title">
+    <picture class="zone-bg">
+      <source media="(orientation: portrait)" type="image/avif" srcset="media/z3bp-1080.avif 1080w" sizes="100vw">
+      <source media="(orientation: portrait)" type="image/webp" srcset="media/z3bp-1080.webp 1080w" sizes="100vw">
+      <source type="image/avif" srcset="media/z3b-1600.avif 1600w, media/z3b-2400.avif 2400w, media/z3b-3200.avif 3200w" sizes="(min-aspect-ratio: 21/9) 100vw, 233vh">
+      <img src="media/z3b-1600.webp" srcset="media/z3b-1600.webp 1600w, media/z3b-2400.webp 2400w, media/z3b-3200.webp 3200w" sizes="(min-aspect-ratio: 21/9) 100vw, 233vh" alt="" loading="lazy" decoding="async">
+    </picture>
+    <div class="zone-head panel">
+      <p class="tidemark">−30 m · The Clam Studio</p>
+      <h2 id="s3b-title">A studio <span class="coral">in a shell.</span></h2>
+      <p>Studio light for product shots, clean cut-outs and sharper small pictures. Each one is one more step in the URL.</p>
+    </div>
+
+    <div class="cards">
+      <article class="card" id="card-studio">
+        <div class="specimen spec-studio" aria-hidden="true"><span class="studio-demo"><img src="media/snap-stand.webp" alt="" width="445" height="409" loading="lazy"></span><span class="studio-code">studio(product,bg:brand,shadow:soft,pad:10)</span></div>
+        <div class="card-top">
+          <picture><source type="image/avif" srcset="media/icon-lantern.avif"><img class="icon" src="media/icon-lantern.webp" alt="" width="56" height="56" loading="lazy"></picture>
+          <h3>Studio mode</h3>
+        </div>
+        <p>One filter cuts the product out, sets it on a brand backdrop with a soft shadow and pads it to shape.</p>
+        <code class="chip">filters:studio(product,bg:brand)</code>
+        <a class="docs" href="https://crabcrop.org/docs.html#studio">Read the docs</a>
+      </article>
+
+      <article class="card" id="card-removebg">
+        <div class="specimen spec-compare">
+          <div class="compare" id="compare" style="--cut: 50%">
+            <span class="compare-before" aria-hidden="true"><img src="media/snap-stand.webp" alt="" width="445" height="409" loading="lazy"></span>
+            <span class="compare-after" aria-hidden="true"><img src="media/snap-stand.webp" alt="" width="445" height="409" loading="lazy"></span>
+            <span class="compare-line" aria-hidden="true"></span>
+            <input class="compare-range" type="range" min="0" max="100" value="50" aria-label="Before and after background removal">
+          </div>
+        </div>
+        <div class="card-top">
+          <picture><source type="image/avif" srcset="media/icon-crop.avif"><img class="icon" src="media/icon-crop.webp" alt="" width="56" height="56" loading="lazy"></picture>
+          <h3>Background removal</h3>
+        </div>
+        <p>The background dissolves and only the subject stays, on transparency. Drag across Snap to compare.</p>
+        <code class="chip">filters:removebg:format(webp)</code>
+        <a class="docs" href="https://crabcrop.org/docs.html#ai">Read the docs</a>
+      </article>
+
+      <article class="card" id="card-upscale">
+        <div class="specimen spec-upscale"><span>Watch the pearl in the shell: </span><b>upscale(2)</b> <button type="button" class="again" id="upscale-again">Do it again</button></div>
+        <div class="card-top">
+          <picture><source type="image/avif" srcset="media/icon-glass.avif"><img class="icon" src="media/icon-glass.webp" alt="" width="56" height="56" loading="lazy"></picture>
+          <h3>AI upscale</h3>
+        </div>
+        <p>Small or blocky pictures come back at twice the size, with real detail instead of blur.</p>
+        <code class="chip">filters:upscale(2)</code>
+        <a class="docs" href="https://crabcrop.org/docs.html#ai">Read the docs</a>
+      </article>
+
+      <fieldset class="choice panel" id="choice-finish">
+        <legend><span class="step">Choice 4 of 5</span> Pick a finish</legend>
+        <p class="help">How the picture leaves the studio. It goes on your chain.</p>
+        <div class="finishes">
+          <label class="finish"><input type="radio" name="finish" value="none" checked><span class="mini none" aria-hidden="true"></span><span class="lab">None</span><span class="sub">as photographed</span></label>
+          <label class="finish"><input type="radio" name="finish" value="studio"><span class="mini studio" aria-hidden="true"></span><span class="lab">Studio</span><span class="sub">studio(product,bg:brand,shadow:soft,pad:10)</span></label>
+          <label class="finish"><input type="radio" name="finish" value="cutout"><span class="mini cutout" aria-hidden="true"></span><span class="lab">Cut out</span><span class="sub">removebg</span></label>
+        </div>
+        <p class="sr-only" aria-live="polite" id="finish-status"></p>
+      </fieldset>
+    </div>
+    <img class="snap-static stand reef-stand" src="media/snap-stand.webp" alt="" width="445" height="409" loading="lazy">
+  </section>
+
+  <section id="next" class="zone slice-end">
+    <picture class="zone-bg">
+      <source media="(orientation: portrait)" type="image/avif" srcset="media/z3bp-1080.avif 1080w" sizes="100vw">
+      <source media="(orientation: portrait)" type="image/webp" srcset="media/z3bp-1080.webp 1080w" sizes="100vw">
+      <source type="image/avif" srcset="media/z3b-1600.avif 1600w, media/z3b-2400.avif 2400w, media/z3b-3200.avif 3200w" sizes="(min-aspect-ratio: 21/9) 100vw, 233vh">
+      <img src="media/z3b-1600.webp" srcset="media/z3b-1600.webp 1600w, media/z3b-2400.webp 2400w, media/z3b-3200.webp 3200w" sizes="(min-aspect-ratio: 21/9) 100vw, 233vh" alt="" loading="lazy" decoding="async">
+    </picture>
     <div class="panel">
-      <p class="tidemark">−30 m · The Coral Reef</p>
-      <h2>The reef is <span class="coral">next.</span></h2>
-      <p>This preview covers the marina, the shallows and the kelp forest. Your URL so far:</p>
-      <p class="url"><code id="url-so-far">https://<wbr>img.example.com/<wbr>3c1f6c18…/<wbr>filters:sharpen(1.2):saturation(1.1)/<wbr>root:photos/<wbr>print.jpg</code></p>
+      <p class="tidemark">−30 m · Leaving the reef</p>
+      <h2>The wreck is <span class="coral">next.</span></h2>
+      <p>This preview goes as far as the reef and the Clam Studio. Your URL so far:</p>
+      <p class="url"><code id="url-so-far">https://<wbr>img.example.com/<wbr>3c1f6c18…/<wbr>crop:1200x630:smart/<wbr>filters:sharpen(1.2):saturation(1.1)/<wbr>root:photos/<wbr>print.jpg</code></p>
       <div class="ctas">
         <a class="btn" href="https://crabcrop.org/docs.html">Read the docs</a>
         <a class="btn btn-foam" href="#s0">Back to the surface</a>

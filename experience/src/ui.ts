@@ -1,4 +1,5 @@
 import { media } from './media';
+import { ReefUI, CROP_SEG, type CropShape } from './reef-ui';
 import type { WorldOut, ZoneId } from './world';
 import type { Fmt } from './world/fish';
 import type { LookName } from './world/look';
@@ -7,15 +8,28 @@ type Choice = Fmt | 'auto';
 const SEGMENT: Record<string, string> = { auto: '', avif: 'format(avif)', webp: 'format(webp)', jxl: 'format(jxl)' };
 const LOOK_SEG: Record<LookName, string> = { crisp: 'sharpen(1.2):saturation(1.1)', deep: 'duotone(0d202e,ffd88a)', vintage: 'sepia' };
 const LOOK_NAME: Record<LookName, string> = { crisp: 'Crisp', deep: 'Deep sea', vintage: 'Vintage' };
-const ZONES: Record<ZoneId, string> = { s0: 'The Marina', t1: 'The plunge', s1: 'The Shallows', s2: 'The Kelp Forest', t2: 'The drop-off', next: 'The Coral Reef' };
+const CROP_NAME: Record<CropShape, string> = { wide: 'Wide card', square: 'Square', whole: 'Whole picture' };
+type Finish = 'none' | 'studio' | 'cutout';
+const FINISH_SEG: Record<Finish, string> = { none: '', studio: 'studio(product,bg:brand,shadow:soft,pad:10)', cutout: 'removebg' };
+const FINISH_NAME: Record<Finish, string> = { none: 'None', studio: 'Studio', cutout: 'Cut out' };
+const ZONES: Record<ZoneId, string> = {
+  s0: 'The Marina', t1: 'The plunge', s1: 'The Shallows', s2: 'The Kelp Forest', t2: 'The drop-off',
+  s3: 'The Coral Reef', s3b: 'The Clam Studio', next: 'The Coral Reef',
+};
 /** Which gauge entry is current in each zone. */
-const GAUGE: Record<ZoneId, string> = { s0: 's0', t1: 's0', s1: 's1', s2: 's2', t2: 's2', next: 'next' };
-const DEPTH: Record<string, number> = { s0: 0, s1: -5, s2: -15, next: -30 };
+const GAUGE: Record<ZoneId, string> = { s0: 's0', t1: 's0', s1: 's1', s2: 's2', t2: 's2', s3: 's3', s3b: 's3', next: 's3' };
+const DEPTH: Record<string, number> = { s0: 0, s1: -5, s2: -15, s3: -30, s3b: -30, next: -30 };
 const TAG_KEYS = ['sig', 'fmt', 'look', 'crop', 'finish'] as const;
 
 const kb = (n: number) => `${Math.round(n / 1024)} KB`;
 const metres = (d: number) => (Math.abs(d) < 0.05 ? '0 m' : `−${Math.abs(d).toFixed(Math.abs(d) < 10 && d % 1 ? 1 : 0)} m`);
 const asset = (path: string) => new URL(path, document.baseURI).href;
+/** Run once when an element comes within a couple of screens: CSS backgrounds don't load lazily on their own. */
+function whenNear(el: Element | null, fn: () => void) {
+  if (!el) return;
+  const io = new IntersectionObserver((es) => { if (es.some((e) => e.isIntersecting)) { io.disconnect(); fn(); } }, { rootMargin: '200% 0px' });
+  io.observe(el);
+}
 
 /** A tag on the chain takes a value, with a little stamp. */
 function stamp(tag: HTMLElement, code: string, note: string) {
@@ -36,6 +50,9 @@ interface Hooks {
   onLook: (l: LookName) => void;
   onLookPreview: (l: LookName | null) => void;
   onFreeFish: () => void;
+  onRemove: (rect: [number, number, number, number]) => void;
+  onUpscale: (again: boolean) => void;
+  onReefFocus: (station: number) => void;
 }
 
 /** Everything in the DOM: buttons, the gauge, cards, tags, both choices, the cargo and the curtains. */
@@ -49,8 +66,11 @@ export class UI {
   private tagsEl = document.getElementById('tags')!;
   private tagEls = [...document.querySelectorAll<HTMLElement>('#tags .tag')];
   private lookTag = document.getElementById('tag-look')!;
+  private cropTag = document.getElementById('tag-crop')!;
   private cards = [...document.querySelectorAll<HTMLElement>('.card')];
-  private cardIn2 = this.cards.map((c) => !!c.closest('.s2'));
+  /** Which zone each card hangs in; the reef's travelling cards have no thread. */
+  private cardZone = this.cards.map((c) => (c.closest('.s1') ? 's1' : c.closest('.s2') ? 's2' : c.closest('.s3b') ? 's3b' : 'reef'));
+  private reefUI: ReefUI;
   private threads = document.getElementById('threads') as unknown as SVGSVGElement;
   private paths: SVGPathElement[] = [];
   private cargo = document.getElementById('cargo')!;
@@ -62,6 +82,9 @@ export class UI {
   private fmt: Choice = 'auto';
   private look: LookName = 'crisp';
   private lookShown = false;
+  private crop: CropShape = 'wide';
+  private cropShown = false;
+  private finish: Finish = 'none';
   private fishHidden = true;
   private frame = 0;
 
@@ -79,8 +102,11 @@ export class UI {
     const big = z0.bytes?.['3200'];
     if (big) document.getElementById('spec-fmt')!.innerHTML = `<span>This page's marina, 3200 px wide:</span> <b>AVIF ${kb(big.avif)}</b> · <b>WebP ${kb(big.webp)}</b>`;
 
+    this.reefUI = new ReefUI({ wide: o.wide, onRemove: o.onRemove, onUpscale: o.onUpscale, onReefFocus: o.onReefFocus });
     this.formatChoice();
     this.lookChoice();
+    this.cropChoice();
+    this.finishChoice();
     this.url();
 
     // The fish atlas for the school labels.
@@ -89,11 +115,13 @@ export class UI {
       const f = [...el.classList].find((c) => c in media.fish.rects)!;
       const [x, , w, h] = media.fish.rects[f];
       const scale = 32 / h;
-      el.style.backgroundImage = `url(${asset('media/fish.webp')})`;
       el.style.backgroundSize = `${W * scale}px ${H * scale}px`;
       el.style.backgroundPosition = `${-x * scale}px 0`;
       el.style.width = `${Math.min(54, w * scale)}px`;
     }
+    whenNear(document.getElementById('choice-format'), () => {
+      for (const el of document.querySelectorAll<HTMLElement>('.school .fish:not(.none)')) el.style.backgroundImage = `url(${asset('media/fish.webp')})`;
+    });
 
     // The cargo: tap or click shows what each source is.
     for (const h of this.hots) {
@@ -154,7 +182,9 @@ export class UI {
     const inputs = [...document.querySelectorAll<HTMLInputElement>('input[name="look"]')];
     this.look = (inputs.find((i) => i.checked)?.value as LookName) ?? 'crisp';
 
-    for (const el of document.querySelectorAll<HTMLElement>('.swatch')) el.style.backgroundImage = `url(${asset('media/print.webp')})`;
+    whenNear(document.getElementById('choice-look'), () => {
+      for (const el of document.querySelectorAll<HTMLElement>('.swatch')) el.style.backgroundImage = `url(${asset('media/print.webp')})`;
+    });
 
     // What the card and (without WebGL) the forest show.
     const show = (l: LookName) => {
@@ -198,11 +228,58 @@ export class UI {
     }
   }
 
-  /** The URL so far, from both choices. */
+  /** Choice 3: the crop. The reef's frame takes the shape. */
+  private cropChoice() {
+    const status = document.getElementById('crop-status')!;
+    const inputs = [...document.querySelectorAll<HTMLInputElement>('input[name="crop"]')];
+    this.crop = (inputs.find((i) => i.checked)?.value as CropShape) ?? 'wide';
+    this.reefUI.setCrop(this.crop);
+    for (const input of inputs) {
+      const c = input.value as CropShape;
+      input.addEventListener('change', () => {
+        if (!input.checked) return;
+        this.crop = c;
+        this.cropShown = true;
+        stamp(this.cropTag, CROP_SEG[c], 'Your crop');
+        status.textContent = `Crop set: ${CROP_NAME[c]}, ${CROP_SEG[c]}.`;
+        this.reefUI.setCrop(c);
+        this.url();
+      });
+      const label = input.closest('label')!;
+      label.addEventListener('pointerenter', () => this.reefUI.previewCrop(c));
+      label.addEventListener('pointerleave', () => this.reefUI.previewCrop(null));
+      input.addEventListener('focus', () => this.reefUI.previewCrop(c));
+      input.addEventListener('blur', () => this.reefUI.previewCrop(null));
+    }
+  }
+
+  /** Choice 4: the finish, shown on Snap in the studio's swatches. */
+  private finishChoice() {
+    const status = document.getElementById('finish-status')!;
+    const tag = document.getElementById('tag-finish')!;
+    whenNear(document.getElementById('s3b'), () => {
+      const snapImg = `url(${asset('media/snap-stand.webp')})`;
+      for (const el of document.querySelectorAll<HTMLElement>('.finish .mini')) el.style.setProperty('--snap', snapImg);
+      const photo = `url(${asset('media/z0-1600.webp')})`;
+      for (const el of document.querySelectorAll<HTMLElement>('.finish .mini.none, .compare-before')) el.style.setProperty('--photo', photo);
+    });
+    for (const input of document.querySelectorAll<HTMLInputElement>('input[name="finish"]')) {
+      input.addEventListener('change', () => {
+        if (!input.checked) return;
+        const f = input.value as Finish;
+        this.finish = f;
+        stamp(tag, FINISH_SEG[f] || 'none', f === 'none' ? 'No finish' : 'Your finish');
+        status.textContent = f === 'none' ? 'No finish: the picture leaves as photographed.' : `Finish set: ${FINISH_NAME[f]}, ${FINISH_SEG[f]}.`;
+        this.url();
+      });
+    }
+  }
+
+  /** The URL so far, from every choice. */
   private url() {
-    const f = [LOOK_SEG[this.look], SEGMENT[this.fmt]].filter(Boolean).join(':');
+    const f = [LOOK_SEG[this.look], FINISH_SEG[this.finish], SEGMENT[this.fmt]].filter(Boolean).join(':');
     // Line breaks go after slashes, not inside a filter.
-    document.getElementById('url-so-far')!.innerHTML = `https://img.example.com/3c1f6c18…/${f ? `filters:${f}/` : ''}root:photos/print.jpg`.replace(/\/(?!\/)/g, '/<wbr>');
+    document.getElementById('url-so-far')!.innerHTML = `https://img.example.com/3c1f6c18…/${CROP_SEG[this.crop]}/${f ? `filters:${f}/` : ''}root:photos/print.jpg`.replace(/\/(?!\/)/g, '/<wbr>');
   }
 
   private setCurrent(id: string) {
@@ -229,7 +306,7 @@ export class UI {
     fill();
   }
 
-  update(out: WorldOut, t: number, v: number, docProgress: number) {
+  update(out: WorldOut, t: number, v: number, docProgress: number, dt = 0.016, mouse: [number, number] | null = null) {
     // The depth gauge.
     this.depthEl.textContent = metres(out.depth);
     if (out.zone !== this.lastZone) {
@@ -246,6 +323,10 @@ export class UI {
     if (!this.lookShown && out.s2On > 0.6) {
       this.lookShown = true;
       stamp(this.lookTag, LOOK_SEG[this.look], `${LOOK_NAME[this.look]} for now`);
+    }
+    if (!this.cropShown && out.reef && out.reef.near[1] > 0.6) {
+      this.cropShown = true;
+      stamp(this.cropTag, CROP_SEG[this.crop], `${CROP_NAME[this.crop]} for now`);
     }
     if (out.tagsOn > 0.01) {
       TAG_KEYS.forEach((k, i) => {
@@ -266,7 +347,8 @@ export class UI {
       if (onScreen) c.style.transform = `rotate(${sway.toFixed(2)}deg)`;
       const path = this.paths[i];
       if (!path) return;
-      const zoneOn = this.cardIn2[i] ? out.s2On : out.s1On;
+      const z = this.cardZone[i];
+      const zoneOn = z === 's1' ? out.s1On : z === 's2' ? out.s2On : z === 's3b' && out.zone === 's3b' ? 1 : 0;
       const cx = out.chainX(r.top - 26);
       if (!onScreen || zoneOn < 0.5 || cx === null || cx < r.right) { path.setAttribute('d', ''); return; }
       const x0 = r.right - 22, y0 = r.top + 6, x1 = cx, y1 = r.top - 26;
@@ -288,6 +370,8 @@ export class UI {
       this.curtains.classList.toggle('on', !!out.z2 && out.s2On > 0.6);
       pin(this.silks, out.z2);
     }
+
+    this.reefUI.update(out, t, dt, mouse);
 
     // The button on the tangled fish, unless a card has scrolled over the fish or the button.
     const f = out.fish;

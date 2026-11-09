@@ -1,20 +1,21 @@
 import manifest from '../../preview/dive/media/manifest.json';
 
 export type Box = [number, number, number, number];
-export interface Clip { w: number; h: number; duration: number; box: Box; boxEnd: Box; crop: [number, number]; print?: number[][] }
+export interface Clip { w: number; h: number; duration: number; box: Box; boxEnd: Box; crop: [number, number]; print?: number[][]; claw?: number[][] }
 export interface Plate { w: number; h: number; widths: number[]; waterline?: number; thumbhash: string }
 
 export const media = manifest as unknown as {
-  plates: Record<'z0' | 'z0p' | 'z1' | 'z1p' | 'z2' | 'z2p' | 'z3' | 'z3p', Plate>;
+  plates: Record<'z0' | 'z0p' | 'z1' | 'z1p' | 'z2' | 'z2p' | 'z3' | 'z3p' | 'z3_2' | 'z3_2p' | 'z3_3' | 'z3_3p' | 'z3_4' | 'z3_4p' | 'z3_4c' | 'z3b' | 'z3bp', Plate>;
   snapChain: { w: number; h: number; chainX: number; chainTop: number; chainBottom: number; linkLen: number };
   snapStand: { w: number; h: number };
   print: { w: number; h: number };
   fish: { w: number; h: number; rects: Record<string, [number, number, number, number]> };
   seagrass: { w: number; h: number };
   kelp: { w: number; h: number };
+  coral: { w: number; h: number };
   t1: { frames: number; fps: number; d: [number, number]; p: [number, number]; bytes: { d: number; p: number } };
   t2: { frames: number; fps: number; d: [number, number]; p: [number, number]; bytes: { d: number; p: number } };
-  clips: Record<'m01' | 'm02' | 'm03', Clip>;
+  clips: Record<'m01' | 'm02' | 'm03' | 'm04', Clip>;
 };
 
 const base = new URL('media/', document.baseURI);

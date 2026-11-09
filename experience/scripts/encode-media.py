@@ -3,7 +3,7 @@
 (fetch them first with scripts/fetch-sources.sh) into ../preview/dive/media,
 and write media/manifest.json with the numbers the page needs.
 
-usage: python3 scripts/encode-media.py [images] [video] [sequence] [snap]
+usage: python3 scripts/encode-media.py [images] [reef] [video] [sequence] [snap] [snappost] [scuttle]
        (no argument runs every step)
 needs: ffmpeg, numpy, scipy, Pillow with AVIF support
 """
@@ -86,7 +86,40 @@ def bbox(alpha, thr=0.5, pad=0):
 
 # ---------------------------------------------------------------- images
 # Phone windows of the 21:9 masters, as shares of their width (production-log.md).
-PHONE = {'z1': (0.62, 0.86), 'z2': (0.52, 0.76), 'z3': (0.68, 0.92)}
+PHONE = {'z1': (0.62, 0.86), 'z2': (0.52, 0.76), 'z3': (0.68, 0.92),
+         'z3_2': (0.55, 0.79), 'z3_3': (0.22, 0.46), 'z3_4': (0.20, 0.44), 'z3b': (0.55, 0.79)}
+ICON_BOXES = {'icon-chain': (220, 252, 1368, 1428), 'icon-fish': (1484, 252, 2632, 1428),
+              'icon-reel': (2740, 252, 3900, 1428), 'icon-drops': (220, 1520, 1368, 2720),
+              'icon-crop': (1484, 1520, 2632, 2716), 'icon-glass': (2740, 1520, 3904, 2720),
+              'icon-seal': (220, 2772, 1368, 3996), 'icon-lantern': (1484, 2760, 2632, 3996),
+              'icon-gear': (2740, 2760, 3904, 3996)}
+
+
+def icon(sheet, name):
+    """One round patch from the I01b sheet, on its white ground, as a 192 px sprite."""
+    c = np.asarray(sheet.crop(ICON_BOXES[name])).astype(np.float32)
+    lum = c.mean(axis=2); chroma = c.max(axis=2) - c.min(axis=2)
+    m = ~((lum > 222) & (chroma < 14))
+    m = ndimage.binary_opening(m, structure=np.ones((7, 7)))
+    lab, k = ndimage.label(m)
+    m = lab == (1 + int(np.argmax(ndimage.sum(m, lab, range(1, k + 1)))))
+    m = ndimage.binary_fill_holes(m)
+    a = feather(m, 2)
+    bx0, by0, bx1, by1 = bbox(a, pad=4)
+    spr = rgba(c, a, bg=(244, 244, 242)).crop((bx0, by0, bx1, by1)).resize((192, 192), Image.LANCZOS)
+    return save_pair(spr, name, 62, 84)
+
+
+def cutout(name, key, h, blur=0):
+    """A foreground cutout (already RGBA from Higgsfield), trimmed and scaled to h px tall."""
+    im = Image.open(src(name)).convert('RGBA')
+    a = np.asarray(im)[..., 3]
+    ys, xs = np.where(a > 8)
+    im = im.crop((xs.min(), ys.min(), xs.max() + 1, ys.max() + 1))
+    im = im.resize((round(im.size[0] * h / im.size[1]), h), Image.LANCZOS)
+    if blur:
+        im = im.filter(ImageFilter.GaussianBlur(blur))
+    man[key] = {'w': im.size[0], 'h': im.size[1], 'bytes': save_pair(im, key, 58, 80)}
 
 
 def images():
@@ -226,32 +259,42 @@ def images():
 
     # Card icons: round patches from the I01b sheet (crop-rect boxes in the log).
     ic = Image.open(src('icons.png')).convert('RGB')
-    boxes = {'icon-chain': (220, 252, 1368, 1428), 'icon-fish': (1484, 252, 2632, 1428),
-             'icon-reel': (2740, 252, 3900, 1428), 'icon-drops': (220, 1520, 1368, 2720),
-             'icon-crop': (1484, 1520, 2632, 2716), 'icon-gear': (2740, 2760, 3904, 3996)}
     man['icons'] = {}
-    for name, b in boxes.items():
-        c = np.asarray(ic.crop(b)).astype(np.float32)
-        lum = c.mean(axis=2); chroma = c.max(axis=2) - c.min(axis=2)
-        m = ~((lum > 222) & (chroma < 14))
-        m = ndimage.binary_opening(m, structure=np.ones((7, 7)))
-        lab, k = ndimage.label(m)
-        m = lab == (1 + int(np.argmax(ndimage.sum(m, lab, range(1, k + 1)))))
-        m = ndimage.binary_fill_holes(m)
-        a = feather(m, 2)
-        bx0, by0, bx1, by1 = bbox(a, pad=4)
-        spr = rgba(c, a, bg=(244, 244, 242)).crop((bx0, by0, bx1, by1)).resize((192, 192), Image.LANCZOS)
-        man['icons'][name] = save_pair(spr, name, 62, 84)
+    for name in ('icon-chain', 'icon-fish', 'icon-reel', 'icon-drops', 'icon-crop', 'icon-gear'):
+        man['icons'][name] = icon(ic, name)
 
     # Foreground cutouts (already RGBA from Higgsfield).
     for name, key, h in (('cut-seagrass.png', 'seagrass', 900), ('cut-rope-buoy.png', 'rope-buoy', 640), ('cut-kelp.png', 'kelp', 1100)):
-        im = Image.open(src(name)).convert('RGBA')
-        a = np.asarray(im)[..., 3]
-        ys, xs = np.where(a > 8)
-        im = im.crop((xs.min(), ys.min(), xs.max() + 1, ys.max() + 1))
-        im = im.resize((round(im.size[0] * h / im.size[1]), h), Image.LANCZOS)
-        man[key] = {'w': im.size[0], 'h': im.size[1], 'bytes': save_pair(im, key, 58, 80)}
+        cutout(name, key, h)
     print('images done')
+
+
+def reef():
+    """The reef panorama (four stations and the clean can plate), the Clam
+    Studio, their phone crops for the still page, the foreground coral that
+    hides the joins between panels, and the reef's card icons."""
+    plates = man['plates']
+    for key, name in (('z3_2', 'z3-2-plate.png'), ('z3_3', 'z3-3-plate.png'), ('z3_4', 'z3-4-plate.png'),
+                      ('z3_4c', 'z3-4-clean.png'), ('z3b', 'z3b-plate.png')):
+        im = Image.open(src(name)).convert('RGB')
+        files = {}
+        for w in (1600, 2400, 3200):
+            files[w] = save_pair(resize_w(im, w), f'{key}-{w}')
+        resize_w(im, 64).save(out(f'{key}-tiny.png'))  # read by thumbhash.mjs, then deleted
+        plates[key] = {'w': im.size[0], 'h': im.size[1], 'widths': [1600, 2400, 3200], 'bytes': files}
+        print(key, files)
+        if key in PHONE:
+            a, b = PHONE[key]
+            ph = im.crop((round(a * im.size[0]), 0, round(b * im.size[0]), im.size[1]))
+            pfiles = {1080: save_pair(resize_w(ph, 1080), f'{key}p-1080')}
+            resize_w(ph, 36).save(out(f'{key}p-tiny.png'))
+            plates[key + 'p'] = {'w': ph.size[0], 'h': ph.size[1], 'widths': [1080], 'bytes': pfiles}
+            print(key + 'p', pfiles)
+    cutout('cut-coral.png', 'coral', 900, blur=1.6)
+    ic = Image.open(src('icons.png')).convert('RGB')
+    for name in ('icon-glass', 'icon-seal', 'icon-lantern'):
+        man['icons'][name] = icon(ic, name)
+    print('reef done')
 
 
 # ---------------------------------------------------------------- video
@@ -277,9 +320,10 @@ def video():
 
 
 def sequence():
-    """The transitions as image sequences for scrubbing: 96 frames each, for
-    desktop and for phones. The phone window pans across the frame so it
-    starts and ends where the neighbouring phone plates are cropped."""
+    """The transitions as image sequences for scrubbing: 72 frames each (9 per
+    second of the 8 s clip), for desktop and for phones. The phone window pans
+    across the frame so it starts and ends where the neighbouring phone plates
+    are cropped."""
     seqs = {'t1': ('t1-plunge.mp4', 0.5, sum(PHONE['z1']) / 2),
             't2': ('t2-into-reef.mp4', sum(PHONE['z2']) / 2, sum(PHONE['z3']) / 2)}
     for key, (name, c0, c1) in seqs.items():
@@ -287,8 +331,10 @@ def sequence():
         os.makedirs(tmp, exist_ok=True)
         for f in os.listdir(tmp):
             os.remove(os.path.join(tmp, f))
-        ff('-i', src(name), '-vf', 'fps=12', os.path.join(tmp, '%03d.png'))
-        frames = sorted(f for f in os.listdir(tmp) if f.endswith('.png'))[:96]
+        for old in os.listdir(os.path.join(OUT, key)) if os.path.isdir(os.path.join(OUT, key)) else []:
+            os.remove(os.path.join(OUT, key, old))
+        ff('-i', src(name), '-vf', 'fps=9', os.path.join(tmp, '%03d.png'))
+        frames = sorted(f for f in os.listdir(tmp) if f.endswith('.png'))[:72]
         total = {'d': 0, 'p': 0}
         for i, f in enumerate(frames):
             im = Image.open(os.path.join(tmp, f)).convert('RGB')
@@ -300,7 +346,7 @@ def sequence():
             p.save(out(f'{key}/p-{i:03d}.avif'), quality=50, speed=6)
             total['d'] += os.path.getsize(out(f'{key}/d-{i:03d}.avif'))
             total['p'] += os.path.getsize(out(f'{key}/p-{i:03d}.avif'))
-        man[key] = {'frames': len(frames), 'fps': 12, 'd': [1600, 677], 'p': [528, 936], 'bytes': total}
+        man[key] = {'frames': len(frames), 'fps': 9, 'd': [1600, 677], 'p': [528, 936], 'bytes': total}
         print(key, man[key])
 
 
@@ -331,11 +377,13 @@ def snap():
         print(key, man['clips'][key])
 
 
-def snappost():
+def snappost(only=None):
     """Crop each Snap clip sideways to the area he uses, record his box in the
     first and last frame (as shares of the cropped frame), and save a still of
     the first wave frame for reduced motion."""
     for key, c in man['clips'].items():
+        if only and key not in only:
+            continue
         o = out(f'snap-{key}.mp4')
         tmp = os.path.join(ROOT, '.cache', f'{key}-frames')
         os.makedirs(tmp, exist_ok=True)
@@ -378,7 +426,37 @@ def snappost():
             man['snapStand'] = {'w': st.size[0], 'h': st.size[1], 'bytes': save_pair(st, 'snap-stand', 62, 84)}
 
 
-steps = sys.argv[1:] or ['images', 'video', 'sequence', 'snap', 'snappost']
+def scuttle():
+    """M04, Snap's sideways walk on the spot, for the reef. Only this clip is
+    touched, so the other clips' entries (and M02's print track) stay as they are."""
+    o = out('snap-m04.mp4')
+    subprocess.run(['python3', MATTE, src('m04-scuttle.mp4'), src('m04-scuttle-cut.mp4'), o,
+                    '--width', '960', '--start', '0'], check=True)
+    dur = float(subprocess.check_output(['ffprobe', '-v', 'error', '-show_entries', 'format=duration',
+                                         '-of', 'default=nw=1:nk=1', o]))
+    man['clips']['m04'] = {'duration': round(dur, 3)}
+    snappost(only={'m04'})
+    # His right claw through the cycle (rightmost matte column between 50 and
+    # 80 percent of the height), as shares of the cropped frame: the reef chain
+    # hangs from it.
+    c = man['clips']['m04']
+    tmp = os.path.join(ROOT, '.cache', 'm04-track')
+    os.makedirs(tmp, exist_ok=True)
+    for f in os.listdir(tmp):
+        os.remove(os.path.join(tmp, f))
+    ff('-i', o, '-vf', 'fps=12', os.path.join(tmp, '%03d.png'))
+    track = []
+    for i, fn in enumerate(sorted(os.listdir(tmp))):
+        s = np.asarray(Image.open(os.path.join(tmp, fn)).convert('L')).astype(np.float32) / 255
+        a = s[c['h']:2 * c['h']]
+        band = a[int(0.5 * c['h']):int(0.8 * c['h'])]
+        x1 = int(np.nonzero((band > 0.5).any(axis=0))[0].max())
+        rows = np.nonzero(band[:, max(0, x1 - 30):x1 + 1].max(axis=1) > 0.5)[0]
+        track.append([round(i / 12, 3), round((x1 - 14) / c['w'], 4), round(float(rows.mean() / c['h'] + 0.5), 4)])
+    c['claw'] = track
+
+
+steps = sys.argv[1:] or ['images', 'reef', 'video', 'sequence', 'snap', 'snappost', 'scuttle']
 for st in steps:
     globals()[st]()
     json.dump(man, open(MAN_PATH, 'w'), indent=1)
