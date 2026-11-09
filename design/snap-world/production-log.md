@@ -365,11 +365,47 @@ Still open from the generation phase:
 - Earlier leftovers: retouch KA01's smile to gold, and cut the F01 fish
   with crabcrop's `removebg`.
 
+## 3D test (Tripo)
+
+Tripo turns images into 3D models. We tested it on Snap and one fish, to see
+whether 3D could do what the film can't: turn him round for real, and tumble
+him through the leap.
+
+Setup: `tripo-cli` 0.11.2, VAST's official CLI. The API key is a network
+secret on this repo's cloud environment, which the proxy adds to requests to
+`openapi.tripo3d.ai`; the CLI only holds a placeholder. Results download from
+`openapi-dl.data.tripo3d.com`, also allowed there, and the environment's
+setup script installs and configures the CLI in every new session. API
+credits come from the developer wallet at developers.tripo3d.ai, which is
+separate from the tripo3d.ai app's credits. The test used 100 of them.
+
+| Model | Input | Settings | Task | Credits | Result |
+| --- | --- | --- | --- | --- | --- |
+| Snap | C02's front, left and back views (`tools/turnaround-views.py`) | H3.1 (`v3.1-20260211`) multiview, texture and geometry detailed | `daeadb68-d5a5-449f-b038-05f43a0f092b` | 60 | 1.9 million triangles, 4K texture, 58 MB. Matches the turnaround from every side, back spiral and raised claw included; the stitches come out as real relief |
+| Pufferfish (the WebP fish) | Its crop from the F01 sheet, on white | H3.1 image-to-model, texture detailed | `48f3037f-ba89-45e9-a416-bdaded162d62` | 40 | 1.4 million triangles, 4K texture, 44 MB. Its far side and second eye are invented and convincing; seen head-on the mouth looks a little like a snout |
+
+For the web, `gltf-transform optimize model.glb out.glb --compress quantize
+--texture-compress webp --texture-size 2048 --simplify-ratio 0.025
+--simplify-error 0.01` brings Snap to 47,000 triangles and 1.3 MB (the
+pufferfish, at 0.03, to 43,000 and 1.1 MB) with almost no visible change,
+because the stitches live in the texture. With `--compress meshopt` (the
+dive bundles the decoder) Snap is 0.8 MB. Under the reef's light, beside the
+filmed Snap, the model holds up; its light is a little flatter than the
+film's.
+
+The model is a statue in the turnaround pose. To hug the chain he needs a
+rig (Tripo offers six- and eight-legged skeletons; `tripo anim rig-check`
+first) or a second model in the riding pose.
+
 ## Next
 
 The shipwreck (S4): T03 into the wreck, the cabin, sealed URLs and
 provenance, and Choice 5, the seal. Its plates, loop and transition are
 made.
+
+Optional, after the Tripo test: a 3D Snap in the riding pose for his spin
+round the chain and the leap, and the six format fish as 3D schools (about
+40 credits a species).
 
 ## What we learned
 
@@ -444,3 +480,9 @@ made.
   yarn runs a little more saturated than the start frame.
 - On a taut chain running the full height of the frame, Kling kept the
   chain still: it swayed about 1 percent of the frame width and never slid.
+- Tripo's API spends a developer wallet (developers.tripo3d.ai/billing),
+  not the tripo3d.ai app's credits: with credits only in the app, the API
+  answers "Insufficient credits" (code 2010).
+- Tripo H3.1 with detailed geometry models crochet stitches as real relief,
+  but the texture carries most of the look, so the mesh survives a 97
+  percent reduction for the web.
