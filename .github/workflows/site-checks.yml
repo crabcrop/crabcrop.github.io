@@ -106,15 +106,37 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
+      contents: read
       pages: write
       id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
-    # One deploy at a time, and never cancel one half way.
+    # One deploy at a time, and never cancel one half way. The group
+    # orders deploys by when their build finished, not by commit, so
+    # two quick pushes could deploy the older site last. A deploy whose
+    # commit is no longer the head of main is skipped instead: the run
+    # for the newer commit deploys the newer site, or keeps the old one
+    # up if its own checks fail.
     concurrency:
       group: pages
       cancel-in-progress: false
     steps:
+      - name: Deploy only the head of main
+        id: head
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+        run: |
+          head="$(gh api "repos/$REPO/commits/main" --jq .sha)"
+          test -n "$head"
+          if [ "$head" = "$SHA" ]; then
+            echo "current=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "main is at $head now, so the run for that commit deploys; skipping $SHA"
+            echo "current=false" >> "$GITHUB_OUTPUT"
+          fi
       - id: deployment
+        if: steps.head.outputs.current == 'true'
         uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
