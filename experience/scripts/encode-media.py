@@ -3,9 +3,9 @@
 (fetch them first with scripts/fetch-sources.sh) into ../preview/dive/media,
 and write media/manifest.json with the numbers the page needs.
 
-usage: python3 scripts/encode-media.py [images] [reef] [video] [sequence] [snap] [snappost] [scuttle] [claw] [ride]
+usage: python3 scripts/encode-media.py [images] [reef] [video] [sequence] [snap] [snappost] [scuttle] [claw] [ride] [snap3d]
        (no argument runs every step)
-needs: ffmpeg, numpy, scipy, Pillow with AVIF support
+needs: ffmpeg, numpy, scipy, Pillow with AVIF support; for snap3d also npx (gltf-transform) and trimesh
 """
 import json, os, subprocess, sys
 import numpy as np
@@ -122,9 +122,10 @@ def cutout(name, key, h, blur=0):
     man[key] = {'w': im.size[0], 'h': im.size[1], 'bytes': save_pair(im, key, 58, 80)}
 
 
-def chain_sprite():
+def chain_sprite(width=640):
     """Snap hugging the chain: pose 2 of the C03 sheet (top middle cell), on
-    white. Returns the 640 px sprite, its chain numbers, and its box in the cell."""
+    white. Returns the sprite (width px wide, or the cell's own size with
+    width=None), its chain numbers, and its box in the cell."""
     sheet = Image.open(src('snap-poses.png')).convert('RGB')
     W, H = sheet.size
     cell = np.asarray(sheet.crop((round(W / 3), 0, round(2 * W / 3), round(H / 3)))).astype(np.float32)
@@ -163,7 +164,8 @@ def chain_sprite():
     chain_rows = np.nonzero(iron.any(axis=1))[0]
     chain_x = float(np.nonzero(iron)[1].mean())
     spr = rgba(cell, a, bg=(248, 248, 250)).crop((x0, y0, x1, y1))
-    spr = resize_w(spr, 640)
+    if width:
+        spr = resize_w(spr, width)
     meta = {'w': spr.size[0], 'h': spr.size[1],
             'chainX': round((chain_x - x0) / (x1 - x0), 4),
             'linkLen': 0.134,
@@ -662,7 +664,74 @@ def ride():
                         'eyeR': round(r0 / cw, 4)})
     print('ride', {k2: v for k2, v in man['ride'].items() if k2 != 'clips'})
 
-steps = sys.argv[1:] or ['images', 'reef', 'video', 'sequence', 'snap', 'snappost', 'scuttle', 'claw', 'ride']
+
+def snap3d():
+    """Snap in 3D, for his spin round the chain: Tripo's model of the pose-2
+    painting (the one his film starts on), cut down for the web (1024 px WebP
+    texture, quantized, so no decoder is needed) and shipped as base64 text,
+    since the preview host serves no .glb. Records how it lines up with the
+    pose-2 sprite, in sprite heights from the sprite's chain point: seen from
+    its front it lies over the sprite, and it turns about the chain it holds."""
+    import base64, trimesh
+    from PIL import ImageDraw
+    tmp = os.path.join(ROOT, '.cache', 'snap-3d')
+    os.makedirs(tmp, exist_ok=True)
+    web, flat = os.path.join(tmp, 'web.glb'), os.path.join(tmp, 'flat.glb')
+    common = ['--texture-size', '1024', '--simplify-ratio', '0.012', '--simplify-error', '0.01']
+    gt = ['npx', '--yes', '@gltf-transform/cli@4', 'optimize', src('snap-3d-tripo.glb')]
+    subprocess.run(gt + [web, '--compress', 'quantize', '--texture-compress', 'webp'] + common, check=True, capture_output=True)
+    # The same cut with plain float positions, to measure (trimesh reads no quantized meshes).
+    subprocess.run(gt + [flat, '--compress', 'false', '--texture-compress', 'false'] + common, check=True, capture_output=True)
+    mesh = trimesh.load(flat, force='mesh')
+    V = mesh.vertices
+    col = mesh.visual.to_color().vertex_colors[:, :3].astype(np.float32)
+    r, g = col[:, 0], col[:, 1]
+    rust = (r - g > 15) & (r - g < 75) & (col.mean(axis=1) < 125) & (col[:, 2] < g + 6)
+    spr, meta, _ = chain_sprite(width=None)
+    sa = np.asarray(spr)[..., 3] > 128
+    SH, SW = sa.shape
+    ys, xs = np.nonzero(sa)
+    sx0, sx1, sy0, sy1 = xs.min(), xs.max(), ys.min(), ys.max()
+    # Which side of the model faces the painting: the view whose silhouette best covers the sprite's.
+    views = {'+x': ([0, 0, -1.0], -np.pi / 2), '-x': ([0, 0, 1.0], np.pi / 2), '+z': ([1.0, 0, 0], 0.0), '-z': ([-1.0, 0, 0], np.pi)}
+    up = np.array([0, 1.0, 0])
+    best = None
+    for name, (right, rot) in views.items():
+        right = np.array(right)
+        P = np.stack([V @ right, V @ up], axis=1)
+        px0, px1, py0, py1 = P[:, 0].min(), P[:, 0].max(), P[:, 1].min(), P[:, 1].max()
+        k = ((sy1 - sy0) / (py1 - py0) + (sx1 - sx0) / (px1 - px0)) / 2      # sprite px per model unit
+        img = Image.new('L', (SW, SH), 0)
+        draw = ImageDraw.Draw(img)
+        Q = np.stack([sx0 + (P[:, 0] - px0) * k, sy0 + (py1 - P[:, 1]) * k], axis=1)
+        for f in mesh.faces:
+            draw.polygon([tuple(Q[i]) for i in f], fill=255)
+        m = np.asarray(img) > 128
+        iou = (m & sa).sum() / max(1, (m | sa).sum())
+        if best is None or iou > best[0]:
+            best = (iou, name, right, rot, k, px0, py1)
+    iou, name, right, rot, k, px0, py1 = best
+    # The chain it holds: rust-coloured vertices in the sprite's chain column.
+    near = rust & (np.abs(sx0 + (V @ right - px0) * k - meta['chainX'] * SW) < 0.05 * SW)
+    toward = np.cross(right, up)                                    # toward the viewer
+    C = V[near]
+    ax_right, ax_toward = float(np.median(C @ right)), float(np.median(C @ toward))
+    lo, hi = np.percentile(C @ up, [1, 99])
+    up0 = py1 - (meta['chainTop'] * SH - sy0) / k                    # the sprite's chain point, in model units
+    S = k / SH                                                       # sprite heights per model unit
+    b64 = base64.b64encode(open(web, 'rb').read())
+    open(out('snap-3d-glb.txt'), 'wb').write(b64)
+    man['snap3d'] = {
+        'view': name, 'iou': round(float(iou), 3), 'rotY': round(float(rot), 4), 'scale': round(float(S), 4),
+        # where the model's chain point goes, in the turned frame (x right, y up, z toward the viewer)
+        'place': [round(-ax_right * S, 4), round(-up0 * S, 4), round(-ax_toward * S, 4)],
+        # the chain in its claws, from the chain point: up above it, down below it
+        'chain': [round(float(hi - up0) * S, 4), round(float(lo - up0) * S, 4)],
+        'bytes': len(b64),
+    }
+    print('snap3d', man['snap3d'])
+
+steps = sys.argv[1:] or ['images', 'reef', 'video', 'sequence', 'snap', 'snappost', 'scuttle', 'claw', 'ride', 'snap3d']
 for st in steps:
     globals()[st]()
     json.dump(man, open(MAN_PATH + '.tmp', 'w'), indent=1)   # written whole or not at all

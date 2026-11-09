@@ -28,6 +28,13 @@ export const media = manifest as unknown as {
     w: number; h: number; fps: number; origin: [number, number]; scale: number; held: [number, number]; eyeR: number;
     clips: Record<'m10' | 'm11' | 'm12', { duration: number; bytes: number; track: number[][]; eyes: number[][] }>;
   };
+  /**
+   * Snap in 3D for his spin (snap-3d-glb.txt). rotY turns the model to face
+   * the viewer; scale is sprite heights per model unit; place puts its chain
+   * point at the origin (sprite heights, y up, z toward the viewer); chain is
+   * how far the chain in his claws reaches above and below that point.
+   */
+  snap3d: { view: string; iou: number; rotY: number; scale: number; place: [number, number, number]; chain: [number, number]; bytes: number };
 };
 
 const base = new URL('media/', document.baseURI);

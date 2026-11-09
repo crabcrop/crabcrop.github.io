@@ -359,6 +359,12 @@ The page is built in `experience/` and previewed from `preview/dive/`.
   rides (its weight stretched the long run from the surface and piled the
   spare length into a loop above his claw), and the links nearest his
   holds overlap the chain in his film, so no gap opens below his legs.
+- **Snap's 3D spin.** When he spins round the chain (a fast flick, now and
+  then when idle, or a click), the film fades out and a Tripo model of the
+  pose-2 painting turns a full circle about the chain in his claw, then the
+  film fades back in from its first frame, which is the model's pose. The
+  model is lit and graded like the film and loads after it; until it has
+  loaded, the old flat flip stands in.
 
 Still open from the generation phase:
 
@@ -397,15 +403,26 @@ The model is a statue in the turnaround pose. To hug the chain he needs a
 rig (Tripo offers six- and eight-legged skeletons; `tripo anim rig-check`
 first) or a second model in the riding pose.
 
+For his spin we made that second model, from the full-resolution pose-2
+sprite (Snap with the stretch of chain in his claws) on white: H3.1
+image-to-model, texture and geometry detailed, `orientation=align_image`,
+task `5fc3a0ea-9864-4f08-99b7-ec61410ce62a`, 60 credits (160 Tripo credits
+in all). Seen from its +x side it covers the sprite with an overlap of 0.82,
+and the chain it holds is a clean vertical column, so it turns about that.
+`encode-media.py snap3d` cuts it to about 23,000 triangles and a 1024 px
+texture (540 KB, shipped as 720 KB of base64 text because the preview host
+serves no .glb) and records how it lines up with the sprite. Lit by a soft
+sky and a key from the upper left, it matches the painting's colour within
+a few percent.
+
 ## Next
 
 The shipwreck (S4): T03 into the wreck, the cabin, sealed URLs and
 provenance, and Choice 5, the seal. Its plates, loop and transition are
 made.
 
-Optional, after the Tripo test: a 3D Snap in the riding pose for his spin
-round the chain and the leap, and the six format fish as 3D schools (about
-40 credits a species).
+Optional: the 3D Snap could also tumble through the leap, and the six
+format fish could become 3D schools (about 40 Tripo credits a species).
 
 ## What we learned
 

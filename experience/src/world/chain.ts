@@ -28,6 +28,7 @@ export class Chain {
   linkLen = 30;
   /** Shifts the links along the rope; driven by the plunge so Snap rides down. */
   slide = 0;
+  private cover: number | null = null;
 
   constructor(stage: Stage) {
     const geo = new THREE.TorusGeometry(1, 0.36, 8, 22);
@@ -121,7 +122,10 @@ export class Chain {
     sway: number; mouse: [number, number] | null; visible: boolean; linkLen: number;
     /** Rope length above the top hold, as a share of the straight distance: a little over 1 hangs loose, under 1 pulls taut. */
     slack?: number;
+    /** How far below the top hold the chain in Snap's claws reaches, px, when it stops short of the bottom hold. */
+    cover?: number;
   }) {
+    this.cover = o.cover ?? null;
     this.mesh.visible = o.visible;
     this.linkLen = o.linkLen;
     const grabbed = this.holds.length !== o.holds.length;
@@ -225,7 +229,7 @@ export class Chain {
     // they always reach the ends of the painted chain and leave no gap.
     const [h0, h1] = this.holds;
     const hideA = h0 && h1 ? arc[h0.i] + pitch * 0.5 : 1e9;
-    const hideB = h0 && h1 ? arc[h1.i] - pitch * 0.5 : -1e9;
+    const hideB = h0 && h1 ? (this.cover == null ? arc[h1.i] : Math.min(arc[h1.i], arc[h0.i] + this.cover)) - pitch * 0.5 : -1e9;
     // Count links from Snap's top hold when there is one, so the links next
     // to him stay put while the chain pays out above.
     const origin = (h0 ? arc[h0.i] : 0) + this.slide;

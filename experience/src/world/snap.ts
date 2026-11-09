@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { media, makeVideo, whenPlayable, loadPicture, type Clip } from '../media';
 import { quad, place, videoTexture, imageTexture, type Stage } from './stage';
 import type { Hold } from './chain';
-import { Rider } from './rider';
+import { Rider, type RideOut } from './rider';
 import { Sparkles } from './sparkle';
 import { clamp } from '../scroll';
 import { LOOK, LOOK_GLSL } from './look';
@@ -112,7 +112,7 @@ export class Snap {
   private leap: Flight | null = null;
   private visitNow: Visit | null = null;
   /** Holds on the chain while he rides it. */
-  holds: { top: [number, number]; bottom: [number, number] } | null = null;
+  holds: RideOut | null = null;
   /** His left claw on screen while he walks the reef: the chain hangs from it. */
   claw: [number, number] | null = null;
   /** The moment he last caught the chain, for the jolt and the splash. */

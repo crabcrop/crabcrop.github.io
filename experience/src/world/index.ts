@@ -380,7 +380,7 @@ export class World {
     }
     const shift = -d12 * DESCENT_LINKS;
     this.chain.slide = (-p1 * 26 + shift - q2 * 20) * this.chain.pitch;
-    this.chain.update(dt, t, { ax, ay, len: H * 1.1, tail: walking ? H * 0.08 : H * 0.75, holds, sway: sc.v, mouse: this.mouse, visible: true, linkLen, slack: walking ? 0.985 : 1.002 });
+    this.chain.update(dt, t, { ax, ay, len: H * 1.1, tail: walking ? H * 0.08 : H * 0.75, holds, sway: sc.v, mouse: this.mouse, visible: true, linkLen, slack: walking ? 0.985 : 1.002, cover: ride?.cover });
 
     // Snap.
     const feet = z0 ? onPlate(z0, L.feet[0], L.feet[1]) : [W * 0.88, H * 0.36];

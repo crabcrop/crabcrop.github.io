@@ -1,6 +1,6 @@
 {
   "base": "https://d8j0ntlcm91z4.cloudfront.net/user_3LUWrZdQQHs5RCQGXWn1K4r2h7J/",
-  "note": "Approved Higgsfield outputs used by the dive. Job IDs match design/snap-world/production-log.md.",
+  "note": "Approved Higgsfield outputs used by the dive. Job IDs match design/snap-world/production-log.md. Entries with tripo_task come from Tripo through the tripo CLI (needs its API key).",
   "files": {
     "z0-plate.png": {
       "job": "10c47555-fe77-4156-b2cf-2eb52330742c",
@@ -165,6 +165,10 @@
     "m12-ride-peek-cut.mp4": {
       "job": "2700b7ce-5343-4603-a313-02edb2824b88",
       "file": "hf_20261109_015357_2700b7ce-5343-4603-a313-02edb2824b88.mp4"
+    },
+    "snap-3d-tripo.glb": {
+      "tripo_task": "5fc3a0ea-9864-4f08-99b7-ec61410ce62a",
+      "file": "model.glb"
     }
   }
 }
