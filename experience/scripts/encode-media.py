@@ -665,6 +665,52 @@ def ride():
     print('ride', {k2: v for k2, v in man['ride'].items() if k2 != 'clips'})
 
 
+
+def split_glb_texture(glb):
+    """A one-texture GLB as (the GLB without its image, the image's bytes):
+    drops the image, its texture and sampler and the material's reference to
+    it, and repacks the binary chunk without the image's bytes."""
+    import struct
+    jlen = struct.unpack_from('<I', glb, 12)[0]
+    gj = json.loads(glb[20:20 + jlen])
+    blen = struct.unpack_from('<I', glb, 20 + jlen)[0]
+    bin_ = glb[28 + jlen:28 + jlen + blen]
+    assert len(gj.get('images', [])) == 1, 'expected one image'
+    iv = gj['images'][0]['bufferView']
+    view = gj['bufferViews'][iv]
+    image = bin_[view.get('byteOffset', 0):view.get('byteOffset', 0) + view['byteLength']]
+    for key in ('images', 'textures', 'samplers'):
+        gj.pop(key, None)
+    for m in gj.get('materials', []):
+        m.get('pbrMetallicRoughness', {}).pop('baseColorTexture', None)
+    for key in ('extensionsUsed', 'extensionsRequired'):
+        if key in gj:
+            gj[key] = [e for e in gj[key] if e != 'EXT_texture_webp']
+            if not gj[key]:
+                gj.pop(key)
+    # Repack the remaining views, 4-byte aligned, and renumber them.
+    keep = [i for i in range(len(gj['bufferViews'])) if i != iv]
+    renum = {old: new for new, old in enumerate(keep)}
+    packed, views = bytearray(), []
+    for i in keep:
+        v = dict(gj['bufferViews'][i])
+        chunk = bin_[v.get('byteOffset', 0):v.get('byteOffset', 0) + v['byteLength']]
+        packed += b'\0' * (-len(packed) % 4)
+        v['byteOffset'] = len(packed)
+        packed += chunk
+        views.append(v)
+    packed += b'\0' * (-len(packed) % 4)
+    gj['bufferViews'] = views
+    for a in gj.get('accessors', []):
+        if 'bufferView' in a:
+            a['bufferView'] = renum[a['bufferView']]
+    gj['buffers'] = [{'byteLength': len(packed)}]
+    js = json.dumps(gj, separators=(',', ':')).encode()
+    js += b' ' * (-len(js) % 4)
+    total = 12 + 8 + len(js) + 8 + len(packed)
+    shape = struct.pack('<III', 0x46546C67, 2, total) + struct.pack('<II', len(js), 0x4E4F534A) + js + struct.pack('<II', len(packed), 0x004E4942) + bytes(packed)
+    return shape, image
+
 def snap3d():
     """Snap in 3D, for his spin round the chain: Tripo's model of the pose-2
     painting (the one his film starts on), cut down for the web (1024 px WebP
@@ -719,7 +765,12 @@ def snap3d():
     lo, hi = np.percentile(C @ up, [1, 99])
     up0 = py1 - (meta['chainTop'] * SH - sy0) / k                    # the sprite's chain point, in model units
     S = k / SH                                                       # sprite heights per model unit
-    b64 = base64.b64encode(open(web, 'rb').read())
+    # The texture goes out as its own WebP, loaded like every other image: a
+    # texture inside the model would load from a blob: URL, which strict
+    # content security policies (the preview host's among them) refuse.
+    shape, webp = split_glb_texture(open(web, 'rb').read())
+    open(out('snap-3d.webp'), 'wb').write(webp)
+    b64 = base64.b64encode(shape)
     open(out('snap-3d-glb.txt'), 'wb').write(b64)
     man['snap3d'] = {
         'view': name, 'iou': round(float(iou), 3), 'rotY': round(float(rot), 4), 'scale': round(float(S), 4),
@@ -727,7 +778,7 @@ def snap3d():
         'place': [round(-ax_right * S, 4), round(-up0 * S, 4), round(-ax_toward * S, 4)],
         # the chain in its claws, from the chain point: up above it, down below it
         'chain': [round(float(hi - up0) * S, 4), round(float(lo - up0) * S, 4)],
-        'bytes': len(b64),
+        'bytes': len(b64), 'textureBytes': len(webp),
     }
     print('snap3d', man['snap3d'])
 

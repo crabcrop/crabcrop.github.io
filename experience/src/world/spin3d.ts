@@ -31,13 +31,33 @@ export class Spin3D {
     stage.scene.add(this.group);
   }
 
-  /** The model ships as base64 text (the preview host serves no .glb). */
+  /**
+   * The shape ships as base64 text (the preview host serves no .glb) and the
+   * texture as its own WebP, loaded through an image element like every other
+   * picture: a texture inside the model would load from a blob: URL, which
+   * strict content security policies refuse. A failed load can be tried again.
+   */
   async load() {
-    if (this.loading || !media.snap3d) return;
+    if (this.loading || this.ready || !media.snap3d) return;
     this.loading = true;
-    const res = await fetch(url('snap-3d-glb.txt'));
-    if (!res.ok) throw new Error(`snap-3d: ${res.status}`);
-    const bin = Uint8Array.from(atob((await res.text()).trim()), (ch) => ch.charCodeAt(0));
+    try {
+      await this.build();
+    } catch (e) {
+      console.warn('dive: 3D Snap did not load', e);
+      throw e;
+    } finally {
+      this.loading = false;
+    }
+  }
+
+  private async build() {
+    const [text, map] = await Promise.all([
+      fetch(url('snap-3d-glb.txt')).then((r) => { if (!r.ok) throw new Error(`snap-3d: ${r.status}`); return r.text(); }),
+      new THREE.TextureLoader().loadAsync(url('snap-3d.webp')),
+    ]);
+    map.flipY = false;                         // glTF's texture convention
+    map.colorSpace = THREE.SRGBColorSpace;
+    const bin = Uint8Array.from(atob(text.trim()), (ch) => ch.charCodeAt(0));
     // The loader comes with the model, in its own small chunk.
     const { GLTFLoader } = await import('three/addons/loaders/GLTFLoader.js');
     const gltf = await new GLTFLoader().parseAsync(bin.buffer, '');
@@ -50,6 +70,7 @@ export class Spin3D {
       mesh.renderOrder = 5.5;
       mesh.frustumCulled = false;
       const mat = mesh.material as THREE.MeshStandardMaterial;
+      mat.map = map;
       mat.transparent = true;
       // Grade and look it like the flat layers, and fade it in and out.
       mat.onBeforeCompile = (sh) => {

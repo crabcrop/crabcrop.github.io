@@ -411,7 +411,8 @@ in all). Seen from its +x side it covers the sprite with an overlap of 0.82,
 and the chain it holds is a clean vertical column, so it turns about that.
 `encode-media.py snap3d` cuts it to about 23,000 triangles and a 1024 px
 texture (540 KB, shipped as 720 KB of base64 text because the preview host
-serves no .glb) and records how it lines up with the sprite. Lit by a soft
+serves no .glb), with its texture as a separate 117 KB WebP, and records
+how it lines up with the sprite. Lit by a soft
 sky and a key from the upper left, it matches the painting's colour within
 a few percent.
 
@@ -503,3 +504,8 @@ format fish could become 3D schools (about 40 Tripo credits a species).
 - Tripo H3.1 with detailed geometry models crochet stitches as real relief,
   but the texture carries most of the look, so the mesh survives a 97
   percent reduction for the web.
+- A texture packed inside a GLB loads through a blob: URL, and three.js
+  fetches it (ImageBitmapLoader) on every browser with createImageBitmap,
+  iOS 17 and later included. A strict content security policy, like the
+  preview host's, refuses that fetch, so the whole model fails. Ship the
+  texture as its own image and load it through an image element.

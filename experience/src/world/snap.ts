@@ -166,6 +166,8 @@ export class Snap {
     await Promise.all([this.ready('m02'), this.ready('m03')]);
     // The filmed ride, for when he lands on the chain; the sprite stands in until it plays.
     this.rider.loadRide().catch(() => {});
+    // And the 3D Snap for his spins, alongside it (the film tries it again if this fails).
+    this.rider.spin3d.load().catch(() => {});
   }
 
   private async loadClip(k: 'm04' | 'm05', loop: boolean) {
