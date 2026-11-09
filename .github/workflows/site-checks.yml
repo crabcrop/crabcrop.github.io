@@ -12,6 +12,16 @@ name: Site checks
 # release the site has not caught up with. Run it by hand with the
 # crabcrop_ref input (main, or any branch, tag, or commit) to see what
 # the next release will change.
+#
+# The checks also diff the error codes, the statuses, and the filter
+# tables on docs.html against docs/responses.md and docs/filters.md.
+#
+# This workflow is also the site's GitHub Pages deploy: on a push to
+# main, the build and deploy jobs run only after every check passed, so
+# a red check keeps the old site up. That needs Settings > Pages > Build
+# and deployment > Source set to "GitHub Actions"; with "Deploy from a
+# branch", GitHub's own pages-build-deployment run publishes every push
+# to main whatever the checks say.
 
 on:
   push:
@@ -61,3 +71,50 @@ jobs:
         run: npm ci && npm run build
       - name: Signing snippets run and agree
         run: node site/.github/site-checks/snippets.mjs crabcrop
+      - name: Error and filter tables match docs/responses.md and docs/filters.md
+        run: node site/.github/site-checks/reference-tables.mjs crabcrop
+
+  # The Pages build, the same Jekyll build GitHub's branch deploy runs,
+  # so the published files do not change. It runs only after the checks
+  # passed (a job that needs another is skipped when that one fails),
+  # and only for main: a push, or a run by hand against the latest
+  # release (an empty crabcrop_ref). Pull requests, the weekly run, and
+  # runs against another crabcrop ref check without deploying.
+  build:
+    needs: checks
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.crabcrop_ref == ''))
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pages: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Build with Jekyll
+        uses: actions/jekyll-build-pages@44a6e6beabd48582f863aeeb6cb2151cc1716697 # v1.0.13
+        with:
+          source: ./
+          destination: ./_site
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: ./_site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    # One deploy at a time, and never cancel one half way.
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
