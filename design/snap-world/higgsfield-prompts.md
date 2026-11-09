@@ -599,6 +599,7 @@ each other on that frame.
 | S-B | Neutral, claws low, wide framing | M03, M04, M05, M08, M09 |
 | S-C | Neutral, the print lying on the floor beside him | M06 |
 | S-D | Holding a small vintage rangefinder camera at chest height | M07 |
+| S-R | Hugging the chain: pose 2 of C03 on the grey, the chain carried on to the frame edges. Made with `tools/ride-start.py`, not generated | M10, M11, M12 |
 
 ```
 <<<snap>>> <pose>.
@@ -637,7 +638,9 @@ Locked-off camera, no camera movement, no zoom, his full body always in frame.
 ```
 
 For loops, open with "Snap, the crocheted crab toy, on a plain mid-grey
-seamless background." and replace the camera line with "The camera is
+seamless background." (the ride loops M10 to M12: "..., hangs on a rusty
+iron chain against a plain mid-grey seamless background.", with "the
+rusty chain" added to what the rules keep) and replace the camera line with "The camera is
 fixed on a tripod and never moves or zooms; only Snap moves. Seamless
 loop: the last frame matches the first frame." For M03, the camera line
 ends "the camera does not follow him".
@@ -667,6 +670,9 @@ something else, no text.
 | M07 | S-D | He lifts the small film camera up in front of his eyes with both claws, holds it still for a moment and takes a picture: a soft white flash blinks from the camera. Then he lowers the camera a little and peeks over the top of it, pleased. | S7 finale |
 | M08 | S-B | He hops in place and claps his claws together above his head twice, happy, then lands softly with a small bounce and settles back into exactly the start pose. | Celebrations (loop) |
 | M09 | S-B | He gets sleepy: his coral eyelids slowly droop halfway over his eyes, his body sways gently and his eyestalks sag a little as he dozes; then he blinks awake with a tiny start, his eyestalks perk up, and he settles back into exactly the start pose with his eyes open. | Idle (loop) |
+| M10 | S-R | He is riding the chain down into the sea: the claw on the left of the picture stays wrapped around the same chain links the whole time and never lets go, and the legs pressed against the chain keep their grip. His dangling legs at the bottom paddle in a slow, happy rhythm, as if he were swimming, his round body bobs very slightly with each kick, and his eyestalks bounce and sway softly. Halfway through he blinks once: his coral eyelids slide down over his eyes and back up. The chain is pulled taut from above and below: it stays perfectly straight and vertical in exactly the same place and never swings. | Riding the chain (loop) |
+| M11 | S-R | Happy to be riding it. The claw on the left of the picture stays wrapped around the same chain links the whole time and never lets go. His dangling legs kick in a quick, cheerful, uneven rhythm, he gives a happy little wiggle on the chain, his eyestalks bounce, and his free claw gives one small wave toward the camera, then rests back against his body. Then he settles back into exactly the start pose. The chain is pulled taut (as M10). | Riding, now and then (loop) |
+| M12 | S-R | The claw on the left of the picture stays wrapped around the same chain links the whole time and never lets go. His dangling legs paddle gently while his eyestalks lean down to peek at the depths below him, then swing up to look up the chain above him, then come back to look at the camera, and he blinks once. Then he settles back into exactly the start pose. The chain is pulled taut (as M10). | Riding, now and then (loop) |
 
 Post: Higgsfield background removal (video, 1 credit a clip). It returns
 Snap on black in an ordinary MP4 with no alpha channel, and drops his

@@ -141,6 +141,30 @@
     "m04-scuttle-cut.mp4": {
       "job": "3aaed242-b7cf-479a-be7d-74a7f4afa741",
       "file": "hf_20261108_175742_3aaed242-b7cf-479a-be7d-74a7f4afa741.mp4"
+    },
+    "m10-ride.mp4": {
+      "job": "b809e334-2f21-4c0d-8436-b0e755a87fdb",
+      "file": "hf_20261109_014731_b809e334-2f21-4c0d-8436-b0e755a87fdb.mp4"
+    },
+    "m10-ride-cut.mp4": {
+      "job": "90995f0a-0b96-42c4-bcef-fe4038b9efc8",
+      "file": "hf_20261109_015355_90995f0a-0b96-42c4-bcef-fe4038b9efc8.mp4"
+    },
+    "m11-ride-wave.mp4": {
+      "job": "e880ece0-c8f6-4462-9a6d-2d9f09dbf23b",
+      "file": "hf_20261109_014731_e880ece0-c8f6-4462-9a6d-2d9f09dbf23b.mp4"
+    },
+    "m11-ride-wave-cut.mp4": {
+      "job": "44144d30-925e-4a9e-bd20-6828c7e1f5d0",
+      "file": "hf_20261109_015356_44144d30-925e-4a9e-bd20-6828c7e1f5d0.mp4"
+    },
+    "m12-ride-peek.mp4": {
+      "job": "4334d810-5b44-4205-9b97-82e559b06910",
+      "file": "hf_20261109_014730_4334d810-5b44-4205-9b97-82e559b06910.mp4"
+    },
+    "m12-ride-peek-cut.mp4": {
+      "job": "2700b7ce-5343-4603-a313-02edb2824b88",
+      "file": "hf_20261109_015357_2700b7ce-5343-4603-a313-02edb2824b88.mp4"
     }
   }
 }

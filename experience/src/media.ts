@@ -16,6 +16,18 @@ export const media = manifest as unknown as {
   t1: { frames: number; fps: number; d: [number, number]; p: [number, number]; bytes: { d: number; p: number } };
   t2: { frames: number; fps: number; d: [number, number]; p: [number, number]; bytes: { d: number; p: number } };
   clips: Record<'m01' | 'm02' | 'm03' | 'm04' | 'm05', Clip>;
+  /**
+   * Snap riding the chain, filmed (one crop for all three clips). origin is
+   * the pose-2 sprite's chain point in the frame and scale the frame's height
+   * in sprite heights, so the two line up; held is the stretch of chain left
+   * in the film (top and bottom, shares of the height). Per clip, track rows
+   * are [t, x at the top, x at the bottom] of that stretch and eyes rows
+   * [t, xA, yA, xB, yB, open], all shares of the frame (y down).
+   */
+  ride: {
+    w: number; h: number; fps: number; origin: [number, number]; scale: number; held: [number, number]; eyeR: number;
+    clips: Record<'m10' | 'm11' | 'm12', { duration: number; bytes: number; track: number[][]; eyes: number[][] }>;
+  };
 };
 
 const base = new URL('media/', document.baseURI);

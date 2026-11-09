@@ -164,6 +164,8 @@ export class Snap {
     this.printU.uMap.value = imageTexture(printImg);
     this.clips.m02.v.preload = this.clips.m03.v.preload = 'auto';
     await Promise.all([this.ready('m02'), this.ready('m03')]);
+    // The filmed ride, for when he lands on the chain; the sprite stands in until it plays.
+    this.rider.loadRide().catch(() => {});
   }
 
   private async loadClip(k: 'm04' | 'm05', loop: boolean) {
@@ -499,7 +501,7 @@ export class Snap {
   }
 
   /** Pause videos when the tab hides; the next update resumes them. */
-  pause() { for (const c of Object.values(this.clips)) c.v.pause(); }
+  pause() { for (const c of Object.values(this.clips)) c.v.pause(); this.rider.pause(); }
 }
 
 export type { Hold };

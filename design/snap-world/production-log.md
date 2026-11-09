@@ -220,6 +220,37 @@ code at the clicks (about 1.5, 2.0, 2.5 and 3.0 s).
 | M08 | `43c539d5-a8c7-4040-802a-5bbcb6ed7a4a` |
 | M09 | `8c9f2883-28d9-4ad7-8366-99aed290a4c4` |
 
+### Riding the chain (folder 08)
+
+Three Kling 4.0 loops of Snap on the chain, to replace the still pose-2
+sprite while he rides. The start and end frame is not generated: it is pose
+2 of the C03 sheet itself, keyed off its white, moved onto the clip grey,
+with the chain carried on to the top and bottom edges so his legs have room
+(`tools/ride-start.py`, 2276 × 1280, uploaded as media
+`16645c9b-ffc8-4fae-b09e-99926a7c3eed`). Because the clips start and end on
+the painting the page already shows, it can swap between the sprite and the
+film without a jump. All three end on the same frame, so they cut into
+each other there. 1080p, 16:9, the loop prompt opening "Snap, the
+crocheted crab toy, hangs on a rusty iron chain against a plain mid-grey
+seamless background" and keeping "the rusty chain" in the rules.
+
+| Clip | Model | Job | Status | Notes |
+| --- | --- | --- | --- | --- |
+| M10 Ride (loop) | Kling 4.0, 5 s | `b809e334-2f21-4c0d-8436-b0e755a87fdb` | Approved | Calm: his legs paddle, his eyes glance sideways, a blink near the end. Seam 0.8. The page's main loop |
+| M11 Ride, happy (loop) | Kling 4.0, 5 s | `e880ece0-c8f6-4462-9a6d-2d9f09dbf23b` | Approved | Squints happily, then waves the free claw with its heart pad. Seam 1.1 |
+| M12 Ride, peek (loop) | Kling 4.0, 5 s | `4334d810-5b44-4205-9b97-82e559b06910` | Approved | Looks down into the depths and back up, with a blink. Seam 0.7 |
+| M10 4 s take | Kling 4.0, 4 s | `db114bcc-f883-43d5-a992-851356dc01d4` | Alternate | Two blinks and a wave in 4 s: busier than M10 |
+
+Cutouts: M10 `90995f0a-0b96-42c4-bcef-fe4038b9efc8`, M11
+`44144d30-925e-4a9e-bd20-6828c7e1f5d0`, M12
+`2700b7ce-5343-4603-a313-02edb2824b88`. The remover kept the chain and
+his eyes this time, but left specks of a pixel or two around him, which the
+encoder drops. `encode-media.py ride` cuts the chain hanging free above and below
+him out of the matte, keeps the stretch he holds (fading in over half a link
+at each end, where the page's links overlap it), and records where that
+stretch ends and where his eyes are, so the page's chain and the cursor
+look follow the film.
+
 ## Phase G: card icons (folder 09)
 
 Nano Banana Pro, 1:1, 4K (4096 × 4096), no Element. The prompt is I01
@@ -279,7 +310,8 @@ right place. Background removal takes no folder: attach its results with
 | C: plates, phone plates, cutouts, sprites | 103 |
 | D and E: 13 loops, 5 transition takes, 1 test | 484 |
 | F and G: 8 start stills, 10 clip takes, 9 cutouts, 2 icon sheets | 164 |
-| **Total** | **798** |
+| Ride loops: 4 takes, 3 cutouts | 65 |
+| **Total** | **863** |
 
 Failed jobs were refunded.
 
@@ -317,6 +349,16 @@ The page is built in `experience/` and previewed from `preview/dive/`.
   coral lids sampled from his own eye cups, eyes on the cursor, a swing and
   spins round the chain. When the visitor pauses beside a card he leaps
   onto it and plays M05, the claw snap, with sparkles drawn at the clicks.
+- **Snap's filmed ride.** On the chain he is now M10, filmed, with M11
+  (a happy wave) or M12 (a peek into the depths) slipped in every few
+  loops; the film plays faster on fast scrolls. The page's chain is pinned
+  where the filmed chain ends and his eyes still follow the cursor. The
+  sprite stays for his leaps and until the film plays. His tilt on the
+  chain now matches the chain below him (it leaned the other way). The
+  chain's joins are clean now: the rope above him is weightless while he
+  rides (its weight stretched the long run from the surface and piled the
+  spare length into a loop above his claw), and the links nearest his
+  holds overlap the chain in his film, so no gap opens below his legs.
 
 Still open from the generation phase:
 
@@ -343,8 +385,11 @@ made.
   the eyes never sit on the body.
 - The job list labels Nano Banana Pro jobs as `nano_banana_2`; outputs are
   full 4K and billed at the Pro price.
-- This build sandbox can't download from Higgsfield's CDN; review images
-  in Higgsfield's own sandbox instead.
+- This build sandbox reaches Higgsfield's file host
+  (`d8j0ntlcm91z4.cloudfront.net`, allowed in its environment) but not
+  its upload host (`upload.higgsfield.ai`). To upload a file made here,
+  make it again in Higgsfield's own sandbox (it has numpy, scipy and
+  Pillow, and fetches from the file host) and PUT it from there.
 - "Crab's-eye view" in a plate prompt makes the model add a crab, twice
   a realistic one. Say "a low camera at the height of a small toy" and add
   "no crabs".
@@ -390,3 +435,12 @@ made.
   not video with alpha, and drops dark parts inside the subject (Snap's
   eyes). Rebuild the matte from the grey original with
   `tools/snap-matte.py`.
+- A loop whose start and end frame is an image already on the page lets
+  the page swap between the still and the film without a jump. Kling 4.0
+  keeps the composition exactly: the output was the start frame scaled
+  (1920 × 1080 now, no longer 1928 × 1076), with no offset.
+- Snap's Kling loops move in steps of two frames (about 12 fps of motion at
+  24 fps) and ease in and out for about 0.4 s at the seam. Mid-clip the
+  yarn runs a little more saturated than the start frame.
+- On a taut chain running the full height of the frame, Kling kept the
+  chain still: it swayed about 1 percent of the frame width and never slid.

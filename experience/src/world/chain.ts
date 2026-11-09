@@ -156,7 +156,10 @@ export class Chain {
       }
       q[i * 2] = x; q[i * 2 + 1] = y;
       p[i * 2] = x + vx;
-      p[i * 2 + 1] = y + vy + g;
+      // Above Snap's hold the rope is weightless: its weight would stretch the
+      // long run from the surface and pile the spare length up in a loop just
+      // above his claw.
+      p[i * 2 + 1] = y + vy + (h0 && i < h0.i ? 0 : g);
     }
     const pin = () => {
       p[0] = o.ax; p[1] = o.ay;
@@ -172,12 +175,28 @@ export class Chain {
       p[i * 2 - 2] += dx * diff * wa; p[i * 2 - 1] += dy * diff * wa;
       p[i * 2] -= dx * diff * wb; p[i * 2 + 1] -= dy * diff * wb;
     };
+    // A chain does not fold back on itself: points two apart keep at least
+    // 1.6 links' length between them (no bend sharper than about 75 degrees),
+    // which also undoes a fold left by a sudden jolt at a hold.
+    const unfold = (i: number) => {
+      const pa = pinned(i - 2), pb = pinned(i);
+      if (pa && pb) return;
+      const dx = p[i * 2] - p[i * 2 - 4], dy = p[i * 2 + 1] - p[i * 2 - 3];
+      const d = Math.hypot(dx, dy) || 1e-6;
+      const min = 0.8 * (rest[i] + rest[i - 1]);
+      if (d >= min) return;
+      const diff = (d - min) / d;
+      const wa = pa ? 0 : pb ? 1 : 0.5, wb = pb ? 0 : pa ? 1 : 0.5;
+      p[i * 2 - 4] += dx * diff * wa; p[i * 2 - 3] += dy * diff * wa;
+      p[i * 2] -= dx * diff * wb; p[i * 2 + 1] -= dy * diff * wb;
+    };
     // Sweep down from the anchor and back up from the holds in turn, so
     // corrections reach both ends and a long stretch does not sag under its weight.
     for (let k = 0; k < 24; k++) {
       pin();
       if (k & 1) for (let i = n - 1; i >= 1; i--) link(i);
       else for (let i = 1; i < n; i++) link(i);
+      for (let i = 2; i < n; i++) unfold(i);
     }
     pin();
     // Pulled taut (Snap towing it across the reef), the rope above his hold is
@@ -201,10 +220,12 @@ export class Chain {
     const total = arc[n - 1];
     const L = this.linkLen, pitch = this.pitch;
     const sx = (L * 0.6) / 2.72, sy = L / 2.72;
-    // Hidden behind the stretch painted into Snap's sprite.
+    // Hidden where Snap's film (or sprite) has the chain in his claws. The
+    // links nearest each hold still show, half a link into that stretch, so
+    // they always reach the ends of the painted chain and leave no gap.
     const [h0, h1] = this.holds;
-    const hideA = h0 && h1 ? arc[h0.i] - pitch * 0.25 : 1e9;
-    const hideB = h0 && h1 ? arc[h1.i] + pitch * 0.25 : -1e9;
+    const hideA = h0 && h1 ? arc[h0.i] + pitch * 0.5 : 1e9;
+    const hideB = h0 && h1 ? arc[h1.i] - pitch * 0.5 : -1e9;
     // Count links from Snap's top hold when there is one, so the links next
     // to him stay put while the chain pays out above.
     const origin = (h0 ? arc[h0.i] : 0) + this.slide;
