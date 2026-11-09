@@ -312,6 +312,7 @@ html:not(.gl.wide) .on-narrow { display: revert; }
 .gl .tag.later { opacity: .8; }
 
 .snap-static { display: none; }
+body.on-snap { cursor: pointer; }
 .foot { position: relative; z-index: 1; padding: 40px clamp(16px, 4vw, 48px) 56px; text-align: center; font-size: 14px; color: var(--ink-2); background: var(--cream); border-top: 2px solid var(--ink); }
 
 /* Static mode: no WebGL, or reduced motion. Each zone shows its still plate. */

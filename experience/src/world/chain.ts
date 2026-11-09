@@ -89,6 +89,14 @@ export class Chain {
   }
 
   get pitch() { return this.linkLen * 0.72; }
+  /** Give the rope a shove between two points (a catch, a leap away). */
+  kick(i0: number, i1: number, dx: number, dy: number) {
+    for (let i = Math.max(1, i0); i <= Math.min(this.n - 1, i1); i++) {
+      const f = Math.sin(((i - i0) / Math.max(1, i1 - i0)) * Math.PI);
+      this.q[i * 2] -= dx * f;
+      this.q[i * 2 + 1] -= dy * f;
+    }
+  }
   holdArc(k: number) { const h = this.holds[k]; return h ? this.arc[h.i] : null; }
   /** Arc length of link k, counted from Snap's top hold (negative is above him). */
   linkArc(k: number) { const h = this.holds[0]; return (h ? this.arc[h.i] : 0) + k * this.pitch; }

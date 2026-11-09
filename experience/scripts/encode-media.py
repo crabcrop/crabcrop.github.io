@@ -3,7 +3,7 @@
 (fetch them first with scripts/fetch-sources.sh) into ../preview/dive/media,
 and write media/manifest.json with the numbers the page needs.
 
-usage: python3 scripts/encode-media.py [images] [reef] [video] [sequence] [snap] [snappost] [scuttle]
+usage: python3 scripts/encode-media.py [images] [reef] [video] [sequence] [snap] [snappost] [scuttle] [claw]
        (no argument runs every step)
 needs: ffmpeg, numpy, scipy, Pillow with AVIF support
 """
@@ -456,7 +456,20 @@ def scuttle():
     c['claw'] = track
 
 
-steps = sys.argv[1:] or ['images', 'reef', 'video', 'sequence', 'snap', 'snappost', 'scuttle']
+def claw():
+    """M05, Snap's claw snap (three clicks beside his head), for his visits to
+    the cards. Only this clip is touched. Its sparkles are lost in the matte, so
+    the page draws them at the clicks."""
+    o = out('snap-m05.mp4')
+    subprocess.run(['python3', MATTE, src('m05-snap.mp4'), src('m05-snap-cut.mp4'), o,
+                    '--width', '960', '--start', '0'], check=True)
+    dur = float(subprocess.check_output(['ffprobe', '-v', 'error', '-show_entries', 'format=duration',
+                                         '-of', 'default=nw=1:nk=1', o]))
+    man['clips']['m05'] = {'duration': round(dur, 3), 'clicks': [1.5, 2.0, 2.5, 3.0]}
+    snappost(only={'m05'})
+
+
+steps = sys.argv[1:] or ['images', 'reef', 'video', 'sequence', 'snap', 'snappost', 'scuttle', 'claw']
 for st in steps:
     globals()[st]()
     json.dump(man, open(MAN_PATH, 'w'), indent=1)

@@ -14,7 +14,7 @@ uniform vec4 uCoverA, uCoverB, uCoverC, uCoverPix;   // left, top, width, height
 uniform float uMix, uTime, uMouseOn, uWaterY, uRipple, uGlint, uShafts, uTintAmt;
 uniform float uSplit, uRegionAmt, uCanSide, uPixSize, uLampsOn, uLampR;
 uniform vec4 uRegion, uPix;
-uniform vec3 uLamp0, uLamp1, uLamp2;
+uniform vec3 uLamp0, uLamp1, uLamp2, uImpact;
 uniform vec2 uRes, uMouse;
 uniform vec3 uTint;
 varying vec2 vUv;
@@ -57,6 +57,14 @@ void main() {
   float below = smoothstep(uWaterY - 6.0, uWaterY + 40.0, px.y);
   float ring = sin(r * 0.075 - uTime * 3.6) * exp(-r * 0.011) * uRipple * uMouseOn * below;
   px += normalize(d + 1e-4) * ring * 7.0;
+  // A splash: rings spread on the water where Snap catches the chain.
+  float it = uTime - uImpact.z;
+  if (it > 0.0 && it < 3.0) {
+    vec2 di = px - uImpact.xy;
+    float ri = length(di * vec2(1.0, 2.6));
+    float wave = sin(ri * 0.06 - it * 7.0) * exp(-ri * 0.008) * exp(-it * 1.4) * smoothstep(0.0, 0.15, it) * below;
+    px += normalize(di + 1e-4) * wave * 9.0;
+  }
   vec3 col = both(px);
   // A shy subject goes to mosaic: the cuttlefish, or the pearl before its upscale.
   if (uPixSize > 1.0) {
@@ -143,7 +151,7 @@ export class Backdrop {
       uMouse: { value: new THREE.Vector2(-1e4, -1e4) }, uTint: { value: new THREE.Vector3(0.05, 0.23, 0.24) },
       uSplit: { value: -1e5 }, uRegionAmt: { value: 0 }, uCanSide: { value: 0 }, uRegion: { value: new THREE.Vector4() },
       uPixSize: { value: 0 }, uPix: { value: new THREE.Vector4(0, 0, 1, 1) },
-      uLampsOn: { value: 0 }, uLampR: { value: 100 }, uLamp0: v3(), uLamp1: v3(), uLamp2: v3(),
+      uLampsOn: { value: 0 }, uLampR: { value: 100 }, uLamp0: v3(), uLamp1: v3(), uLamp2: v3(), uImpact: { value: new THREE.Vector3(0, 0, -10) },
       ...LOOK,
     };
     const mat = new THREE.ShaderMaterial({ vertexShader: VERT, fragmentShader: FRAG, uniforms: this.u, depthTest: false, depthWrite: false });

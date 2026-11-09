@@ -32,7 +32,9 @@ if (wide) root.classList.add('wide');
 
 let world: World | null = null;
 const t0 = performance.now();
-const now = () => (performance.now() - t0) / 1000;
+// ?slowmo=20 plays Snap and the world twenty times slower, for tuning animation (videos keep their own pace).
+const slowmo = Math.max(1, Number(new URLSearchParams(location.search).get('slowmo')) || 1);
+const now = () => (performance.now() - t0) / 1000 / slowmo;
 const ui = new UI({
   gl, wide,
   onFormat: (f) => world?.setFormat(f, now()),
@@ -60,7 +62,16 @@ async function start() {
 
   // The cursor drives ripples, glints and the fish; a tap does the same on phones.
   let tapTimer = 0;
-  addEventListener('pointermove', (e) => { if (e.pointerType !== 'touch') w.mouse = [e.clientX, e.clientY]; });
+  addEventListener('pointermove', (e) => {
+    if (e.pointerType === 'touch') return;
+    w.mouse = [e.clientX, e.clientY];
+    document.body.classList.toggle('on-snap', w.snapHit(e.clientX, e.clientY) && !(e.target as Element).closest?.('a, button, input, label, .card, .panel'));
+  });
+  // Click or tap Snap on the chain and he spins round it.
+  addEventListener('click', (e) => {
+    if ((e.target as Element).closest?.('a, button, input, label, select, textarea, .card, .panel')) return;
+    if (w.snapHit(e.clientX, e.clientY)) w.pokeSnap();
+  });
   document.addEventListener('pointerleave', () => { w.mouse = null; });
   addEventListener('pointerdown', (e) => {
     if (e.pointerType !== 'touch') return;
@@ -84,7 +95,7 @@ async function start() {
   let slow = 0, frames = 0, lowered = false;
   let last = performance.now();
   const loop = (time: number) => {
-    const dt = Math.min(0.05, (time - last) / 1000);
+    const dt = Math.min(0.05, (time - last) / 1000 / slowmo);
     last = time;
     scroll.update(time);
     w.frame(dt, now());

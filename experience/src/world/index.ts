@@ -65,6 +65,8 @@ export interface WorldOut {
   fish: { x: number; y: number; on: boolean };
   /** The reef camera and stations, while the reef or the studio is on screen. */
   reef: ReefOut | null;
+  /** The card Snap is standing on, and since when. */
+  perch: { el: Element; since: number } | null;
   chainX: (y: number) => number | null;
 }
 
@@ -91,6 +93,11 @@ export class World {
   private kindUntil = 0;
   private t = 0;
   private landed = false;
+  private idleFor = 0;
+  private caughtSeen = -10;
+  private lastVisit = -10;
+  private visited = new WeakSet<Element>();
+  private visitEl: Element | null = null;
   readonly out: WorldOut;
 
   constructor(canvas: HTMLCanvasElement, private scroll: Scroll, phone: boolean) {
@@ -109,7 +116,7 @@ export class World {
     this.out = {
       tags: { sig: zero, fmt: zero, look: zero, crop: zero, finish: zero }, tagsOn: 0, z1: null, z2: null,
       s1On: 0, s2On: 0, depth: 0, zone: 's0', storyOn: false, kindOn: false,
-      fish: { x: -999, y: -999, on: false }, reef: null, chainX: (y) => this.chain.xAt(y),
+      fish: { x: -999, y: -999, on: false }, reef: null, perch: null, chainX: (y) => this.chain.xAt(y),
     };
     this.measure();
   }
@@ -157,6 +164,7 @@ export class World {
     }
     if (y > sec.s2.top - 0.2 * H) this.want('t2', () => this.backdrop.loadSequence('t2'));
     const reefSoon = y > sec.t2.top - 0.5 * H;
+    if (y > sec.s1.top - H) this.want('m05', () => this.snap.loadClaw());
     if (reefSoon) {
       this.want('m04', () => this.snap.loadReef());
       this.want('coral', () => this.reef.load());
@@ -186,6 +194,26 @@ export class World {
   /** A box marked over the reef's can, in its panel's plate shares. */
   removeRegion(rect: [number, number, number, number]) { this.reef.removeRegion(rect, this.t); }
   upscalePearl(again = false) { this.reef.upscale(this.t, again); }
+  /** A click on Snap makes him spin round the chain. */
+  snapHit(x: number, y: number) { return this.snap.hit(x, y); }
+  pokeSnap() { this.snap.poke(this.t); this.idleFor = 0; }
+
+  /** Pick a card beside him to visit: fully in view, its top edge in the upper middle, not visited yet. */
+  private visitTarget(H: number, W: number, holdX: number): Element | null {
+    const sec = this.scroll.sec;
+    const y = this.scroll.y;
+    if (y < sec.s1.top - H * 0.5 || y > sec.t2.top - H * 0.5) return null;
+    let best: Element | null = null, bestD = 1e9;
+    for (const el of document.querySelectorAll('.s1 .card, .s2 .card')) {
+      if (this.visited.has(el)) continue;
+      const r = el.getBoundingClientRect();
+      if (r.top < H * 0.2 || r.top > H * 0.6 || r.bottom > H + r.height * 0.5) continue;
+      const d = this.phone ? Math.abs(r.top - H * 0.35) : holdX - r.right;
+      if (!this.phone && (d < 0 || d > W * 0.3)) continue;
+      if (d < bestD) { bestD = d; best = el; }
+    }
+    return best;
+  }
   /** The page scroll at which a reef station's stop is centred, for keyboard focus. */
   reefStopY(i: number) {
     const sec = this.scroll.sec;
@@ -315,6 +343,27 @@ export class World {
     }
     this.landed = inReef && land >= 1;
 
+    // Snap's visits to the cards: when the visitor pauses beside one, he leaps onto it.
+    this.idleFor = Math.abs(sc.v) < 0.4 ? this.idleFor + dt : 0;
+    if (this.snap.visiting && Math.abs(sc.v) > 1.5) this.snap.endVisit(t);
+    if (!this.snap.visiting) this.visitEl = null;
+    if (!inReef && this.snap.riding && !this.snap.visiting && !this.snap.rider.spinning && this.idleFor > 2.2 && t - this.lastVisit > 9) {
+      const el = this.visitTarget(H, W, holdX);
+      if (el) {
+        const feet = (): [number, number] | null => {
+          const r = el.getBoundingClientRect();
+          if (r.bottom < 0 || r.top > H || r.top < 30) return null;
+          return this.phone ? [r.left + r.width * 0.32, r.top + 4] : [r.right - r.width * 0.24, r.top + 4];
+        };
+        if (this.snap.visit(t, feet, { chainBody: L.chainBody * H, body: (this.phone ? 0.13 : 0.16) * H })) {
+          this.lastVisit = t;
+          this.visited.add(el);
+          this.visitEl = el;
+        }
+      }
+    }
+    this.out.perch = this.snap.perch && this.visitEl ? { el: this.visitEl, since: this.snap.perch.since } : null;
+
     const ride = this.snap.holds;
     const walking = inReef && !!this.snap.claw;
     let holds: Hold[] = [];
@@ -342,8 +391,19 @@ export class World {
       feet: [feet[0], feet[1]], body, hold: [holdX, holdY], chainBody,
       water: z0 ? onPlate(z0, 0, this.backdrop.plateMeta('z0').waterline ?? 0.58)[1] : H * 0.6, viewW: W,
       lean: clamp(lean, -0.25, 0.25), grade,
+      speed: sc.v, mouse: this.mouse, idle: this.idleFor > 1.5,
       reef: inReef ? { land, ret, drop: smooth(0.4, 1, exit) * H * 0.9, feet: [feetX, floorY], body: reefBody, vel: this.reef.vel, hold: reefHold } : undefined,
     });
+    // He caught the chain: it jolts, and at the surface the water rings.
+    if (this.snap.caught !== this.caughtSeen) {
+      this.caughtSeen = this.snap.caught;
+      this.chain.kick(18, 36, (Math.random() - 0.5) * 6, 7);
+      const water = u.uWaterY.value;
+      if (k < s0h + 0.5 && water < H) {
+        u.uImpact.value.set(holdX, water, t);
+        for (let i = 0; i < 8; i++) this.bubbles.emit(holdX + (Math.random() - 0.5) * chainBody * 0.6, water + chainBody * (0.1 + Math.random() * 0.4), H * 0.008);
+      }
+    }
 
     // Bubbles: the plunge, the drop into the reef, and Snap on fast scrolls.
     if (((p1 > 0.02 && p1 < 0.6) || (q2 > 0.05 && q2 < 0.5)) && Math.random() < 0.9) this.bubbles.emit(W * (0.2 + Math.random() * 0.6), H * (0.75 + Math.random() * 0.35), H * 0.012, 3);

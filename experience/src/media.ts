@@ -1,7 +1,7 @@
 import manifest from '../../preview/dive/media/manifest.json';
 
 export type Box = [number, number, number, number];
-export interface Clip { w: number; h: number; duration: number; box: Box; boxEnd: Box; crop: [number, number]; print?: number[][]; claw?: number[][] }
+export interface Clip { w: number; h: number; duration: number; box: Box; boxEnd: Box; crop: [number, number]; print?: number[][]; claw?: number[][]; clicks?: number[] }
 export interface Plate { w: number; h: number; widths: number[]; waterline?: number; thumbhash: string }
 
 export const media = manifest as unknown as {
@@ -15,7 +15,7 @@ export const media = manifest as unknown as {
   coral: { w: number; h: number };
   t1: { frames: number; fps: number; d: [number, number]; p: [number, number]; bytes: { d: number; p: number } };
   t2: { frames: number; fps: number; d: [number, number]; p: [number, number]; bytes: { d: number; p: number } };
-  clips: Record<'m01' | 'm02' | 'm03' | 'm04', Clip>;
+  clips: Record<'m01' | 'm02' | 'm03' | 'm04' | 'm05', Clip>;
 };
 
 const base = new URL('media/', document.baseURI);

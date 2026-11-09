@@ -310,6 +310,14 @@ The page is built in `experience/` and previewed from `preview/dive/`.
   move the subjects out from under them. T01 and T02 were cut to 72 frames
   to keep the preview under its file limit.
 
+- **Snap's animation pass.** The hop now leaves the pier at the take-off
+  frame (1.76 s) and Snap flies a spinning arc onto the chain, which jolts
+  as he catches it, with rings on the water and a sparkle. On the chain the
+  pose-2 sprite moves in its shaders: legs, eye stalks, blinks with the
+  coral lids sampled from his own eye cups, eyes on the cursor, a swing and
+  spins round the chain. When the visitor pauses beside a card he leaps
+  onto it and plays M05, the claw snap, with sparkles drawn at the clicks.
+
 Still open from the generation phase:
 
 - Earlier leftovers: retouch KA01's smile to gold, and cut the F01 fish

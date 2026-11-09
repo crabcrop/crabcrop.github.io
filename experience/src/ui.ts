@@ -343,7 +343,10 @@ export class UI {
     this.cards.forEach((c, i) => {
       const r = c.getBoundingClientRect();
       const onScreen = r.bottom > 0 && r.top < H;
-      const sway = Math.sin(t * 0.8 + i * 1.9) * 0.55 + Math.max(-1.5, Math.min(1.5, v * 0.04));
+      // Snap standing on a card tips it: a bump as he lands, then his weight.
+      const on = out.perch && out.perch.el === c ? t - out.perch.since : -1;
+      const bump = on >= 0 ? Math.min(1, on * 6) * 0.9 + 2.4 * Math.sin(on * 10) * Math.exp(-on * 3.5) : 0;
+      const sway = Math.sin(t * 0.8 + i * 1.9) * 0.55 + Math.max(-1.5, Math.min(1.5, v * 0.04)) + bump;
       if (onScreen) c.style.transform = `rotate(${sway.toFixed(2)}deg)`;
       const path = this.paths[i];
       if (!path) return;

@@ -36,7 +36,8 @@ Snap's clips into stacked-alpha video.
 | --- | --- | --- |
 | World | Plates, their loops and the transition frames, cover-fit, with ripples under the cursor at the marina, a sun glint in the shallows and light shafts in the kelp | `src/world/backdrop.ts` |
 | Chain | A Verlet rope drawn as rusty iron links; Snap holds it at two points | `src/world/chain.ts` |
-| Snap | Alpha clips on the pier (wave, gust, hop), the print that blows into the sea, a sprite riding the chain, and the sideways walk on the reef with the chain in his claw | `src/world/snap.ts` |
+| Snap | Alpha clips on the pier (wave, gust, hop), the print that blows into the sea, a leap with a spin onto the chain, visits to the cards (the claw snap), and the sideways walk on the reef with the chain in his claw | `src/world/snap.ts` |
+| Snap on the chain | The chain pose brought to life in its shaders: legs that kick harder when you scroll, swaying eye stalks, blinks with his coral lids, eyes that follow the cursor, a swing driven by scroll speed, and spins round the chain (a fast flick, now and then when idle, or a click on him) | `src/world/rider.ts`, `src/world/sparkle.ts` |
 | Fish | Six schools, one per format; they gather at the format tag | `src/world/fish.ts` |
 | Bubbles | The plunge, the drop to the reef, and a stream from Snap on fast scrolls | `src/world/bubbles.ts` |
 | Kelp | Knitted stalks in the foreground that sway and bend away from the cursor | `src/world/kelp.ts` |
@@ -52,6 +53,9 @@ page is a static article: each zone shows its still plate behind its text,
 and the look choice grades the kelp's still plate with a CSS filter. The
 reef becomes one block per station, each over its own plate.
 
+Add `?slowmo=20` to the URL to play Snap and the world twenty times slower
+while tuning an animation (videos keep their own pace).
+
 The reef is pinned for 800vh: seven viewport heights of sideways travel,
 then the studio scrolls on normally. Plates far from the camera are freed
 and load again if the visitor scrolls back.
@@ -65,7 +69,6 @@ a third of it the two transitions (72 frames each).
 ## Not built yet
 
 - The shipwreck and everything below it (S4 onwards).
-- Snap's eyes following the cursor: needs the puppet (Rive, or cut-out parts).
-- Snap's claw moving for the snip: the sparkle stands in for it.
+- Snap's claw moving for the snip in the kelp: the sparkle stands in for it.
 - The real signed URLs: the builder needs the signing secret in CI.
 - Depth maps for parallax, and sound.
