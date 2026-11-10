@@ -666,121 +666,211 @@ def ride():
 
 
 
-def split_glb_texture(glb):
-    """A one-texture GLB as (the GLB without its image, the image's bytes):
-    drops the image, its texture and sampler and the material's reference to
-    it, and repacks the binary chunk without the image's bytes."""
+def read_glb(path):
+    """The one textured mesh of a GLB: positions and normals (with its node's
+    transform applied), uvs, triangle indices, and its image's bytes."""
     import struct
-    jlen = struct.unpack_from('<I', glb, 12)[0]
-    gj = json.loads(glb[20:20 + jlen])
-    blen = struct.unpack_from('<I', glb, 20 + jlen)[0]
-    bin_ = glb[28 + jlen:28 + jlen + blen]
-    assert len(gj.get('images', [])) == 1, 'expected one image'
-    iv = gj['images'][0]['bufferView']
-    view = gj['bufferViews'][iv]
-    image = bin_[view.get('byteOffset', 0):view.get('byteOffset', 0) + view['byteLength']]
-    for key in ('images', 'textures', 'samplers'):
-        gj.pop(key, None)
-    for m in gj.get('materials', []):
-        m.get('pbrMetallicRoughness', {}).pop('baseColorTexture', None)
-    for key in ('extensionsUsed', 'extensionsRequired'):
-        if key in gj:
-            gj[key] = [e for e in gj[key] if e != 'EXT_texture_webp']
-            if not gj[key]:
-                gj.pop(key)
-    # Repack the remaining views, 4-byte aligned, and renumber them.
-    keep = [i for i in range(len(gj['bufferViews'])) if i != iv]
-    renum = {old: new for new, old in enumerate(keep)}
-    packed, views = bytearray(), []
-    for i in keep:
-        v = dict(gj['bufferViews'][i])
-        chunk = bin_[v.get('byteOffset', 0):v.get('byteOffset', 0) + v['byteLength']]
-        packed += b'\0' * (-len(packed) % 4)
-        v['byteOffset'] = len(packed)
-        packed += chunk
-        views.append(v)
-    packed += b'\0' * (-len(packed) % 4)
-    gj['bufferViews'] = views
-    for a in gj.get('accessors', []):
-        if 'bufferView' in a:
-            a['bufferView'] = renum[a['bufferView']]
-    gj['buffers'] = [{'byteLength': len(packed)}]
-    js = json.dumps(gj, separators=(',', ':')).encode()
-    js += b' ' * (-len(js) % 4)
-    total = 12 + 8 + len(js) + 8 + len(packed)
-    shape = struct.pack('<III', 0x46546C67, 2, total) + struct.pack('<II', len(js), 0x4E4F534A) + js + struct.pack('<II', len(packed), 0x004E4942) + bytes(packed)
-    return shape, image
+    b = open(path, 'rb').read()
+    jlen = struct.unpack_from('<I', b, 12)[0]
+    gj = json.loads(b[20:20 + jlen])
+    blen = struct.unpack_from('<I', b, 20 + jlen)[0]
+    bin_ = b[28 + jlen:28 + jlen + blen]
+    types = {5120: np.int8, 5121: np.uint8, 5122: np.int16, 5123: np.uint16, 5125: np.uint32, 5126: np.float32}
+    def acc(i):
+        a = gj['accessors'][i]
+        v = gj['bufferViews'][a['bufferView']]
+        dt = np.dtype(types[a['componentType']])
+        n = {'SCALAR': 1, 'VEC2': 2, 'VEC3': 3, 'VEC4': 4}[a['type']]
+        off = v.get('byteOffset', 0) + a.get('byteOffset', 0)
+        stride = v.get('byteStride', dt.itemsize * n)
+        rows = np.frombuffer(bin_, np.uint8, count=stride * (a['count'] - 1) + dt.itemsize * n, offset=off)
+        rows = np.lib.stride_tricks.as_strided(rows, shape=(a['count'], dt.itemsize * n), strides=(stride, 1)).copy()
+        arr = rows.view(dt).reshape(a['count'], n)
+        if a.get('normalized'):
+            arr = np.maximum(arr.astype(np.float32) / np.iinfo(dt).max, -1)
+        return arr
+    def local(node):
+        if 'matrix' in node:
+            return np.array(node['matrix'], np.float64).reshape(4, 4).T
+        t = np.eye(4)
+        x, y, z, w = node.get('rotation', [0, 0, 0, 1])
+        t[:3, :3] = [[1 - 2 * (y * y + z * z), 2 * (x * y - z * w), 2 * (x * z + y * w)],
+                     [2 * (x * y + z * w), 1 - 2 * (x * x + z * z), 2 * (y * z - x * w)],
+                     [2 * (x * z - y * w), 2 * (y * z + x * w), 1 - 2 * (x * x + y * y)]]
+        t[:3, :3] *= np.array(node.get('scale', [1, 1, 1]))[None, :]
+        t[:3, 3] = node.get('translation', [0, 0, 0])
+        return t
+    world = None
+    def walk(i, parent):
+        nonlocal world
+        m = parent @ local(gj['nodes'][i])
+        if gj['nodes'][i].get('mesh') is not None:
+            assert world is None, 'expected one mesh node'
+            world = m
+        for c in gj['nodes'][i].get('children', []):
+            walk(c, m)
+    for r in gj['scenes'][gj.get('scene', 0)]['nodes']:
+        walk(r, np.eye(4))
+    prims = gj['meshes'][0]['primitives']
+    assert len(gj['meshes']) == 1 and len(prims) == 1, 'expected one mesh with one primitive'
+    at = prims[0]['attributes']
+    P = acc(at['POSITION']).astype(np.float64) @ world[:3, :3].T + world[:3, 3]
+    N = acc(at['NORMAL']).astype(np.float64) @ np.linalg.inv(world[:3, :3])
+    N /= np.linalg.norm(N, axis=1, keepdims=True)
+    iv = gj['bufferViews'][gj['images'][0]['bufferView']]
+    image = bin_[iv.get('byteOffset', 0):iv.get('byteOffset', 0) + iv['byteLength']]
+    return P, N, acc(at['TEXCOORD_0']).astype(np.float64), acc(prims[0]['indices']).ravel().astype(np.int64), image
+
+
+def view_matrix(yaw, pitch, roll):
+    """Turn a Tripo model's front (+x) to the viewer (+z), then yaw about y,
+    pitch about x and roll about z (degrees): x right, y up, z to the viewer."""
+    def ry(a): c, s = np.cos(a), np.sin(a); return np.array([[c, 0, s], [0, 1, 0], [-s, 0, c]])
+    def rx(a): c, s = np.cos(a), np.sin(a); return np.array([[1, 0, 0], [0, c, -s], [0, s, c]])
+    def rz(a): c, s = np.cos(a), np.sin(a); return np.array([[c, -s, 0], [s, c, 0], [0, 0, 1]])
+    d = np.pi / 180
+    return rz(roll * d) @ rx(pitch * d) @ ry(yaw * d) @ ry(-np.pi / 2)
+
+
+def limbs_of(P, I, pitch=0.008, r_open=14, reach0=0.012):
+    """Split a toy into its body and its limbs: the body is what survives a
+    voxel opening that erodes away everything thinner than a limb; each limb
+    is a connected piece of what is left (the mesh welded across its texture
+    seams). Returns each vertex's limb label (-1: body) and its distance from
+    the body, in model units."""
+    import trimesh
+    from scipy import sparse
+    from scipy.sparse.csgraph import connected_components
+    F = I.reshape(-1, 3)
+    _, weld = np.unique(np.round(P / 1e-5).astype(np.int64), axis=0, return_inverse=True)
+    weld = weld.ravel()
+    vox = trimesh.Trimesh(P, F, process=False).voxelized(pitch).fill()
+    grid = vox.matrix
+    z, y, x = np.ogrid[-r_open:r_open + 1, -r_open:r_open + 1, -r_open:r_open + 1]
+    ball = x * x + y * y + z * z <= r_open * r_open
+    body = ndimage.binary_erosion(grid, ball)
+    lab, n = ndimage.label(body)
+    body = lab == (1 + int(np.argmax(ndimage.sum(body, lab, range(1, n + 1)))))
+    body = ndimage.binary_dilation(body, ball) & grid
+    dist = ndimage.distance_transform_edt(~body) * pitch
+    ijk = np.round((np.c_[P, np.ones(len(P))] @ np.linalg.inv(vox.transform).T)[:, :3]).astype(int)
+    ijk = np.clip(ijk, 0, np.array(grid.shape) - 1)
+    d = dist[ijk[:, 0], ijk[:, 1], ijk[:, 2]]
+    out = d > reach0
+    nw = weld.max() + 1
+    lw = np.zeros(nw, bool)
+    lw[weld[out]] = True
+    E = weld[np.r_[F[:, [0, 1]], F[:, [1, 2]], F[:, [2, 0]]]]
+    E = E[lw[E[:, 0]] & lw[E[:, 1]]]
+    _, labw = connected_components(sparse.coo_matrix((np.ones(len(E)), (E[:, 0], E[:, 1])), shape=(nw, nw)), directed=False)
+    lab = np.where(out, labw[weld], -1)
+    for k in np.unique(lab[lab >= 0]):
+        if (lab == k).sum() < 60:                  # a stray tuft of yarn, not a limb
+            lab[lab == k] = -1
+    return lab, d
+
+
+# The view that shows Tripo's model as in the painting it was made from
+# (yaw, pitch, roll, degrees; see view_matrix), fitted to the painting's
+# outline by design/snap-world/tools/snap3d-view.py (IoU 0.92).
+SNAP3D_VIEW = (-16.41, 45.82, 4.67)
+
 
 def snap3d():
-    """Snap in 3D, for his spin round the chain: Tripo's model of the pose-2
-    painting (the one his film starts on), cut down for the web (1024 px WebP
-    texture, quantized, so no decoder is needed) and shipped as base64 text,
-    since the preview host serves no .glb. Records how it lines up with the
-    pose-2 sprite, in sprite heights from the sprite's chain point: seen from
-    its front it lies over the sprite, and it turns about the chain it holds."""
-    import base64, trimesh
-    from PIL import ImageDraw
+    """Snap in 3D on the chain: Tripo's model of the pose-2 painting with the
+    chain edited out, seen as in the painting. Cut down for the web (about 35k
+    triangles, a 2048 px texture) and shipped as one small binary, base64
+    text since the preview host serves no binary files: quantized positions,
+    normals and uvs, each vertex's limb and how far out along it it sits, and
+    the triangles. All in his rig frame: x right, y up, z toward the viewer,
+    in his heights on the chain (the pose-2 sprite's height), from the point
+    in his raised claw the chain runs through. The manifest has the rest: the
+    limbs (two eye stalks, the claw holding the chain, the other claw, the
+    legs) with the points they swing about, and the eyes."""
+    import base64
     tmp = os.path.join(ROOT, '.cache', 'snap-3d')
     os.makedirs(tmp, exist_ok=True)
-    web, flat = os.path.join(tmp, 'web.glb'), os.path.join(tmp, 'flat.glb')
-    common = ['--texture-size', '1024', '--simplify-ratio', '0.012', '--simplify-error', '0.01']
-    gt = ['npx', '--yes', '@gltf-transform/cli@4', 'optimize', src('snap-3d-tripo.glb')]
-    subprocess.run(gt + [web, '--compress', 'quantize', '--texture-compress', 'webp'] + common, check=True, capture_output=True)
-    # The same cut with plain float positions, to measure (trimesh reads no quantized meshes).
-    subprocess.run(gt + [flat, '--compress', 'false', '--texture-compress', 'false'] + common, check=True, capture_output=True)
-    mesh = trimesh.load(flat, force='mesh')
-    V = mesh.vertices
-    col = mesh.visual.to_color().vertex_colors[:, :3].astype(np.float32)
-    r, g = col[:, 0], col[:, 1]
-    rust = (r - g > 15) & (r - g < 75) & (col.mean(axis=1) < 125) & (col[:, 2] < g + 6)
-    spr, meta, _ = chain_sprite(width=None)
-    sa = np.asarray(spr)[..., 3] > 128
-    SH, SW = sa.shape
-    ys, xs = np.nonzero(sa)
-    sx0, sx1, sy0, sy1 = xs.min(), xs.max(), ys.min(), ys.max()
-    # Which side of the model faces the painting: the view whose silhouette best covers the sprite's.
-    views = {'+x': ([0, 0, -1.0], -np.pi / 2), '-x': ([0, 0, 1.0], np.pi / 2), '+z': ([1.0, 0, 0], 0.0), '-z': ([-1.0, 0, 0], np.pi)}
-    up = np.array([0, 1.0, 0])
-    best = None
-    for name, (right, rot) in views.items():
-        right = np.array(right)
-        P = np.stack([V @ right, V @ up], axis=1)
-        px0, px1, py0, py1 = P[:, 0].min(), P[:, 0].max(), P[:, 1].min(), P[:, 1].max()
-        k = ((sy1 - sy0) / (py1 - py0) + (sx1 - sx0) / (px1 - px0)) / 2      # sprite px per model unit
-        img = Image.new('L', (SW, SH), 0)
-        draw = ImageDraw.Draw(img)
-        Q = np.stack([sx0 + (P[:, 0] - px0) * k, sy0 + (py1 - P[:, 1]) * k], axis=1)
-        for f in mesh.faces:
-            draw.polygon([tuple(Q[i]) for i in f], fill=255)
-        m = np.asarray(img) > 128
-        iou = (m & sa).sum() / max(1, (m | sa).sum())
-        if best is None or iou > best[0]:
-            best = (iou, name, right, rot, k, px0, py1)
-    iou, name, right, rot, k, px0, py1 = best
-    # The chain it holds: rust-coloured vertices in the sprite's chain column.
-    near = rust & (np.abs(sx0 + (V @ right - px0) * k - meta['chainX'] * SW) < 0.05 * SW)
-    toward = np.cross(right, up)                                    # toward the viewer
-    C = V[near]
-    ax_right, ax_toward = float(np.median(C @ right)), float(np.median(C @ toward))
-    lo, hi = np.percentile(C @ up, [1, 99])
-    up0 = py1 - (meta['chainTop'] * SH - sy0) / k                    # the sprite's chain point, in model units
-    S = k / SH                                                       # sprite heights per model unit
-    # The texture goes out as its own WebP, loaded like every other image: a
-    # texture inside the model would load from a blob: URL, which strict
-    # content security policies (the preview host's among them) refuse.
-    shape, webp = split_glb_texture(open(web, 'rb').read())
-    open(out('snap-3d.webp'), 'wb').write(webp)
-    b64 = base64.b64encode(shape)
-    open(out('snap-3d-glb.txt'), 'wb').write(b64)
+    flat = os.path.join(tmp, 'flat.glb')
+    subprocess.run(['npx', '--yes', '@gltf-transform/cli@4', 'optimize', src('snap-3d-tripo.glb'), flat,
+                    '--compress', 'false', '--texture-compress', 'false',
+                    '--simplify-ratio', '0.018', '--simplify-error', '0.01'], check=True, capture_output=True)
+    P, N, UV, I, _ = read_glb(flat)
+    image = read_glb(src('snap-3d-tripo.glb'))[4]           # the full 4096 px texture
+    M = view_matrix(*SNAP3D_VIEW)
+    P, N = P @ M.T, N @ M.T
+    lab, d = limbs_of(P, I)
+    tex = Image.open(__import__('io').BytesIO(image)).convert('RGB')
+    tw, th = tex.size
+    texel = np.asarray(tex)[np.clip((UV[:, 1] * th).astype(int), 0, th - 1), np.clip((UV[:, 0] * tw).astype(int), 0, tw - 1)].astype(np.float32)
+    dark = texel.mean(1) < 45                                      # the black beads of his eyes
+    # Name the limbs: the stalks carry the eyes, the claw up and left holds the
+    # chain, the one out in front is the other claw; the rest are legs.
+    limbs = []
+    for k in np.unique(lab[lab >= 0]):
+        ii = np.nonzero(lab == k)[0]
+        c = P[ii].mean(0)
+        kind = 'stalk' if dark[ii].sum() > 20 else 'clawL' if (c[0] < -0.2 and c[1] > 0.1) else 'clawR' if (c[2] > 0.25 and c[0] > 0.1) else 'leg'
+        limbs.append({'k': int(k), 'kind': kind, 'ii': ii, 'c': c})
+    order = {'stalk': 0, 'clawL': 1, 'clawR': 2, 'leg': 3}
+    limbs.sort(key=lambda L: (order[L['kind']], L['c'][0]))
+    kinds = [L['kind'] for L in limbs]
+    assert kinds.count('stalk') == 2 and kinds.count('clawL') == 1 and kinds.count('clawR') == 1, kinds
+    # The chain's way through the raised claw: the middle of the claw, side to
+    # side, then the middle of its depth and height along that line.
+    claw = P[limbs[kinds.index('clawL')]['ii']]
+    gx = (claw[:, 0].min() + claw[:, 0].max()) / 2
+    col = claw[np.abs(claw[:, 0] - gx) < 0.012]
+    grip = np.array([gx, (col[:, 1].min() + col[:, 1].max()) / 2, (col[:, 2].min() + col[:, 2].max()) / 2])
+    hm = (P[:, 1].max() - P[:, 1].min()) / (1 - 16 / 946)        # his height: the sprite's, whose frame pads him by 8 of 946 px
+    R = (P - grip) / hm
+    rig = np.full((len(P), 3), [255, 0, 0], np.uint8)
+    out_limbs, eyes = [], []
+    for j, L in enumerate(limbs):
+        ii = L['ii']
+        reach = float(d[ii].max())
+        root = R[ii[d[ii] < 0.03]].mean(0)
+        tip = R[ii[np.argmax(d[ii])]]
+        rig[ii, 0] = j
+        rig[ii, 1] = np.round(np.clip(d[ii] / reach, 0, 1) * 255)
+        out_limbs.append({'kind': L['kind'], 'pivot': [round(float(v), 4) for v in root],
+                          'dir': [round(float(v), 4) for v in (tip - root) / np.linalg.norm(tip - root)], 'reach': round(reach / hm, 4)})
+        if L['kind'] == 'stalk':
+            # The eye: a ball at the stalk's end (a sphere through its outer part), the bead on its front.
+            X = R[ii[d[ii] > 0.55 * reach]]
+            A = np.c_[2 * X, np.ones(len(X))]
+            sol, *_ = np.linalg.lstsq(A, (X ** 2).sum(1), rcond=None)
+            c, r = sol[:3], float(np.sqrt(sol[3] + sol[:3] @ sol[:3]))
+            bead = R[ii[dark[ii]]].mean(0) - c
+            dist = np.linalg.norm(R[ii] - c, axis=1)
+            rig[ii, 2] = np.round(np.clip((r * 1.35 - dist) / (r * 0.35), 0, 1) * 255)
+            eyes.append({'c': [round(float(v), 4) for v in c], 'r': round(r, 4), 'look': [round(float(v), 4) for v in bead / np.linalg.norm(bead)]})
+    # Pack: int16 positions over their box, int8 normals, uint16 uvs, the rig bytes, uint16 triangles; each part 4-byte aligned.
+    n = len(R)
+    assert n < 65536
+    lo, hi = R.min(0), R.max(0)
+    qp = np.round((R - lo) / (hi - lo) * 65535 - 32768).astype(np.int16)
+    qn = np.round(np.clip(N, -1, 1) * 127).astype(np.int8)
+    qu = np.round(np.clip(UV, 0, 1) * 65535).astype(np.uint16)
+    blob = bytearray()
+    for part in (qp, qn, qu, rig, I.astype(np.uint16)):
+        blob += part.tobytes()
+        blob += b'\0' * (-len(blob) % 4)
+    b64 = base64.b64encode(bytes(blob))
+    open(out('snap-3d.txt'), 'wb').write(b64)
+    for old in ('snap-3d-glb.txt',):
+        if os.path.exists(out(old)):
+            os.remove(out(old))
+    tex_sizes = save_pair(tex.resize((2048, 2048), Image.LANCZOS), 'snap-3d', avif_q=60, webp_q=88)
+    front = R[:, :2]
     man['snap3d'] = {
-        'view': name, 'iou': round(float(iou), 3), 'rotY': round(float(rot), 4), 'scale': round(float(S), 4),
-        # where the model's chain point goes, in the turned frame (x right, y up, z toward the viewer)
-        'place': [round(-ax_right * S, 4), round(-up0 * S, 4), round(-ax_toward * S, 4)],
-        # the chain in its claws, from the chain point: up above it, down below it
-        'chain': [round(float(hi - up0) * S, 4), round(float(lo - up0) * S, 4)],
-        'bytes': len(b64), 'textureBytes': len(webp),
+        'view': list(SNAP3D_VIEW), 'n': n, 'tris': len(I) // 3,
+        'lo': [round(float(v), 5) for v in lo], 'hi': [round(float(v), 5) for v in hi],
+        'box': [round(float(v), 4) for v in (front[:, 0].min(), front[:, 1].min(), front[:, 0].max(), front[:, 1].max())],
+        'limbs': out_limbs, 'eyes': eyes,
+        'bytes': len(b64), 'textureBytes': tex_sizes,
     }
-    print('snap3d', man['snap3d'])
+    print('snap3d', {k: v for k, v in man['snap3d'].items() if k not in ('limbs', 'eyes')}, kinds)
+
 
 steps = sys.argv[1:] or ['images', 'reef', 'video', 'sequence', 'snap', 'snappost', 'scuttle', 'claw', 'ride', 'snap3d']
 for st in steps:

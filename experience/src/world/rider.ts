@@ -1,18 +1,19 @@
 import * as THREE from 'three';
 import { media, makeVideo, whenPlayable } from '../media';
 import { videoTexture, type Stage } from './stage';
-import { clamp, smooth } from '../scroll';
-import { Spin3D } from './spin3d';
+import { clamp } from '../scroll';
+import { Snap3D } from './snap3d';
 import { LOOK, LOOK_GLSL } from './look';
 
-// Snap hugging the chain. Riding, he is filmed: three Kling loops (M10 to
-// M12) cut from the pose-2 painting, played as stacked-alpha video. In the
-// air, and until the video plays, he is the pose-2 sprite brought to life in
-// the shaders: his legs dangle and kick, his eye stalks sway, he blinks with
-// his coral lids. Either way his eyes follow the cursor. Sprite regions are
-// in its uv (y up), measured on the 640 x 687 sprite: eyes at (0.578, 0.884)
-// and (0.878, 0.758), bead radius about 34 px; legs below uv.y 0.26 right of
-// the chain; stalks above uv.y 0.64.
+// Snap on the chain. Once it has loaded he is the 3D model (snap3d.ts),
+// alive in code: riding, spinning round the chain and flying to and from it.
+// Until then, and if it cannot load, he is the pose-2 sprite brought to life
+// in the shaders here (his legs dangle and kick, his eye stalks sway, he
+// blinks with his coral lids), and riding, the filmed loops M10 to M12 in
+// stacked-alpha video, loaded only if the model fails. Either way his eyes
+// follow the cursor. Sprite regions are in its uv (y up), measured on the
+// 640 x 687 sprite: eyes at (0.578, 0.884) and (0.878, 0.758), bead radius
+// about 34 px; legs below uv.y 0.26 right of the chain; stalks above uv.y 0.64.
 const VERT = /* glsl */ `
 uniform float uTime, uKick, uSway, uVideo;
 varying vec2 vUv;
@@ -86,8 +87,8 @@ export type RideKey = 'm10' | 'm11' | 'm12';
 /** The calm loop, and the two he slips in now and then: a happy wave, and a peek down into the depths. */
 const VARIATIONS: RideKey[] = ['m11', 'm12'];
 
-/** His holds on the chain; cover, when set, is how far below the top hold the chain in his claws reaches (the 3D spin's is shorter). */
-export interface RideOut { top: [number, number]; bottom: [number, number]; cover?: number }
+/** His holds on the chain: the 3D Snap holds it at one point, in his raised claw; the sprite and film at the two ends of the stretch painted into them. */
+export interface RideOut { top: [number, number]; bottom?: [number, number] }
 
 /** A value from a track of [t, ...values] rows at the clip time tt, interpolated. */
 function sample(track: number[][], tt: number, col: number) {
@@ -120,15 +121,16 @@ export class Rider {
   private lastTime = 0;
   private wasRiding = false;
   private rate = 1;
-  /** Snap in 3D, for his spins: he turns round the chain for real. */
-  readonly spin3d: Spin3D;
-  private spinRewound = -1;
+  /** Snap in 3D: on the chain, round it and in the air. */
+  readonly snap3d: Snap3D;
+  private rideAsked = false;
+  private kick = 0.15;
   /** True while a spin around the chain is under way. */
   get spinning() { return this.t - this.spinAt < 0.9; }
   private t = 0;
 
   constructor(stage: Stage) {
-    this.spin3d = new Spin3D(stage);
+    this.snap3d = new Snap3D(stage);
     const sc = media.snapChain;
     this.u = {
       uMap: { value: null }, uVid: { value: null }, uVideo: { value: 0 },
@@ -151,9 +153,19 @@ export class Rider {
   setTexture(t: THREE.Texture) { this.u.uMap.value = t; }
   get ready() { return !!this.u.uMap.value; }
 
-  /** The filmed loops: the calm one first, then the two variations. */
+  /**
+   * Snap for the chain: the 3D model, or if it will not load, the filmed
+   * loops (the calm one first, then the two variations).
+   */
   async loadRide() {
-    if (this.vids.m10) return;
+    if (this.rideAsked) return;
+    this.rideAsked = true;
+    try {
+      await this.snap3d.load();
+      return;
+    } catch {
+      // The film instead.
+    }
     const make = (k: RideKey) => {
       const v = makeVideo(`snap-${k}.mp4`, k === 'm10');
       this.vids[k] = { v, tex: videoTexture(v), ready: false };
@@ -162,7 +174,6 @@ export class Rider {
     const m10 = make('m10');
     await whenPlayable(m10);
     this.vids.m10!.ready = true;
-    this.spin3d.load().catch(() => {});
     for (const k of VARIATIONS) {
       const v = make(k);
       whenPlayable(v).then(() => { this.vids[k]!.ready = true; });
@@ -183,11 +194,15 @@ export class Rider {
   /** Is a screen point on him (for a click)? */
   hit(x: number, y: number) {
     const b = this.box;
-    return this.group.visible && x > b.x && x < b.x + b.w && y > b.y && y < b.y + b.h;
+    return (this.group.visible || this.snap3d.group.visible) && x > b.x && x < b.x + b.w && y > b.y && y < b.y + b.h;
   }
 
-  /** Centre of the sprite, relative to the top hold, when he rides at height h. */
-  static centre(h: number): [number, number] {
+  /** How far below the top hold his feet reach, in his heights. */
+  below() { return this.snap3d.ready ? -media.snap3d.lo[1] : 1 - media.snapChain.chainTop; }
+
+  /** His middle, relative to the top hold, when he rides at height h. */
+  centre(h: number): [number, number] {
+    if (this.snap3d.ready) return Snap3D.centre(h);
     const sc = media.snapChain, w = h * (sc.w / sc.h);
     return [(0.5 - sc.chainX) * w, (0.5 - sc.chainTop) * h];
   }
@@ -258,27 +273,37 @@ export class Rider {
     air?: { x: number; y: number; rot: number; s: number };
   }): RideOut | null {
     this.t = t;
-    this.spin3d.hide();
+    const real = this.snap3d.ready;
     this.u.uOpacity.value = 1;
-    this.group.visible = o.visible && this.ready;
+    this.group.visible = o.visible && !real && this.ready;
     const clip = this.film(this.group.visible && !o.air, o.speed);
-    if (!this.group.visible) return null;
+    if (!o.visible || (!real && !this.ready)) { this.snap3d.hide(); return null; }
     const sc = media.snapChain;
     const h = o.h, w = h * (sc.w / sc.h);
 
     // Life: legs kick harder when the reef rushes by, the stalks lag behind the swing.
     const fast = Math.min(1, Math.abs(o.speed) / 30);
+    this.kick += ((o.air ? 1 : 0.15 + fast * 0.85) - this.kick) * clamp(dt * 4);
     this.u.uTime.value = t;
-    this.u.uKick.value += ((o.air ? 1 : 0.15 + fast * 0.85) - this.u.uKick.value) * clamp(dt * 4);
+    this.u.uKick.value = this.kick;
     this.u.uSway.value = clamp(-this.swingV * 0.05, -0.05, 0.05);
 
     // Blinks every few seconds, sometimes twice (the film blinks on its own).
     if (t > this.blinkAt + 0.2) this.blinkAt = t + 2.2 + Math.random() * 4 + (Math.random() < 0.2 ? -1.9 : 0);
     const bt = t - this.blinkAt;
-    this.u.uBlink.value = clip ? 0 : bt < 0 ? 0 : bt < 0.07 ? bt / 0.07 : bt < 0.11 ? 1 : bt < 0.2 ? 1 - (bt - 0.11) / 0.09 : 0;
+    const blink = bt < 0 ? 0 : bt < 0.07 ? bt / 0.07 : bt < 0.11 ? 1 : bt < 0.2 ? 1 - (bt - 0.11) / 0.09 : 0;
+    this.u.uBlink.value = clip ? 0 : blink;
+    const life = { t, dt, kick: this.kick, swingV: this.swingV, mouse: o.mouse, blink };
 
     this.u.uChainHide.value = o.air ? 1 : 0;
     if (o.air) {
+      if (real) {
+        // A tumble: once round his own up as he flies, rolling into the arc and back out.
+        this.snap3d.update({ at: [o.air.x, o.air.y], h: h * o.air.s, roll: -Math.sin(o.air.rot / 2) * 0.35, spin: o.air.rot, squash: 0, air: true }, life, o.grade);
+        const [cx, cy] = Snap3D.centre(h * o.air.s), b = this.snap3d.box(o.air.x - cx, o.air.y - cy, h * o.air.s);
+        this.box = b;
+        return null;
+      }
       this.still(sc);
       this.group.position.set(o.air.x, -o.air.y, 0);
       this.group.rotation.z = -o.air.rot;
@@ -305,23 +330,25 @@ export class Rider {
     const sp = clamp((t - this.spinAt) / 0.9);
     const phi = sp < 1 ? ease(sp) * Math.PI * 2 : 0;
     const hop = Math.sin(phi / 2) * h * 0.05;
-    // With the 3D model he really turns round the chain: the film fades out
-    // for the turn and back in at the end, rewound to its first frame, which
-    // is the model's pose. Without it, the film flips like a card.
-    const real = sp < 1 && this.spin3d.ready;
-    const fade3d = real ? smooth(0, 0.08, sp) * (1 - smooth(0.9, 1, sp)) : 0;
-    const flip = real ? 1 : Math.cos(phi);
-    if (real && sp > 0.8 && this.spinRewound !== this.spinAt) { this.spinRewound = this.spinAt; this.rewind(); }
-    this.u.uOpacity.value = 1 - fade3d;
 
     // Catching the chain: a quick squash and recoil.
     const lt = t - this.landedAt;
     const squash = lt < 0.5 ? Math.sin(lt * 18) * Math.exp(-lt * 7) * 0.14 : 0;
 
-    const bob = Math.sin(t * 1.4) * h * (clip ? 0.006 : 0.012);
+    const bob = Math.sin(t * 1.4) * h * (real ? 0.008 : clip ? 0.006 : 0.012);
     const [hx, hy0] = o.hold;
     const hy = hy0 + bob - hop;
     const angle = o.lean + this.swing + idleSway;
+
+    if (real) {
+      // In 3D he turns round the chain for real, and holds it at one point in his raised claw.
+      this.snap3d.update({ at: [hx, hy], h, roll: angle, spin: phi, squash, air: false }, life, o.grade);
+      this.box = this.snap3d.box(hx, hy, h);
+      return { top: [hx, hy] };
+    }
+
+    // The sprite and the film flip like a card for a spin.
+    const flip = Math.cos(phi);
     const sx = flip * (1 + squash * 0.6), sy = 1 - squash;
     this.group.position.set(hx, -hy, 0);
     // He hangs along the chain: turned the same way as the holds below.
@@ -329,8 +356,6 @@ export class Rider {
     this.group.scale.set(sx, sy, 1);
     const shade = 0.8 + 0.2 * Math.abs(flip);
     this.u.uGrade.value.set(o.grade[0] * shade, o.grade[1] * shade, o.grade[2] * shade);
-    this.spin3d.update({ visible: real, hold: [hx, hy], h, angle, squash, phi, fade: fade3d, grade: o.grade });
-    const cover = fade3d > 0.5 ? this.spin3d.chainBelow(h) : undefined;
     const f = Math.max(0.3, Math.abs(flip));
     const cos = Math.cos(angle), sin = Math.sin(angle);
     // A point given relative to the top hold (px, y down, before the spin and squash) on screen.
@@ -360,7 +385,7 @@ export class Rider {
       // The stretch of chain in the film ends here; the page's chain takes over above and below.
       const top = screen((sample(c.track, tt, 1) - R.origin[0]) * wv, (R.held[0] - R.origin[1]) * hv);
       const bottom = screen((sample(c.track, tt, 2) - R.origin[0]) * wv, (R.held[1] - R.origin[1]) * hv);
-      return { top, bottom, cover };
+      return { top, bottom };
     }
 
     this.still(sc);
@@ -369,18 +394,7 @@ export class Rider {
     this.box = { x: flip >= 0 ? hx - sc.chainX * w * f : hx - (1 - sc.chainX) * w * f, y: hy - sc.chainTop * h, w: w * f, h };
     this.eyes(o.mouse, EYES, (u) => hx + (u - sc.chainX) * w * flip, (v) => hy + (1 - v - sc.chainTop) * h, flip);
     const span = (sc.chainBottom - sc.chainTop) * h;
-    return { top: [hx, hy], bottom: screen(0, span), cover };
-  }
-
-  /** Back to the calm loop's first frame (the pose the 3D model and the sprite share). */
-  private rewind() {
-    const m = this.vids.m10;
-    if (!m?.ready) return;
-    for (const x of Object.values(this.vids)) x!.v.pause();
-    this.cur = 'm10';
-    m.v.currentTime = 0;
-    m.v.play().catch(() => {});
-    this.lastTime = 0;
+    return { top: [hx, hy], bottom: screen(0, span) };
   }
 
   /** Back to the painted sprite. */

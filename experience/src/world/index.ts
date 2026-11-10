@@ -103,7 +103,7 @@ export class World {
   constructor(canvas: HTMLCanvasElement, private scroll: Scroll, phone: boolean) {
     this.phone = phone;
     this.L = phone ? LAYOUT.phone : LAYOUT.wide;
-    this.stage = new Stage(canvas, phone ? 1.5 : 2);
+    this.stage = new Stage(canvas, 2);
     this.backdrop = new Backdrop(this.stage, phone);
     this.chain = new Chain(this.stage);
     this.snap = new Snap(this.stage);
@@ -333,7 +333,7 @@ export class World {
     const clawX = feetX - reefBody * 0.55;
     const land = smooth(0.08, 0.42, kR);
     const ret = smooth(0.15, 0.4, exit);
-    const landHy = floorY - (1 - sc2.chainTop) * chainBody * 0.92;
+    const landHy = floorY - this.snap.rider.below() * chainBody * 0.92;
     const reefHold: [number, number] = ret > 0
       ? [clawX, landHy]
       : [lerp(chainX, clawX, smooth(0, 0.5, land)), lerp(holdY, landHy, land)];
@@ -374,13 +374,17 @@ export class World {
       holds = [{ i: 40, x: c[0], y: c[1] }];
       ax = c[0] - W * 0.015;
     } else if (ride) {
-      const span = Math.round((sc2.chainBottom - sc2.chainTop) * chainBody / (linkLen * 0.72));
-      holds = [{ i: 36, x: ride.top[0], y: ride.top[1] }, { i: 36 + Math.max(2, Math.min(8, span)), x: ride.bottom[0], y: ride.bottom[1] }];
+      // The 3D Snap holds the chain in his raised claw; the sprite and film at both ends of the stretch painted into them.
+      holds = [{ i: 36, x: ride.top[0], y: ride.top[1] }];
+      if (ride.bottom) {
+        const span = Math.round((sc2.chainBottom - sc2.chainTop) * chainBody / (linkLen * 0.72));
+        holds.push({ i: 36 + Math.max(2, Math.min(8, span)), x: ride.bottom[0], y: ride.bottom[1] });
+      }
       if (inReef) ax = ride.top[0];
     }
     const shift = -d12 * DESCENT_LINKS;
     this.chain.slide = (-p1 * 26 + shift - q2 * 20) * this.chain.pitch;
-    this.chain.update(dt, t, { ax, ay, len: H * 1.1, tail: walking ? H * 0.08 : H * 0.75, holds, sway: sc.v, mouse: this.mouse, visible: true, linkLen, slack: walking ? 0.985 : 1.002, cover: ride?.cover });
+    this.chain.update(dt, t, { ax, ay, len: H * 1.1, tail: walking ? H * 0.08 : H * 0.75, holds, sway: sc.v, mouse: this.mouse, visible: true, linkLen, slack: walking ? 0.985 : 1.002 });
 
     // Snap.
     const feet = z0 ? onPlate(z0, L.feet[0], L.feet[1]) : [W * 0.88, H * 0.36];

@@ -29,12 +29,22 @@ export const media = manifest as unknown as {
     clips: Record<'m10' | 'm11' | 'm12', { duration: number; bytes: number; track: number[][]; eyes: number[][] }>;
   };
   /**
-   * Snap in 3D for his spin (snap-3d-glb.txt). rotY turns the model to face
-   * the viewer; scale is sprite heights per model unit; place puts its chain
-   * point at the origin (sprite heights, y up, z toward the viewer); chain is
-   * how far the chain in his claws reaches above and below that point.
+   * Snap in 3D (snap-3d.txt, base64 of n vertices' int16 positions over the
+   * box lo to hi, int8 normals, uint16 uvs and rig bytes, then the triangles'
+   * uint16 indices), in his rig frame: x right, y up, z toward the viewer, in
+   * his heights on the chain, from the point in his raised claw the chain
+   * runs through. box is his front view's box (x0, y0, x1, y1); limbs are
+   * the two eye stalks, the claw on the chain (clawL), the other claw and the
+   * legs, each with the point it swings about, its direction and reach; eyes
+   * are the eye balls' centres and radii and the way their beads look.
    */
-  snap3d: { view: string; iou: number; rotY: number; scale: number; place: [number, number, number]; chain: [number, number]; bytes: number };
+  snap3d: {
+    view: [number, number, number]; n: number; tris: number;
+    lo: [number, number, number]; hi: [number, number, number]; box: [number, number, number, number];
+    limbs: { kind: 'stalk' | 'clawL' | 'clawR' | 'leg'; pivot: [number, number, number]; dir: [number, number, number]; reach: number }[];
+    eyes: { c: [number, number, number]; r: number; look: [number, number, number] }[];
+    bytes: number; textureBytes: { avif: number; webp: number };
+  };
 };
 
 const base = new URL('media/', document.baseURI);

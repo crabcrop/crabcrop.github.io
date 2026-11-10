@@ -91,8 +91,9 @@ async function start() {
   addEventListener('load', () => { scroll.measure(); w.measure(); });
   document.addEventListener('visibilitychange', () => { if (document.hidden) w.snap.pause(); });
 
-  // Drop to a lighter pixel ratio if frames run slow.
-  let slow = 0, frames = 0, lowered = false;
+  // Step down to a lighter pixel ratio if frames run slow: 1.5, then 1.
+  const lighter = [1.5, 1];
+  let slow = 0, frames = 0, level = 0;
   let last = performance.now();
   const loop = (time: number) => {
     const dt = Math.min(0.05, (time - last) / 1000 / slowmo);
@@ -101,7 +102,10 @@ async function start() {
     w.frame(dt, now());
     const doc = document.documentElement.scrollHeight - innerHeight;
     ui.update(w.out, now(), scroll.v, doc > 0 ? scroll.y / doc : 0, dt, w.mouse);
-    if (!lowered && frames++ > 30) { slow = slow * 0.95 + (dt > 0.024 ? 1 : 0) * 0.05; if (slow > 0.6) { w.stage.setMaxDpr(1); lowered = true; } }
+    if (level < lighter.length && frames++ > 30) {
+      slow = slow * 0.95 + (dt > 0.024 ? 1 : 0) * 0.05;
+      if (slow > 0.6) { w.stage.setMaxDpr(lighter[level++]); slow = 0; frames = 0; }
+    }
     requestAnimationFrame(loop);
   };
   requestAnimationFrame(loop);

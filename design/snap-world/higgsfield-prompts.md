@@ -600,6 +600,7 @@ each other on that frame.
 | S-C | Neutral, the print lying on the floor beside him | M06 |
 | S-D | Holding a small vintage rangefinder camera at chest height | M07 |
 | S-R | Hugging the chain: pose 2 of C03 on the grey, the chain carried on to the frame edges. Made with `tools/ride-start.py`, not generated | M10, M11, M12 |
+| S-R-free | S-R with the chain edited out, his claw still curled as if round it (Nano Banana Pro edit, below). The input for the 3D Snap | Tripo model |
 
 ```
 <<<snap>>> <pose>.
@@ -611,6 +612,22 @@ stands in the center of the frame. Both eyestalks clearly visible; the
 eyes never sit on the body.
 {SNAP_DNA}
 {SNAP_AVOID}
+```
+
+S-R-free is an edit of S-R (Nano Banana Pro, 16:9, 2K, S-R as the image reference):
+
+```
+Edit the reference image: remove the rusty iron chain completely, from the
+top edge of the picture to the bottom edge, including every link inside his
+claw and in front of his legs. Snap keeps exactly the same pose: the claw on
+the left of the picture stays curled closed in the same place, as if
+gripping a thin vertical rod, but it holds nothing; his legs stay exactly
+where they are, and any yarn the chain was hiding is filled in naturally
+with the same coral crochet stitches. Keep everything else exactly as it is:
+the same plain mid-grey background, the same camera, the same soft lighting,
+and Snap's size, position, colours, eyes with white rings, pink cheeks, gold
+smile and cream spiral belly unchanged. No chain, no rope, no rod, no pole,
+no new objects, no text.
 ```
 
 Asked for "45 percent of the frame height", the model fills about three

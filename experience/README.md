@@ -37,9 +37,9 @@ functions to cut the chain hanging free out of his riding loops.
 | Layer | What | Where |
 | --- | --- | --- |
 | World | Plates, their loops and the transition frames, cover-fit, with ripples under the cursor at the marina, a sun glint in the shallows and light shafts in the kelp | `src/world/backdrop.ts` |
-| Chain | A Verlet rope drawn as rusty iron links; Snap holds it at two points. While he rides, the rope above him is weightless, so it runs straight into his claw, and the links nearest his holds overlap the chain in his film | `src/world/chain.ts` |
+| Chain | A Verlet rope drawn as rusty iron links. The 3D Snap holds it at one point, in his raised claw: the links run on through the claw, where the depth buffer hides them, and hang in front of his legs. While he rides, the rope above him is weightless, so it runs straight into his claw. The sprite and film, his fallbacks, hold it at the two ends of the chain painted into them | `src/world/chain.ts` |
 | Snap | Alpha clips on the pier (wave, gust, hop), the print that blows into the sea, a leap with a spin onto the chain, visits to the cards (the claw snap), and the sideways walk on the reef with the chain in his claw | `src/world/snap.ts` |
-| Snap on the chain | Filmed: a calm loop of him riding, with a happy wave or a peek into the depths slipped in every few loops, faster when you scroll fast. The page's chain is pinned where the filmed chain ends. Eyes that follow the cursor, a swing driven by scroll speed, and spins round the chain (a fast flick, now and then when idle, or a click on him), for which a 3D model of the same painting turns him round for real. In the air, and until the film plays, the painted chain pose comes alive in its shaders: kicking legs, swaying eye stalks, blinks with his coral lids | `src/world/rider.ts`, `src/world/sparkle.ts` |
+| Snap on the chain | In 3D: a Tripo model of his chain pose with the chain edited out, seen as in the painting, with his own soft light and the zone's grade. Alive in its vertex shader: legs that paddle, faster when you scroll fast; eye stalks that sway and lag behind the swing; a free claw that waves; eyes that turn toward the cursor; coral lids for blinks. A swing driven by scroll speed, real spins round the chain (a fast flick, now and then when idle, or a click on him), and a tumble through the leap and the visits to the cards. Until the model loads, the painted chain pose comes alive in its shaders; if it cannot load, he rides on film (a calm loop, with a wave or a peek into the depths slipped in) | `src/world/rider.ts`, `src/world/snap3d.ts`, `src/world/sparkle.ts` |
 | Fish | Six schools, one per format; they gather at the format tag | `src/world/fish.ts` |
 | Bubbles | The plunge, the drop to the reef, and a stream from Snap on fast scrolls | `src/world/bubbles.ts` |
 | Kelp | Knitted stalks in the foreground that sway and bend away from the cursor | `src/world/kelp.ts` |
@@ -62,13 +62,13 @@ The reef is pinned for 800vh: seven viewport heights of sideways travel,
 then the studio scrolls on normally. Plates far from the camera are freed
 and load again if the visitor scrolls back.
 
-The code is about 185 KB gzipped (19 KB for the page; Three.js loads in its
-own chunk after the text, and the 3D loader, 14 KB, with the 3D Snap), fonts 123 KB, and the hero plate 100 to 145 KB.
-Snap's wave clip and the marina loop follow, then his hop clips and his
-three riding films (3 MB) and the 3D Snap for his spins (0.7 MB); each
-later zone and transition loads as the visitor gets near it. All the media
-together are about 31 MB, a third of it
-the two transitions (72 frames each).
+The code is about 176 KB gzipped (19 KB for the page; Three.js loads in its
+own chunk after the text), fonts 123 KB, and the hero plate 100 to 145 KB.
+Snap's wave clip and the marina loop follow, then his hop clips and the 3D
+Snap (0.7 MB of shape as base64 text and a 0.2 MB texture); his three
+riding films (3 MB) load only if the 3D Snap cannot. Each later zone and
+transition loads as the visitor gets near it. All the media together are
+about 31 MB, a third of it the two transitions (72 frames each).
 
 ## Not built yet
 

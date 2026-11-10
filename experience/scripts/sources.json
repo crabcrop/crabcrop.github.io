@@ -167,8 +167,12 @@
       "file": "hf_20261109_015357_2700b7ce-5343-4603-a313-02edb2824b88.mp4"
     },
     "snap-3d-tripo.glb": {
-      "tripo_task": "5fc3a0ea-9864-4f08-99b7-ec61410ce62a",
+      "tripo_task": "84c2e1e5-3c0c-41db-9172-15f7aff3f7ab",
       "file": "model.glb"
+    },
+    "snap-ride-free.png": {
+      "job": "78795b2a-a16f-4091-aaba-e7e202797137",
+      "file": "hf_20261109_235200_78795b2a-a16f-4091-aaba-e7e202797137.png"
     }
   }
 }

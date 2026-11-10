@@ -251,6 +251,14 @@ at each end, where the page's links overlap it), and records where that
 stretch ends and where his eyes are, so the page's chain and the cursor
 look follow the film.
 
+For the 3D Snap the chain came out of the start frame instead: S-R-free, a
+Nano Banana Pro edit of S-R (2K, 16:9, the prompt in the prompt pack). Jobs
+`78795b2a-a16f-4091-aaba-e7e202797137` (used) and
+`61757c09-bc7a-4619-8409-e68cd99bd997` (alternate), 4 credits. Both removed
+every link and kept his claw curled round nothing; the first one's fist
+reads a little better. The edit kept a light halo from the old matte round
+his outline, which `tools/snap3d-view.py` trims off with the grey.
+
 ## Phase G: card icons (folder 09)
 
 Nano Banana Pro, 1:1, 4K (4096 × 4096), no Element. The prompt is I01
@@ -311,7 +319,8 @@ right place. Background removal takes no folder: attach its results with
 | D and E: 13 loops, 5 transition takes, 1 test | 484 |
 | F and G: 8 start stills, 10 clip takes, 9 cutouts, 2 icon sheets | 164 |
 | Ride loops: 4 takes, 3 cutouts | 65 |
-| **Total** | **863** |
+| 3D Snap: the chain-free edit (2 images) | 4 |
+| **Total** | **867** |
 
 Failed jobs were refunded.
 
@@ -365,6 +374,21 @@ The page is built in `experience/` and previewed from `preview/dive/`.
   film fades back in from its first frame, which is the model's pose. The
   model is lit and graded like the film and loads after it; until it has
   loaded, the old flat flip stands in.
+- **Snap in 3D.** On the chain, round it and in the air, Snap is now a
+  Tripo model of S-R-free (pose 2 with the chain edited out), seen as in
+  the painting. The page's chain runs through his raised claw and hangs in
+  front of his legs, and the depth buffer hides it inside the claw. He
+  comes alive in the vertex shader: his legs paddle (faster on fast
+  scrolls), his stalks sway and lag behind the swing, the free claw waves
+  a little, his eyes turn toward the cursor, and a coral lid comes down
+  over each eye when he blinks. He spins round the chain for real and
+  tumbles round his own axis through the leap and his visits to the cards.
+  He has his own soft light, the painting's, and the zone's grade like
+  every flat layer. The sprite stands in until the model has loaded, and
+  the filmed ride loads only if the model fails; the pier clips, the walk
+  and the claw snap stay film. The canvas now renders at up to 2× on
+  phones too (it was 1.5×), stepping down to 1.5× and then 1× if frames
+  run slow.
 
 Still open from the generation phase:
 
@@ -416,14 +440,42 @@ how it lines up with the sprite. Lit by a soft
 sky and a key from the upper left, it matches the painting's colour within
 a few percent.
 
+For Snap in 3D full-time we made a third model, from S-R-free cut out on
+white: H3.1 image-to-model, texture and geometry detailed,
+`orientation=align_image`, two takes (`84c2e1e5-3c0c-41db-9172-15f7aff3f7ab`
+from the used edit, `f1c6a80f-de56-474f-9dea-42c8ef2b0c21` from the
+alternate), 60 credits each, 280 Tripo credits in all. We kept the first:
+from behind, its eyes are covered in red yarn, where the other's show bare
+cream backs. Its raised claw came out as an open pincer, which suits a
+chain running through it.
+
+Tripo built him upright in his own frame, so seen straight on he covers
+the painting with an overlap of only 0.71: the painting looks down on him.
+`tools/snap3d-view.py` finds the view that matches it (turned 16 degrees,
+looking down 46, rolled 5, an overlap of 0.92), and `encode-media.py
+snap3d` shows him that way. The encoder also splits him into body and
+limbs: the body is what survives eroding everything thinner than a limb
+out of the voxelized model, and each limb is a connected piece of the rest
+(two eye stalks, the raised claw, the other claw and seven legs), with its
+root, direction and reach; each eye ball gets a fitted sphere. His origin is
+where the chain runs through the middle of the raised claw. Cut to 35,000
+triangles, the shape ships as 551 KB of quantized positions, normals, uvs,
+limb bytes and triangles (735 KB as base64 text), and the 2048 px texture
+as a 209 KB AVIF or a 322 KB WebP.
+
 ## Next
 
 The shipwreck (S4): T03 into the wreck, the cabin, sealed URLs and
 provenance, and Choice 5, the seal. Its plates, loop and transition are
 made.
 
-Optional: the 3D Snap could also tumble through the leap, and the six
-format fish could become 3D schools (about 40 Tripo credits a species).
+Optional: the six format fish could become 3D schools (about 40 Tripo
+credits a species).
+
+The phone loops for the shallows and the kelp (Z1, Z2) and the phone frames
+of T01 and T02 are 528 px wide crops of the desktop videos, as sharp as
+their 936 px height allows. On phones they look soft beside the 3D Snap and
+the stills; phone-format takes (9:16, 1080p) would fix that.
 
 ## What we learned
 
@@ -509,3 +561,15 @@ format fish could become 3D schools (about 40 Tripo credits a species).
   iOS 17 and later included. A strict content security policy, like the
   preview host's, refuses that fetch, so the whole model fails. Ship the
   texture as its own image and load it through an image element.
+- Tripo builds a model upright in its own frame, even with
+  `orientation=align_image`. Our painting looks down on Snap from about 46
+  degrees, so straight on the model matched it poorly. Fit the view to the
+  painting's outline before lining anything up with it.
+- A GLB mesh is split along its texture seams, so the raw mesh's connected
+  pieces are not limbs: weld the vertices by position first. A voxel
+  opening (erode, keep the largest piece, dilate back) separates a plush
+  toy's limbs from its body cleanly.
+- Lit by the scene's lights (teal under water, with a dark teal from
+  below), the model went dark and his cream belly grey. A model whose
+  texture already holds a painting's light wants its own soft light and
+  the page's grade, like the flat layers.

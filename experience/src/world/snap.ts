@@ -164,10 +164,8 @@ export class Snap {
     this.printU.uMap.value = imageTexture(printImg);
     this.clips.m02.v.preload = this.clips.m03.v.preload = 'auto';
     await Promise.all([this.ready('m02'), this.ready('m03')]);
-    // The filmed ride, for when he lands on the chain; the sprite stands in until it plays.
+    // Snap in 3D for the chain (or the filmed ride if that fails); the sprite stands in until then.
     this.rider.loadRide().catch(() => {});
-    // And the 3D Snap for his spins, alongside it (the film tries it again if this fails).
-    this.rider.spin3d.load().catch(() => {});
   }
 
   private async loadClip(k: 'm04' | 'm05', loop: boolean) {
@@ -239,7 +237,7 @@ export class Snap {
   /** Visit a card: leap onto its top edge (feet gives where, each frame), snap the claw, come back. */
   visit(t: number, feet: () => [number, number] | null, ctx: { chainBody: number; body: number }) {
     if (!this.riding || this.visitNow || !this.clips.m05?.ready || !this.holds) return false;
-    const [cx, cy] = Rider.centre(ctx.chainBody);
+    const [cx, cy] = this.rider.centre(ctx.chainBody);
     const from: [number, number] = [this.holds.top[0] + cx, this.holds.top[1] + cy];
     const f = feet();
     if (!f) return false;
@@ -374,7 +372,7 @@ export class Snap {
 
     this.claw = null;
     this.holds = null;
-    const [cxo, cyo] = Rider.centre(ctx.chainBody);
+    const [cxo, cyo] = this.rider.centre(ctx.chainBody);
     const riderCtx = { visible: true, h: ctx.chainBody, speed: ctx.speed, mouse: ctx.mouse, grade: ctx.grade, idle: ctx.idle };
 
     // The leap: a spinning arc from the pier to his hold on the chain.
@@ -404,7 +402,7 @@ export class Snap {
   /** A visit to a card: out, perched with the claw snap, and back. */
   private visiting_(dt: number, t: number, ctx: SnapCtx, riderCtx: { visible: boolean; h: number; speed: number; mouse: [number, number] | null; grade: [number, number, number]; idle: boolean }) {
     const v = this.visitNow!;
-    const [cxo, cyo] = Rider.centre(ctx.chainBody);
+    const [cxo, cyo] = this.rider.centre(ctx.chainBody);
     const body = ctx.chainBody * v.flight.s1;
     const feet = v.feet();
     if (v.phase === 'out') {
