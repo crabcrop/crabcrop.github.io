@@ -761,7 +761,7 @@ url = build_url(
       <div class="code-pane" data-pane="rs" role="tabpanel" id="sign-pane-rs" aria-labelledby="sign-tab-rs" tabindex="0"><pre><span class="k">use</span> crabcrop_url::{build_url, sign};
 
 <span class="k">let</span> secret: &amp;[u8] = <span class="s">b"demo-secret"</span>;
-<span class="k">let</span> signature = sign(secret, <span class="s">"crop:1200x630:smart/filters:format(webp):quality(80)/https://example.com/photo.jpg"</span>);
+<span class="k">let</span> signature = sign(secret, <span class="s">"crop:1200x630:smart/filters:format(webp):quality(80)/https://example.com/photo.jpg"</span>)?;
 
 <span class="c">// build_url(base, secret, operations, source, expires)</span>
 <span class="k">let</span> url = build_url(

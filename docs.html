@@ -776,8 +776,8 @@ srcset = build_srcset(base, secret, source, [400, 800, 1200])</pre></div>
 <span class="k">let</span> secret: &amp;[u8] = <span class="s">b"your-secret"</span>; <span class="c">// read it from the environment in real code</span>
 <span class="k">let</span> source = <span class="s">"https://example.com/photo.jpg"</span>;
 
-<span class="c">// sign(secret, remainder): the hex tag the curl tab prints</span>
-<span class="k">let</span> signature = sign(secret, <span class="s">"300x200/https://example.com/photo.jpg"</span>);
+<span class="c">// sign(secret, remainder): the hex tag the curl tab prints, or an error for a reserved remainder</span>
+<span class="k">let</span> signature = sign(secret, <span class="s">"300x200/https://example.com/photo.jpg"</span>)?;
 
 <span class="c">// build_url(base, secret, operations, source, expires); a None secret builds the unsafe form</span>
 <span class="k">let</span> url = build_url(base, Some(secret), <span class="s">"300x200"</span>, source, None)?;
@@ -787,7 +787,7 @@ srcset = build_srcset(base, secret, source, [400, 800, 1200])</pre></div>
           </div>
         </div>
       </div>
-      <p class="honest" style="margin-top:14px">Every tab signs the same example, the second test vector below, so each one mints the same URL. The builders take positional arguments in the same order in all three languages: base, secret, operations, source. A <code>null</code> secret in TypeScript (<code>None</code> in Python and Rust) builds the <code>unsafe</code> form. The expiry comes last: an options object in TypeScript, a keyword argument in Python, a fifth argument in Rust. A srcset entry is a bare <code>{width}x0</code> resize; to keep a preset or a format in every entry, build each width with the URL builder instead.</p>
+      <p class="honest" style="margin-top:14px">Every tab signs the same example, the second test vector below, so each one mints the same URL. The builders take positional arguments in the same order in all three languages: base, secret, operations, source. A <code>null</code> secret in TypeScript (<code>None</code> in Python and Rust) builds the <code>unsafe</code> form. The expiry comes last: an options object in TypeScript, a keyword argument in Python, a fifth argument in Rust. The Rust functions return a <code>Result</code>, so the Rust tab runs inside a function that returns one and uses <code>?</code>; <code>sign</code> returns one since 0.11.0, so code that called it unwraps the result. A srcset entry is a bare <code>{width}x0</code> resize; to keep a preset or a format in every entry, build each width with the URL builder instead.</p>
       <h3>Test vectors</h3>
       <p>Verify any implementation against these. Secret <code>Jefe</code>, message <code>what do ye want for nothing?</code>, HMAC-SHA256 <code>ba5396e10039ec002bf1fde117eee48df8c2f06bc47b5f2d3272ea77f6862da9</code>. Secret <code>your-secret</code>, remainder <code>300x200/https://example.com/photo.jpg</code>, HMAC-SHA256 <code>3c1f6c180116661877bd4c85fd201a178087d74c1cc188cc584e819d901308c6</code>. Every SDK runs the canonical vectors from <code>spec/test-vectors.json</code> as its test suite, so client and server cannot drift.</p>
       <h3>Key IDs and rotation</h3>
