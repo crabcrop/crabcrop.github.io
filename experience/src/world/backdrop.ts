@@ -12,6 +12,7 @@ precision highp float;
 uniform sampler2D uA, uB, uC, uStill, uLit;
 uniform vec4 uCoverA, uCoverB, uCoverC, uCoverPix, uStillCover, uLitCover;   // left, top, width, height in px
 uniform vec4 uLight;
+uniform vec2 uAscent;
 uniform float uWarm, uShimmer;
 uniform float uMix, uTime, uMouseOn, uWaterY, uRipple, uGlint, uShafts, uTintAmt;
 uniform float uSplit, uRegionAmt, uCanSide, uPixSize, uLampsOn, uLampR;
@@ -43,6 +44,18 @@ vec3 both(vec2 px) {
   // Two reef panels side by side meet at uSplit with a soft join; otherwise a crossfade.
   float m = uSplit > -9999.0 ? smoothstep(uSplit - 30.0, uSplit + 30.0, px.x) : uMix;
   return mix(a, b, m);
+}
+// The ascent: the zones' colours, deepest first, from the vents' embers to the sunset.
+vec3 zoneColour(float i) {
+  if (i < 1.0) return vec3(0.36, 0.11, 0.04);
+  if (i < 2.0) return vec3(0.1, 0.11, 0.15);
+  if (i < 3.0) return vec3(0.07, 0.08, 0.22);
+  if (i < 4.0) return vec3(0.2, 0.1, 0.34);
+  if (i < 5.0) return vec3(0.05, 0.29, 0.35);
+  if (i < 6.0) return vec3(0.07, 0.58, 0.58);
+  if (i < 7.0) return vec3(0.3, 0.46, 0.2);
+  if (i < 8.0) return vec3(0.55, 0.88, 0.87);
+  return vec3(1.0, 0.64, 0.5);
 }
 vec3 lamp(vec3 col, vec2 px, vec3 L) {
   vec2 d = px - L.xy;
@@ -125,6 +138,19 @@ void main() {
       col += max(col - vec3(0.42), vec3(0.0)) * 0.7 * k + vec3(1.0, 0.78, 0.48) * 0.13 * k * k;
     }
   }
+  // The express ascent: the zones rush down past as bands of their colours, with streaks of speed.
+  if (uAscent.x > 0.0) {
+    float yy = sp.y / uRes.y;
+    float pos = clamp(uAscent.y * 8.4 + (1.0 - yy) * 1.3 - 0.4, 0.0, 8.99);
+    float i = floor(pos), f = fract(pos);
+    vec3 band = mix(zoneColour(i), zoneColour(i + 1.0), smoothstep(0.25, 0.75, f));
+    float lane = floor(sp.x / 5.0);
+    float h = fract(sin(lane * 91.7) * 43758.5453);
+    float sy = fract(yy * 0.7 - uTime * (0.8 + h * 1.4) - h * 7.0);
+    float streak = step(0.86, h) * smoothstep(0.0, 0.08, sy) * (1.0 - smoothstep(0.08, 0.45, sy));
+    float vig = 1.0 - 0.35 * pow(abs(sp.x / uRes.x - 0.5) * 2.0, 2.0);
+    col = mix(col, band * vig + streak * 0.22 * vec3(1.0, 0.97, 0.9), uAscent.x);
+  }
   // A warm glow rising from below: the vents ahead.
   if (uWarm > 0.0) col += vec3(1.0, 0.48, 0.16) * uWarm * pow(smoothstep(0.3, 1.0, sp.y / uRes.y), 2.0) * 0.45;
   // The lantern's warm light, where it hangs now, flickering.
@@ -138,7 +164,7 @@ void main() {
 }`;
 
 /** z0 to z3 are the vertical zones; r0 to r4 are the reef panorama's panels, left to right, and r3c is r3 with the can removed; z4x is the wreck outside, z4 its cabin and z5 the twilight zone. */
-export type Zone = 'z0' | 'z1' | 'z2' | 'z3' | 'r0' | 'r1' | 'r2' | 'r3' | 'r3c' | 'r4' | 'z4x' | 'z4' | 'z5' | 'z5lit' | 'z6';
+export type Zone = 'z0' | 'z1' | 'z2' | 'z3' | 'r0' | 'r1' | 'r2' | 'r3' | 'r3c' | 'r4' | 'z4x' | 'z4' | 'z5' | 'z5lit' | 'z6' | 'z7';
 export type SeqKey = 't1' | 't2' | 't3' | 't4';
 const SEQ_KEYS: SeqKey[] = ['t1', 't2', 't3', 't4'];
 const isSeq = (k: SourceKey): k is SeqKey => (SEQ_KEYS as string[]).includes(k);
@@ -151,9 +177,9 @@ interface Seq { frames: (HTMLImageElement | null)[]; tex: THREE.Texture | null; 
 const PLATE: Record<Zone, [PlateKey, PlateKey]> = {
   z0: ['z0', 'z0p'], z1: ['z1', 'z1p'], z2: ['z2', 'z2p'], z3: ['z3', 'z3p'],
   r0: ['z3', 'z3'], r1: ['z3_2', 'z3_2'], r2: ['z3_3', 'z3_3'], r3: ['z3_4', 'z3_4'], r3c: ['z3_4c', 'z3_4c'], r4: ['z3b', 'z3b'],
-  z4x: ['z4x', 'z4xp'], z4: ['z4', 'z4p'], z5: ['z5', 'z5p'], z5lit: ['z5lit', 'z5litp'], z6: ['z6', 'z6p'],
+  z4x: ['z4x', 'z4xp'], z4: ['z4', 'z4p'], z5: ['z5', 'z5p'], z5lit: ['z5lit', 'z5litp'], z6: ['z6', 'z6p'], z7: ['z7', 'z7p'],
 };
-const LOOPS: Partial<Record<Zone, true>> = { z0: true, z1: true, z2: true, z4: true, z6: true };
+const LOOPS: Partial<Record<Zone, true>> = { z0: true, z1: true, z2: true, z4: true, z6: true, z7: true };
 export const PANELS: Zone[] = ['r0', 'r1', 'r2', 'r3', 'r4'];
 
 /** What the reef asks of the backdrop: where the camera is, and the effects on its panels. */
@@ -198,7 +224,7 @@ export class Backdrop {
       uSplit: { value: -1e5 }, uRegionAmt: { value: 0 }, uCanSide: { value: 0 }, uRegion: { value: new THREE.Vector4() },
       uPixSize: { value: 0 }, uPix: { value: new THREE.Vector4(0, 0, 1, 1) },
       uLampsOn: { value: 0 }, uLampR: { value: 100 }, uLamp0: v3(), uLamp1: v3(), uLamp2: v3(), uImpact: { value: new THREE.Vector3(0, 0, -10) },
-      uLit: { value: this.blank }, uLitCover: { value: new THREE.Vector4(0, 0, 1, 1) }, uLight: { value: new THREE.Vector4() }, uWarm: { value: 0 }, uShimmer: { value: 0 },
+      uLit: { value: this.blank }, uLitCover: { value: new THREE.Vector4(0, 0, 1, 1) }, uLight: { value: new THREE.Vector4() }, uWarm: { value: 0 }, uShimmer: { value: 0 }, uAscent: { value: new THREE.Vector2() },
       uSwing: { value: new THREE.Vector4() }, uSwingR: { value: new THREE.Vector4(0, 0, 1, 1) }, uGlow: { value: new THREE.Vector4(0, 0, 1, 0) },
       ...LOOK,
     };
@@ -315,6 +341,7 @@ export class Backdrop {
   }
 
   private noEffects() {
+    this.u.uAscent.value.x = 0;
     this.u.uLight.value.w = 0;
     this.u.uWarm.value = 0;
     this.u.uSwing.value.w = 0;
@@ -340,6 +367,9 @@ export class Backdrop {
     this.u.uSwingR.value.set(...oval);
     this.u.uGlow.value.set(...glow);
   }
+
+  /** The express ascent: the zones' colours rushing past (amount, progress through the climb). */
+  ascent(amount: number, progress: number) { this.u.uAscent.value.set(amount, progress); }
 
   /** The twilight zone's lantern: the lit plate shows through round light (x, y, radius px); warm glows from below. */
   lantern(cover: Cover, light: [number, number, number], amount: number, warm: number) {

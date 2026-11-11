@@ -101,7 +101,7 @@ const LOST_FISH = [0.6, 0.76] as const;
 const T4_FROM = 10;
 const easeInOut = (x: number) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
 
-export type ZoneId = 's0' | 't1' | 's1' | 's2' | 't2' | 's3' | 's3b' | 's4' | 't3' | 's4b' | 't4' | 's5' | 's6' | 'next';
+export type ZoneId = 's0' | 't1' | 's1' | 's2' | 't2' | 's3' | 's3b' | 's4' | 't3' | 's4b' | 't4' | 's5' | 's6' | 't5' | 's7';
 
 export interface WorldOut {
   tags: Record<keyof typeof TAG_LINKS, { x: number; y: number; a: number }>;
@@ -136,6 +136,12 @@ export interface WorldOut {
   fishOn: boolean;
   /** The vents: the plate on screen, how much it is on, and whether Snap has his print (the source tag shows then). */
   vents: { z6: Cover | null; on: number; taken: boolean };
+  /**
+   * The way up: how much of the ascent is on and how far through it, where
+   * Snap's free claw is (the print rides beside it), how far the surface has
+   * been revealed, and when he took the finale's picture.
+   */
+  ascent: { on: number; q: number; claw: [number, number]; reveal: number; flashAt: number };
 }
 
 /** Zones that own a plate, for checking shared files before dropping one. */
@@ -160,6 +166,8 @@ export class World {
   /** When Snap landed at the vents (to pick up his print a moment later), and whether he has it. */
   private ventsLanded = -1;
   private printTaken = false;
+  /** The finale's picture has been taken (once per visit to the surface). */
+  private flashed = false;
   /** The lantern's swing (radians, foot to the right) and its speed. */
   private lamp = { a: 0, v: 0 };
   /** The visitor asked Snap to seal the letter; when his pincer shuts on it. */
@@ -209,6 +217,7 @@ export class World {
       z4: null, cabinOn: 0, octo: { x: -999, y: -999, s: 0, on: false, busy: false }, sealOn: false,
       twi: { z5: null, win: [0, 1], on: 0, light: [-999, -999, 1], lure: { x: -999, y: -999, on: false } }, fishOn: false,
       vents: { z6: null, on: 0, taken: false },
+      ascent: { on: 0, q: 0, claw: [-999, -999], reveal: 0, flashAt: -10 },
     };
     this.measure();
   }
@@ -285,7 +294,9 @@ export class World {
     this.resident('z5lit', y > sec.t4.top + 0.5 * sec.t4.h && y < sec.s6.top + H);
     // The vents: the plate and its loop, the print and the tube worms.
     if (y > sec.s5.top + H) this.want('vents', () => this.vents.load());
-    this.resident('z6', y > sec.s6.top - 2 * H);
+    this.resident('z6', y > sec.s6.top - 2 * H && y < sec.s7.top);
+    // The surface at sunset.
+    this.resident('z7', y > sec.t5.top - H);
   }
 
   setFormat(f: Fmt | 'auto', t: number) {
@@ -466,8 +477,16 @@ export class World {
     const k5 = (y - sec.s5.top) / Math.max(1, sec.s6.top - sec.s5.top);
     // The vents: through a warm dark out of the twilight, then down to the floor by the geode.
     const u6 = (y - sec.s6.top) / H;
-    const inVents = inT4 && u6 >= -0.4;
-    const ventsOn = inT4 ? smooth(-0.4, -0.15, u6) : 0;
+    // The winch: back on the chain at the vents; the express ascent; and home at the surface, revealed as the camera pulls back.
+    const u5 = (y - sec.t5.top) / H;
+    const q5 = clamp((y - sec.t5.top) / sec.t5.h);
+    const winch = inT4 ? smooth(-0.55, 0.05, u5) : 0;
+    const inAscent = inT4 && y >= sec.t5.top && q5 >= 0.07;
+    const bands = inT4 && y >= sec.t5.top ? smooth(0, 0.065, q5) * (1 - smooth(0.84, 0.97, q5)) : 0;
+    const k7 = (y - sec.s7.top) / H;
+    const reveal = inAscent ? smooth(-0.3, 1.0, k7) : 0;
+    const inVents = inT4 && u6 >= -0.4 && !inAscent;
+    const ventsOn = inVents ? smooth(-0.4, -0.15, u6) : 0;
     const twiOn = inT4 ? smooth(0.96, 1, q4) * (1 - smooth(-0.6, -0.4, u6)) : 0;
     const warm = inT4 && !inVents ? smooth(0.78, 1.15, k5) : 0;
     const cabinOn = inT3 && !inT4 ? clamp(Math.min(smooth(0.9, 1, q3), 1 - leaving)) : 0;
@@ -479,7 +498,8 @@ export class World {
     let a: SourceKey = 'z0', b: SourceKey = 'z0', mix = 0, dip = 0;
     if (inWreck) {
       if (inT4) {
-        if (inVents) { a = b = 'z6'; }
+        if (inAscent) { a = b = 'z7'; }
+        else if (inVents) { a = b = 'z6'; }
         else if (this.backdrop.seqReady('t4')) {
           a = b = 't4';
           if (q4 > 0.97) { b = 'z5'; mix = smooth(0.97, 1, q4); }
@@ -512,7 +532,7 @@ export class World {
         if (p1 >= 1) { a = b = 'z1'; mix = 0; }
       } else { a = 'z0'; b = 'z1'; mix = smooth(0.25, 0.75, p1); if (p1 >= 1) { a = b = 'z1'; mix = 0; } }
     }
-    let z0c: Cover | null = null, z1c: Cover | null = null, z2c: Cover | null = null, t1c: Cover | null = null, z4c: Cover | null = null, z5c: Cover | null = null, z6c: Cover | null = null;
+    let z0c: Cover | null = null, z1c: Cover | null = null, z2c: Cover | null = null, t1c: Cover | null = null, z4c: Cover | null = null, z5c: Cover | null = null, z6c: Cover | null = null, z7c: Cover | null = null;
     // Snap's spot on the reef, in panels: he keeps his place on screen while
     // the camera travels, then walks to his mark in the studio.
     const snapU = lerp(Lr + this.reef.snapAt() * win, this.reef.studioSpot(), smooth(-0.8, 0.6, kB));
@@ -529,20 +549,20 @@ export class World {
       const fyT = lerp(0.5, 0.82, smooth(0, 1.1, k5));
       // At the vents it sinks to the floor and the geode.
       const fyV = lerp(0.22, 0.62, smooth(-0.4, 1.3, u6));
-      const fyOf = (x: SourceKey) => (x === 'z0' ? fyS0 : x === 'z1' ? fyS1 : x === 'z2' ? fyS2 : x === 'z4x' ? fyW : x === 'z5' ? fyT : x === 'z6' ? fyV : 0.5);
+      const fyOf = (x: SourceKey) => (x === 'z0' ? fyS0 : x === 'z1' ? fyS1 : x === 'z2' ? fyS2 : x === 'z4x' ? fyW : x === 'z5' ? fyT : x === 'z6' ? fyV : x === 'z7' ? lerp(0.97, 0.22, reveal) : 0.5);
       const fxOf = (x: SourceKey) => (x === 'z2' ? L.fxKelp : x === 't2' ? lerp(L.fxKelp, L.fx, q2)
-        : x === 'z4x' ? L.fxWreck : x === 't3' ? lerp(L.fxWreck, L.fxCabin, q3) : x === 'z4' ? L.fxCabin : x === 't4' || x === 'z5' ? 0.5 : x === 'z6' ? L.fxVents : L.fx);
+        : x === 'z4x' ? L.fxWreck : x === 't3' ? lerp(L.fxWreck, L.fxCabin, q3) : x === 'z4' ? L.fxCabin : x === 't4' || x === 'z5' ? 0.5 : x === 'z6' ? L.fxVents : x === 'z7' ? lerp(0.62, L.fx, reveal) : L.fx);
       // through the hull the camera settles to the cabin's framing, which then pushes in a little
-      const overOf = (x: SourceKey) => (x === 'z4' ? L.overCabin + 0.05 * smooth(0, 3, kC) : x === 't3' ? lerp(1.12, L.overCabin, smooth(0.55, 1, q3)) : 1.12);
+      const overOf = (x: SourceKey) => (x === 'z4' ? L.overCabin + 0.05 * smooth(0, 3, kC) : x === 't3' ? lerp(1.12, L.overCabin, smooth(0.55, 1, q3)) : x === 'z7' ? lerp(2.3, 1.12, reveal) : 1.12);
       const frames = {
         t1: p1 * (media.t1.frames - 1), t2: q2 * (media.t2.frames - 1), t3: q3 * (media.t3.frames - 1),
         t4: T4_FROM + q4 * (media.t4.frames - 1 - T4_FROM),
       };
       const covers = this.backdrop.update(dt, a, b, mix, frames, fyOf(a), fyOf(b), fxOf(a), fxOf(b), overOf(a), overOf(b));
       const coverOf = (z: SourceKey) => (a === z ? covers.a : b === z ? covers.b : null);
-      z0c = coverOf('z0'); z1c = coverOf('z1'); z2c = coverOf('z2'); t1c = coverOf('t1'); z4c = coverOf('z4'); z5c = coverOf('z5'); z6c = coverOf('z6');
+      z0c = coverOf('z0'); z1c = coverOf('z1'); z2c = coverOf('z2'); t1c = coverOf('t1'); z4c = coverOf('z4'); z5c = coverOf('z5'); z6c = coverOf('z6'); z7c = coverOf('z7');
     }
-    this.backdrop.playLoops({ z0: k < s0h + 0.2, z1: kS1 > -1.2 && d12 < 1, z2: d12 > 0 && q2 < 0.1, z4: inT3 && q3 > 0.85 && y < sec.t4.top + 0.2 * H, z6: inVents });
+    this.backdrop.playLoops({ z0: k < s0h + 0.2, z1: kS1 > -1.2 && d12 < 1, z2: d12 > 0 && q2 < 0.1, z4: inT3 && q3 > 0.85 && y < sec.t4.top + 0.2 * H, z6: inVents, z7: inAscent && q5 > 0.8 });
 
     // Visibility of each zone's layers.
     const s1On = clamp(Math.min(smooth(-0.9, -0.3, kS1), 1 - d12));
@@ -554,20 +574,23 @@ export class World {
     u.uTime.value = t;
     u.uMouseOn.value = this.mouse ? 1 : 0;
     if (this.mouse) u.uMouse.value.set(this.mouse[0], this.mouse[1]);
-    u.uRipple.value = !inReef && a === 'z0' && b === 'z0' ? 1 : 0;
-    u.uWaterY.value = z0c ? onPlate(z0c, 0, this.backdrop.plateMeta('z0').waterline ?? 0.58)[1] : 1e5;
+    u.uRipple.value = (!inReef && a === 'z0' && b === 'z0') || (a === 'z7' && b === 'z7' && reveal > 0.95) ? 1 : 0;
+    u.uWaterY.value = z0c ? onPlate(z0c, 0, this.backdrop.plateMeta('z0').waterline ?? 0.58)[1]
+      : z7c && reveal > 0.5 ? onPlate(z7c, 0, this.backdrop.plateMeta('z7').waterline ?? 0.58)[1] : 1e5;
     // The water's surface for the 3D Snap: the marina's waterline, then, through
     // the plunge, where it rises out of the top of the frames. Below it he takes
     // on the water's colour, less as the deep grade takes over.
     const t1On = a === 't1' || b === 't1';
     if (z0c && (!t1On || mix < 0.5)) this.snap.rider.snap3d.setWater(u.uWaterY.value, 1);
     else if (t1c) this.snap.rider.snap3d.setWater(t1c.oy + plungeSurface(p1 * (media.t1.frames - 1)) * t1c.dh, 1 - under);
+    else if (z7c && reveal > 0.5) this.snap.rider.snap3d.setWater(u.uWaterY.value, 1);
     else this.snap.rider.snap3d.setWater(null, 0);
     u.uGlint.value = inReef ? 0.55 * (1 - exit) : inWreck ? 0 : s1On;
     u.uShafts.value = inWreck ? 0 : s2On;
     // Through the dark between zones: out of the studio and down to the wreck, out of the cabin and into the drop.
     const dark = inReef ? exit * 0.85
       : !inWreck ? dip
+      : inAscent ? 0
       : inT4 && q4 >= 1 ? (inVents ? 0.9 * (1 - smooth(-0.4, 0.35, u6)) : 0.9 * smooth(-1.1, -0.4, u6))
       : inT4 ? 0.8 * (1 - smooth(0, 0.14, q4))
       : inT3 ? 0.8 * leaving
@@ -576,6 +599,7 @@ export class World {
     // the dark between zones is wreck teal, except on the way into the vents, where it is ember
     if (inT4 && q4 >= 1 && u6 > -1.3) u.uTint.value.set(0.1, 0.035, 0.015); else u.uTint.value.set(0.05, 0.23, 0.24);
     u.uShimmer.value = ventsOn;
+    this.backdrop.ascent(bands, q5);
     this.chain.setWater(under);
     let grade: [number, number, number] = [1 - 0.1 * under - 0.04 * s2On - 0.16 * exit, 1 + 0.01 * under - 0.06 * exit, 1 + 0.04 * under - 0.02 * exit];
     if (inWreck) {
@@ -585,6 +609,8 @@ export class World {
       // warm by the vents' fires
       const vent = [1.08, 0.95, 0.85];
       grade = [lerp(g(0), vent[0], ventsOn), lerp(g(1), vent[1], ventsOn), lerp(g(2), vent[2], ventsOn)];
+      // and at the surface, the sunset's
+      if (inAscent) { const sun = [1.05, 0.97, 0.93], f = smooth(0.7, 1, q5); grade = [lerp(grade[0], sun[0], f), lerp(grade[1], sun[1], f), lerp(grade[2], sun[2], f)]; }
     }
 
     // The look, previewed on the whole kelp forest.
@@ -628,7 +654,10 @@ export class World {
     const vFeet: [number, number] = z6c ? this.spot('z6', z6c, L.ventsFeet[0], L.ventsFeet[1]) : [W * 0.62, H * 0.9];
     const land6 = inVents ? smooth(0.2, 0.8, u6) : 0;
     const vLandHy = this.snap.use3d ? vFeet[1] + gripDy : vFeet[1] - this.snap.rider.below() * chainBody * 0.92;
-    const ventsHold: [number, number] = [lerp(chainX, vFeet[0] + gripDx, smooth(0, 0.5, land6)), lerp(holdY, vLandHy, land6)];
+    const ret6 = smooth(0, 0.35, winch), rise6 = smooth(0.35, 1, winch);
+    const ventsHold: [number, number] = ret6 > 0
+      ? [lerp(vFeet[0] + gripDx, chainX, rise6), lerp(vLandHy, holdY, rise6)]
+      : [lerp(chainX, vFeet[0] + gripDx, smooth(0, 0.5, land6)), lerp(holdY, vLandHy, land6)];
     if (land6 >= 1 && this.ventsLanded < 0) {
       this.ventsLanded = t;
       for (let i = 0; i < 6; i++) this.bubbles.emit(vFeet[0] + (Math.random() - 0.5) * reefBody, vFeet[1], H * 0.007);
@@ -667,7 +696,7 @@ export class World {
     const walking = (inReef || inVents) && !!this.snap.claw;
     let holds: Hold[] = [];
     let ax = lerp(boat[0], chainX, smooth(0.2, 0.9, p1));
-    const ay = lerp(boat[1], -0.35 * H, smooth(0.0, 0.65, p1));
+    let ay = lerp(boat[1], -0.35 * H, smooth(0.0, 0.65, p1));
     if (walking) {
       const c = this.snap.claw!;
       holds = [{ i: 40, x: c[0], y: c[1] }];
@@ -682,7 +711,12 @@ export class World {
       if (inReef) ax = ride.top[0];
     }
     const shift = -d12 * DESCENT_LINKS;
-    this.chain.slide = (-p1 * 26 + shift - q2 * 20 - dW * 16 - q3 * 10 - q4 * 40) * this.chain.pitch;
+    this.chain.slide = (-p1 * 26 + shift - q2 * 20 - dW * 16 - q3 * 10 - q4 * 40 + q5 * 150) * this.chain.pitch;
+    if (inAscent && z7c) {
+      const boat7 = onPlate(z7c, L.anchor[0], L.anchor[1]);
+      ax = lerp(ax, boat7[0], reveal);
+      ay = lerp(ay, boat7[1], reveal);
+    }
     // Near the bottom the anchor touches down and the chain goes slack.
     this.chain.update(dt, t, { ax, ay, len: H * 1.1, tail: walking ? H * 0.08 : H * 0.75, holds, sway: sc.v, mouse: this.mouse, visible: true, linkLen, slack: walking ? 0.985 : lerp(1.002, 0.978, warm) });
 
@@ -697,7 +731,8 @@ export class World {
       lean: clamp(lean, -0.25, 0.25), grade,
       speed: sc.v, mouse: this.mouse, idle: this.idleFor > 1.5,
       reef: inReef ? { land, ret, drop: 0, feet: [feetX, floorY], body: reefBody, vel: this.reef.vel, hold: reefHold }
-        : inVents ? { land: land6, ret: 0, drop: 0, feet: vFeet, body: reefBody, vel: 0, hold: ventsHold, print: taken } : undefined,
+        : inVents ? { land: land6, ret: ret6, drop: 0, feet: vFeet, body: reefBody, vel: 0, hold: ventsHold, print: taken && ret6 <= 0 } : undefined,
+      home: inAscent && z7c ? { on: reveal > 0.85, feet: onPlate(z7c, L.feet[0], L.feet[1]), body: z7c.dh * L.body } : undefined,
     });
     // He caught the chain: it jolts, and (filmed) at the surface the water rings.
     const water = u.uWaterY.value;
@@ -720,7 +755,7 @@ export class World {
     this.splash.update(dt);
 
     // Tags hang on the chain from the shallows through the kelp, and above Snap on the reef.
-    const hung = cabinOn > 0 || twiOn > 0;
+    const hung = cabinOn > 0 || twiOn > 0 || inAscent;
     const tagLinks = walking ? REEF_TAGS : hung ? CABIN_TAGS : TAG_LINKS;
     for (const [key, n] of Object.entries(tagLinks) as [keyof typeof TAG_LINKS, number][]) {
       this.out.tags[key] = this.chain.at(this.chain.linkArc(walking || hung ? n : n + shift));
@@ -730,6 +765,7 @@ export class World {
       ? smooth(0.45, 0.7, kR) * (1 - ret) * (1 - 0.85 * (this.phone ? Math.max(...(reefOut?.near.slice(1, 5) ?? [0])) : reefOut?.near[2] ?? 0))
       : ride && cabinOn > 0 ? cabinOn
       : ride && twiOn > 0 ? twiOn
+      : ride && inAscent ? 1 - smooth(0.3, 0.8, reveal)
       : ride && !inReef ? clamp(Math.min(smooth(-0.9, -0.3, kS1), 1 - smooth(0.0, 0.25, q2))) : 0;
 
     // The format fish in the shallows.
@@ -752,12 +788,13 @@ export class World {
     // Depth gauge.
     const zone: ZoneId = k < s0h ? 's0' : p1 < 1 ? 't1' : d12 < 0.5 ? 's1' : !inT2 ? 's2' : y < sec.s3.top ? 't2'
       : y < sec.s3b.top - 0.5 * H ? 's3' : y < sec.s4.top - 0.2 * H ? 's3b' : !inT3 ? 's4' : q3 < 1 ? 't3' : !inT4 ? 's4b' : q4 < 1 ? 't4'
-      : !inVents ? 's5' : y < sec.next.top - 0.3 * H ? 's6' : 'next';
+      : !inVents && !inAscent ? 's5' : inVents ? 's6' : reveal < 0.9 ? 't5' : 's7';
     this.out.zone = zone;
     // The gauge spins through the drop, slow at first, then fast, then settling at the twilight zone.
     this.out.depth = k < s0h ? 0 : p1 < 1 ? -5 * p1 : !inT2 ? -5 - 10 * d12 : !inWreck ? -15 - 15 * q2
       : !inT4 ? -30 - 30 * smooth(0, 1, dW) : q4 < 1 ? -60 - 440 * easeInOut(q4)
-      : u6 < -0.8 ? -500 - 500 * smooth(0, 1, k5) : -1000 - 1500 * smooth(-0.8, 1.1, u6);
+      : u6 < -0.8 ? -500 - 500 * smooth(0, 1, k5) : !inAscent ? -1000 - 1500 * smooth(-0.8, 1.1, u6)
+      : -2500 * (1 - easeInOut(clamp((q5 - 0.07) / 0.85)));
     this.out.storyOn = this.snap.state === 'gust' || this.snap.state === 'surprised' || this.snap.state === 'hop';
     this.out.z1 = z1c;
     this.out.z2 = z2c;
@@ -770,6 +807,19 @@ export class World {
     const geode: [number, number, number] = z6c ? [...this.spot('z6', z6c, VENTS.geode[0], VENTS.geode[1]), VENTS.geodeH * z6c.dh] : [W * 0.5, H * 0.8, H * 0.3];
     this.vents.update(dt, t, { vis: ventsOn, geode, taken, w: W, h: H, mouse: this.mouse, startle: this.ventsLanded > 0 && t - this.ventsLanded < 1.4 });
     this.out.vents = { z6: z6c, on: ventsOn, taken };
+    // The way up: the print rides beside Snap's free claw; at the surface, once he is home and the receipt is up, he takes its picture.
+    const claw: [number, number] = this.snap.use3d && this.snap.riding ? this.snap.rider.snap3d.freeClaw() : [holdX + chainBody * 0.55, holdY + chainBody * 0.35];
+    if (k7 < 0.5) this.flashed = false;
+    if (!this.flashed && this.snap.state === 'home') {
+      const r = document.getElementById('receipt')?.getBoundingClientRect();
+      // on phones the polaroid lands on the receipt's top edge, so that has to be in view
+      if (r && r.top < H * 0.55 && r.bottom > H * 0.35 && (!this.phone || r.top > H * 0.12)) {
+        this.flashed = true;
+        this.snap.rider.act(t, 'snap');
+        this.out.ascent.flashAt = t;
+      }
+    }
+    this.out.ascent = { on: inT4 && y >= sec.t5.top - 0.2 * H ? clamp(Math.max(winch, bands)) * (1 - smooth(0.88, 0.98, q5)) : 0, q: q5, claw, reveal, flashAt: this.out.ascent.flashAt };
     // A beam from the wreck drifts up past the camera on the way down to it.
     this.debris.update(t, { k: (dW - 0.08) / 0.55, vis: inWreck && !inT3 ? 1 : 0, w: W, h: H, mouse: this.mouse });
     s.render();

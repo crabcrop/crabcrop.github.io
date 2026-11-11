@@ -204,6 +204,49 @@ main { position: relative; z-index: 1; }
 .gl .tag.src { display: none; }
 .gl .tags.source .tag.src { display: inline-flex; }
 .static .vents-stand, .no-js .vents-stand { top: 40vh; }
+
+/* The way up: the print beside Snap takes on the choices, one at a time */
+.plunge.ascent { height: 150vh; }
+.ascent-print { display: none; }
+.gl .ascent-print { display: grid; justify-items: start; gap: 8px; position: fixed; left: 0; top: 0; z-index: 3; margin: 0; pointer-events: none; opacity: 0; transition: opacity .4s; }
+.gl .ascent-print.on { opacity: 1; }
+.ap-step { font-family: var(--mono); font-size: 11.5px; font-weight: 800; color: var(--ink); background: var(--sun-soft); border: 2px solid var(--ink); border-radius: 8px 8px 8px 2px; padding: 3px 8px; max-width: 280px; overflow-wrap: anywhere; box-shadow: var(--shadow-sm); }
+.ap-step.pop { animation: chip .45s var(--snap); }
+.recipe-img { position: relative; display: block; overflow: hidden; border-radius: 6px; background: #20343c; }
+.recipe-img img { display: block; width: 100%; height: 100%; object-fit: cover; transition: filter .6s, padding .6s; }
+.recipe-img.s-look[data-look="crisp"] img { filter: saturate(1.35) contrast(1.08); }
+.recipe-img.s-look[data-look="deep"] img { filter: url(#duotone); }
+.recipe-img.s-look[data-look="vintage"] img { filter: sepia(.9) contrast(.96); }
+.recipe-img.s-crop[data-crop="whole"] img { object-fit: contain; }
+.recipe-img.s-finish[data-finish="studio"] { background: radial-gradient(ellipse 44% 10% at 50% 90%, rgba(20, 40, 50, .3), transparent 72%), linear-gradient(180deg, #FFEBC2, #FFD88A); }
+.recipe-img.s-finish[data-finish="studio"] img { object-fit: contain; padding: 8% 12% 14%; }
+.recipe-img.s-finish[data-finish="cutout"] { background: repeating-conic-gradient(#E9D3A1 0 25%, #F6E7C8 0 50%) 0 0 / 14px 14px; }
+.recipe-img.s-finish[data-finish="cutout"] img { object-fit: contain; padding: 6%; }
+.recipe-img.s-seal[data-sealed="true"]::after { content: ''; position: absolute; right: 7%; bottom: 9%; width: 18%; aspect-ratio: 1; border-radius: 47% 53% 50% 50% / 52% 48% 52% 48%; background: radial-gradient(circle at 50% 50%, transparent 38%, rgba(0, 0, 0, .14) 40%, transparent 47%), radial-gradient(circle at 34% 28%, #e86a5a, #b3201a 58%, #7d140f); box-shadow: 0 2px 0 rgba(20, 40, 50, .3); animation: chip .45s var(--snap); }
+.ap-frame { width: 220px; height: 172px; border: 3px solid #fff; box-shadow: 0 10px 26px rgba(0, 0, 0, .4); transition: width .6s var(--reveal), height .6s var(--reveal), background .6s; }
+.ap-frame.s-crop[data-crop="wide"], .ap-frame.s-crop[data-crop="whole"] { width: 250px; height: 131px; }
+.ap-frame.s-crop[data-crop="square"] { width: 180px; height: 180px; }
+.receipt-img, .pol-img { width: 100%; aspect-ratio: 360 / 282; }
+.receipt-img[data-crop="wide"], .receipt-img[data-crop="whole"], .pol-img[data-crop="wide"], .pol-img[data-crop="whole"] { aspect-ratio: 1200 / 630; }
+.receipt-img[data-crop="square"], .pol-img[data-crop="square"] { aspect-ratio: 1; }
+
+/* Back to the surface: the receipt, and the polaroid Snap takes */
+.s7 { display: flow-root; min-height: 230vh; padding-bottom: 14vh; --zone-accent: #FF6B4A; --zone-ink: #B83F24; }
+.finale { width: min(580px, 42vw); margin: 125vh 0 0 clamp(150px, 15vw, 230px); }
+.finale h2 { font-size: clamp(40px, 4.6vw, 72px); }
+.receipt { margin: 18px 0 0; display: grid; grid-template-columns: minmax(0, 210px) minmax(0, 1fr); gap: 14px; align-items: center; }
+.receipt figcaption { display: grid; gap: 8px; justify-items: start; min-width: 0; }
+.receipt code { display: block; max-width: 100%; padding: 10px 12px; background: var(--abyss); color: var(--sea-glass); border-radius: 12px; border: 2px solid var(--ink); overflow-wrap: anywhere; font-size: 12px; }
+.receipt-note { margin: 12px 0 0; font-size: 13.5px; color: var(--ink-2); }
+.s7 > .polaroid { position: absolute; right: 9vw; top: 150vh; z-index: 1; width: min(250px, 22vw); margin: 0; padding: 12px 12px 30px; background: #FFFDF7; border-radius: 3px; box-shadow: 0 18px 40px rgba(20, 40, 50, .35); transform: rotate(5deg); }
+.polaroid figcaption { margin-top: 10px; font-family: var(--display); font-style: italic; font-size: 14px; color: var(--ink-2); text-align: center; }
+.gl .polaroid { position: fixed; left: 57vw; right: auto; top: 16vh; z-index: 2; pointer-events: none; opacity: 0; transform: translateY(-120vh) rotate(-14deg); }
+.gl .polaroid.drop { opacity: 1; transform: translateY(0) rotate(5deg); transition: transform 1.2s cubic-bezier(.2, 1.25, .35, 1) .25s, opacity .2s .25s; }
+.flash { display: none; }
+.gl .flash { display: block; position: fixed; inset: 0; z-index: 30; background: #fff; opacity: 0; pointer-events: none; }
+.gl .flash.go { animation: flash .8s ease-out; }
+@keyframes flash { 0% { opacity: .92; } 100% { opacity: 0; } }
+.static .surface-stand, .no-js .surface-stand { top: 30vh; }
 .station { position: relative; }
 .station > .station-body { position: relative; z-index: 1; }
 .station .zone-head { width: auto; margin: 0; }
@@ -520,6 +563,16 @@ body.on-snap { cursor: pointer; }
   .s4 .zone-head { margin-top: 100vh; }
   .s5 .zone-head { margin-top: 70vh; }
   .s6 .zone-head { margin-top: 80vh; }
+  .finale { width: auto; margin: 140vh 16px 0; }
+  .receipt { grid-template-columns: 1fr; }
+  /* the polaroid lands on the receipt's top edge, clear of its title, and scrolls with it */
+  .s7 > .polaroid, .gl .polaroid { position: absolute; left: auto; right: 5vw; top: 140vh; width: 36vw; padding: 7px 7px 18px; }
+  .gl .polaroid.drop, .static .polaroid, .no-js .polaroid { transform: translateY(calc(-100% + 8px)) rotate(5deg); }
+  .polaroid figcaption { font-size: 11px; margin-top: 6px; }
+  .ap-frame { width: 170px; height: 133px; }
+  .ap-frame.s-crop[data-crop="wide"], .ap-frame.s-crop[data-crop="whole"] { width: 196px; height: 103px; }
+  .ap-frame.s-crop[data-crop="square"] { width: 146px; height: 146px; }
+  .ap-step { font-size: 10.5px; max-width: 200px; }
   .s4b .cards { margin-top: 80vh; }
   .chest { width: 96px; height: 96px; }
   .slice-end .panel { max-width: 720px; }

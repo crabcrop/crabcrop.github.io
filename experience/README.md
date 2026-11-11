@@ -7,9 +7,10 @@ it uses. The live `index.html` and `docs.html` are untouched.
 It covers the marina (S0), the plunge (T1), the shallows (S1), the kelp
 forest (S2), the glide to the reef (T2), the reef (S3), the Clam Studio
 (S3b), the way down to the shipwreck (S4), in through its hull (T3), the
-captain's cabin (S4b), the drop into the dark (T4), the twilight zone (S5)
-and the vents (S6), ending on a card by the geode, as the winch starts,
-that says the way back up is next. The plan for the rest is in `design/snap-world/experience-plan.md`.
+captain's cabin (S4b), the drop into the dark (T4), the twilight zone (S5),
+the vents (S6), the express ascent (T5) and back at the surface (S7), where
+the visitor's image is served: the whole dive. The plan is in
+`design/snap-world/experience-plan.md`.
 
 ## Commands
 
@@ -50,12 +51,14 @@ functions to cut the chain hanging free out of his riding loops.
 | The wreck | A barnacled beam drifting up past the camera on the way down; in the cabin, dust that rises, glints in the lantern's light and swirls from the cursor; and the octopus who climbs over the captain's chest with a letter, brings it to Snap, gets its wax seal when he snaps his claw, and swims off | `src/world/debris.ts`, `src/world/motes.ts`, `src/world/octopus.ts` |
 | The twilight | The lantern the visitor carries (the cursor; on phones a slow sweep and wherever they tap), a tiny lost fish that follows its light and then goes home with Snap, the anglerfish's lure running down the chain while the explain card is up, a glowing jellyfish drifting past, and at the end a warm glow below and the chain going slack | `src/world/twilight.ts` |
 | The vents | Snap's print glowing in the geode until he lands in front of it and holds it up; tube worms in the foreground that pull their plumes in when the cursor comes close; heat shimmer round the cursor (in the plate's shader) | `src/world/vents.ts` |
+| The way up | The winch: Snap back on the chain with his print, then the express ascent through bands of each zone's colour with speed streaks, the depth counting down; at the top a look up at the surface from below, the pull back to the marina at sunset, the anchor home at the boat, and Snap leaping off the chain onto the pier, where he takes a picture of the receipt | `src/world/backdrop.ts`, `src/world/snap.ts` |
 | Looks | One grade shared by every shader: Crisp, Deep sea or Vintage, previewed on the whole kelp forest | `src/world/look.ts` |
 | Interface | Real HTML: header, depth gauge, cards, tags, five choices, the cargo, the silk curtains. Sealed, the signature tag on the chain becomes the token and the other tags blur into it | `index.html`, `src/ui.ts`, `src/styles.css` |
 | Reef interface | Station cards that slide in with each stop, the magnetic crop frame, face boxes, dragging a box over the can, the before and after slider | `src/reef-ui.ts` |
 | Wreck interface | The chest in the Sealed URLs card (shut the lid and your recipe scrambles into an `s1.` token as long as a real one would be), the ship's log of your picture's Content Credentials written from your choices, the loader's ledger of refused private addresses, the wax seal on the desk for Choice 5, the octopus's button | `src/wreck-ui.ts` |
 | Twilight interface | CLIP tags that light up next to the creatures the light finds, the meta answer and alt text they add up to, the message in the bottle read line by line with boxes and scores, the explain report for the visitor's own URL (refused if it is sealed), and the chain's tags explaining their segments as the lure passes | `src/twilight-ui.ts` |
 | Vents interface | The install and start typed out, the visitor's own URL built in TypeScript, Python and Rust, the little submersible's tool calls to the MCP server with its speech bubble over the plate, and the source tag, `root:photos/print.jpg`, at the end of the chain once Snap has his print | `src/vents-ui.ts` |
+| Surface interface | On the way up, the print beside Snap takes on the visitor's choices one at a time (format, look, crop, finish, seal), each one named under it and lit on its tag on the chain; at the surface the receipt (the URL, a copy button, the picture as it would be served), a flash, and the polaroid Snap took dropping in | `src/surface-ui.ts` |
 
 One WebGL canvas (Three.js) sits behind the HTML. Scrolling stays native,
 smoothed by Lenis. With reduced motion, or without WebGL or JavaScript, the
@@ -70,13 +73,13 @@ The reef is pinned for 800vh: seven viewport heights of sideways travel,
 then the studio scrolls on normally. Plates far from the camera are freed
 and load again if the visitor scrolls back.
 
-The code is about 182 KB gzipped (21 KB for the page; Three.js loads in its
+The code is about 197 KB gzipped (28 KB for the page; Three.js loads in its
 own chunk after the text), fonts 123 KB, and the hero plate 100 to 145 KB.
 The 3D Snap follows (0.7 MB of shape as base64 text and a 0.2 MB texture)
 with the print he holds, then the marina loop. Snap's eight films (6 MB)
 load only if the 3D Snap cannot. Each later zone and transition loads as
-the visitor gets near it. All the media together are about 41 MB, a third
-of it the four transitions (72 frames each). Each transition's frames come
+the visitor gets near it. All the media together are about 47 MB, under a
+third of it the four transitions (72 frames each). Each transition's frames come
 in four packs per device, frame i in pack i % 4, so the first pack to
 arrive already scrubs the whole move and the others fill in between (and a
 transition is 8 requests, not 144).
@@ -88,7 +91,6 @@ needs the secret, like the real signatures.
 
 ## Not built yet
 
-- The way back up and the finale (T5, S7).
 - Snap's claw moving for the snip in the kelp: the sparkle stands in for it.
 - The real signed URLs: the builder needs the signing secret in CI.
 - Depth maps for parallax, and sound.

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>crabcrop · All the Way Down</title>
-<meta name="description" content="Ride the anchor chain with Snap through crabcrop, the Rust image API. A preview from the marina all the way down to the vents.">
+<meta name="description" content="Ride the anchor chain with Snap through crabcrop, the Rust image API: down from the marina to the vents and back up, building an image URL on the way.">
 <meta name="robots" content="noindex">
 <meta name="theme-color" content="#CFE8EE">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
@@ -16,6 +16,7 @@
 <canvas id="world" aria-hidden="true"></canvas>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><filter id="duotone" color-interpolation-filters="sRGB"><feColorMatrix type="matrix" values="0.2126 0.7152 0.0722 0 0  0.2126 0.7152 0.0722 0 0  0.2126 0.7152 0.0722 0 0  0 0 0 1 0"/><feComponentTransfer><feFuncR type="table" tableValues="0.051 1"/><feFuncG type="table" tableValues="0.125 0.847"/><feFuncB type="table" tableValues="0.180 0.541"/></feComponentTransfer></filter></svg>
 <div class="overlay" id="overlay" aria-hidden="true"><svg class="threads" id="threads"></svg></div>
+<figure class="ascent-print" id="ascent-print" aria-hidden="true"><span class="ap-frame recipe-img" id="ap-frame"><img src="media/print.webp" alt="" width="360" height="282" loading="lazy"></span><figcaption class="ap-step" id="ap-step"></figcaption></figure>
 
 <header class="top">
   <a class="logo" href="#s0"><svg width="28" height="28" viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="18" r="11" fill="#E8482F"/><circle cx="11" cy="13" r="4.5" fill="#FBF2DF"/><circle cx="24" cy="6" r="3.4" fill="#E8482F"/><circle cx="8" cy="6" r="3" fill="#E8482F"/></svg> crabcrop</a>
@@ -37,7 +38,7 @@
     <li><a href="#s4" data-zone="s4"><span class="d">−60 m</span> <span class="name">The Shipwreck</span></a></li>
     <li><a href="#s5" data-zone="s5"><span class="d">−500 m</span> <span class="name">The Twilight Zone</span></a></li>
     <li><a href="#s6" data-zone="s6"><span class="d">−2,500 m</span> <span class="name">The Vents</span></a></li>
-    <li class="soon"><span class="d">0 m</span> <span class="name">Back to the Surface</span></li>
+    <li><a href="#s7" data-zone="s7"><span class="d">0 m</span> <span class="name">Back to the Surface</span></a></li>
   </ol>
   <div class="gauge-bar" aria-hidden="true"><span id="gauge-fill"></span></div>
 </nav>
@@ -660,28 +661,48 @@
     <img class="snap-static stand vents-stand" src="media/snap-stand.webp" alt="" width="445" height="409" loading="lazy">
   </section>
 
-  <section id="next" class="zone slice-end">
+  <section id="t5" class="plunge ascent" aria-hidden="true"></section>
+
+  <section id="s7" class="zone s7" aria-labelledby="s7-title">
     <picture class="zone-bg">
-      <source media="(orientation: portrait)" type="image/avif" srcset="media/z6p-720.avif 720w, media/z6p-1080.avif 1080w" sizes="100vw">
-      <source media="(orientation: portrait)" type="image/webp" srcset="media/z6p-720.webp 720w, media/z6p-1080.webp 1080w" sizes="100vw">
-      <source type="image/avif" srcset="media/z6-1600.avif 1600w, media/z6-2400.avif 2400w, media/z6-3200.avif 3200w" sizes="(min-aspect-ratio: 21/9) 100vw, 233vh">
-      <img src="media/z6-1600.webp" srcset="media/z6-1600.webp 1600w, media/z6-2400.webp 2400w, media/z6-3200.webp 3200w" sizes="(min-aspect-ratio: 21/9) 100vw, 233vh" alt="" loading="lazy" decoding="async">
+      <source media="(orientation: portrait)" type="image/avif" srcset="media/z7p-720.avif 720w, media/z7p-1080.avif 1080w" sizes="100vw">
+      <source media="(orientation: portrait)" type="image/webp" srcset="media/z7p-720.webp 720w, media/z7p-1080.webp 1080w" sizes="100vw">
+      <source type="image/avif" srcset="media/z7-1600.avif 1600w, media/z7-2400.avif 2400w, media/z7-3200.avif 3200w" sizes="(min-aspect-ratio: 21/9) 100vw, 233vh">
+      <img src="media/z7-1600.webp" srcset="media/z7-1600.webp 1600w, media/z7-2400.webp 2400w, media/z7-3200.webp 3200w" sizes="(min-aspect-ratio: 21/9) 100vw, 233vh" alt="" loading="lazy" decoding="async">
     </picture>
-    <div class="panel">
-      <p class="tidemark">−2,500 m · The winch starts</p>
-      <h2>The way back up is <span class="coral">next.</span></h2>
-      <p>This preview goes as far as the vents, where Snap found his print. Your URL so far:</p>
-      <p class="url"><code id="url-so-far">https://<wbr>img.example.com/<wbr>3c1f6c18…/<wbr>crop:1200x630:smart/<wbr>filters:sharpen(1.2):saturation(1.1)/<wbr>root:photos/<wbr>print.jpg</code></p>
+    <div class="finale panel" id="receipt">
+      <p class="tidemark">0 m · Back to the Surface</p>
+      <h2 id="s7-title">Your image, <span class="coral">served.</span></h2>
+      <p>Every choice you made on the way down is one link of this URL: the format, the look, the crop, the finish, and whether it is sealed.</p>
+      <figure class="receipt">
+        <span class="receipt-img recipe-img" id="receipt-img"><img src="media/print.webp" alt="Snap's print, with your choices applied" width="360" height="282" loading="lazy"></span>
+        <figcaption>
+          <code id="url-so-far">https://<wbr>img.example.com/<wbr>3c1f6c18…/<wbr>crop:1200x630:smart/<wbr>filters:sharpen(1.2):saturation(1.1)/<wbr>root:photos/<wbr>print.jpg</code>
+          <button class="copybtn" type="button" id="copy-url">Copy</button>
+        </figcaption>
+      </figure>
+      <p class="receipt-note">A preview of what this URL serves. On the live site the URLs are signed with the secret, in CI, and crabcrop renders them.</p>
+      <div class="cmdstrip">
+        <code>curl --proto '=https' --tlsv1.2 -LsSf https://github.com/dayvson/crabcrop/releases/latest/download/crabcrop-installer.sh | sh</code>
+        <button class="copybtn" type="button" data-copy="curl --proto '=https' --tlsv1.2 -LsSf https://github.com/dayvson/crabcrop/releases/latest/download/crabcrop-installer.sh | sh">Copy</button>
+      </div>
       <div class="ctas">
-        <a class="btn" href="https://crabcrop.org/docs.html">Read the docs</a>
-        <a class="btn btn-foam" href="#s0">Back to the surface</a>
+        <a class="btn" href="https://crabcrop.org/#install">Install</a>
+        <a class="btn btn-foam" href="https://crabcrop.org/docs.html">Read the docs</a>
+        <a class="btn btn-foam" href="https://github.com/dayvson/crabcrop">GitHub</a>
       </div>
     </div>
+    <figure class="polaroid" id="polaroid" aria-hidden="true">
+      <span class="pol-img recipe-img" id="pol-img"><img src="media/print.webp" alt="" width="360" height="282" loading="lazy"></span>
+      <figcaption>root:photos/print.jpg</figcaption>
+    </figure>
+    <div class="flash" id="flash" aria-hidden="true"></div>
+    <img class="snap-static stand surface-stand" src="media/snap-stand.webp" alt="" width="445" height="409" loading="lazy">
   </section>
 </main>
 
 <footer class="foot">
-  <p>Built on the shore, in Rust. MIT licensed.<br>Handmade Snap, real light, worlds made with Higgsfield.</p>
+  <p>Built on the shore, in Rust. MIT licensed. See you at low tide.<br>Handmade Snap, real light, worlds made with Higgsfield.</p>
 </footer>
 
 <script type="module" src="/src/main.ts"></script>

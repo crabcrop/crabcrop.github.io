@@ -535,11 +535,34 @@ SDKs (the visitor's own URL built in TypeScript, Python and Rust) and the
 MCP server, with the brass submersible as the agent calling `sign_url`,
 `explain_url` and `fetch_meta`.
 
+## The express ascent (T5)
+
+No new assets and no film: the ascent is drawn in the plate's shader. The
+winch takes Snap back onto the chain with his print, then bands of each
+zone's colour rush down past him, from the vents' ember to the marina's
+sunset, with speed streaks, while the gauge counts back up from −2,500 m.
+Beside his claw the print takes on the visitor's choices one at a time
+(format, look, crop, finish, seal), each one named under it and lit on its
+tag on the chain. At the top the camera looks up at the surface from
+below.
+
+## Back to the Surface (S7)
+
+Built from the approved Z7 plates and L-Z7 loops. The camera pulls back
+from under the waterline to the whole marina at sunset, the anchor comes
+home to the boat, and Snap leaps off the chain onto the pier with his
+print. The receipt: the visitor's URL, a copy button, and the picture as
+that URL would serve it. Once he is home and the receipt is up, he snaps
+his claw: a flash, and the polaroid he took drops in. The install command
+and Install, Read the docs and GitHub close the page; the footer says "See
+you at low tide." On phones the receipt starts lower, so his homecoming
+shows above it, and the polaroid lands on the receipt's top edge.
+
 ## Next
 
-The express ascent (T5): the winch pulls the chain up through every zone
-while the print in Snap's claw takes on the visitor's choices. Then the
-finale at the surface (S7), at sunset, with the receipt.
+The dive is built from end to end. Still open: the real signed URLs (the
+builder needs the signing secret in CI), Snap's claw moving for the snip in
+the kelp, depth maps for parallax, and sound.
 
 Optional: the six format fish could become 3D schools (about 40 Tripo
 credits a species).
@@ -660,3 +683,6 @@ the stills; phone-format takes (9:16, 1080p) would fix that.
   time between screenshots, films it at true speed. Playwright's own clock
   did not: a running fake clock starved the page, and with it paused no
   frame was drawn for the screenshot.
+- On phones the receipt fills the screen's width, so a polaroid fixed to
+  the screen ends up over its title. Pinned to the receipt's top edge, it
+  scrolls with it and stays clear.

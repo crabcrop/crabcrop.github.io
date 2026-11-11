@@ -3,7 +3,7 @@
 (fetch them first with scripts/fetch-sources.sh) into ../preview/dive/media,
 and write media/manifest.json with the numbers the page needs.
 
-usage: python3 scripts/encode-media.py [images] [reef] [wreck] [video] [sequence] [wreckseq] [beam] [pack] [twilight] [vents] [snap] [snappost] [scuttle] [claw] [ride] [snap3d]
+usage: python3 scripts/encode-media.py [images] [reef] [wreck] [video] [sequence] [wreckseq] [beam] [pack] [twilight] [vents] [surface] [snap] [snappost] [scuttle] [claw] [ride] [snap3d]
        (no argument runs every step)
 needs: ffmpeg, numpy, scipy, Pillow with AVIF support; for snap3d also npx (gltf-transform) and trimesh
 """
@@ -398,6 +398,28 @@ def vents():
         man['loops'][n] = os.path.getsize(out(n + '.mp4'))
     cutout('cut-tube-worms.png', 'worms', 760, blur=2.2)
     print('vents', files, pfiles, man['worms'])
+
+
+
+def surface():
+    """Back at the surface at sunset (z7, and its own 9:16 plate for phones,
+    both with their waterlines as at the marina), and their loops."""
+    plates = man['plates']
+    for key, name, widths in (('z7', 'z7-plate.png', (1600, 2400, 3200)), ('z7p', 'z7-phone.png', (720, 1080))):
+        im = Image.open(src(name)).convert('RGB')
+        files = {w: save_pair(resize_w(im, w), f'{key}-{w}') for w in widths}
+        resize_w(im, 64 if key == 'z7' else 36).save(out(f'{key}-tiny.png'))
+        plates[key] = {'w': im.size[0], 'h': im.size[1], 'widths': list(widths), 'bytes': files}
+        print(key, files)
+    plates['z7']['waterline'] = 0.58
+    plates['z7p']['waterline'] = 0.33
+    enc = ['-an', '-c:v', 'libx264', '-preset', 'slow', '-crf', '27', '-maxrate', '2.4M',
+           '-bufsize', '4.8M', '-pix_fmt', 'yuv420p', '-movflags', '+faststart', '-g', '48']
+    ff('-i', src('z7-loop.mp4'), '-vf', 'scale=1600:-2:flags=lanczos', *enc, out('z7-loop.mp4'))
+    ff('-i', src('z7-phone-loop.mp4'), '-vf', 'scale=720:-2:flags=lanczos', *enc, out('z7p-loop.mp4'))
+    for n in ('z7-loop', 'z7p-loop'):
+        man['loops'][n] = os.path.getsize(out(n + '.mp4'))
+    print('surface', man['loops'])
 
 
 def wreckseq():
@@ -1009,7 +1031,7 @@ def snap3d():
     print('snap3d', {k: v for k, v in man['snap3d'].items() if k not in ('limbs', 'eyes')}, kinds)
 
 
-steps = sys.argv[1:] or ['images', 'reef', 'wreck', 'twilight', 'vents', 'video', 'sequence', 'wreckseq', 'snap', 'snappost', 'scuttle', 'claw', 'ride', 'snap3d']
+steps = sys.argv[1:] or ['images', 'reef', 'wreck', 'twilight', 'vents', 'surface', 'video', 'sequence', 'wreckseq', 'snap', 'snappost', 'scuttle', 'claw', 'ride', 'snap3d']
 for st in steps:
     globals()[st]()
     json.dump(man, open(MAN_PATH + '.tmp', 'w'), indent=1)   # written whole or not at all

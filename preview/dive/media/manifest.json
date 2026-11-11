@@ -555,6 +555,51 @@
     }
    },
    "thumbhash": "0AcOFAJoBpeoaIs3pnmIcHcJRw=="
+  },
+  "z7": {
+   "w": 6336,
+   "h": 2688,
+   "widths": [
+    1600,
+    2400,
+    3200
+   ],
+   "bytes": {
+    "1600": {
+     "avif": 59626,
+     "webp": 96132
+    },
+    "2400": {
+     "avif": 107429,
+     "webp": 167340
+    },
+    "3200": {
+     "avif": 158233,
+     "webp": 239856
+    }
+   },
+   "waterline": 0.58,
+   "thumbhash": "HxgSG4Y5hYiPd5eHep+F91g="
+  },
+  "z7p": {
+   "w": 3072,
+   "h": 5504,
+   "widths": [
+    720,
+    1080
+   ],
+   "bytes": {
+    "720": {
+     "avif": 41823,
+     "webp": 61694
+    },
+    "1080": {
+     "avif": 74870,
+     "webp": 109062
+    }
+   },
+   "waterline": 0.33,
+   "thumbhash": "nvcNJApX+Himd4qoeHh4j4336A=="
   }
  },
  "snapChain": {
@@ -687,7 +732,9 @@
   "z4-loop": 810290,
   "z4p-loop": 381716,
   "z6-loop": 987299,
-  "z6p-loop": 460413
+  "z6p-loop": 460413,
+  "z7-loop": 1261174,
+  "z7p-loop": 837013
  },
  "t1": {
   "frames": 72,

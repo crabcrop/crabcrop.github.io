@@ -3,6 +3,7 @@ import { ReefUI, CROP_SEG, type CropShape } from './reef-ui';
 import { WreckUI, sealToken, type LogEntry } from './wreck-ui';
 import { TwilightUI, type Recipe } from './twilight-ui';
 import { VentsUI } from './vents-ui';
+import { SurfaceUI } from './surface-ui';
 import type { WorldOut, ZoneId } from './world';
 import type { Fmt } from './world/fish';
 import type { LookName } from './world/look';
@@ -18,11 +19,11 @@ const FINISH_NAME: Record<Finish, string> = { none: 'None', studio: 'Studio', cu
 const ZONES: Record<ZoneId, string> = {
   s0: 'The Marina', t1: 'The plunge', s1: 'The Shallows', s2: 'The Kelp Forest', t2: 'The drop-off',
   s3: 'The Coral Reef', s3b: 'The Clam Studio', s4: 'The Shipwreck', t3: 'Into the wreck', s4b: 'The Shipwreck',
-  t4: 'The drop', s5: 'The Twilight Zone', s6: 'The Vents', next: 'The winch',
+  t4: 'The drop', s5: 'The Twilight Zone', s6: 'The Vents', t5: 'The ascent', s7: 'Back to the Surface',
 };
 /** Which gauge entry is current in each zone. */
-const GAUGE: Record<ZoneId, string> = { s0: 's0', t1: 's0', s1: 's1', s2: 's2', t2: 's2', s3: 's3', s3b: 's3', s4: 's4', t3: 's4', s4b: 's4', t4: 's4', s5: 's5', s6: 's6', next: 's6' };
-const DEPTH: Record<string, number> = { s0: 0, s1: -5, s2: -15, s3: -30, s3b: -30, s4: -60, s4b: -60, s5: -500, s6: -2500, next: -2500 };
+const GAUGE: Record<ZoneId, string> = { s0: 's0', t1: 's0', s1: 's1', s2: 's2', t2: 's2', s3: 's3', s3b: 's3', s4: 's4', t3: 's4', s4b: 's4', t4: 's4', s5: 's5', s6: 's6', t5: 's6', s7: 's7' };
+const DEPTH: Record<string, number> = { s0: 0, s1: -5, s2: -15, s3: -30, s3b: -30, s4: -60, s4b: -60, s5: -500, s6: -2500, s7: 0 };
 const TAG_KEYS = ['sig', 'fmt', 'look', 'crop', 'finish', 'src'] as const;
 
 const kb = (n: number) => `${Math.round(n / 1024)} KB`;
@@ -81,6 +82,7 @@ export class UI {
   private wreckUI: WreckUI;
   private twilightUI: TwilightUI;
   private ventsUI = new VentsUI();
+  private surfaceUI = new SurfaceUI();
   private sigTag = document.querySelector<HTMLElement>('#tags .tag.sig')!;
   private sealInputs = [...document.querySelectorAll<HTMLInputElement>('input[name="seal"]')];
   private threads = document.getElementById('threads') as unknown as SVGSVGElement;
@@ -343,6 +345,7 @@ export class UI {
     const recipe: Recipe = { crop: this.crop, look: this.look, finish: this.finish, fmt: this.fmt as Recipe['fmt'], sealed: this.sealed, rest, token };
     this.twilightUI.setRecipe(recipe);
     this.ventsUI.setRecipe(recipe);
+    this.surfaceUI.setRecipe(recipe);
     this.wreckUI.setLog(this.logEntries());
     this.wreckUI.setSealed(this.sealed);
     const was = this.tagsEl.classList.contains('sealed');
@@ -450,6 +453,7 @@ export class UI {
     this.wreckUI.update(out);
     this.twilightUI.update(out, t);
     this.ventsUI.update(out, t, this.o.wide);
+    this.surfaceUI.update(out, t, this.o.wide);
 
     // The button on the tangled fish, unless a card has scrolled over the fish or the button.
     const f = out.fish;

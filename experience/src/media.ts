@@ -6,7 +6,7 @@ export interface Plate { w: number; h: number; widths: number[]; waterline?: num
 export interface Seq { frames: number; fps: number; d: [number, number]; p: [number, number]; bytes: { d: number; p: number }; packs: { d: number[][]; p: number[][] } }
 
 export const media = manifest as unknown as {
-  plates: Record<'z0' | 'z0p' | 'z1' | 'z1p' | 'z2' | 'z2p' | 'z3' | 'z3p' | 'z3_2' | 'z3_2p' | 'z3_3' | 'z3_3p' | 'z3_4' | 'z3_4p' | 'z3_4c' | 'z3b' | 'z3bp' | 'z4x' | 'z4xp' | 'z4' | 'z4p' | 'z5' | 'z5p' | 'z5lit' | 'z5litp' | 'z6' | 'z6p', Plate>;
+  plates: Record<'z0' | 'z0p' | 'z1' | 'z1p' | 'z2' | 'z2p' | 'z3' | 'z3p' | 'z3_2' | 'z3_2p' | 'z3_3' | 'z3_3p' | 'z3_4' | 'z3_4p' | 'z3_4c' | 'z3b' | 'z3bp' | 'z4x' | 'z4xp' | 'z4' | 'z4p' | 'z5' | 'z5p' | 'z5lit' | 'z5litp' | 'z6' | 'z6p' | 'z7' | 'z7p', Plate>;
   snapChain: { w: number; h: number; chainX: number; chainTop: number; chainBottom: number; linkLen: number };
   snapStand: { w: number; h: number };
   print: { w: number; h: number };
