@@ -654,6 +654,9 @@ export class Snap {
     }
   }
 
+  /** A little burst of stars at a point (the wax going on the octopus's letter). */
+  burst(x: number, y: number, size: number, n = 2) { this.sparkles.burst(x, y, size, n); }
+
   /** Pause videos when the tab hides; the next update resumes them. */
   pause() { for (const c of Object.values(this.clips)) c.v.pause(); this.rider.pause(); }
 }

@@ -5,7 +5,7 @@ export interface Clip { w: number; h: number; duration: number; box: Box; boxEnd
 export interface Plate { w: number; h: number; widths: number[]; waterline?: number; thumbhash: string }
 
 export const media = manifest as unknown as {
-  plates: Record<'z0' | 'z0p' | 'z1' | 'z1p' | 'z2' | 'z2p' | 'z3' | 'z3p' | 'z3_2' | 'z3_2p' | 'z3_3' | 'z3_3p' | 'z3_4' | 'z3_4p' | 'z3_4c' | 'z3b' | 'z3bp', Plate>;
+  plates: Record<'z0' | 'z0p' | 'z1' | 'z1p' | 'z2' | 'z2p' | 'z3' | 'z3p' | 'z3_2' | 'z3_2p' | 'z3_3' | 'z3_3p' | 'z3_4' | 'z3_4p' | 'z3_4c' | 'z3b' | 'z3bp' | 'z4x' | 'z4xp' | 'z4' | 'z4p' | 'z5' | 'z5p', Plate>;
   snapChain: { w: number; h: number; chainX: number; chainTop: number; chainBottom: number; linkLen: number };
   snapStand: { w: number; h: number };
   print: { w: number; h: number };
@@ -15,6 +15,12 @@ export const media = manifest as unknown as {
   coral: { w: number; h: number };
   t1: { frames: number; fps: number; d: [number, number]; p: [number, number]; bytes: { d: number; p: number } };
   t2: { frames: number; fps: number; d: [number, number]; p: [number, number]; bytes: { d: number; p: number } };
+  t3: { frames: number; fps: number; d: [number, number]; p: [number, number]; bytes: { d: number; p: number } };
+  t4: { frames: number; fps: number; d: [number, number]; p: [number, number]; bytes: { d: number; p: number } };
+  /** The barnacled beam (a foreground cutout in the wreck). */
+  beam: { w: number; h: number };
+  /** The octopus with its letter; seal is where the wax goes on the envelope's flap, envelope its box, as shares of the sprite. */
+  octopus: { w: number; h: number; seal: [number, number]; envelope: [number, number, number, number] };
   clips: Record<'m01' | 'm02' | 'm03' | 'm04' | 'm05', Clip>;
   /**
    * Snap riding the chain, filmed (one crop for all three clips). origin is

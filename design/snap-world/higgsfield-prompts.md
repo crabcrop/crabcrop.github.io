@@ -518,6 +518,31 @@ and a few small fish gather, looking up. Palette: sunset coral #FF6B4A,
 shell pink #FFB59F, gold #FFB020, dusk lilac #B9A3E3, evening sea #18344A.
 ```
 
+### The octopus with its letter (S4, Snap's kindness)
+
+Nano Banana Pro · 1:1 · 2K, the approved Z7 plate as the reference, then
+Higgsfield background removal.
+
+```
+The little lilac crochet octopus from the reference image (bottom right,
+under the water), now alone and seen from the front, photographed on a
+plain mid-grey seamless background, isolated, sharp edges, soft even
+light, no shadow on the background. Same character: a round bobbly head
+crocheted in soft lilac-mauve yarn, two small shiny black bead eyes, a
+tiny stitched smile, eight short curly tentacles with visible stitches. It
+holds a small closed cream paper envelope against its chest with two
+tentacles, the envelope's front flap facing the camera, plain and
+unsealed. Whole octopus in frame with space around it.
+A handmade miniature world at toy scale, photographed for real. Every
+creature is handmade from yarn and fabric: crochet, knitting, felt and
+embroidery, with visible stitches, bobbles and fibers. Macro photography,
+50-100 mm lens look, natural light, rich but believable color, fine film
+grain.
+no writing on the envelope, no text, no numbers, no logos, no watermarks,
+no people, no human hands, no crabs, no plastic or CGI render look, no
+cartoon outlines, no flat illustration
+```
+
 ### Foreground cutouts (parallax)
 
 Nano Banana Pro · 1:1 or 9:16 · 2K, then Higgsfield background removal.

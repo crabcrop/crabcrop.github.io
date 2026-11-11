@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>crabcrop · All the Way Down</title>
-<meta name="description" content="Ride the anchor chain with Snap through crabcrop, the Rust image API. A preview from the marina down to the reef and its Clam Studio.">
+<meta name="description" content="Ride the anchor chain with Snap through crabcrop, the Rust image API. A preview from the marina down past the reef to the shipwreck.">
 <meta name="robots" content="noindex">
 <meta name="theme-color" content="#CFE8EE">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
@@ -34,7 +34,7 @@
     <li><a href="#s1" data-zone="s1"><span class="d">−5 m</span> <span class="name">The Shallows</span></a></li>
     <li><a href="#s2" data-zone="s2"><span class="d">−15 m</span> <span class="name">The Kelp Forest</span></a></li>
     <li><a href="#s3" data-zone="s3"><span class="d">−30 m</span> <span class="name">The Coral Reef</span></a></li>
-    <li class="soon"><span class="d">−60 m</span> <span class="name">The Shipwreck</span></li>
+    <li><a href="#s4" data-zone="s4"><span class="d">−60 m</span> <span class="name">The Shipwreck</span></a></li>
     <li class="soon"><span class="d">−500 m</span> <span class="name">The Twilight Zone</span></li>
     <li class="soon"><span class="d">−2,500 m</span> <span class="name">The Vents</span></li>
     <li class="soon"><span class="d">0 m</span> <span class="name">Back to the Surface</span></li>
@@ -415,17 +415,118 @@
     <img class="snap-static stand reef-stand" src="media/snap-stand.webp" alt="" width="445" height="409" loading="lazy">
   </section>
 
+  <section id="s4" class="zone s4" aria-labelledby="s4-title">
+    <picture class="zone-bg">
+      <source media="(orientation: portrait)" type="image/avif" srcset="media/z4xp-720.avif 720w, media/z4xp-1080.avif 1080w" sizes="100vw">
+      <source media="(orientation: portrait)" type="image/webp" srcset="media/z4xp-720.webp 720w, media/z4xp-1080.webp 1080w" sizes="100vw">
+      <source type="image/avif" srcset="media/z4x-1600.avif 1600w, media/z4x-2400.avif 2400w, media/z4x-3200.avif 3200w" sizes="(min-aspect-ratio: 21/9) 100vw, 233vh">
+      <img src="media/z4x-1600.webp" srcset="media/z4x-1600.webp 1600w, media/z4x-2400.webp 2400w, media/z4x-3200.webp 3200w" sizes="(min-aspect-ratio: 21/9) 100vw, 233vh" alt="" loading="lazy" decoding="async">
+    </picture>
+    <div class="zone-head panel">
+      <p class="tidemark">−60 m · The Shipwreck</p>
+      <h2 id="s4-title">Signed, sealed, <span class="coral">provable.</span></h2>
+      <p>Some links should stay unreadable, some pictures should prove where they came from, and some addresses should never be fetched at all. Snap squeezes in through the hole in the hull.</p>
+    </div>
+    <img class="snap-static on-chain" src="media/snap-chain.webp" alt="" width="640" height="687" loading="lazy">
+  </section>
+
+  <section id="t3" class="plunge" aria-hidden="true"></section>
+
+  <section id="s4b" class="zone s4b" aria-label="The captain's cabin">
+    <picture class="zone-bg">
+      <source media="(orientation: portrait)" type="image/avif" srcset="media/z4p-720.avif 720w, media/z4p-1080.avif 1080w" sizes="100vw">
+      <source media="(orientation: portrait)" type="image/webp" srcset="media/z4p-720.webp 720w, media/z4p-1080.webp 1080w" sizes="100vw">
+      <source type="image/avif" srcset="media/z4-1600.avif 1600w, media/z4-2400.avif 2400w, media/z4-3200.avif 3200w" sizes="(min-aspect-ratio: 21/9) 100vw, 233vh">
+      <img src="media/z4-1600.webp" srcset="media/z4-1600.webp 1600w, media/z4-2400.webp 2400w, media/z4-3200.webp 3200w" sizes="(min-aspect-ratio: 21/9) 100vw, 233vh" alt="" loading="lazy" decoding="async">
+    </picture>
+    <div class="cards">
+      <article class="card" id="card-sealed">
+        <div class="specimen spec-sealed">
+          <button type="button" class="chest" id="chest" aria-pressed="false">
+            <span class="chest-lid" aria-hidden="true"><span class="band"></span><span class="band r"></span></span>
+            <span class="chest-glow" aria-hidden="true"></span>
+            <span class="chest-body" aria-hidden="true"><span class="band"></span><span class="band r"></span><span class="lock"></span></span>
+            <span class="sr-only" id="chest-label">Close the chest to seal the URL</span>
+          </button>
+          <p class="sealed-url"><span class="host">https://img.example.com/</span><span id="sealed-rest">crop:1200x630:smart/filters:sharpen(1.2):saturation(1.1)/root:photos/print.jpg</span></p>
+          <p class="sealed-hint"><span class="on-wide">Drag the lid down, or click the chest.</span><span class="on-narrow">Tap the chest.</span></p>
+        </div>
+        <div class="card-top">
+          <picture><source type="image/avif" srcset="media/icon-seal.avif"><img class="icon" src="media/icon-seal.webp" alt="" width="56" height="56" loading="lazy"></picture>
+          <h3>Sealed URLs</h3>
+        </div>
+        <p>For links that stay public but unreadable: the whole recipe, operations and source, sealed into one opaque token in the signature slot. Only the server opens it, and it serves the same render.</p>
+        <code class="chip">s1.&lt;token&gt;/photo.jpg</code>
+        <a class="docs" href="https://crabcrop.org/docs.html#sealed">Read the docs</a>
+      </article>
+
+      <fieldset class="choice panel" id="choice-seal">
+        <legend><span class="step">Choice 5 of 5</span> Seal it, or keep it readable</legend>
+        <p class="help on-wide">Press the wax seal on the captain's desk, or pick here. It goes on your chain.</p>
+        <p class="help on-narrow">Pick one. It goes on your chain.</p>
+        <div class="seals">
+          <label class="seal-opt"><input type="radio" name="seal" value="readable" checked><span class="mini-url" aria-hidden="true">crop:…/root:…</span><span class="lab">Readable</span><span class="sub">the recipe in plain sight</span></label>
+          <label class="seal-opt"><input type="radio" name="seal" value="sealed"><span class="wax" aria-hidden="true"></span><span class="lab">Sealed</span><span class="sub">s1.&lt;token&gt;</span></label>
+        </div>
+        <p class="note">Readable is the right default for most links. Seal the ones that must be public and still keep their recipe to themselves.</p>
+        <p class="sr-only" aria-live="polite" id="seal-status"></p>
+      </fieldset>
+
+      <article class="card" id="card-provenance">
+        <div class="specimen spec-log">
+          <p class="log-title">The ship's log of your picture</p>
+          <ol class="shiplog" id="ship-log" aria-label="What your picture's Content Credentials record"></ol>
+        </div>
+        <div class="card-top">
+          <picture><source type="image/avif" srcset="media/icon-chain.avif"><img class="icon" src="media/icon-chain.webp" alt="" width="56" height="56" loading="lazy"></picture>
+          <h3>Provenance, checked and signed</h3>
+        </div>
+        <p>Meta reports the Content Credentials a source carries. With your own certificate, outputs are signed as served, the source recorded as an ingredient, so the chain survives the transform.</p>
+        <code class="chip">CRABCROP_C2PA_CERT · CRABCROP_C2PA_KEY</code>
+        <a class="docs" href="https://crabcrop.org/docs.html#provenance">Read the docs</a>
+      </article>
+
+      <article class="card" id="card-private">
+        <div class="specimen spec-private">
+          <ol class="ledger" aria-label="Sources the loader was asked to fetch">
+            <li><code>photos.example.com/print.jpg</code><b class="ok">fetched</b></li>
+            <li><code>10.0.0.7/admin.png</code><b class="no">403</b></li>
+            <li><code>169.254.169.254/latest/meta-data</code><b class="no">403</b></li>
+            <li><code>localhost:9000/backup.jpg</code><b class="no">403</b></li>
+          </ol>
+        </div>
+        <div class="card-top">
+          <picture><source type="image/avif" srcset="media/icon-gear.avif"><img class="icon" src="media/icon-gear.webp" alt="" width="56" height="56" loading="lazy"></picture>
+          <h3>Private sources blocked by default</h3>
+        </div>
+        <p>The loader refuses sources on loopback, private and other non-public addresses, checked again on every redirect. Allowlisting a host is how you vouch for an internal one.</p>
+        <code class="chip">403 source_forbidden · CRABCROP_ALLOWED_SOURCES</code>
+        <a class="docs" href="https://crabcrop.org/docs.html#private-sources">Read the docs</a>
+      </article>
+    </div>
+
+    <ul class="desk" id="desk" aria-label="The captain's desk">
+      <li><button type="button" class="hot stamp-hot" data-u="0.6038" data-v="0.535" aria-pressed="false">Wax seal</button><span class="tip"><code>s1.&lt;token&gt;</code><span class="tip-text">Press it to seal your URL</span></span></li>
+    </ul>
+
+    <button type="button" class="seal-letter" id="seal-letter">Seal the letter</button>
+    <p class="story panel kind" id="kind-seal">A little octopus has a letter only its friend should read. Snap presses his claw to the wax, and now nobody else can open it.</p>
+    <img class="snap-static on-chain" src="media/snap-chain.webp" alt="" width="640" height="687" loading="lazy">
+  </section>
+
+  <section id="t4" class="plunge" aria-hidden="true"></section>
+
   <section id="next" class="zone slice-end">
     <picture class="zone-bg">
-      <source media="(orientation: portrait)" type="image/avif" srcset="media/z3bp-1080.avif 1080w" sizes="100vw">
-      <source media="(orientation: portrait)" type="image/webp" srcset="media/z3bp-1080.webp 1080w" sizes="100vw">
-      <source type="image/avif" srcset="media/z3b-1600.avif 1600w, media/z3b-2400.avif 2400w, media/z3b-3200.avif 3200w" sizes="(min-aspect-ratio: 21/9) 100vw, 233vh">
-      <img src="media/z3b-1600.webp" srcset="media/z3b-1600.webp 1600w, media/z3b-2400.webp 2400w, media/z3b-3200.webp 3200w" sizes="(min-aspect-ratio: 21/9) 100vw, 233vh" alt="" loading="lazy" decoding="async">
+      <source media="(orientation: portrait)" type="image/avif" srcset="media/z5p-720.avif 720w, media/z5p-1080.avif 1080w" sizes="100vw">
+      <source media="(orientation: portrait)" type="image/webp" srcset="media/z5p-720.webp 720w, media/z5p-1080.webp 1080w" sizes="100vw">
+      <source type="image/avif" srcset="media/z5-1600.avif 1600w, media/z5-2400.avif 2400w, media/z5-3200.avif 3200w" sizes="(min-aspect-ratio: 21/9) 100vw, 233vh">
+      <img src="media/z5-1600.webp" srcset="media/z5-1600.webp 1600w, media/z5-2400.webp 2400w, media/z5-3200.webp 3200w" sizes="(min-aspect-ratio: 21/9) 100vw, 233vh" alt="" loading="lazy" decoding="async">
     </picture>
     <div class="panel">
-      <p class="tidemark">−30 m · Leaving the reef</p>
-      <h2>The wreck is <span class="coral">next.</span></h2>
-      <p>This preview goes as far as the reef and the Clam Studio. Your URL so far:</p>
+      <p class="tidemark">−500 m · The Twilight Zone</p>
+      <h2>The twilight zone is <span class="coral">next.</span></h2>
+      <p>This preview goes as far as the shipwreck. Your URL so far:</p>
       <p class="url"><code id="url-so-far">https://<wbr>img.example.com/<wbr>3c1f6c18…/<wbr>crop:1200x630:smart/<wbr>filters:sharpen(1.2):saturation(1.1)/<wbr>root:photos/<wbr>print.jpg</code></p>
       <div class="ctas">
         <a class="btn" href="https://crabcrop.org/docs.html">Read the docs</a>

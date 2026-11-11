@@ -480,11 +480,36 @@ triangles, the shape ships as 551 KB of quantized positions, normals, uvs,
 limb bytes and triangles (735 KB as base64 text), and the 2048 px texture
 as a 209 KB AVIF or a 322 KB WebP.
 
+## The shipwreck (S4)
+
+Built from the approved Z4-EXT and Z4 plates, the L-Z4 loop, T03 and T04,
+and the barnacled beam, plus one new asset:
+
+| Asset | Job | Notes |
+| --- | --- | --- |
+| The octopus with its letter | `7e4219d1-4463-4e39-b8e0-586cc26ce014` | Nano Banana Pro, 1:1, 2K, with the Z7 sunset plate as the reference so it is the same little lilac octopus that waits at the surface in the finale. Holds a plain cream envelope; the page presses the wax seal on it. Alternate: `2540655f-95bd-4abd-ba7c-6fb3c7f6971d` |
+| The octopus, cut out | `75e13c59-20a9-4f77-9391-211f5794d676` | Higgsfield background removal, clean on the fuzzy yarn |
+
+The way down: the studio darkens to wreck teal while Snap climbs back on
+the chain, and the ship looms out of the dark as the camera tilts down to
+it, a beam drifting past in the foreground. T03 pushes through the hull
+breach into the captain's cabin, where he rides with the whole URL hanging
+above him. The lantern swings toward the cursor: the loop sways it on its
+own (about nine degrees each way), so inside a soft oval round it the page
+draws the still plate instead, turned about the hook by a damped
+pendulum. The cards: Sealed URLs (a chest whose lid scrambles your recipe
+into a token), Provenance (the ship's log of your picture's credentials,
+written from your choices) and Private sources (the loader's ledger).
+Choice 5 seals the URL or keeps it readable, also from the wax seal on
+the desk. A third of the way through the cabin the octopus climbs over the
+chest and brings its letter; Snap snaps his claw and the wax goes on.
+Out: the cabin goes dark, and T04 glides past the wreck into the trench
+while the gauge spins down to −500 m, ending on the twilight zone (Z5).
+
 ## Next
 
-The shipwreck (S4): T03 into the wreck, the cabin, sealed URLs and
-provenance, and Choice 5, the seal. Its plates, loop and transition are
-made.
+The twilight zone (S5): the lantern cursor over Z5 and Z5-LIT, the
+glowing tags, the message in a bottle and the lost fish.
 
 Optional: the six format fish could become 3D schools (about 40 Tripo
 credits a species).
