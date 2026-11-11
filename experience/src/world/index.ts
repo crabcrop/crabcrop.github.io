@@ -11,6 +11,7 @@ import { Reef, REEF_UNITS, type ReefOut } from './reef';
 import { Motes } from './motes';
 import { Octopus } from './octopus';
 import { Debris } from './debris';
+import { Twilight } from './twilight';
 import { SPOTS } from './spots';
 import { LOOK, LOOKS, type LookName } from './look';
 import { media } from '../media';
@@ -86,12 +87,14 @@ const WRECK = {
   hook: [0.6895, 0.1311] as const, glass: [0.6878, 0.3203] as const, len: 0.282, half: 0.0536,
   chestTop: [0.7514, 0.4824] as const,
 };
-const WRECK_PHONE = { z4x: [0.38, 0.62], z4: [0.54, 0.78] } as const;
+const WRECK_PHONE = { z4x: [0.38, 0.62], z4: [0.54, 0.78], z5: [0.52, 0.76] } as const;
+/** In the twilight zone, where the lost fish waits (a share of the master plate). */
+const LOST_FISH = [0.6, 0.76] as const;
 /** The drop starts this many frames in, where the camera is already moving off the wreck. */
 const T4_FROM = 10;
 const easeInOut = (x: number) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
 
-export type ZoneId = 's0' | 't1' | 's1' | 's2' | 't2' | 's3' | 's3b' | 's4' | 't3' | 's4b' | 't4' | 'next';
+export type ZoneId = 's0' | 't1' | 's1' | 's2' | 't2' | 's3' | 's3b' | 's4' | 't3' | 's4b' | 't4' | 's5' | 'next';
 
 export interface WorldOut {
   tags: Record<keyof typeof TAG_LINKS, { x: number; y: number; a: number }>;
@@ -116,6 +119,14 @@ export interface WorldOut {
   octo: { x: number; y: number; s: number; on: boolean; busy: boolean };
   /** The story of the octopus's letter, after Snap has sealed it. */
   sealOn: boolean;
+  /**
+   * The twilight zone: its plate on screen and the phone window of the
+   * master plate it shows, how much it is on, the lantern's light (x, y,
+   * radius px), and the lure's light running down the chain.
+   */
+  twi: { z5: Cover | null; win: readonly [number, number]; on: number; light: [number, number, number]; lure: { x: number; y: number; on: boolean } };
+  /** The story of the lost fish, once it has gone home with Snap. */
+  fishOn: boolean;
 }
 
 /** Zones that own a plate, for checking shared files before dropping one. */
@@ -135,6 +146,7 @@ export class World {
   private motes: Motes;
   private octopus: Octopus;
   private debris: Debris;
+  private twilight: Twilight;
   /** The lantern's swing (radians, foot to the right) and its speed. */
   private lamp = { a: 0, v: 0 };
   /** The visitor asked Snap to seal the letter; when his pincer shuts on it. */
@@ -174,12 +186,14 @@ export class World {
     this.motes = new Motes(this.stage);
     this.octopus = new Octopus(this.stage);
     this.debris = new Debris(this.stage, phone);
+    this.twilight = new Twilight(this.stage, phone);
     const zero = { x: -999, y: -999, a: 0 };
     this.out = {
       tags: { sig: zero, fmt: zero, look: zero, crop: zero, finish: zero }, tagsOn: 0, z1: null, z2: null,
       s1On: 0, s2On: 0, depth: 0, zone: 's0', storyOn: false, kindOn: false,
       fish: { x: -999, y: -999, on: false }, reef: null, perch: null, chainX: (y) => this.chain.xAt(y),
       z4: null, cabinOn: 0, octo: { x: -999, y: -999, s: 0, on: false, busy: false }, sealOn: false,
+      twi: { z5: null, win: [0, 1], on: 0, light: [-999, -999, 1], lure: { x: -999, y: -999, on: false } }, fishOn: false,
     };
     this.measure();
   }
@@ -251,6 +265,9 @@ export class World {
     this.resident('z4x', y > sec.s3b.top && y < sec.s4b.top + 0.5 * H);
     this.resident('z4', y > sec.s4.top && y < sec.t4.top + 0.6 * H);
     this.resident('z5', y > sec.s4b.top + H);
+    // The twilight zone: its lit plate for the lantern, the lost fish and the glowing jellyfish.
+    if (y > sec.t4.top) this.want('twilight', () => this.twilight.load());
+    this.resident('z5lit', y > sec.t4.top + 0.5 * sec.t4.h);
   }
 
   setFormat(f: Fmt | 'auto', t: number) {
@@ -362,6 +379,32 @@ export class World {
     this.out.sealOn = t < oc.sealedAt + 6 && cabinOn > 0.2;
   }
 
+  /**
+   * The twilight zone: the visitor's lantern shows the lit plate, the lost
+   * fish follows it, the lure's light runs down the chain while the explain
+   * card is up, a jellyfish glows past, and at the end warmth rises from below.
+   */
+  private dusk(dt: number, t: number, o: { twiOn: number; k5: number; warm: number; cover: Cover | null; H: number; W: number }) {
+    const { H, W } = o;
+    const hold = this.snap.holds?.top ?? [W * 0.5, H * 0.5];
+    if (o.k5 < -0.6) this.twilight.reset();
+    let lure = false;
+    if (o.twiOn > 0.5) {
+      const r = document.getElementById('card-explain')?.getBoundingClientRect();
+      lure = !!r && r.top < H * 0.7 && r.bottom > H * 0.3;
+    }
+    const holdArc = this.chain.holdArc(0) ?? 0;
+    const lost: [number, number] = o.cover ? this.spot('z5', o.cover, LOST_FISH[0], LOST_FISH[1]) : [W * 0.6, H * 0.7];
+    this.twilight.update(dt, t, {
+      vis: o.twiOn, k: o.k5, w: W, h: H, mouse: this.mouse, lost, hold, body: this.L.chainBody * H,
+      chainAt: (d) => this.chain.at(holdArc - hold[1] + d), chainLen: hold[1], lure,
+    });
+    const tw = this.twilight.out;
+    if (o.cover) this.backdrop.lantern(o.cover, tw.light, o.twiOn, o.warm);
+    this.out.twi = { z5: o.cover, win: this.phone ? WRECK_PHONE.z5 : [0, 1], on: o.twiOn, light: tw.light, lure: tw.lure };
+    this.out.fishOn = t < tw.homeAt + 6 && o.twiOn > 0.2;
+  }
+
   frame(dt: number, t: number) {
     this.t = t;
     const s = this.stage, H = s.h, W = s.w, L = this.L;
@@ -401,6 +444,10 @@ export class World {
     const leaving = smooth(-0.5, 0, (y - sec.t4.top) / H);        // out of the cabin, into the dark
     const q4 = clamp((y - sec.t4.top) / sec.t4.h);                // the drop
     const inT3 = inWreck && y >= sec.t3.top, inT4 = inWreck && y >= sec.t4.top;
+    // The twilight zone, from the end of the drop to the warm glow of the vents below.
+    const k5 = (y - sec.s5.top) / Math.max(1, sec.next.top - sec.s5.top);
+    const twiOn = inT4 ? smooth(0.96, 1, q4) : 0;
+    const warm = inT4 ? smooth(0.78, 1.15, k5) : 0;
     const cabinOn = inT3 && !inT4 ? clamp(Math.min(smooth(0.9, 1, q3), 1 - leaving)) : 0;
 
     // Which plates, frames and blends are on screen.
@@ -442,7 +489,7 @@ export class World {
         if (p1 >= 1) { a = b = 'z1'; mix = 0; }
       } else { a = 'z0'; b = 'z1'; mix = smooth(0.25, 0.75, p1); if (p1 >= 1) { a = b = 'z1'; mix = 0; } }
     }
-    let z0c: Cover | null = null, z1c: Cover | null = null, z2c: Cover | null = null, t1c: Cover | null = null, z4c: Cover | null = null;
+    let z0c: Cover | null = null, z1c: Cover | null = null, z2c: Cover | null = null, t1c: Cover | null = null, z4c: Cover | null = null, z5c: Cover | null = null;
     // Snap's spot on the reef, in panels: he keeps his place on screen while
     // the camera travels, then walks to his mark in the studio.
     const snapU = lerp(Lr + this.reef.snapAt() * win, this.reef.studioSpot(), smooth(-0.8, 0.6, kB));
@@ -455,7 +502,9 @@ export class World {
       this.reef.hide();
       // Down to the wreck the camera tilts from the light above to the ship; in the cabin it pushes in a little.
       const fyW = lerp(0.04, 0.5, smooth(0, 1, dW));
-      const fyOf = (x: SourceKey) => (x === 'z0' ? fyS0 : x === 'z1' ? fyS1 : x === 'z2' ? fyS2 : x === 'z4x' ? fyW : 0.5);
+      // Through the twilight zone it sinks toward the seabed.
+      const fyT = lerp(0.5, 0.82, smooth(0, 1.1, k5));
+      const fyOf = (x: SourceKey) => (x === 'z0' ? fyS0 : x === 'z1' ? fyS1 : x === 'z2' ? fyS2 : x === 'z4x' ? fyW : x === 'z5' ? fyT : 0.5);
       const fxOf = (x: SourceKey) => (x === 'z2' ? L.fxKelp : x === 't2' ? lerp(L.fxKelp, L.fx, q2)
         : x === 'z4x' ? L.fxWreck : x === 't3' ? lerp(L.fxWreck, L.fxCabin, q3) : x === 'z4' ? L.fxCabin : x === 't4' || x === 'z5' ? 0.5 : L.fx);
       // through the hull the camera settles to the cabin's framing, which then pushes in a little
@@ -466,7 +515,7 @@ export class World {
       };
       const covers = this.backdrop.update(dt, a, b, mix, frames, fyOf(a), fyOf(b), fxOf(a), fxOf(b), overOf(a), overOf(b));
       const coverOf = (z: SourceKey) => (a === z ? covers.a : b === z ? covers.b : null);
-      z0c = coverOf('z0'); z1c = coverOf('z1'); z2c = coverOf('z2'); t1c = coverOf('t1'); z4c = coverOf('z4');
+      z0c = coverOf('z0'); z1c = coverOf('z1'); z2c = coverOf('z2'); t1c = coverOf('t1'); z4c = coverOf('z4'); z5c = coverOf('z5');
     }
     this.backdrop.playLoops({ z0: k < s0h + 0.2, z1: kS1 > -1.2 && d12 < 1, z2: d12 > 0 && q2 < 0.1, z4: inT3 && q3 > 0.85 && y < sec.t4.top + 0.2 * H });
 
@@ -585,7 +634,8 @@ export class World {
     }
     const shift = -d12 * DESCENT_LINKS;
     this.chain.slide = (-p1 * 26 + shift - q2 * 20 - dW * 16 - q3 * 10 - q4 * 40) * this.chain.pitch;
-    this.chain.update(dt, t, { ax, ay, len: H * 1.1, tail: walking ? H * 0.08 : H * 0.75, holds, sway: sc.v, mouse: this.mouse, visible: true, linkLen, slack: walking ? 0.985 : 1.002 });
+    // Near the bottom the anchor touches down and the chain goes slack.
+    this.chain.update(dt, t, { ax, ay, len: H * 1.1, tail: walking ? H * 0.08 : H * 0.75, holds, sway: sc.v, mouse: this.mouse, visible: true, linkLen, slack: walking ? 0.985 : lerp(1.002, 0.978, warm) });
 
     // Snap.
     const feet = z0 ? onPlate(z0, L.feet[0], L.feet[1]) : [W * 0.88, H * 0.36];
@@ -620,13 +670,15 @@ export class World {
     this.splash.update(dt);
 
     // Tags hang on the chain from the shallows through the kelp, and above Snap on the reef.
-    const tagLinks = walking ? REEF_TAGS : cabinOn > 0 ? CABIN_TAGS : TAG_LINKS;
+    const hung = cabinOn > 0 || twiOn > 0;
+    const tagLinks = walking ? REEF_TAGS : hung ? CABIN_TAGS : TAG_LINKS;
     for (const [key, n] of Object.entries(tagLinks) as [keyof typeof TAG_LINKS, number][]) {
-      this.out.tags[key] = this.chain.at(this.chain.linkArc(walking || cabinOn > 0 ? n : n + shift));
+      this.out.tags[key] = this.chain.at(this.chain.linkArc(walking || hung ? n : n + shift));
     }
     this.out.tagsOn = walking
       ? smooth(0.45, 0.7, kR) * (1 - ret) * (1 - 0.85 * (this.phone ? Math.max(...(reefOut?.near.slice(1, 5) ?? [0])) : reefOut?.near[2] ?? 0))
       : ride && cabinOn > 0 ? cabinOn
+      : ride && twiOn > 0 ? twiOn
       : ride && !inReef ? clamp(Math.min(smooth(-0.9, -0.3, kS1), 1 - smooth(0.0, 0.25, q2))) : 0;
 
     // The format fish in the shallows.
@@ -648,11 +700,12 @@ export class World {
 
     // Depth gauge.
     const zone: ZoneId = k < s0h ? 's0' : p1 < 1 ? 't1' : d12 < 0.5 ? 's1' : !inT2 ? 's2' : y < sec.s3.top ? 't2'
-      : y < sec.s3b.top - 0.5 * H ? 's3' : y < sec.s4.top - 0.2 * H ? 's3b' : !inT3 ? 's4' : q3 < 1 ? 't3' : !inT4 ? 's4b' : q4 < 1 ? 't4' : 'next';
+      : y < sec.s3b.top - 0.5 * H ? 's3' : y < sec.s4.top - 0.2 * H ? 's3b' : !inT3 ? 's4' : q3 < 1 ? 't3' : !inT4 ? 's4b' : q4 < 1 ? 't4'
+      : y < sec.next.top - 0.3 * H ? 's5' : 'next';
     this.out.zone = zone;
     // The gauge spins through the drop, slow at first, then fast, then settling at the twilight zone.
     this.out.depth = k < s0h ? 0 : p1 < 1 ? -5 * p1 : !inT2 ? -5 - 10 * d12 : !inWreck ? -15 - 15 * q2
-      : !inT4 ? -30 - 30 * smooth(0, 1, dW) : -60 - 440 * easeInOut(q4);
+      : !inT4 ? -30 - 30 * smooth(0, 1, dW) : q4 < 1 ? -60 - 440 * easeInOut(q4) : -500 - 500 * smooth(0, 1, k5);
     this.out.storyOn = this.snap.state === 'gust' || this.snap.state === 'surprised' || this.snap.state === 'hop';
     this.out.z1 = z1c;
     this.out.z2 = z2c;
@@ -661,6 +714,7 @@ export class World {
     this.out.reef = reefOut;
 
     this.cabin(dt, t, { z4c, cabinOn, fC, grade, ride: !!ride, H, W });
+    this.dusk(dt, t, { twiOn, k5, warm, cover: z5c, H, W });
     // A beam from the wreck drifts up past the camera on the way down to it.
     this.debris.update(t, { k: (dW - 0.08) / 0.55, vis: inWreck && !inT3 ? 1 : 0, w: W, h: H, mouse: this.mouse });
     s.render();

@@ -3,7 +3,7 @@
 (fetch them first with scripts/fetch-sources.sh) into ../preview/dive/media,
 and write media/manifest.json with the numbers the page needs.
 
-usage: python3 scripts/encode-media.py [images] [reef] [wreck] [video] [sequence] [wreckseq] [beam] [pack] [snap] [snappost] [scuttle] [claw] [ride] [snap3d]
+usage: python3 scripts/encode-media.py [images] [reef] [wreck] [video] [sequence] [wreckseq] [beam] [pack] [twilight] [snap] [snappost] [scuttle] [claw] [ride] [snap3d]
        (no argument runs every step)
 needs: ffmpeg, numpy, scipy, Pillow with AVIF support; for snap3d also npx (gltf-transform) and trimesh
 """
@@ -352,6 +352,28 @@ def octopus():
     # the flap's point sits just below the middle of the envelope
     man['octopus']['seal'] = [round(float(xs.mean()) / w, 4), round(float(ys.min() + 0.6 * (ys.max() - ys.min())) / h, 4)]
     man['octopus']['envelope'] = [round(xs.min() / w, 4), round(ys.min() / h, 4), round(xs.max() / w, 4), round(ys.max() / h, 4)]
+
+
+
+def twilight():
+    """The twilight zone lit by the lantern (z5lit, revealed round the cursor
+    over z5, same windows on phones) and a glowing jellyfish kept on black
+    for additive light."""
+    plates = man['plates']
+    im = Image.open(src('z5-lit-plate.png')).convert('RGB')
+    files = {w: save_pair(resize_w(im, w), f'z5lit-{w}') for w in (1600, 2400, 3200)}
+    plates['z5lit'] = {'w': im.size[0], 'h': im.size[1], 'widths': [1600, 2400, 3200], 'bytes': files, 'thumbhash': plates['z5']['thumbhash']}
+    a, b = PHONE['z5']
+    ph = im.crop((round(a * im.size[0]), 0, round(b * im.size[0]), im.size[1]))
+    pfiles = {w: save_pair(resize_w(ph, w), f'z5litp-{w}') for w in (720, 1080)}
+    plates['z5litp'] = {'w': ph.size[0], 'h': ph.size[1], 'widths': [720, 1080], 'bytes': pfiles, 'thumbhash': plates['z5p']['thumbhash']}
+    jelly = Image.open(src('cut-glow-jelly.png')).convert('RGB')
+    g = np.asarray(jelly).astype(np.float32)
+    ys, xs = np.where(g.max(axis=2) > 40)
+    jelly = jelly.crop((max(0, xs.min() - 20), max(0, ys.min() - 20), min(jelly.size[0], xs.max() + 20), min(jelly.size[1], ys.max() + 20)))
+    jelly = jelly.resize((round(jelly.size[0] * 640 / jelly.size[1]), 640), Image.LANCZOS)
+    man['glowJelly'] = {'w': jelly.size[0], 'h': jelly.size[1], 'bytes': save_pair(jelly, 'glow-jelly', 56, 80)}
+    print('twilight', files, pfiles, man['glowJelly'])
 
 
 def wreckseq():
@@ -963,7 +985,7 @@ def snap3d():
     print('snap3d', {k: v for k, v in man['snap3d'].items() if k not in ('limbs', 'eyes')}, kinds)
 
 
-steps = sys.argv[1:] or ['images', 'reef', 'wreck', 'video', 'sequence', 'wreckseq', 'snap', 'snappost', 'scuttle', 'claw', 'ride', 'snap3d']
+steps = sys.argv[1:] or ['images', 'reef', 'wreck', 'twilight', 'video', 'sequence', 'wreckseq', 'snap', 'snappost', 'scuttle', 'claw', 'ride', 'snap3d']
 for st in steps:
     globals()[st]()
     json.dump(man, open(MAN_PATH + '.tmp', 'w'), indent=1)   # written whole or not at all

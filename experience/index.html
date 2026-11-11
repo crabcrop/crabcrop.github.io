@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>crabcrop · All the Way Down</title>
-<meta name="description" content="Ride the anchor chain with Snap through crabcrop, the Rust image API. A preview from the marina down past the reef to the shipwreck.">
+<meta name="description" content="Ride the anchor chain with Snap through crabcrop, the Rust image API. A preview from the marina down past the reef and the shipwreck to the twilight zone.">
 <meta name="robots" content="noindex">
 <meta name="theme-color" content="#CFE8EE">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
@@ -35,7 +35,7 @@
     <li><a href="#s2" data-zone="s2"><span class="d">−15 m</span> <span class="name">The Kelp Forest</span></a></li>
     <li><a href="#s3" data-zone="s3"><span class="d">−30 m</span> <span class="name">The Coral Reef</span></a></li>
     <li><a href="#s4" data-zone="s4"><span class="d">−60 m</span> <span class="name">The Shipwreck</span></a></li>
-    <li class="soon"><span class="d">−500 m</span> <span class="name">The Twilight Zone</span></li>
+    <li><a href="#s5" data-zone="s5"><span class="d">−500 m</span> <span class="name">The Twilight Zone</span></a></li>
     <li class="soon"><span class="d">−2,500 m</span> <span class="name">The Vents</span></li>
     <li class="soon"><span class="d">0 m</span> <span class="name">Back to the Surface</span></li>
   </ol>
@@ -516,6 +516,81 @@
 
   <section id="t4" class="plunge" aria-hidden="true"></section>
 
+  <section id="s5" class="zone s5" aria-labelledby="s5-title">
+    <picture class="zone-bg">
+      <source media="(orientation: portrait)" type="image/avif" srcset="media/z5litp-720.avif 720w, media/z5litp-1080.avif 1080w" sizes="100vw">
+      <source media="(orientation: portrait)" type="image/webp" srcset="media/z5litp-720.webp 720w, media/z5litp-1080.webp 1080w" sizes="100vw">
+      <source type="image/avif" srcset="media/z5lit-1600.avif 1600w, media/z5lit-2400.avif 2400w, media/z5lit-3200.avif 3200w" sizes="(min-aspect-ratio: 21/9) 100vw, 233vh">
+      <img src="media/z5lit-1600.webp" srcset="media/z5lit-1600.webp 1600w, media/z5lit-2400.webp 2400w, media/z5lit-3200.webp 3200w" sizes="(min-aspect-ratio: 21/9) 100vw, 233vh" alt="" loading="lazy" decoding="async">
+    </picture>
+    <div class="zone-head panel">
+      <p class="tidemark">−500 m · The Twilight Zone</p>
+      <h2 id="s5-title">It reads <span class="coral">the picture.</span></h2>
+      <p>Down here the light is yours: <span class="on-wide">it follows your cursor.</span><span class="on-narrow">tap to shine it.</span> What it finds, a meta answer names: tags with their scores, a line of alt text, the words in a bottle, and a report on the URL itself.</p>
+    </div>
+
+    <div class="cards">
+      <article class="card" id="card-meta">
+        <div class="specimen spec-meta">
+          <p class="spec-note">This scene, as a meta answer would describe it. <span class="on-wide">Shine your light on the creatures.</span><span class="on-narrow">Tap the creatures to light them.</span></p>
+          <pre class="meta-json" id="meta-json">{}</pre>
+        </div>
+        <div class="card-top">
+          <picture><source type="image/avif" srcset="media/icon-lantern.avif"><img class="icon" src="media/icon-lantern.webp" alt="" width="56" height="56" loading="lazy"></picture>
+          <h3>Metadata that describes the picture</h3>
+        </div>
+        <p>JSON meta for every render: size, format, provenance. Richer answers are opt-ins with their own models: CLIP tags and alt text, detections, moderation, embeddings, an aesthetic score, OCR text.</p>
+        <code class="chip">Accept: application/json; detections=1</code>
+        <a class="docs" href="https://crabcrop.org/docs.html#meta">Read the docs</a>
+      </article>
+
+      <article class="card" id="card-ocr">
+        <div class="specimen spec-ocr">
+          <p class="spec-note">The message in the bottle, read:</p>
+          <ol class="ocr" id="ocr-lines" aria-label="The text lines, in reading order, with their confidence">
+            <li style="--i: 0"><span class="line">To whoever finds this:</span><b>0.98</b></li>
+            <li style="--i: 1"><span class="line">the print you're after</span><b>0.97</b></li>
+            <li style="--i: 2"><span class="line">sank past the warm vents.</span><b>0.95</b></li>
+            <li style="--i: 3"><span class="line">Keep going! A friend</span><b>0.91</b></li>
+          </ol>
+        </div>
+        <div class="card-top">
+          <picture><source type="image/avif" srcset="media/icon-glass.avif"><img class="icon" src="media/icon-glass.webp" alt="" width="56" height="56" loading="lazy"></picture>
+          <h3>Reads the text in the picture</h3>
+        </div>
+        <p>Opt a meta request in and the answer reads the picture: the text lines in reading order, each with its box and a confidence score. The image bytes stay exactly the same.</p>
+        <code class="chip">Accept: application/json; ocr=1</code>
+        <a class="docs" href="https://crabcrop.org/docs.html#meta">Read the docs</a>
+      </article>
+
+      <article class="card" id="card-explain">
+        <div class="specimen spec-explain">
+          <p class="explain-req" id="explain-req">GET /explain/3c1f6c18…/</p>
+          <dl class="explain" id="explain-report"></dl>
+        </div>
+        <div class="card-top">
+          <picture><source type="image/avif" srcset="media/icon-chain.avif"><img class="icon" src="media/icon-chain.webp" alt="" width="56" height="56" loading="lazy"></picture>
+          <h3>URLs that explain themselves</h3>
+        </div>
+        <p>Put <code>explain/</code> in front of the signature and the server answers with a report on the URL: the signature's verdict, the source, every operation in plain words, and what will come out. <span class="on-wide">Watch the tags on the chain.</span></p>
+        <code class="chip">GET /explain/&lt;signature&gt;/…</code>
+        <a class="docs" href="https://crabcrop.org/docs.html#explain">Read the docs</a>
+      </article>
+    </div>
+
+    <ul class="glow-tags" id="glow-tags" aria-hidden="true">
+      <li data-u="0.205" data-v="0.115" data-k="jellyfish"><b>jellyfish</b> 0.97</li>
+      <li data-u="0.3" data-v="0.36" data-k="jellyfish"><b>jellyfish</b> 0.95</li>
+      <li data-u="0.47" data-v="0.2" data-k="glowing worm"><b>glowing worm</b> 0.84</li>
+      <li data-u="0.62" data-v="0.56" data-k="message in a bottle"><b>message in a bottle</b> 0.96</li>
+      <li data-u="0.795" data-v="0.38" data-k="anglerfish"><b>anglerfish</b> 0.93</li>
+      <li data-u="0.86" data-v="0.12" data-k="jellyfish"><b>jellyfish</b> 0.96</li>
+    </ul>
+    <p class="alt-line" id="alt-line" aria-hidden="true"><span>alt_text</span> <q id="alt-text"></q></p>
+    <p class="story panel kind" id="kind-fish">A tiny fish was lost in the dark. It followed your light all the way to Snap, and now he is taking it home.</p>
+    <img class="snap-static on-chain" src="media/snap-chain.webp" alt="" width="640" height="687" loading="lazy">
+  </section>
+
   <section id="next" class="zone slice-end">
     <picture class="zone-bg">
       <source media="(orientation: portrait)" type="image/avif" srcset="media/z5p-720.avif 720w, media/z5p-1080.avif 1080w" sizes="100vw">
@@ -524,9 +599,9 @@
       <img src="media/z5-1600.webp" srcset="media/z5-1600.webp 1600w, media/z5-2400.webp 2400w, media/z5-3200.webp 3200w" sizes="(min-aspect-ratio: 21/9) 100vw, 233vh" alt="" loading="lazy" decoding="async">
     </picture>
     <div class="panel">
-      <p class="tidemark">−500 m · The Twilight Zone</p>
-      <h2>The twilight zone is <span class="coral">next.</span></h2>
-      <p>This preview goes as far as the shipwreck. Your URL so far:</p>
+      <p class="tidemark">−1,000 m · Below the twilight</p>
+      <h2>The vents are <span class="coral">next.</span></h2>
+      <p>This preview goes as far as the twilight zone. Your URL so far:</p>
       <p class="url"><code id="url-so-far">https://<wbr>img.example.com/<wbr>3c1f6c18…/<wbr>crop:1200x630:smart/<wbr>filters:sharpen(1.2):saturation(1.1)/<wbr>root:photos/<wbr>print.jpg</code></p>
       <div class="ctas">
         <a class="btn" href="https://crabcrop.org/docs.html">Read the docs</a>

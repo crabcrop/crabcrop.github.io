@@ -506,10 +506,25 @@ chest and brings its letter; Snap snaps his claw and the wax goes on.
 Out: the cabin goes dark, and T04 glides past the wreck into the trench
 while the gauge spins down to −500 m, ending on the twilight zone (Z5).
 
+## The twilight zone (S5)
+
+Built from the approved Z5 and Z5-LIT plates and the glow jellyfish; no
+new assets. The visitor carries the light: Z5-LIT shows through a soft
+circle round the cursor (on phones a slow sweep, and wherever they tap),
+the dark outside it a little darker, and the glowing creatures shine
+brighter in it. Each creature the light finds gets a glowing CLIP tag with
+a score, and the meta card's JSON and the alt-text line add them up. The
+message in the bottle is read line by line, each in a box with its
+confidence. The explain card writes the report for the visitor's own URL
+(a sealed one is refused, as the server does), and while it is up the
+anglerfish's lure runs down the chain and each tag explains its segment.
+The kindness: a tiny lost fish follows the light and goes home with Snap.
+Out: warmth rises from below and the chain goes slack.
+
 ## Next
 
-The twilight zone (S5): the lantern cursor over Z5 and Z5-LIT, the
-glowing tags, the message in a bottle and the lost fish.
+The vents (S6): the anchor lands by the glowing geode, Snap's print. Then
+the express ascent (T5) and the finale at the surface (S7).
 
 Optional: the six format fish could become 3D schools (about 40 Tripo
 credits a species).

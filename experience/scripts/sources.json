@@ -205,6 +205,14 @@
     "octopus.png": {
       "job": "75e13c59-20a9-4f77-9391-211f5794d676",
       "file": "hf_20261111_020314_75e13c59-20a9-4f77-9391-211f5794d676.png"
+    },
+    "z5-lit-plate.png": {
+      "job": "c923aaf6-3d2e-4980-9204-690ffbd86112",
+      "file": "hf_20261108_164004_c923aaf6-3d2e-4980-9204-690ffbd86112.png"
+    },
+    "cut-glow-jelly.png": {
+      "job": "64c6bacb-238f-462a-b15a-163bc385efe1",
+      "file": "hf_20261108_164519_64c6bacb-238f-462a-b15a-163bc385efe1.png"
     }
   }
 }

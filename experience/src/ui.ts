@@ -1,6 +1,7 @@
 import { media } from './media';
 import { ReefUI, CROP_SEG, type CropShape } from './reef-ui';
 import { WreckUI, sealToken, type LogEntry } from './wreck-ui';
+import { TwilightUI, type Recipe } from './twilight-ui';
 import type { WorldOut, ZoneId } from './world';
 import type { Fmt } from './world/fish';
 import type { LookName } from './world/look';
@@ -16,15 +17,15 @@ const FINISH_NAME: Record<Finish, string> = { none: 'None', studio: 'Studio', cu
 const ZONES: Record<ZoneId, string> = {
   s0: 'The Marina', t1: 'The plunge', s1: 'The Shallows', s2: 'The Kelp Forest', t2: 'The drop-off',
   s3: 'The Coral Reef', s3b: 'The Clam Studio', s4: 'The Shipwreck', t3: 'Into the wreck', s4b: 'The Shipwreck',
-  t4: 'The drop', next: 'The Twilight Zone',
+  t4: 'The drop', s5: 'The Twilight Zone', next: 'Below the twilight',
 };
 /** Which gauge entry is current in each zone. */
-const GAUGE: Record<ZoneId, string> = { s0: 's0', t1: 's0', s1: 's1', s2: 's2', t2: 's2', s3: 's3', s3b: 's3', s4: 's4', t3: 's4', s4b: 's4', t4: 's4', next: 's4' };
-const DEPTH: Record<string, number> = { s0: 0, s1: -5, s2: -15, s3: -30, s3b: -30, s4: -60, s4b: -60, next: -500 };
+const GAUGE: Record<ZoneId, string> = { s0: 's0', t1: 's0', s1: 's1', s2: 's2', t2: 's2', s3: 's3', s3b: 's3', s4: 's4', t3: 's4', s4b: 's4', t4: 's4', s5: 's5', next: 's5' };
+const DEPTH: Record<string, number> = { s0: 0, s1: -5, s2: -15, s3: -30, s3b: -30, s4: -60, s4b: -60, s5: -500, next: -1000 };
 const TAG_KEYS = ['sig', 'fmt', 'look', 'crop', 'finish'] as const;
 
 const kb = (n: number) => `${Math.round(n / 1024)} KB`;
-const metres = (d: number) => (Math.abs(d) < 0.05 ? '0 m' : `−${Math.abs(d).toFixed(Math.abs(d) < 10 && d % 1 ? 1 : 0)} m`);
+const metres = (d: number) => (Math.abs(d) < 0.05 ? '0 m' : Math.abs(d) >= 1000 ? `−${Math.round(Math.abs(d)).toLocaleString('en-US')} m` : `−${Math.abs(d).toFixed(Math.abs(d) < 10 && d % 1 ? 1 : 0)} m`);
 const asset = (path: string) => new URL(path, document.baseURI).href;
 /** Run once when an element comes within a couple of screens: CSS backgrounds don't load lazily on their own. */
 function whenNear(el: Element | null, fn: () => void) {
@@ -74,9 +75,10 @@ export class UI {
   private cropTag = document.getElementById('tag-crop')!;
   private cards = [...document.querySelectorAll<HTMLElement>('.card')];
   /** Which zone each card hangs in; the reef's travelling cards have no thread. */
-  private cardZone = this.cards.map((c) => (c.closest('.s1') ? 's1' : c.closest('.s2') ? 's2' : c.closest('.s3b') ? 's3b' : c.closest('.s4b') ? 's4b' : 'reef'));
+  private cardZone = this.cards.map((c) => (c.closest('.s1') ? 's1' : c.closest('.s2') ? 's2' : c.closest('.s3b') ? 's3b' : c.closest('.s4b') ? 's4b' : c.closest('.s5') ? 's5' : 'reef'));
   private reefUI: ReefUI;
   private wreckUI: WreckUI;
+  private twilightUI: TwilightUI;
   private sigTag = document.querySelector<HTMLElement>('#tags .tag.sig')!;
   private sealInputs = [...document.querySelectorAll<HTMLInputElement>('input[name="seal"]')];
   private threads = document.getElementById('threads') as unknown as SVGSVGElement;
@@ -118,6 +120,7 @@ export class UI {
       onStamp: () => { const i = this.sealInputs.find((x) => x.value === (this.sealed ? 'readable' : 'sealed')); if (i) { i.checked = true; i.dispatchEvent(new Event('change')); } },
       onSealLetter: o.onSealLetter,
     });
+    this.twilightUI = new TwilightUI(o.wide);
     this.formatChoice();
     this.lookChoice();
     this.cropChoice();
@@ -335,6 +338,7 @@ export class UI {
       ? `https://img.example.com/<wbr>s1.${token}/<wbr>print.jpg`
       : `https://img.example.com/3c1f6c18…/${rest}`.replace(/\/(?!\/)/g, '/<wbr>');
     this.wreckUI.setRecipe(rest, token);
+    this.twilightUI.setRecipe({ crop: this.crop, look: this.look, finish: this.finish, fmt: this.fmt as Recipe['fmt'], sealed: this.sealed, rest, token });
     this.wreckUI.setLog(this.logEntries());
     this.wreckUI.setSealed(this.sealed);
     const was = this.tagsEl.classList.contains('sealed');
@@ -414,7 +418,7 @@ export class UI {
       const path = this.paths[i];
       if (!path) return;
       const z = this.cardZone[i];
-      const zoneOn = z === 's1' ? out.s1On : z === 's2' ? out.s2On : z === 's3b' && out.zone === 's3b' ? 1 : z === 's4b' ? out.cabinOn : 0;
+      const zoneOn = z === 's1' ? out.s1On : z === 's2' ? out.s2On : z === 's3b' && out.zone === 's3b' ? 1 : z === 's4b' ? out.cabinOn : z === 's5' ? out.twi.on : 0;
       const cx = out.chainX(r.top - 26);
       if (!onScreen || zoneOn < 0.5 || cx === null || cx < r.right) { path.setAttribute('d', ''); return; }
       const x0 = r.right - 22, y0 = r.top + 6, x1 = cx, y1 = r.top - 26;
@@ -439,6 +443,7 @@ export class UI {
 
     this.reefUI.update(out, t, dt, mouse);
     this.wreckUI.update(out);
+    this.twilightUI.update(out, t);
 
     // The button on the tangled fish, unless a card has scrolled over the fish or the button.
     const f = out.fish;

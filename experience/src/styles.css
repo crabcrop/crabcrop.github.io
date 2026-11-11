@@ -101,7 +101,7 @@ main { position: relative; z-index: 1; }
 .s2 { min-height: 250vh; padding-bottom: 24vh; --zone-accent: #6E7F2E; --zone-ink: #4E5E1C; }
 .slice-end { min-height: 100vh; display: grid; place-items: center start; padding: 18vh 16px 18vh clamp(150px, 15vw, 230px); }
 .slice-end .panel { width: 100%; max-width: min(500px, 38vw); min-width: 0; }
-.slice-end .zone-bg { justify-self: stretch; align-self: start; }
+.slice-end .zone-bg { justify-self: stretch; align-self: start; margin: 0 -16px -100vh calc(-1 * clamp(150px, 15vw, 230px)); }
 /* after the drop: the panel arrives once the glowing creatures have */
 #next.slice-end { padding-top: 70vh; }
 .slice-end .url code { display: block; padding: 12px 14px; background: var(--abyss); color: var(--sea-glass); border-radius: 12px; border: 2px solid var(--ink); overflow-wrap: anywhere; font-size: 13px; }
@@ -133,6 +133,42 @@ main { position: relative; z-index: 1; }
 .s4b { display: flow-root; min-height: 300vh; padding-bottom: 36vh; --zone-accent: #C9A24A; --zone-ink: #8A5A1C; }
 .s4b .cards { margin-top: 85vh; }
 .s4b .kind { top: auto; bottom: 8vh; }
+
+/* The twilight zone: the visitor's light finds the creatures */
+.s5 { display: flow-root; min-height: 250vh; padding-bottom: 30vh; --zone-accent: #2BB3B1; --zone-ink: #0B7A78; }
+.s5 .zone-head { margin-top: 55vh; }
+.s5 .kind { top: auto; bottom: 8vh; }
+.glow-tags, .alt-line { display: none; }
+.gl .glow-tags { display: block; position: fixed; inset: 0; margin: 0; padding: 0; list-style: none; pointer-events: none; z-index: 0; opacity: 0; transition: opacity .4s; }
+.gl .glow-tags.on { opacity: 1; }
+.glow-tags li { position: absolute; left: 0; top: 0; margin: -13px 0 0 12px; font-family: var(--mono); font-size: 12px; color: #CFFFF7; background: rgba(6, 30, 42, .6); border: 1px solid rgba(95, 242, 224, .65); border-radius: 999px; padding: 3px 11px; white-space: nowrap; box-shadow: 0 0 16px rgba(95, 242, 224, .35); opacity: 0; filter: blur(3px); transition: opacity .4s, filter .4s; }
+.glow-tags li::before { content: ''; position: absolute; left: -9px; top: 50%; width: 6px; height: 6px; margin-top: -3px; border-radius: 50%; background: #5FF2E0; box-shadow: 0 0 8px #5FF2E0; }
+.glow-tags li.lit { opacity: 1; filter: none; }
+.glow-tags li b { color: #fff; font-weight: 800; margin-right: 4px; }
+.gl.wide .alt-line { display: block; position: fixed; right: 3vw; top: calc(var(--top) + 18px); max-width: min(440px, 32vw); z-index: 3; margin: 0; font-family: var(--mono); font-size: 12.5px; line-height: 1.45; color: #E6FFFB; background: rgba(6, 26, 38, .78); border: 1px solid rgba(95, 242, 224, .5); border-radius: 14px 14px 14px 4px; padding: 10px 14px; opacity: 0; transform: translateY(-6px); transition: opacity .5s, transform .5s; pointer-events: none; }
+.gl.wide .alt-line.on { opacity: 1; transform: none; }
+.alt-line span { color: var(--sun); font-weight: 800; margin-right: 4px; }
+.spec-note { margin: 0; font-size: 11px; color: rgba(143, 227, 225, .75); }
+.meta-json { margin: 8px 0 0; font-family: var(--mono); font-size: 11.5px; line-height: 1.45; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--sea-glass); }
+.ocr { list-style: none; margin: 8px 0 0; padding: 12px 12px 10px; background: #EFE3C6; border-radius: 8px; display: grid; gap: 5px; }
+.ocr li { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.ocr .line { font-family: var(--display); font-style: italic; font-size: 14.5px; color: #3a2a1c; padding: 1px 6px; border: 1.5px dashed transparent; border-radius: 4px; }
+.ocr b { font-family: var(--mono); font-size: 10.5px; color: #0B7A78; }
+.gl .ocr b { opacity: 0; }
+.gl .card.in .ocr .line { animation: ocrbox .5s var(--reveal) forwards; animation-delay: calc(var(--i) * .45s + .3s); }
+.gl .card.in .ocr b { animation: fadein .4s forwards; animation-delay: calc(var(--i) * .45s + .55s); }
+.static .ocr .line, .no-js .ocr .line { border-color: #D63118; background: rgba(255, 216, 138, .35); }
+@keyframes ocrbox { to { border-color: #D63118; background: rgba(255, 216, 138, .35); } }
+@keyframes fadein { to { opacity: 1; } }
+.explain-req { margin: 0 0 8px; font-size: 11px; color: var(--sun); overflow-wrap: anywhere; }
+.explain { display: grid; grid-template-columns: 6.2em minmax(0, 1fr); gap: 4px 10px; margin: 0; font-size: 11.5px; line-height: 1.45; }
+.explain dt { color: rgba(143, 227, 225, .7); text-transform: uppercase; letter-spacing: .06em; font-size: 9.5px; padding-top: 2px; }
+.explain dd { margin: 0; color: #E8FFFC; overflow-wrap: anywhere; }
+.gl .explain dt, .gl .explain dd { opacity: 0; }
+.gl .card.in .explain dt, .gl .card.in .explain dd { animation: fadein .4s forwards; animation-delay: calc(var(--i) * .22s + .2s); }
+.tag.explaining span { color: #0B7A78; font-weight: 700; }
+.tag { transition: box-shadow .3s; }
+.tag.lit { box-shadow: 0 0 0 2px rgba(95, 242, 224, .95), 0 0 24px rgba(95, 242, 224, .8); }
 .station { position: relative; }
 .station > .station-body { position: relative; z-index: 1; }
 .station .zone-head { width: auto; margin: 0; }
@@ -435,6 +471,7 @@ body.on-snap { cursor: pointer; }
   .story { left: 16px; right: 16px; width: auto; top: 200vh; }
   .slice-end { place-items: center; padding: 18vh 16px; }
   #next.slice-end { padding-top: 70vh; }
+  .slice-end .zone-bg { margin-left: -16px; }
   .gl .station > .station-body, .gl .station[data-st="0"] > .station-body { left: 12px; right: 12px; width: auto; top: calc(var(--top) + 12px); transform: none; gap: 10px; }
   .gl .station[data-phone="bottom"] > .station-body { top: auto; bottom: 12px; }
   .gl .reef-card { padding: 14px 16px 16px; }
@@ -446,6 +483,7 @@ body.on-snap { cursor: pointer; }
   .static .station > .station-body, .no-js .station > .station-body { margin: 0 16px; width: auto; }
   .s3b .zone-head { margin-top: 70vh; }
   .s4 .zone-head { margin-top: 100vh; }
+  .s5 .zone-head { margin-top: 70vh; }
   .s4b .cards { margin-top: 80vh; }
   .chest { width: 96px; height: 96px; }
   .slice-end .panel { max-width: 720px; }

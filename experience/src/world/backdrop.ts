@@ -9,8 +9,10 @@ void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(
 
 const FRAG = /* glsl */ `
 precision highp float;
-uniform sampler2D uA, uB, uC, uStill;
-uniform vec4 uCoverA, uCoverB, uCoverC, uCoverPix, uStillCover;   // left, top, width, height in px
+uniform sampler2D uA, uB, uC, uStill, uLit;
+uniform vec4 uCoverA, uCoverB, uCoverC, uCoverPix, uStillCover, uLitCover;   // left, top, width, height in px
+uniform vec4 uLight;
+uniform float uWarm;
 uniform float uMix, uTime, uMouseOn, uWaterY, uRipple, uGlint, uShafts, uTintAmt;
 uniform float uSplit, uRegionAmt, uCanSide, uPixSize, uLampsOn, uLampR;
 uniform vec4 uRegion, uPix, uSwing, uSwingR, uGlow;
@@ -104,6 +106,21 @@ void main() {
   }
   // The Clam Studio's jellyfish softboxes: dim until they switch on, then glowing.
   if (uLampsOn > 0.0) { col = lamp(col, px, uLamp0); col = lamp(col, px, uLamp1); col = lamp(col, px, uLamp2); }
+  // The twilight zone: the visitor's lantern shows the lit plate in a soft
+  // circle, and the glowing creatures shine brighter in it.
+  vec2 sp = vec2(vUv.x, 1.0 - vUv.y) * uRes;
+  if (uLight.w > 0.0) {
+    float k = (1.0 - smoothstep(0.3, 1.0, length(sp - uLight.xy) / uLight.z)) * uLight.w;
+    // the dark beyond the light a little darker, so the light reads as the visitor's own
+    col *= 1.0 - 0.18 * uLight.w * (1.0 - k);
+    if (k > 0.0) {
+      vec3 lit = texture2D(uLit, coverUv(uLitCover, px)).rgb;
+      col = mix(col, lit * 1.25, k);
+      col += max(col - vec3(0.42), vec3(0.0)) * 0.7 * k + vec3(1.0, 0.78, 0.48) * 0.13 * k * k;
+    }
+  }
+  // A warm glow rising from below: the vents ahead.
+  if (uWarm > 0.0) col += vec3(1.0, 0.48, 0.16) * uWarm * pow(smoothstep(0.3, 1.0, sp.y / uRes.y), 2.0) * 0.45;
   // The lantern's warm light, where it hangs now, flickering.
   if (uGlow.w > 0.0) {
     vec2 g2 = (vec2(vUv.x, 1.0 - vUv.y) * uRes - uGlow.xy) / uGlow.z;
@@ -115,7 +132,7 @@ void main() {
 }`;
 
 /** z0 to z3 are the vertical zones; r0 to r4 are the reef panorama's panels, left to right, and r3c is r3 with the can removed; z4x is the wreck outside, z4 its cabin and z5 the twilight zone. */
-export type Zone = 'z0' | 'z1' | 'z2' | 'z3' | 'r0' | 'r1' | 'r2' | 'r3' | 'r3c' | 'r4' | 'z4x' | 'z4' | 'z5';
+export type Zone = 'z0' | 'z1' | 'z2' | 'z3' | 'r0' | 'r1' | 'r2' | 'r3' | 'r3c' | 'r4' | 'z4x' | 'z4' | 'z5' | 'z5lit';
 export type SeqKey = 't1' | 't2' | 't3' | 't4';
 const SEQ_KEYS: SeqKey[] = ['t1', 't2', 't3', 't4'];
 const isSeq = (k: SourceKey): k is SeqKey => (SEQ_KEYS as string[]).includes(k);
@@ -128,7 +145,7 @@ interface Seq { frames: (HTMLImageElement | null)[]; tex: THREE.Texture | null; 
 const PLATE: Record<Zone, [PlateKey, PlateKey]> = {
   z0: ['z0', 'z0p'], z1: ['z1', 'z1p'], z2: ['z2', 'z2p'], z3: ['z3', 'z3p'],
   r0: ['z3', 'z3'], r1: ['z3_2', 'z3_2'], r2: ['z3_3', 'z3_3'], r3: ['z3_4', 'z3_4'], r3c: ['z3_4c', 'z3_4c'], r4: ['z3b', 'z3b'],
-  z4x: ['z4x', 'z4xp'], z4: ['z4', 'z4p'], z5: ['z5', 'z5p'],
+  z4x: ['z4x', 'z4xp'], z4: ['z4', 'z4p'], z5: ['z5', 'z5p'], z5lit: ['z5lit', 'z5litp'],
 };
 const LOOPS: Partial<Record<Zone, true>> = { z0: true, z1: true, z2: true, z4: true };
 export const PANELS: Zone[] = ['r0', 'r1', 'r2', 'r3', 'r4'];
@@ -175,6 +192,7 @@ export class Backdrop {
       uSplit: { value: -1e5 }, uRegionAmt: { value: 0 }, uCanSide: { value: 0 }, uRegion: { value: new THREE.Vector4() },
       uPixSize: { value: 0 }, uPix: { value: new THREE.Vector4(0, 0, 1, 1) },
       uLampsOn: { value: 0 }, uLampR: { value: 100 }, uLamp0: v3(), uLamp1: v3(), uLamp2: v3(), uImpact: { value: new THREE.Vector3(0, 0, -10) },
+      uLit: { value: this.blank }, uLitCover: { value: new THREE.Vector4(0, 0, 1, 1) }, uLight: { value: new THREE.Vector4() }, uWarm: { value: 0 },
       uSwing: { value: new THREE.Vector4() }, uSwingR: { value: new THREE.Vector4(0, 0, 1, 1) }, uGlow: { value: new THREE.Vector4(0, 0, 1, 0) },
       ...LOOK,
     };
@@ -291,6 +309,8 @@ export class Backdrop {
   }
 
   private noEffects() {
+    this.u.uLight.value.w = 0;
+    this.u.uWarm.value = 0;
     this.u.uSwing.value.w = 0;
     this.u.uGlow.value.w = 0;
     this.u.uSplit.value = -1e5;
@@ -313,6 +333,17 @@ export class Backdrop {
     this.u.uSwing.value.set(pivot[0], pivot[1], angle, 1);
     this.u.uSwingR.value.set(...oval);
     this.u.uGlow.value.set(...glow);
+  }
+
+  /** The twilight zone's lantern: the lit plate shows through round light (x, y, radius px); warm glows from below. */
+  lantern(cover: Cover, light: [number, number, number], amount: number, warm: number) {
+    const lit = this.plate[this.key('z5lit')]?.tex;
+    if (lit && amount > 0) {
+      this.u.uLit.value = lit;
+      this.u.uLitCover.value.set(cover.ox, cover.oy, cover.dw, cover.dh);
+      this.u.uLight.value.set(light[0], light[1], light[2], amount);
+    }
+    this.u.uWarm.value = warm;
   }
 
   /** Draw a blend of two sources; returns the cover used for each. overA and overB zoom each one past a cover fit. */

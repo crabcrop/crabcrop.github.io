@@ -469,6 +469,49 @@
     }
    },
    "thumbhash": "yOYFFAKJ9npnfczXp4d2cJkH5g=="
+  },
+  "z5lit": {
+   "w": 6336,
+   "h": 2688,
+   "widths": [
+    1600,
+    2400,
+    3200
+   ],
+   "bytes": {
+    "1600": {
+     "avif": 49183,
+     "webp": 72882
+    },
+    "2400": {
+     "avif": 83027,
+     "webp": 121338
+    },
+    "3200": {
+     "avif": 117952,
+     "webp": 171086
+    }
+   },
+   "thumbhash": "yeYFE4KZViKPdzhnlnA7CNQ="
+  },
+  "z5litp": {
+   "w": 1520,
+   "h": 2688,
+   "widths": [
+    720,
+    1080
+   ],
+   "bytes": {
+    "720": {
+     "avif": 23380,
+     "webp": 30926
+    },
+    "1080": {
+     "avif": 38027,
+     "webp": 49744
+    }
+   },
+   "thumbhash": "yOYFFAKJ9npnfczXp4d2cJkH5g=="
   }
  },
  "snapChain": {
@@ -3461,5 +3504,13 @@
    0.6916,
    0.7942
   ]
+ },
+ "glowJelly": {
+  "w": 370,
+  "h": 640,
+  "bytes": {
+   "avif": 10957,
+   "webp": 14590
+  }
  }
 }
