@@ -4,6 +4,7 @@ import { Chain, type Hold } from './chain';
 import { Snap } from './snap';
 import { Schools, type Fmt } from './fish';
 import { Bubbles } from './bubbles';
+import { Splash } from './splash';
 import { Kelp } from './kelp';
 import { NetFish } from './netfish';
 import { Reef, REEF_UNITS, type ReefOut } from './reef';
@@ -41,6 +42,19 @@ const LAYOUT: Record<'wide' | 'phone', Layout> = {
     reefBody: 0.15,
   },
 };
+
+/**
+ * Where the water's surface is in the plunge's frames (T01), as a share of
+ * their height, every third frame from the first: it rises out of the top
+ * as the camera dives. Measured on the 72 desktop frames (the phone frames
+ * are crops of the same video, so the shares hold).
+ */
+const T1_SURFACE = [0.615, 0.59, 0.595, 0.51, 0.505, 0.41, 0.37, 0.335, 0.27, 0.245, 0.15, 0.145, 0.04, 0.013, -0.025];
+function plungeSurface(frame: number) {
+  const f = frame / 3, i = Math.floor(f);
+  if (i >= T1_SURFACE.length - 1) return -0.2;
+  return T1_SURFACE[i] + (T1_SURFACE[i + 1] - T1_SURFACE[i]) * (f - i);
+}
 
 /** Tags hang on links counted from Snap's top hold in the shallows; the chain
  * pays out 20 links on the way to the kelp, so the look rises above him. */
@@ -80,6 +94,7 @@ export class World {
   readonly snap: Snap;
   private fish: Schools;
   private bubbles: Bubbles;
+  private splash: Splash;
   private kelp: Kelp;
   private net: NetFish;
   private reef: Reef;
@@ -95,6 +110,7 @@ export class World {
   private landed = false;
   private idleFor = 0;
   private caughtSeen = -10;
+  private enteredSeen = -10;
   private lastVisit = -10;
   private visited = new WeakSet<Element>();
   private visitEl: Element | null = null;
@@ -109,6 +125,7 @@ export class World {
     this.snap = new Snap(this.stage);
     this.fish = new Schools(this.stage, phone);
     this.bubbles = new Bubbles(this.stage);
+    this.splash = new Splash(this.stage);
     this.kelp = new Kelp(this.stage, phone);
     this.net = new NetFish(this.stage);
     this.reef = new Reef(this.stage, phone);
@@ -191,6 +208,12 @@ export class World {
   setLook(l: LookName) { this.look.picked = l; }
   previewLook(l: LookName | null) { this.look.preview = l; }
   freeFish() { this.freeAsked = true; }
+  /** The water rings at (x, y) on the surface, with bubbles below it and, for the 3D Snap, a splash of drops. */
+  private splashAt(x: number, y: number, size: number, t: number, drops: boolean) {
+    this.backdrop.u.uImpact.value.set(x, y, t);
+    if (drops) this.splash.burst(x, y, size * 0.9);
+    for (let i = 0; i < 8; i++) this.bubbles.emit(x + (Math.random() - 0.5) * size * 0.6, y + size * (0.1 + Math.random() * 0.4), this.stage.h * 0.008, 1, y);
+  }
   /** A box marked over the reef's can, in its panel's plate shares. */
   removeRegion(rect: [number, number, number, number]) { this.reef.removeRegion(rect, this.t); }
   upscalePearl(again = false) { this.reef.upscale(this.t, again); }
@@ -273,7 +296,7 @@ export class World {
         if (p1 >= 1) { a = b = 'z1'; mix = 0; }
       } else { a = 'z0'; b = 'z1'; mix = smooth(0.25, 0.75, p1); if (p1 >= 1) { a = b = 'z1'; mix = 0; } }
     }
-    let z0c: Cover | null = null, z1c: Cover | null = null, z2c: Cover | null = null;
+    let z0c: Cover | null = null, z1c: Cover | null = null, z2c: Cover | null = null, t1c: Cover | null = null;
     // Snap's spot on the reef, in panels: he keeps his place on screen while
     // the camera travels, then walks to his mark in the studio.
     const snapU = lerp(Lr + this.reef.snapAt() * win, this.reef.studioSpot(), smooth(-0.8, 0.6, kB));
@@ -288,7 +311,7 @@ export class World {
       const fxOf = (x: SourceKey) => (x === 'z2' ? L.fxKelp : x === 't2' ? lerp(L.fxKelp, L.fx, q2) : L.fx);
       const covers = this.backdrop.update(dt, a, b, mix, { t1: p1 * (media.t1.frames - 1), t2: q2 * (media.t2.frames - 1) }, fyOf(a), fyOf(b), fxOf(a), fxOf(b));
       const coverOf = (z: SourceKey) => (a === z ? covers.a : b === z ? covers.b : null);
-      z0c = coverOf('z0'); z1c = coverOf('z1'); z2c = coverOf('z2');
+      z0c = coverOf('z0'); z1c = coverOf('z1'); z2c = coverOf('z2'); t1c = coverOf('t1');
     }
     this.backdrop.playLoops({ z0: k < s0h + 0.2, z1: kS1 > -1.2 && d12 < 1, z2: d12 > 0 && q2 < 0.1 });
 
@@ -304,6 +327,13 @@ export class World {
     if (this.mouse) u.uMouse.value.set(this.mouse[0], this.mouse[1]);
     u.uRipple.value = !inReef && a === 'z0' && b === 'z0' ? 1 : 0;
     u.uWaterY.value = z0c ? onPlate(z0c, 0, this.backdrop.plateMeta('z0').waterline ?? 0.58)[1] : 1e5;
+    // The water's surface for the 3D Snap: the marina's waterline, then, through
+    // the plunge, where it rises out of the top of the frames. Below it he takes
+    // on the water's colour, less as the deep grade takes over.
+    const t1On = a === 't1' || b === 't1';
+    if (z0c && (!t1On || mix < 0.5)) this.snap.rider.snap3d.setWater(u.uWaterY.value, 1);
+    else if (t1c) this.snap.rider.snap3d.setWater(t1c.oy + plungeSurface(p1 * (media.t1.frames - 1)) * t1c.dh, 1 - under);
+    else this.snap.rider.snap3d.setWater(null, 0);
     u.uGlint.value = inReef ? 0.55 * (1 - exit) : s1On;
     u.uShafts.value = s2On;
     u.uTintAmt.value = inReef ? exit * 0.5 : dip;
@@ -330,10 +360,11 @@ export class World {
     const reefBody = L.reefBody * H;
     const floorY = rc.oy + SPOTS.floor * rc.dh;
     const feetX = (snapU - Lr) * rc.dw;
-    const clawX = feetX - reefBody * 0.55;
+    const [gripDx, gripDy] = this.snap.use3d ? this.snap.rider.gripFromFeet(chainBody) : [-reefBody * 0.55, 0];
+    const clawX = feetX + gripDx;
     const land = smooth(0.08, 0.42, kR);
     const ret = smooth(0.15, 0.4, exit);
-    const landHy = floorY - this.snap.rider.below() * chainBody * 0.92;
+    const landHy = this.snap.use3d ? floorY + gripDy : floorY - this.snap.rider.below() * chainBody * 0.92;
     const reefHold: [number, number] = ret > 0
       ? [clawX, landHy]
       : [lerp(chainX, clawX, smooth(0, 0.5, land)), lerp(holdY, landHy, land)];
@@ -398,15 +429,17 @@ export class World {
       speed: sc.v, mouse: this.mouse, idle: this.idleFor > 1.5,
       reef: inReef ? { land, ret, drop: smooth(0.4, 1, exit) * H * 0.9, feet: [feetX, floorY], body: reefBody, vel: this.reef.vel, hold: reefHold } : undefined,
     });
-    // He caught the chain: it jolts, and at the surface the water rings.
+    // He caught the chain: it jolts, and (filmed) at the surface the water rings.
+    const water = u.uWaterY.value;
     if (this.snap.caught !== this.caughtSeen) {
       this.caughtSeen = this.snap.caught;
       this.chain.kick(18, 36, (Math.random() - 0.5) * 6, 7);
-      const water = u.uWaterY.value;
-      if (k < s0h + 0.5 && water < H) {
-        u.uImpact.value.set(holdX, water, t);
-        for (let i = 0; i < 8; i++) this.bubbles.emit(holdX + (Math.random() - 0.5) * chainBody * 0.6, water + chainBody * (0.1 + Math.random() * 0.4), H * 0.008);
-      }
+      if (!this.snap.use3d && k < s0h + 0.5 && water < H) this.splashAt(holdX, water, chainBody, t, false);
+    }
+    // In 3D the splash is where his leap goes through the surface.
+    if (this.snap.entered.t !== this.enteredSeen) {
+      this.enteredSeen = this.snap.entered.t;
+      if (water < H) this.splashAt(this.snap.entered.x, water, chainBody, t, true);
     }
 
     // Bubbles: the plunge, the drop into the reef, and Snap on fast scrolls.
@@ -414,6 +447,7 @@ export class World {
     if (ride && !inReef && (p1 > 0.3 || kS1 > -1) && Math.abs(sc.v) > 6 && Math.random() < 0.6) this.bubbles.emit(ride.top[0] + chainBody * 0.3, ride.top[1], H * 0.008);
     if (walking && Math.abs(this.reef.vel) > 400 && Math.random() < 0.25) this.bubbles.emit(feetX + (Math.random() - 0.5) * reefBody * 0.6, floorY - reefBody * 0.1, H * 0.006);
     this.bubbles.update(dt);
+    this.splash.update(dt);
 
     // Tags hang on the chain from the shallows through the kelp, and above Snap on the reef.
     const tagLinks = walking ? REEF_TAGS : TAG_LINKS;

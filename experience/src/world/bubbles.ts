@@ -28,7 +28,7 @@ const MAX = 160;
 export class Bubbles {
   readonly mesh: THREE.InstancedMesh;
   private alpha: THREE.InstancedBufferAttribute;
-  private b = Array.from({ length: MAX }, () => ({ on: false, x: 0, y: 0, r: 0, vy: 0, ph: 0, age: 0, life: 0 }));
+  private b = Array.from({ length: MAX }, () => ({ on: false, x: 0, y: 0, r: 0, vy: 0, ph: 0, age: 0, life: 0, top: -1e9 }));
   private dummy = new THREE.Object3D();
   private next = 0;
 
@@ -43,12 +43,13 @@ export class Bubbles {
     stage.scene.add(this.mesh);
   }
 
-  emit(x: number, y: number, size: number, spread = 1) {
+  /** A bubble at (x, y), size px; surface, when given, is the water's surface on screen, where it pops. */
+  emit(x: number, y: number, size: number, spread = 1, surface = -1e9) {
     const b = this.b[this.next];
     this.next = (this.next + 1) % MAX;
     Object.assign(b, {
       on: true, x: x + (Math.random() - 0.5) * size * 2 * spread, y, r: size * (0.35 + Math.random() * 0.75),
-      vy: size * (5 + Math.random() * 5), ph: Math.random() * 6.28, age: 0, life: 1.6 + Math.random() * 1.6,
+      vy: size * (5 + Math.random() * 5), ph: Math.random() * 6.28, age: 0, life: 1.6 + Math.random() * 1.6, top: surface,
     });
   }
 
@@ -61,7 +62,7 @@ export class Bubbles {
         b.age += dt;
         b.y -= b.vy * dt;
         b.x += Math.sin(b.age * 6 + b.ph) * b.r * 1.6 * dt;
-        if (b.age > b.life || b.y < -40) b.on = false;
+        if (b.age > b.life || b.y < -40 || b.y < b.top) b.on = false;
       }
       const a = b.on ? Math.min(1, b.age * 4) * (1 - Math.max(0, (b.age - b.life * 0.7) / (b.life * 0.3))) : 0;
       this.alpha.setX(i, a);

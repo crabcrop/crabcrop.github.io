@@ -389,6 +389,23 @@ The page is built in `experience/` and previewed from `preview/dive/`.
   and the claw snap stay film. The canvas now renders at up to 2× on
   phones too (it was 1.5×), stepping down to 1.5× and then 1× if frames
   run slow.
+- **Snap in 3D everywhere.** The 3D Snap now plays every part: standing on
+  the pier waving his raised claw with the print in the other; startled
+  when the gust tears it away, his eyes following it down to the water; a
+  crouch, a hop and a tumbling leap that goes into the water with a splash
+  of drops and a ring where he breaks the surface. Below the surface he
+  takes on the water's colour, with a line of foam, through the marina and
+  the plunge (the surface's height is measured on T01's frames), and he
+  dips under and bobs up as he catches the chain. On a card he stands on
+  the top edge and snaps his pincer, with stars; on the reef he walks
+  sideways with a stepping cycle, the chain up in his raised claw. Tap or
+  click him anywhere for a reaction that suits where he is: on the chain a
+  spin, a wave of his free claw, a snap or a happy wiggle; on the pier a
+  hop or a snap; walking a wave or a hop; on a card a snap or a hop. The
+  pincer is the raised claw's small lobe, hinged where it meets the big
+  one; standing, his legs stay still. The films (M01 to M05 and the ride)
+  load only if the model cannot, so a visit now downloads none of Snap's
+  6 MB of video.
 
 Still open from the generation phase:
 
@@ -573,3 +590,14 @@ the stills; phone-format takes (9:16, 1080p) would fix that.
   below), the model went dark and his cream belly grey. A model whose
   texture already holds a painting's light wants its own soft light and
   the page's grade, like the flat layers.
+- One rigged model can play every scene: a pose that can hang, stand and
+  fly (here the raised claw, which holds the chain, waves hello on the
+  pier), limbs split off the body, and animation as rotations about each
+  limb's root. Swinging the free claw clear of the body took a turn about
+  his up as well as a lift; a lift alone brought it to his cheek.
+- The headless browser here draws the page at about two frames a second,
+  too slow to film it. Taking over requestAnimationFrame and
+  performance.now with an init script, and stepping the page 50 ms at a
+  time between screenshots, films it at true speed. Playwright's own clock
+  did not: a running fake clock starved the page, and with it paused no
+  frame was drawn for the screenshot.

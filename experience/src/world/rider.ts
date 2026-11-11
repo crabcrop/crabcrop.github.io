@@ -2,7 +2,8 @@ import * as THREE from 'three';
 import { media, makeVideo, whenPlayable } from '../media';
 import { videoTexture, type Stage } from './stage';
 import { clamp } from '../scroll';
-import { Snap3D } from './snap3d';
+import { Snap3D, type Pose } from './snap3d';
+import type { Sparkles } from './sparkle';
 import { LOOK, LOOK_GLSL } from './look';
 
 // Snap on the chain. Once it has loaded he is the 3D model (snap3d.ts),
@@ -90,6 +91,19 @@ const VARIATIONS: RideKey[] = ['m11', 'm12'];
 /** His holds on the chain: the 3D Snap holds it at one point, in his raised claw; the sprite and film at the two ends of the stretch painted into them. */
 export interface RideOut { top: [number, number]; bottom?: [number, number] }
 
+/**
+ * What he does when tapped, by where he is: on the chain he spins round it,
+ * waves his free claw, snaps his pincer or wiggles; on the pier he hops or
+ * snaps (his free claw holds the print); walking he waves or hops; on a card
+ * he snaps or hops. Each goes in turn.
+ */
+type Act = 'spin' | 'wave' | 'snap' | 'wiggle' | 'hop';
+const ACT_LEN: Record<Act, number> = { spin: 0.9, wave: 1.7, snap: 0.75, wiggle: 0.9, hop: 0.6 };
+export type Where = 'chain' | 'pier' | 'walk' | 'perch';
+const MENU: Record<Where, Act[]> = { chain: ['spin', 'wave', 'snap', 'wiggle'], pier: ['hop', 'snap'], walk: ['wave', 'hop'], perch: ['snap', 'hop'] };
+const ORIGIN = new THREE.Vector3();
+const smoothstep = (a: number, b: number, x: number) => { const t = clamp((x - a) / (b - a)); return t * t * (3 - 2 * t); };
+
 /** A value from a track of [t, ...values] rows at the clip time tt, interpolated. */
 function sample(track: number[][], tt: number, col: number) {
   if (!track.length) return 0;
@@ -125,11 +139,18 @@ export class Rider {
   readonly snap3d: Snap3D;
   private rideAsked = false;
   private kick = 0.15;
+  private actNow: { kind: Act; t0: number; sparks: number } | null = null;
+  private acts: Record<Where, number> = { chain: 0, pier: 0, walk: 0, perch: 0 };
+  private dip = false;
+  private walkPh = 0;
+  private face = 0;
+  private hello = 0;
+  private holdUp = 0;
   /** True while a spin around the chain is under way. */
   get spinning() { return this.t - this.spinAt < 0.9; }
   private t = 0;
 
-  constructor(stage: Stage) {
+  constructor(stage: Stage, private sparkles: Sparkles) {
     this.snap3d = new Snap3D(stage);
     const sc = media.snapChain;
     this.u = {
@@ -188,8 +209,98 @@ export class Rider {
     if (!force && t - this.spinAt < 3.5) return;
     this.spinAt = t;
   }
-  /** He has just caught the chain: a squash, and the chain gets a jolt from the caller. */
-  land(t: number) { this.landedAt = t; }
+  /** He has just caught the chain: a squash (and a dip into the water when he lands in it); the chain gets a jolt from the caller. */
+  land(t: number, dip = false) { this.landedAt = t; this.dip = dip; }
+
+  /** Start a reaction now (a card visit's snaps). */
+  act(t: number, kind: Act) { this.actNow = { kind, t0: t, sparks: 0 }; }
+
+  /** Tapped: a reaction that suits where he is, unless one is still going. */
+  react(t: number, where: Where) {
+    if (this.actNow && t - this.actNow.t0 < ACT_LEN[this.actNow.kind]) return;
+    const menu = MENU[where];
+    const kind = menu[this.acts[where]++ % menu.length];
+    if (kind === 'spin') this.spin(t, true);
+    this.actNow = { kind, t0: t, sparks: 0 };
+  }
+
+  /** What the reaction under way does this frame (h is his height, px). */
+  private acting(t: number, h: number) {
+    const out = { wave: 0, snap: 0, squint: 0, roll: 0, lift: 0, squash: 0, spark: false };
+    const a = this.actNow;
+    if (!a) return out;
+    const age = t - a.t0, len = ACT_LEN[a.kind];
+    if (age > len) { this.actNow = null; return out; }
+    const env = smoothstep(0, 0.15, age) * (1 - smoothstep(len - 0.25, len, age));
+    if (a.kind === 'wave') { out.wave = env; out.squint = env * 0.9; }
+    if (a.kind === 'snap') {
+      out.snap = age / len;
+      out.squint = env * 0.4;
+      // a little burst of stars each time the pincer shuts
+      if (a.sparks < 2 && out.snap >= 0.125 + a.sparks * 0.5) { a.sparks++; out.spark = true; }
+    }
+    if (a.kind === 'wiggle') { out.roll = Math.sin(age * 24) * 0.13 * (1 - age / len); out.squint = env; }
+    if (a.kind === 'hop') {
+      const u = age / len;
+      out.lift = u > 0.15 && u < 0.85 ? Math.sin(((u - 0.15) / 0.7) * Math.PI) * h * 0.18 : 0;
+      out.squash = u < 0.15 ? Math.sin((u / 0.15) * Math.PI) * 0.12 : u > 0.85 ? Math.sin(((u - 0.85) / 0.15) * Math.PI) * 0.1 : -0.05;
+      out.squint = env;
+    }
+    return out;
+  }
+  private spark(h: number) {
+    const [x, y] = this.snap3d.pincer();
+    this.sparkles.burst(x, y, h * 0.24, 2);
+  }
+
+  /** Blinks every few seconds, sometimes twice. */
+  private blinking(t: number) {
+    if (t > this.blinkAt + 0.2) this.blinkAt = t + 2.2 + Math.random() * 4 + (Math.random() < 0.2 ? -1.9 : 0);
+    const bt = t - this.blinkAt;
+    return bt < 0 ? 0 : bt < 0.07 ? bt / 0.07 : bt < 0.11 ? 1 : bt < 0.2 ? 1 - (bt - 0.11) / 0.09 : 0;
+  }
+
+  /** From the middle of his feet to his chain point, px (y down), standing h tall in 3D. */
+  gripFromFeet(h: number): [number, number] { const f = this.snap3d.foot; return [-f.x * h, f.y * h]; }
+  /** His middle, from the middle of his feet, px (y down), standing h tall in 3D. */
+  standCentre(h: number) { return this.snap3d.standCentre(h); }
+
+  /**
+   * Snap in 3D on his feet: on the pier, a card or the sand, the middle of
+   * his feet at feet, h tall. hello: waving the raised claw; hold: the free
+   * claw lifted (with the print in it); vel: walking sideways, px a second
+   * (0 stands); look: what he watches instead of the cursor; surprise and
+   * crouch (before a hop), 0 to 1; lean, radians. Returns his chain point on screen.
+   */
+  stand(dt: number, t: number, o: {
+    feet: [number, number]; h: number; grade: [number, number, number]; mouse: [number, number] | null;
+    look?: [number, number] | null; hello?: number; hold?: number; vel?: number; surprise?: number; crouch?: number; lean?: number;
+  }): [number, number] {
+    this.t = t;
+    this.group.visible = false;
+    this.film(false, 0);
+    const s3 = this.snap3d, h = o.h;
+    const blink = this.blinking(t);
+    const act = this.acting(t, h);
+    // The wave and the raised claw ease in and out as the story moves on.
+    this.hello += ((o.hello ?? 0) - this.hello) * clamp(dt * 6);
+    this.holdUp += ((o.hold ?? 0) - this.holdUp) * clamp(dt * 6);
+    // Walking sideways: two steps a stride, his body bobbing and rocking with them; he turns a little toward where he goes.
+    const vel = o.vel ?? 0, speed = Math.abs(vel), walking = speed > 20;
+    this.walkPh += dt * Math.PI * 2 * Math.min(3.2, speed / (h * 0.55));
+    this.face += ((walking ? Math.sign(vel) * 0.25 * Math.min(1, speed / 220) : 0) - this.face) * clamp(dt * 4);
+    const bob = walking ? Math.abs(Math.sin(this.walkPh)) * h * 0.02 : 0;
+    const rock = walking ? Math.sin(this.walkPh) * 0.035 : 0;
+    const pose: Pose = { at: [o.feet[0], o.feet[1] - bob - act.lift], h, roll: rock + act.roll + (o.lean ?? 0), spin: this.face, squash: (o.crouch ?? 0) * 0.2 + act.squash, mode: 'stand' };
+    s3.update(pose, {
+      t, dt, kick: 0, swingV: 0, mouse: o.mouse, blink, look: o.look ?? null, planted: true,
+      squint: act.squint, walk: walking ? this.walkPh : undefined, hello: this.hello, hold: this.holdUp,
+      wave: act.wave, snap: act.snap, surprise: o.surprise ?? 0,
+    }, o.grade);
+    this.box = s3.box(pose);
+    if (act.spark) this.spark(h);
+    return s3.screenOf(ORIGIN);
+  }
 
   /** Is a screen point on him (for a click)? */
   hit(x: number, y: number) {
@@ -289,19 +400,19 @@ export class Rider {
     this.u.uSway.value = clamp(-this.swingV * 0.05, -0.05, 0.05);
 
     // Blinks every few seconds, sometimes twice (the film blinks on its own).
-    if (t > this.blinkAt + 0.2) this.blinkAt = t + 2.2 + Math.random() * 4 + (Math.random() < 0.2 ? -1.9 : 0);
-    const bt = t - this.blinkAt;
-    const blink = bt < 0 ? 0 : bt < 0.07 ? bt / 0.07 : bt < 0.11 ? 1 : bt < 0.2 ? 1 - (bt - 0.11) / 0.09 : 0;
+    const blink = this.blinking(t);
     this.u.uBlink.value = clip ? 0 : blink;
-    const life = { t, dt, kick: this.kick, swingV: this.swingV, mouse: o.mouse, blink };
+    const act = this.acting(t, h);
+    const life = { t, dt, kick: this.kick, swingV: this.swingV, mouse: o.mouse, blink, squint: act.squint, wave: act.wave, snap: act.snap };
 
     this.u.uChainHide.value = o.air ? 1 : 0;
     if (o.air) {
       if (real) {
         // A tumble: once round his own up as he flies, rolling into the arc and back out.
-        this.snap3d.update({ at: [o.air.x, o.air.y], h: h * o.air.s, roll: -Math.sin(o.air.rot / 2) * 0.35, spin: o.air.rot, squash: 0, air: true }, life, o.grade);
-        const [cx, cy] = Snap3D.centre(h * o.air.s), b = this.snap3d.box(o.air.x - cx, o.air.y - cy, h * o.air.s);
-        this.box = b;
+        const pose: Pose = { at: [o.air.x, o.air.y], h: h * o.air.s, roll: -Math.sin(o.air.rot / 2) * 0.35, spin: o.air.rot, squash: 0, mode: 'air' };
+        this.snap3d.update(pose, life, o.grade);
+        this.box = this.snap3d.box(pose);
+        if (act.spark) this.spark(h);
         return null;
       }
       this.still(sc);
@@ -342,9 +453,13 @@ export class Rider {
 
     if (real) {
       // In 3D he turns round the chain for real, and holds it at one point in his raised claw.
-      this.snap3d.update({ at: [hx, hy], h, roll: angle, spin: phi, squash, air: false }, life, o.grade);
-      this.box = this.snap3d.box(hx, hy, h);
-      return { top: [hx, hy] };
+      // Landing in the water, he dips under and bobs back up.
+      const dip = this.dip && lt < 1.2 ? Math.sin(lt * 6.5) * Math.exp(-lt * 3.2) * h * 0.09 : 0;
+      const pose: Pose = { at: [hx, hy + dip], h, roll: angle + act.roll, spin: phi, squash, mode: 'hang' };
+      this.snap3d.update(pose, life, o.grade);
+      this.box = this.snap3d.box(pose);
+      if (act.spark) this.spark(h);
+      return { top: [hx, hy + dip] };
     }
 
     // The sprite and the film flip like a card for a spin.
