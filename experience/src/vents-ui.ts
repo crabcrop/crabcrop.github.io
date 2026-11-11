@@ -5,8 +5,8 @@ type Lang = 'ts' | 'py' | 'rs';
 const SOURCE = 'root:photos/print.jpg';
 const CROP_SIZE = { wide: '1200 × 630', square: '760 × 760', whole: '945 × 630' };
 const FMT = { auto: 'AVIF', avif: 'AVIF', webp: 'WebP', jxl: 'JPEG XL' };
-/** Where the submersible floats, as shares of the master plate (it speaks from just above it). */
-const SUB = [0.715, 0.6] as const;
+/** The submersible's dome, as shares of the master plate: it speaks from just to the left of it. */
+const SUB = [0.685, 0.6] as const;
 
 /**
  * The vents in the DOM: the SDK card building the visitor's own URL in
@@ -108,7 +108,7 @@ export class VentsUI {
       show = r.top < innerHeight * 0.75 && r.bottom > innerHeight * 0.25;
       const [a, b] = wide ? [0, 1] : [0.42, 0.66];
       const x = z.ox + ((SUB[0] - a) / (b - a)) * z.dw, y = z.oy + SUB[1] * z.dh;
-      this.bubble.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px)`;
+      this.bubble.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px) translateX(-100%)`;
     }
     this.bubble.classList.toggle('on', show);
     // His print: the source tag hangs at the end of the chain, and the story shows for a while.

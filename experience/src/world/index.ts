@@ -45,7 +45,7 @@ const LAYOUT: Record<'wide' | 'phone', Layout> = {
     gust: 0.35, hop: 0.64,
     reefBody: 0.2,
     octopus: 0.13,
-    ventsFeet: [0.53, 0.985],
+    ventsFeet: [0.53, 0.93],
   },
   phone: {
     fx: 0.5, fxKelp: 0.5, fxWreck: 0.5, fxCabin: 0.5, overCabin: 1.12, fxVents: 0.5,
@@ -55,7 +55,7 @@ const LAYOUT: Record<'wide' | 'phone', Layout> = {
     gust: 0.62, hop: 0.8,                            // after the tall hero card has scrolled away
     reefBody: 0.15,
     octopus: 0.1,
-    ventsFeet: [0.53, 0.985],
+    ventsFeet: [0.53, 0.93],
   },
 };
 

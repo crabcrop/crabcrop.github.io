@@ -196,7 +196,7 @@ main { position: relative; z-index: 1; }
 .gl .mcp li { opacity: 0; transform: translateY(4px); }
 .gl .card.in .mcp li { animation: line .4s var(--reveal) forwards; animation-delay: calc(var(--i) * .5s + .3s); }
 .sub-bubble { display: none; }
-.gl .sub-bubble { display: block; position: fixed; left: 0; top: 0; z-index: 2; margin: -52px 0 0 -14px; font-family: var(--mono); font-size: 12px; font-weight: 800; color: var(--ink); background: var(--cream); border: 2px solid var(--ink); border-radius: 12px 12px 12px 3px; padding: 5px 10px; box-shadow: var(--shadow-sm); pointer-events: none; white-space: nowrap; opacity: 0; transition: opacity .35s; }
+.gl .sub-bubble { display: block; position: fixed; left: 0; top: 0; z-index: 2; margin: -52px 0 0 0; font-family: var(--mono); font-size: 12px; font-weight: 800; color: var(--ink); background: var(--cream); border: 2px solid var(--ink); border-radius: 12px 12px 3px 12px; padding: 5px 10px; box-shadow: var(--shadow-sm); pointer-events: none; white-space: nowrap; opacity: 0; transition: opacity .35s; }
 .gl .sub-bubble.on { opacity: 1; }
 .sub-bubble b { color: #2E9E4F; }
 .tag.src { background: #FFF3D6; border-color: #C98A12; }

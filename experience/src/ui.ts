@@ -405,7 +405,7 @@ export class UI {
         const el = this.tagEls[i];
         if (!el) return;
         // where the chain bends (by Snap's claw on the sea floor) the tags still hang more or less upright
-        const dangle = Math.max(-0.45, Math.min(0.45, -p.a * 0.6)) + Math.sin(t * 1.3 + i * 1.7) * 0.05;
+        const dangle = (k === 'src' ? 0.05 : Math.max(-0.35, Math.min(0.35, -p.a * 0.6))) + Math.sin(t * 1.3 + i * 1.7) * 0.05;
         el.style.setProperty('--pos', `translate(${(p.x + 9).toFixed(1)}px, ${(p.y - 11).toFixed(1)}px) rotate(${dangle.toFixed(3)}rad)`);
       });
     }
