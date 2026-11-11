@@ -1,11 +1,24 @@
-// Check that the site publishes no image its pages do not use, and that
-// its pages use no local file the site does not have.
+// Check that the site publishes no image its pages do not use, no
+// preview but the dive and no notes, and that its pages use no local
+// file the site does not have.
 //
-// GitHub Pages serves every tracked file, so an image that index.html
-// and docs.html never load is dead weight anyone can fetch. The check
-// fails when
-//   - a tracked image (git ls-files) is referenced by neither page,
-//   - or a page references a local file that is not tracked.
+// GitHub Pages serves every tracked file that Jekyll does not exclude,
+// so an image that index.html and docs.html never load is dead weight
+// anyone can fetch. The check fails when
+//   - a published image is referenced by no page,
+//   - a page references a local file that is not tracked,
+//   - a file under preview/ is published outside preview/dive/,
+//   - or a Markdown file is published.
+//
+// preview/dive/ is the one preview the site publishes on purpose: the
+// "All the Way Down" dive, built from experience/. Its own scripts load
+// its media, so its images need no page reference. Its index.html is
+// scanned like a page, so the site files it uses count as used and must
+// exist.
+//
+// Published means tracked (git ls-files) and not left out by Jekyll:
+// no path segment starts with ".", "_", "#" or ends with "~", and no
+// path is under an exclude entry of _config.yml.
 //
 // A reference is
 //   - a src, href, srcset, imagesrcset, poster, or content attribute of
@@ -30,6 +43,8 @@ import { fileURLToPath } from "node:url";
 
 const SITE = resolve(process.argv[2] || join(dirname(fileURLToPath(import.meta.url)), "..", ".."));
 const PAGES = ["index.html", "docs.html"];
+// The one preview the site publishes. Nothing else may sit under preview/.
+const PREVIEW = "preview/dive/";
 const ORIGIN = "https://crabcrop.org/";
 const SITE_HOSTS = new Set(["crabcrop.org", "www.crabcrop.org"]);
 const IMAGE_SERVER = "images.crabcrop.org";
@@ -45,6 +60,29 @@ if (!PAGES.every((p) => existsSync(join(SITE, p)))) {
 const tracked = new Set(
   execFileSync("git", ["-C", SITE, "ls-files", "-z"], { encoding: "utf8" }).split("\0").filter(Boolean),
 );
+
+// The exclude list of _config.yml: the "- entry" lines under "exclude:".
+function excludes() {
+  const config = join(SITE, "_config.yml");
+  if (!existsSync(config)) return [];
+  const out = [];
+  let inList = false;
+  for (const line of readFileSync(config, "utf8").split("\n")) {
+    if (/^exclude:\s*(?:#.*)?$/.test(line)) inList = true;
+    else if (inList && /^\s*-\s*/.test(line)) out.push(line.replace(/^\s*-\s*|\s*(?:#.*)?$/g, "").replace(/^["']|["']$/g, "").replace(/\/$/, ""));
+    else if (inList && /^\S/.test(line)) inList = false;
+  }
+  return out;
+}
+const EXCLUDE = excludes();
+const published = new Set(
+  [...tracked].filter(
+    (f) =>
+      !f.split("/").some((seg) => /^[._#]/.test(seg) || seg.endsWith("~")) &&
+      !EXCLUDE.some((e) => f === e || f.startsWith(`${e}/`)),
+  ),
+);
+const pages = PAGES.concat(published.has(`${PREVIEW}index.html`) ? [`${PREVIEW}index.html`] : []);
 
 const ENTITIES = { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", nbsp: "\u00a0" };
 function unescape(s) {
@@ -134,7 +172,7 @@ const add = (from, line, ref, base) => {
 };
 const stylesheets = new Set();
 
-for (const page of PAGES) {
+for (const page of pages) {
   const raw = readFileSync(join(SITE, page), "utf8");
   const text = raw.replace(/<!--[\s\S]*?-->/g, blank);
   const lineAt = lines(text);
@@ -202,21 +240,32 @@ for (const [path, r] of missing) {
 }
 
 const used = new Set(refs.map((r) => r.path).filter(Boolean));
-const images = [...tracked].filter((f) => IMAGE.test(f)).sort();
+const images = [...published].filter((f) => IMAGE.test(f) && !f.startsWith(PREVIEW)).sort();
 const unused = images.filter((f) => !used.has(f));
 for (const f of unused) {
   const bytes = existsSync(join(SITE, f)) ? statSync(join(SITE, f)).size : 0;
-  problems.push(`${f} (${bytes.toLocaleString("en-US")} B) is tracked but neither ${PAGES.join(" nor ")} references it`);
+  problems.push(`${f} (${bytes.toLocaleString("en-US")} B) is published but no page references it`);
 }
+
+const strays = [...published].filter((f) => f.startsWith("preview/") && !f.startsWith(PREVIEW)).sort();
+for (const f of strays) problems.push(`${f} is published, but ${PREVIEW} is the only preview the site serves`);
+const notes = [...published].filter((f) => /\.(?:md|markdown)$/i.test(f)).sort();
+for (const f of notes) problems.push(`${f} is a notes file that Pages publishes`);
 
 if (problems.length) {
   for (const p of problems) console.error(`FAIL ${p}`);
   console.error(
-    `\n${unused.length} unreferenced image(s), ${missing.size} missing file(s) in ${SITE}` +
-      (unused.length ? "\nDelete an unused image (git history keeps it), or reference it from a page." : ""),
+    `\n${unused.length} unreferenced image(s), ${missing.size} missing file(s), ` +
+      `${strays.length} stray preview file(s), ${notes.length} published notes file(s) in ${SITE}` +
+      (unused.length ? "\nDelete an unused image (git history keeps it), or reference it from a page." : "") +
+      (strays.length || notes.length
+        ? "\nDelete the file (git history keeps it), or move it under a folder that _config.yml excludes."
+        : ""),
   );
   process.exit(1);
 }
 const local = new Set(refs.filter((r) => r.path !== null).map((r) => r.path));
-console.log(`ok   all ${images.length} tracked images are referenced by ${PAGES.join(" or ")}`);
+const dive = [...published].filter((f) => f.startsWith(PREVIEW)).length;
+console.log(`ok   all ${images.length} published images outside ${PREVIEW} are referenced by ${pages.join(", ")}`);
 console.log(`ok   all ${local.size} local files the pages reference are tracked`);
+console.log(`ok   ${PREVIEW} (${dive} files) is the only preview published, and no notes file is published`);
