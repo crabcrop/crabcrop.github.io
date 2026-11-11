@@ -6,7 +6,7 @@
 // so an image that index.html and docs.html never load is dead weight
 // anyone can fetch. The check fails when
 //   - a published image is referenced by no page,
-//   - a page references a local file that is not tracked,
+//   - a page references a local file that Pages does not publish,
 //   - a file under preview/ is published outside preview/dive/,
 //   - or a Markdown file is published.
 //
@@ -221,14 +221,14 @@ for (const page of pages) {
 
 // Linked local stylesheets: their url()s resolve against the sheet.
 for (const sheet of stylesheets) {
-  if (!tracked.has(sheet)) continue; // reported below as a missing file
+  if (!published.has(sheet)) continue; // reported below as a missing file
   const css = readFileSync(join(SITE, sheet), "utf8").replace(/\/\*[\s\S]*?\*\//g, blank);
   const lineAt = lines(css);
   for (const u of cssUrls(css)) add(sheet, lineAt(u.index), u.ref, sheet);
 }
 
 const problems = [];
-const exists = (path) => tracked.has(path) || tracked.has(`${path}.html`) || tracked.has(`${path}/index.html`);
+const exists = (path) => published.has(path) || published.has(`${path}.html`) || published.has(`${path}/index.html`);
 const missing = new Map();
 for (const r of refs) {
   if (r.path === null || exists(r.path)) continue;
@@ -236,7 +236,7 @@ for (const r of refs) {
 }
 for (const [path, r] of missing) {
   const via = r.ref.trim() === path ? "" : ` (${r.ref.trim()})`;
-  problems.push(`${r.from}:${r.line} references ${path}, which is not a tracked file${via}`);
+  problems.push(`${r.from}:${r.line} references ${path}, which is not a published file${via}`);
 }
 
 const used = new Set(refs.map((r) => r.path).filter(Boolean));
@@ -267,5 +267,5 @@ if (problems.length) {
 const local = new Set(refs.filter((r) => r.path !== null).map((r) => r.path));
 const dive = [...published].filter((f) => f.startsWith(PREVIEW)).length;
 console.log(`ok   all ${images.length} published images outside ${PREVIEW} are referenced by ${pages.join(", ")}`);
-console.log(`ok   all ${local.size} local files the pages reference are tracked`);
+console.log(`ok   all ${local.size} local files the pages reference are published`);
 console.log(`ok   ${PREVIEW} (${dive} files) is the only preview published, and no notes file is published`);
