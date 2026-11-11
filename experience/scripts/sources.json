@@ -1,0 +1,246 @@
+{
+  "base": "https://d8j0ntlcm91z4.cloudfront.net/user_3LUWrZdQQHs5RCQGXWn1K4r2h7J/",
+  "note": "Approved Higgsfield outputs used by the dive. Job IDs match design/snap-world/production-log.md. Entries with tripo_task come from Tripo through the tripo CLI (needs its API key).",
+  "files": {
+    "z0-plate.png": {
+      "job": "10c47555-fe77-4156-b2cf-2eb52330742c",
+      "file": "hf_20261108_161358_10c47555-fe77-4156-b2cf-2eb52330742c.png"
+    },
+    "z0-phone.png": {
+      "job": "f160bb58-325b-4671-a939-a3d03d56fc28",
+      "file": "hf_20261108_164003_f160bb58-325b-4671-a939-a3d03d56fc28.png"
+    },
+    "z0-loop.mp4": {
+      "job": "2f80f45b-91fc-4e3e-8769-468dcff1e09a",
+      "file": "hf_20261108_171550_2f80f45b-91fc-4e3e-8769-468dcff1e09a.mp4"
+    },
+    "z0-phone-loop.mp4": {
+      "job": "6258bb2b-4817-4cdb-bc97-fabc5c785d96",
+      "file": "hf_20261108_172404_6258bb2b-4817-4cdb-bc97-fabc5c785d96.mp4"
+    },
+    "t1-plunge.mp4": {
+      "job": "0b81c961-2167-4f16-ac70-7d15c3b2cf7b",
+      "file": "hf_20261108_170107_0b81c961-2167-4f16-ac70-7d15c3b2cf7b.mp4"
+    },
+    "z1-plate.png": {
+      "job": "58d5245c-1744-4fd4-a863-0a84328a0ce1",
+      "file": "hf_20261108_163233_58d5245c-1744-4fd4-a863-0a84328a0ce1.png"
+    },
+    "z1-loop.mp4": {
+      "job": "60873dab-81ec-4b0b-b268-b985e506be6a",
+      "file": "hf_20261108_170923_60873dab-81ec-4b0b-b268-b985e506be6a.mp4"
+    },
+    "cut-rope-buoy.png": {
+      "job": "906c1ebc-5cb2-44fe-b99f-709eb8360cea",
+      "file": "hf_20261108_164202_906c1ebc-5cb2-44fe-b99f-709eb8360cea.png"
+    },
+    "cut-seagrass.png": {
+      "job": "0e205aa6-843c-43b3-b0cc-0d61b71e85cb",
+      "file": "hf_20261108_164203_0e205aa6-843c-43b3-b0cc-0d61b71e85cb.png"
+    },
+    "fish-sheet.png": {
+      "job": "9499d710-a798-4e9a-a275-0d96e0002f5b",
+      "file": "hf_20261108_163736_9499d710-a798-4e9a-a275-0d96e0002f5b.png"
+    },
+    "snap-poses.png": {
+      "job": "0fdd9dad-8734-4477-9f69-3ee1ab3c0bb4",
+      "file": "hf_20261108_161801_0fdd9dad-8734-4477-9f69-3ee1ab3c0bb4.png"
+    },
+    "snap-print.png": {
+      "job": "b2ce82be-f524-4f07-b692-c345b8ed38f7",
+      "file": "hf_20261108_162407_b2ce82be-f524-4f07-b692-c345b8ed38f7.png"
+    },
+    "icons.png": {
+      "job": "dffa4364-5804-4420-865b-1f8fabe2224f",
+      "file": "hf_20261108_175106_dffa4364-5804-4420-865b-1f8fabe2224f.png"
+    },
+    "m01-wave.mp4": {
+      "job": "323c87bb-16a1-4a9d-830f-c37fd4daa4f3",
+      "file": "hf_20261108_174706_323c87bb-16a1-4a9d-830f-c37fd4daa4f3.mp4"
+    },
+    "m01-wave-cut.mp4": {
+      "job": "387afd06-05ef-4c82-aad0-0f952c0dfd61",
+      "file": "hf_20261108_175738_387afd06-05ef-4c82-aad0-0f952c0dfd61.mp4"
+    },
+    "m02-gust.mp4": {
+      "job": "cc22161a-2720-46ce-853a-4327e3fc3cda",
+      "file": "hf_20261108_174433_cc22161a-2720-46ce-853a-4327e3fc3cda.mp4"
+    },
+    "m02-gust-cut.mp4": {
+      "job": "cb45eeda-dc2c-4465-ae85-bb446927382b",
+      "file": "hf_20261108_175739_cb45eeda-dc2c-4465-ae85-bb446927382b.mp4"
+    },
+    "m03-hop.mp4": {
+      "job": "6dc60dc0-a213-4bef-9a7f-f20800a0f691",
+      "file": "hf_20261108_174944_6dc60dc0-a213-4bef-9a7f-f20800a0f691.mp4"
+    },
+    "m03-hop-cut.mp4": {
+      "job": "5a40470c-774a-4f91-adc7-c673e9bb5fce",
+      "file": "hf_20261108_175741_5a40470c-774a-4f91-adc7-c673e9bb5fce.mp4"
+    },
+    "m05-snap.mp4": {
+      "job": "8ed431ff-4299-4fb0-87e9-1857f1e6c1e1",
+      "file": "hf_20261108_174706_8ed431ff-4299-4fb0-87e9-1857f1e6c1e1.mp4"
+    },
+    "m05-snap-cut.mp4": {
+      "job": "618f5ee2-5316-456e-9eb8-4813fcf79294",
+      "file": "hf_20261108_175710_618f5ee2-5316-456e-9eb8-4813fcf79294.mp4"
+    },
+    "z2-plate.png": {
+      "job": "f7a2e07b-533c-4dce-834b-b2e4df46ad75",
+      "file": "hf_20261108_164004_f7a2e07b-533c-4dce-834b-b2e4df46ad75.png"
+    },
+    "z2-loop.mp4": {
+      "job": "fe4c79d5-e406-408b-be50-3e61b2a9f416",
+      "file": "hf_20261108_171550_fe4c79d5-e406-408b-be50-3e61b2a9f416.mp4"
+    },
+    "cut-kelp.png": {
+      "job": "66c2562f-4334-4614-9a37-7f1c9219c878",
+      "file": "hf_20261108_164205_66c2562f-4334-4614-9a37-7f1c9219c878.png"
+    },
+    "t2-into-reef.mp4": {
+      "job": "0ec958e5-0f1a-4385-8b7b-03e50735a7c3",
+      "file": "hf_20261108_170923_0ec958e5-0f1a-4385-8b7b-03e50735a7c3.mp4"
+    },
+    "z3-plate.png": {
+      "job": "5206e93c-4288-4402-a277-64713b34410b",
+      "file": "hf_20261108_163233_5206e93c-4288-4402-a277-64713b34410b.png"
+    },
+    "z3-2-plate.png": {
+      "job": "686778f5-a138-48ec-ba3d-0411f6d7bbce",
+      "file": "hf_20261108_164006_686778f5-a138-48ec-ba3d-0411f6d7bbce.png"
+    },
+    "z3-3-plate.png": {
+      "job": "2f8cae14-553b-4bb7-bba2-ba28c8527f23",
+      "file": "hf_20261108_164004_2f8cae14-553b-4bb7-bba2-ba28c8527f23.png"
+    },
+    "z3-4-plate.png": {
+      "job": "da2465d1-bda3-4e82-9914-96fb6a63aee5",
+      "file": "hf_20261108_164004_da2465d1-bda3-4e82-9914-96fb6a63aee5.png"
+    },
+    "z3-4-clean.png": {
+      "job": "1766e98b-fc04-44b4-9490-05f2ee5ed12d",
+      "file": "hf_20261108_164519_1766e98b-fc04-44b4-9490-05f2ee5ed12d.png"
+    },
+    "z3b-plate.png": {
+      "job": "b8a93f69-3d53-476b-83e2-fe36bd818baa",
+      "file": "hf_20261108_163233_b8a93f69-3d53-476b-83e2-fe36bd818baa.png"
+    },
+    "cut-coral.png": {
+      "job": "a7015f21-ff82-4244-8946-dd0d06587ef3",
+      "file": "hf_20261108_164207_a7015f21-ff82-4244-8946-dd0d06587ef3.png"
+    },
+    "cut-jellyfish-lamp.png": {
+      "job": "7ed0bdd2-016d-4da7-9770-0f12258ea85b",
+      "file": "hf_20261108_164632_7ed0bdd2-016d-4da7-9770-0f12258ea85b.png"
+    },
+    "m04-scuttle.mp4": {
+      "job": "d2fb25ad-ee54-4ecd-9b46-753464303db0",
+      "file": "hf_20261108_175253_d2fb25ad-ee54-4ecd-9b46-753464303db0.mp4"
+    },
+    "m04-scuttle-cut.mp4": {
+      "job": "3aaed242-b7cf-479a-be7d-74a7f4afa741",
+      "file": "hf_20261108_175742_3aaed242-b7cf-479a-be7d-74a7f4afa741.mp4"
+    },
+    "m10-ride.mp4": {
+      "job": "b809e334-2f21-4c0d-8436-b0e755a87fdb",
+      "file": "hf_20261109_014731_b809e334-2f21-4c0d-8436-b0e755a87fdb.mp4"
+    },
+    "m10-ride-cut.mp4": {
+      "job": "90995f0a-0b96-42c4-bcef-fe4038b9efc8",
+      "file": "hf_20261109_015355_90995f0a-0b96-42c4-bcef-fe4038b9efc8.mp4"
+    },
+    "m11-ride-wave.mp4": {
+      "job": "e880ece0-c8f6-4462-9a6d-2d9f09dbf23b",
+      "file": "hf_20261109_014731_e880ece0-c8f6-4462-9a6d-2d9f09dbf23b.mp4"
+    },
+    "m11-ride-wave-cut.mp4": {
+      "job": "44144d30-925e-4a9e-bd20-6828c7e1f5d0",
+      "file": "hf_20261109_015356_44144d30-925e-4a9e-bd20-6828c7e1f5d0.mp4"
+    },
+    "m12-ride-peek.mp4": {
+      "job": "4334d810-5b44-4205-9b97-82e559b06910",
+      "file": "hf_20261109_014730_4334d810-5b44-4205-9b97-82e559b06910.mp4"
+    },
+    "m12-ride-peek-cut.mp4": {
+      "job": "2700b7ce-5343-4603-a313-02edb2824b88",
+      "file": "hf_20261109_015357_2700b7ce-5343-4603-a313-02edb2824b88.mp4"
+    },
+    "snap-3d-tripo.glb": {
+      "tripo_task": "84c2e1e5-3c0c-41db-9172-15f7aff3f7ab",
+      "file": "model.glb"
+    },
+    "snap-ride-free.png": {
+      "job": "78795b2a-a16f-4091-aaba-e7e202797137",
+      "file": "hf_20261109_235200_78795b2a-a16f-4091-aaba-e7e202797137.png"
+    },
+    "z4-ext-plate.png": {
+      "job": "502fd02d-b3b3-4e37-96b8-7a9f7336ec7c",
+      "file": "hf_20261108_163233_502fd02d-b3b3-4e37-96b8-7a9f7336ec7c.png"
+    },
+    "z4-plate.png": {
+      "job": "7a9ac2db-70ab-4728-9b48-e2234f227d9e",
+      "file": "hf_20261108_163500_7a9ac2db-70ab-4728-9b48-e2234f227d9e.png"
+    },
+    "t3-into-wreck.mp4": {
+      "job": "2d3ff41b-5d8d-4f7c-973c-cdf1c8986b9b",
+      "file": "hf_20261108_170922_2d3ff41b-5d8d-4f7c-973c-cdf1c8986b9b.mp4"
+    },
+    "t4-the-drop.mp4": {
+      "job": "53ed72ea-519d-4159-81f2-681a95cf3607",
+      "file": "hf_20261108_171411_53ed72ea-519d-4159-81f2-681a95cf3607.mp4"
+    },
+    "z4-loop.mp4": {
+      "job": "0c66fd54-c3dd-4b4c-91b6-c35c36c89b50",
+      "file": "hf_20261108_172123_0c66fd54-c3dd-4b4c-91b6-c35c36c89b50.mp4"
+    },
+    "cut-beam.png": {
+      "job": "e8a64676-8595-4eb0-a671-ae30dee62b84",
+      "file": "hf_20261108_164710_e8a64676-8595-4eb0-a671-ae30dee62b84.png"
+    },
+    "z5-plate.png": {
+      "job": "3872346f-78d1-4547-9f2d-361d83d49ae6",
+      "file": "hf_20261108_163357_3872346f-78d1-4547-9f2d-361d83d49ae6.png"
+    },
+    "octopus.png": {
+      "job": "75e13c59-20a9-4f77-9391-211f5794d676",
+      "file": "hf_20261111_020314_75e13c59-20a9-4f77-9391-211f5794d676.png"
+    },
+    "z5-lit-plate.png": {
+      "job": "c923aaf6-3d2e-4980-9204-690ffbd86112",
+      "file": "hf_20261108_164004_c923aaf6-3d2e-4980-9204-690ffbd86112.png"
+    },
+    "cut-glow-jelly.png": {
+      "job": "64c6bacb-238f-462a-b15a-163bc385efe1",
+      "file": "hf_20261108_164519_64c6bacb-238f-462a-b15a-163bc385efe1.png"
+    },
+    "z6-plate.png": {
+      "job": "b71b1c0a-04ce-448e-bac2-1566a6da2ae9",
+      "file": "hf_20261108_163358_b71b1c0a-04ce-448e-bac2-1566a6da2ae9.png"
+    },
+    "z6-loop.mp4": {
+      "job": "4e85ea12-5781-4e80-858e-62c5da1a2acb",
+      "file": "hf_20261108_172124_4e85ea12-5781-4e80-858e-62c5da1a2acb.mp4"
+    },
+    "cut-tube-worms.png": {
+      "job": "10692a69-c7e7-4430-b8f9-ce3fbdf5f2f0",
+      "file": "hf_20261108_164633_10692a69-c7e7-4430-b8f9-ce3fbdf5f2f0.png"
+    },
+    "z7-plate.png": {
+      "job": "0e47089e-c94e-4ab8-b108-70723f4f2626",
+      "file": "hf_20261108_163736_0e47089e-c94e-4ab8-b108-70723f4f2626.png"
+    },
+    "z7-phone.png": {
+      "job": "a1a45d6d-69a8-4bde-820c-6b89f5251386",
+      "file": "hf_20261108_164519_a1a45d6d-69a8-4bde-820c-6b89f5251386.png"
+    },
+    "z7-loop.mp4": {
+      "job": "98c8a211-3702-4f82-9670-114e6744ad14",
+      "file": "hf_20261108_172123_98c8a211-3702-4f82-9670-114e6744ad14.mp4"
+    },
+    "z7-phone-loop.mp4": {
+      "job": "508dee6b-b2bd-4b79-aae2-c603f6ba5c7b",
+      "file": "hf_20261108_172531_508dee6b-b2bd-4b79-aae2-c603f6ba5c7b.mp4"
+    }
+  }
+}
