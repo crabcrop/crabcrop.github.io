@@ -9,11 +9,14 @@ void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(
 
 const FRAG = /* glsl */ `
 precision highp float;
-uniform sampler2D uA, uB, uC;
-uniform vec4 uCoverA, uCoverB, uCoverC, uCoverPix;   // left, top, width, height in px
+uniform sampler2D uA, uB, uC, uStill, uLit;
+uniform vec4 uCoverA, uCoverB, uCoverC, uCoverPix, uStillCover, uLitCover;   // left, top, width, height in px
+uniform vec4 uLight;
+uniform vec2 uAscent;
+uniform float uWarm, uShimmer;
 uniform float uMix, uTime, uMouseOn, uWaterY, uRipple, uGlint, uShafts, uTintAmt;
 uniform float uSplit, uRegionAmt, uCanSide, uPixSize, uLampsOn, uLampR;
-uniform vec4 uRegion, uPix;
+uniform vec4 uRegion, uPix, uSwing, uSwingR, uGlow;
 uniform vec3 uLamp0, uLamp1, uLamp2, uImpact;
 uniform vec2 uRes, uMouse;
 uniform vec3 uTint;
@@ -42,6 +45,18 @@ vec3 both(vec2 px) {
   float m = uSplit > -9999.0 ? smoothstep(uSplit - 30.0, uSplit + 30.0, px.x) : uMix;
   return mix(a, b, m);
 }
+// The ascent: the zones' colours, deepest first, from the vents' embers to the sunset.
+vec3 zoneColour(float i) {
+  if (i < 1.0) return vec3(0.36, 0.11, 0.04);
+  if (i < 2.0) return vec3(0.1, 0.11, 0.15);
+  if (i < 3.0) return vec3(0.07, 0.08, 0.22);
+  if (i < 4.0) return vec3(0.2, 0.1, 0.34);
+  if (i < 5.0) return vec3(0.05, 0.29, 0.35);
+  if (i < 6.0) return vec3(0.07, 0.58, 0.58);
+  if (i < 7.0) return vec3(0.3, 0.46, 0.2);
+  if (i < 8.0) return vec3(0.55, 0.88, 0.87);
+  return vec3(1.0, 0.64, 0.5);
+}
 vec3 lamp(vec3 col, vec2 px, vec3 L) {
   vec2 d = px - L.xy;
   float f = exp(-dot(d, d) / (uLampR * uLampR));
@@ -51,6 +66,23 @@ vec3 lamp(vec3 col, vec2 px, vec3 L) {
 
 void main() {
   vec2 px = vec2(vUv.x, 1.0 - vUv.y) * uRes;
+  // The wreck's lantern swings on its hook. Inside a soft oval round it the
+  // cabin is the still plate (the loop sways the lantern on its own), turned
+  // about the hook, less toward the oval's edge so it meets the loop unmoved.
+  vec2 pxS = px;
+  float wS = 0.0;
+  if (uSwing.w > 0.0) {
+    vec2 q = px - uSwing.xy;
+    wS = (1.0 - smoothstep(0.7, 1.0, length((px - uSwingR.xy) / uSwingR.zw))) * smoothstep(-4.0, 18.0, q.y);
+    float th = uSwing.z * wS, c = cos(th), s = sin(th);
+    pxS = uSwing.xy + vec2(c * q.x + s * q.y, -s * q.x + c * q.y);
+  }
+  // Heat shimmer at the vents: the water wavers round the cursor.
+  if (uShimmer > 0.0 && uMouseOn > 0.5) {
+    vec2 dm = px - uMouse;
+    float f = exp(-dot(dm, dm) / (2.0 * 140.0 * 140.0)) * uShimmer;
+    px += vec2(sin(px.y * 0.09 + uTime * 7.0), cos(px.x * 0.08 - uTime * 6.0)) * 3.5 * f;
+  }
   vec2 d = px - uMouse;
   float r = length(d);
   // Ripples spread on the water under the cursor (the marina).
@@ -66,6 +98,7 @@ void main() {
     px += normalize(di + 1e-4) * wave * 9.0;
   }
   vec3 col = both(px);
+  if (wS > 0.0) col = mix(col, texture2D(uStill, coverUv(uStillCover, pxS)).rgb, wS);
   // A shy subject goes to mosaic: the cuttlefish, or the pearl before its upscale.
   if (uPixSize > 1.0) {
     vec2 uv = (px - uCoverPix.xy) / uCoverPix.zw;
@@ -92,13 +125,49 @@ void main() {
   }
   // The Clam Studio's jellyfish softboxes: dim until they switch on, then glowing.
   if (uLampsOn > 0.0) { col = lamp(col, px, uLamp0); col = lamp(col, px, uLamp1); col = lamp(col, px, uLamp2); }
+  // The twilight zone: the visitor's lantern shows the lit plate in a soft
+  // circle, and the glowing creatures shine brighter in it.
+  vec2 sp = vec2(vUv.x, 1.0 - vUv.y) * uRes;
+  if (uLight.w > 0.0) {
+    float k = (1.0 - smoothstep(0.3, 1.0, length(sp - uLight.xy) / uLight.z)) * uLight.w;
+    // the dark beyond the light a little darker, so the light reads as the visitor's own
+    col *= 1.0 - 0.18 * uLight.w * (1.0 - k);
+    if (k > 0.0) {
+      vec3 lit = texture2D(uLit, coverUv(uLitCover, px)).rgb;
+      col = mix(col, lit * 1.25, k);
+      col += max(col - vec3(0.42), vec3(0.0)) * 0.7 * k + vec3(1.0, 0.78, 0.48) * 0.13 * k * k;
+    }
+  }
+  // The express ascent: the zones rush down past as bands of their colours, with streaks of speed.
+  if (uAscent.x > 0.0) {
+    float yy = sp.y / uRes.y;
+    float pos = clamp(uAscent.y * 8.4 + (1.0 - yy) * 1.3 - 0.4, 0.0, 8.99);
+    float i = floor(pos), f = fract(pos);
+    vec3 band = mix(zoneColour(i), zoneColour(i + 1.0), smoothstep(0.25, 0.75, f));
+    float lane = floor(sp.x / 5.0);
+    float h = fract(sin(lane * 91.7) * 43758.5453);
+    float sy = fract(yy * 0.7 - uTime * (0.8 + h * 1.4) - h * 7.0);
+    float streak = step(0.86, h) * smoothstep(0.0, 0.08, sy) * (1.0 - smoothstep(0.08, 0.45, sy));
+    float vig = 1.0 - 0.35 * pow(abs(sp.x / uRes.x - 0.5) * 2.0, 2.0);
+    col = mix(col, band * vig + streak * 0.22 * vec3(1.0, 0.97, 0.9), uAscent.x);
+  }
+  // A warm glow rising from below: the vents ahead.
+  if (uWarm > 0.0) col += vec3(1.0, 0.48, 0.16) * uWarm * pow(smoothstep(0.3, 1.0, sp.y / uRes.y), 2.0) * 0.45;
+  // The lantern's warm light, where it hangs now, flickering.
+  if (uGlow.w > 0.0) {
+    vec2 g2 = (vec2(vUv.x, 1.0 - vUv.y) * uRes - uGlow.xy) / uGlow.z;
+    float r2 = dot(g2, g2);
+    col += uGlow.w * (exp(-r2 * 18.0) * 0.55 + exp(-r2 * 2.2) * 0.22) * vec3(1.0, 0.68, 0.32);
+  }
   col = applyLook(mix(col, uTint, uTintAmt));
   gl_FragColor = vec4(col, 1.0);
 }`;
 
-/** z0 to z3 are the vertical zones; r0 to r4 are the reef panorama's panels, left to right, and r3c is r3 with the can removed. */
-export type Zone = 'z0' | 'z1' | 'z2' | 'z3' | 'r0' | 'r1' | 'r2' | 'r3' | 'r3c' | 'r4';
-export type SeqKey = 't1' | 't2';
+/** z0 to z3 are the vertical zones; r0 to r4 are the reef panorama's panels, left to right, and r3c is r3 with the can removed; z4x is the wreck outside, z4 its cabin and z5 the twilight zone. */
+export type Zone = 'z0' | 'z1' | 'z2' | 'z3' | 'r0' | 'r1' | 'r2' | 'r3' | 'r3c' | 'r4' | 'z4x' | 'z4' | 'z5' | 'z5lit' | 'z6' | 'z7';
+export type SeqKey = 't1' | 't2' | 't3' | 't4';
+const SEQ_KEYS: SeqKey[] = ['t1', 't2', 't3', 't4'];
+const isSeq = (k: SourceKey): k is SeqKey => (SEQ_KEYS as string[]).includes(k);
 export type SourceKey = Zone | SeqKey;
 type PlateKey = keyof typeof media.plates;
 interface Src { tex: THREE.Texture | null; w: number; h: number }
@@ -108,8 +177,9 @@ interface Seq { frames: (HTMLImageElement | null)[]; tex: THREE.Texture | null; 
 const PLATE: Record<Zone, [PlateKey, PlateKey]> = {
   z0: ['z0', 'z0p'], z1: ['z1', 'z1p'], z2: ['z2', 'z2p'], z3: ['z3', 'z3p'],
   r0: ['z3', 'z3'], r1: ['z3_2', 'z3_2'], r2: ['z3_3', 'z3_3'], r3: ['z3_4', 'z3_4'], r3c: ['z3_4c', 'z3_4c'], r4: ['z3b', 'z3b'],
+  z4x: ['z4x', 'z4xp'], z4: ['z4', 'z4p'], z5: ['z5', 'z5p'], z5lit: ['z5lit', 'z5litp'], z6: ['z6', 'z6p'], z7: ['z7', 'z7p'],
 };
-const LOOPS: Partial<Record<Zone, true>> = { z0: true, z1: true, z2: true };
+const LOOPS: Partial<Record<Zone, true>> = { z0: true, z1: true, z2: true, z4: true, z6: true, z7: true };
 export const PANELS: Zone[] = ['r0', 'r1', 'r2', 'r3', 'r4'];
 
 /** What the reef asks of the backdrop: where the camera is, and the effects on its panels. */
@@ -134,6 +204,8 @@ export class Backdrop {
   private seqs: Record<SeqKey, Seq> = {
     t1: { frames: [], tex: null, shown: -1, started: false },
     t2: { frames: [], tex: null, shown: -1, started: false },
+    t3: { frames: [], tex: null, shown: -1, started: false },
+    t4: { frames: [], tex: null, shown: -1, started: false },
   };
   readonly seqSize: [number, number];
   private blank: THREE.DataTexture;
@@ -144,7 +216,7 @@ export class Backdrop {
     this.blank.needsUpdate = true;
     const v3 = () => ({ value: new THREE.Vector3() });
     this.u = {
-      uA: { value: this.blank }, uB: { value: this.blank }, uC: { value: this.blank },
+      uA: { value: this.blank }, uB: { value: this.blank }, uC: { value: this.blank }, uStill: { value: this.blank }, uStillCover: { value: new THREE.Vector4(0, 0, 1, 1) },
       uCoverA: { value: new THREE.Vector4() }, uCoverB: { value: new THREE.Vector4() }, uCoverC: { value: new THREE.Vector4(0, 0, 1, 1) }, uCoverPix: { value: new THREE.Vector4(0, 0, 1, 1) },
       uMix: { value: 0 }, uTime: { value: 0 }, uMouseOn: { value: 0 }, uWaterY: { value: 1e5 }, uRipple: { value: 0 },
       uGlint: { value: 0 }, uShafts: { value: 0 }, uTintAmt: { value: 0 }, uRes: { value: new THREE.Vector2(1, 1) },
@@ -152,6 +224,8 @@ export class Backdrop {
       uSplit: { value: -1e5 }, uRegionAmt: { value: 0 }, uCanSide: { value: 0 }, uRegion: { value: new THREE.Vector4() },
       uPixSize: { value: 0 }, uPix: { value: new THREE.Vector4(0, 0, 1, 1) },
       uLampsOn: { value: 0 }, uLampR: { value: 100 }, uLamp0: v3(), uLamp1: v3(), uLamp2: v3(), uImpact: { value: new THREE.Vector3(0, 0, -10) },
+      uLit: { value: this.blank }, uLitCover: { value: new THREE.Vector4(0, 0, 1, 1) }, uLight: { value: new THREE.Vector4() }, uWarm: { value: 0 }, uShimmer: { value: 0 }, uAscent: { value: new THREE.Vector2() },
+      uSwing: { value: new THREE.Vector4() }, uSwingR: { value: new THREE.Vector4(0, 0, 1, 1) }, uGlow: { value: new THREE.Vector4(0, 0, 1, 0) },
       ...LOOK,
     };
     const mat = new THREE.ShaderMaterial({ vertexShader: VERT, fragmentShader: FRAG, uniforms: this.u, depthTest: false, depthWrite: false });
@@ -204,7 +278,12 @@ export class Backdrop {
     entry.ready = true;
   }
 
-  /** A transition as a scrubbed image sequence, loaded a few frames at a time. */
+  /**
+   * A transition as a scrubbed image sequence. Its frames come in four packs
+   * (frame i in pack i % 4, each pack its frames' AVIF files end to end), so
+   * the first pack to arrive already covers the whole move and the others
+   * fill in between.
+   */
   async loadSequence(k: SeqKey) {
     const s = this.seqs[k];
     if (s.started) return;
@@ -212,19 +291,22 @@ export class Backdrop {
     const n = media[k].frames;
     s.frames = new Array(n).fill(null);
     if (!(await avifSupported())) return; // without AVIF the transition is a crossfade
-    const prefix = this.phone ? 'p' : 'd';
-    let next = 0;
-    const worker = async () => {
-      while (next < n) {
-        const i = next++;
-        try { s.frames[i] = await loadImage(url(`${k}/${prefix}-${String(i).padStart(3, '0')}.avif`)); } catch { /* skip a frame */ }
+    const dev = this.phone ? 'p' : 'd';
+    const packs = media[k].packs[dev];
+    await Promise.all(packs.map(async (lens, j) => {
+      let buf: ArrayBuffer;
+      try { buf = await (await fetch(url(`${k}/${dev}-pack${j}.avif`))).arrayBuffer(); } catch { return; /* its neighbours stand in */ }
+      let at = 0;
+      for (let m = 0; m < lens.length; m++) {
+        const frame = new Blob([buf.slice(at, at + lens[m])], { type: 'image/avif' });
+        at += lens[m];
+        try { s.frames[j + m * packs.length] = await loadImage(URL.createObjectURL(frame)); } catch { /* skip a frame */ }
       }
-    };
-    await Promise.all([worker(), worker(), worker(), worker()]);
+    }));
   }
 
   private source(k: SourceKey, frame: number): Src | null {
-    if (k === 't1' || k === 't2') {
+    if (isSeq(k)) {
       const s = this.seqs[k];
       if (!s.frames.length) return null;
       const i = Math.round(frame);
@@ -259,30 +341,65 @@ export class Backdrop {
   }
 
   private noEffects() {
+    this.u.uAscent.value.x = 0;
+    this.u.uLight.value.w = 0;
+    this.u.uWarm.value = 0;
+    this.u.uSwing.value.w = 0;
+    this.u.uGlow.value.w = 0;
     this.u.uSplit.value = -1e5;
     this.u.uRegionAmt.value = 0;
     this.u.uPixSize.value = 0;
     this.u.uLampsOn.value = 0;
   }
 
-  /** Draw a blend of two sources; returns the cover used for each. */
-  update(dt: number, a: SourceKey, b: SourceKey, mix: number, frames: Record<SeqKey, number>, fyA: number, fyB: number, fxA: number, fxB: number): { a: Cover; b: Cover } {
+  /**
+   * The lantern in the wreck's cabin: it hangs from pivot (px) and has turned
+   * by angle (radians); oval is the soft area drawn from the still plate and
+   * turned with it (centre and radii, px), cabin the cabin plate's cover;
+   * glow is its light (centre, radius px, strength).
+   */
+  swing(pivot: [number, number], angle: number, oval: [number, number, number, number], cabin: Cover, glow: [number, number, number, number]) {
+    const still = this.plate[this.key('z4')]?.tex;
+    if (!still) return;
+    this.u.uStill.value = still;
+    this.u.uStillCover.value.set(cabin.ox, cabin.oy, cabin.dw, cabin.dh);
+    this.u.uSwing.value.set(pivot[0], pivot[1], angle, 1);
+    this.u.uSwingR.value.set(...oval);
+    this.u.uGlow.value.set(...glow);
+  }
+
+  /** The express ascent: the zones' colours rushing past (amount, progress through the climb). */
+  ascent(amount: number, progress: number) { this.u.uAscent.value.set(amount, progress); }
+
+  /** The twilight zone's lantern: the lit plate shows through round light (x, y, radius px); warm glows from below. */
+  lantern(cover: Cover, light: [number, number, number], amount: number, warm: number) {
+    const lit = this.plate[this.key('z5lit')]?.tex;
+    if (lit && amount > 0) {
+      this.u.uLit.value = lit;
+      this.u.uLitCover.value.set(cover.ox, cover.oy, cover.dw, cover.dh);
+      this.u.uLight.value.set(light[0], light[1], light[2], amount);
+    }
+    this.u.uWarm.value = warm;
+  }
+
+  /** Draw a blend of two sources; returns the cover used for each. overA and overB zoom each one past a cover fit. */
+  update(dt: number, a: SourceKey, b: SourceKey, mix: number, frames: Partial<Record<SeqKey, number>>, fyA: number, fyB: number, fxA: number, fxB: number, overA = 1.12, overB = 1.12): { a: Cover; b: Cover } {
     const s = this.stage;
     this.noEffects();
     for (const l of Object.values(this.loop)) if (l?.ready && l.fade < 1) l.fade = Math.min(1, l.fade + dt / 0.8);
-    const frameOf = (k: SourceKey) => (k === 't1' || k === 't2' ? frames[k] : 0);
+    const frameOf = (k: SourceKey) => (isSeq(k) ? frames[k] ?? 0 : 0);
     let A = this.source(a, frameOf(a)) ?? this.source(b, frameOf(b));
     let B = this.source(b, frameOf(b)) ?? A;
     if (!A || !B) return { a: cover(1, 1, s.w, s.h), b: cover(1, 1, s.w, s.h) };
     let m = mix;
     // A loop mid-fade on a single plate: blend the plate and the video.
-    if (a === b && a !== 't1' && a !== 't2') {
+    if (a === b && !isSeq(a)) {
       const l = this.loop[a];
       const p = this.plate[this.key(a)];
       if (l?.ready && l.fade < 1 && p?.tex) { A = p; B = { tex: l.tex, w: A.w, h: A.h }; m = l.fade; }
     }
-    const ca = cover(A.w, A.h, s.w, s.h, 1.12, fxA, fyA);
-    const cb = cover(B.w, B.h, s.w, s.h, 1.12, fxB, fyB);
+    const ca = cover(A.w, A.h, s.w, s.h, overA, fxA, fyA);
+    const cb = cover(B.w, B.h, s.w, s.h, overB, fxB, fyB);
     this.u.uA.value = A.tex;
     this.u.uB.value = B.tex;
     this.u.uMix.value = m;

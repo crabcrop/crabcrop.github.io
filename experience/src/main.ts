@@ -46,6 +46,8 @@ const ui = new UI({
   onRemove: (rect) => world?.removeRegion(rect),
   onUpscale: (again) => world?.upscalePearl(again),
   onReefFocus: (i) => { if (world) scrollRef?.to(world.reefStopY(i)); },
+  onSeal: (sealed) => world?.sealUrl(sealed),
+  onSealLetter: () => world?.sealLetter(),
 });
 let scrollRef: Scroll | null = null;
 

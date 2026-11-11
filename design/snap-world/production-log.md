@@ -480,11 +480,89 @@ triangles, the shape ships as 551 KB of quantized positions, normals, uvs,
 limb bytes and triangles (735 KB as base64 text), and the 2048 px texture
 as a 209 KB AVIF or a 322 KB WebP.
 
+## The shipwreck (S4)
+
+Built from the approved Z4-EXT and Z4 plates, the L-Z4 loop, T03 and T04,
+and the barnacled beam, plus one new asset:
+
+| Asset | Job | Notes |
+| --- | --- | --- |
+| The octopus with its letter | `7e4219d1-4463-4e39-b8e0-586cc26ce014` | Nano Banana Pro, 1:1, 2K, with the Z7 sunset plate as the reference so it is the same little lilac octopus that waits at the surface in the finale. Holds a plain cream envelope; the page presses the wax seal on it. Alternate: `2540655f-95bd-4abd-ba7c-6fb3c7f6971d` |
+| The octopus, cut out | `75e13c59-20a9-4f77-9391-211f5794d676` | Higgsfield background removal, clean on the fuzzy yarn |
+
+The way down: the studio darkens to wreck teal while Snap climbs back on
+the chain, and the ship looms out of the dark as the camera tilts down to
+it, a beam drifting past in the foreground. T03 pushes through the hull
+breach into the captain's cabin, where he rides with the whole URL hanging
+above him. The lantern swings toward the cursor: the loop sways it on its
+own (about nine degrees each way), so inside a soft oval round it the page
+draws the still plate instead, turned about the hook by a damped
+pendulum. The cards: Sealed URLs (a chest whose lid scrambles your recipe
+into a token), Provenance (the ship's log of your picture's credentials,
+written from your choices) and Private sources (the loader's ledger).
+Choice 5 seals the URL or keeps it readable, also from the wax seal on
+the desk. A third of the way through the cabin the octopus climbs over the
+chest and brings its letter; Snap snaps his claw and the wax goes on.
+Out: the cabin goes dark, and T04 glides past the wreck into the trench
+while the gauge spins down to −500 m, ending on the twilight zone (Z5).
+
+## The twilight zone (S5)
+
+Built from the approved Z5 and Z5-LIT plates and the glow jellyfish; no
+new assets. The visitor carries the light: Z5-LIT shows through a soft
+circle round the cursor (on phones a slow sweep, and wherever they tap),
+the dark outside it a little darker, and the glowing creatures shine
+brighter in it. Each creature the light finds gets a glowing CLIP tag with
+a score, and the meta card's JSON and the alt-text line add them up. The
+message in the bottle is read line by line, each in a box with its
+confidence. The explain card writes the report for the visitor's own URL
+(a sealed one is refused, as the server does), and while it is up the
+anglerfish's lure runs down the chain and each tag explains its segment.
+The kindness: a tiny lost fish follows the light and goes home with Snap.
+Out: warmth rises from below and the chain goes slack.
+
+## The vents (S6)
+
+Built from the approved Z6 plate, the L-Z6 loop and the tube worms; no new
+assets. Out of the twilight through a warm, ember-dark dip, the camera
+sinks to the floor. Snap's print lies glowing in the open geode; he slides
+down the chain, lands in front of it, so it glows behind him, and holds
+his print up. The last tag on the chain, `root:photos/print.jpg`, is the
+source. Tube worms in the foreground pull their plumes in when the cursor
+comes close (and when he lands), and the water shimmers round the cursor.
+The cards: one Rust binary (the install and the start, typed out), the
+SDKs (the visitor's own URL built in TypeScript, Python and Rust) and the
+MCP server, with the brass submersible as the agent calling `sign_url`,
+`explain_url` and `fetch_meta`.
+
+## The express ascent (T5)
+
+No new assets and no film: the ascent is drawn in the plate's shader. The
+winch takes Snap back onto the chain with his print, then bands of each
+zone's colour rush down past him, from the vents' ember to the marina's
+sunset, with speed streaks, while the gauge counts back up from −2,500 m.
+Beside his claw the print takes on the visitor's choices one at a time
+(format, look, crop, finish, seal), each one named under it and lit on its
+tag on the chain. At the top the camera looks up at the surface from
+below.
+
+## Back to the Surface (S7)
+
+Built from the approved Z7 plates and L-Z7 loops. The camera pulls back
+from under the waterline to the whole marina at sunset, the anchor comes
+home to the boat, and Snap leaps off the chain onto the pier with his
+print. The receipt: the visitor's URL, a copy button, and the picture as
+that URL would serve it. Once he is home and the receipt is up, he snaps
+his claw: a flash, and the polaroid he took drops in. The install command
+and Install, Read the docs and GitHub close the page; the footer says "See
+you at low tide." On phones the receipt starts lower, so his homecoming
+shows above it, and the polaroid lands on the receipt's top edge.
+
 ## Next
 
-The shipwreck (S4): T03 into the wreck, the cabin, sealed URLs and
-provenance, and Choice 5, the seal. Its plates, loop and transition are
-made.
+The dive is built from end to end. Still open: the real signed URLs (the
+builder needs the signing secret in CI), Snap's claw moving for the snip in
+the kelp, depth maps for parallax, and sound.
 
 Optional: the six format fish could become 3D schools (about 40 Tripo
 credits a species).
@@ -528,6 +606,10 @@ the stills; phone-format takes (9:16, 1080p) would fix that.
   on a 16:9 4K sheet of eight fish.
 - Background removals count toward the jobs in flight; a removal started
   next to five generations was refused.
+- The artifact host that serves the private preview holds at most 511
+  files a version, and counts removals in its 255 a publish. The four
+  transitions alone were 576 frame files, so the frames ship in packs of
+  18 (four a transition per device).
 - MiniMax H3 failed with the same image as start and end frame (no error
   given). With a start frame only it works, but the clip doesn't return to
   its first frame. Kling 4.0 handles start = end and loops cleanly, at 26
@@ -601,3 +683,6 @@ the stills; phone-format takes (9:16, 1080p) would fix that.
   time between screenshots, films it at true speed. Playwright's own clock
   did not: a running fake clock starved the page, and with it paused no
   frame was drawn for the screenshot.
+- On phones the receipt fills the screen's width, so a polaroid fixed to
+  the screen ends up over its title. Pinned to the receipt's top edge, it
+  scrolls with it and stays clear.

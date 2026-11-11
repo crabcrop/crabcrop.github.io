@@ -173,6 +173,74 @@
     "snap-ride-free.png": {
       "job": "78795b2a-a16f-4091-aaba-e7e202797137",
       "file": "hf_20261109_235200_78795b2a-a16f-4091-aaba-e7e202797137.png"
+    },
+    "z4-ext-plate.png": {
+      "job": "502fd02d-b3b3-4e37-96b8-7a9f7336ec7c",
+      "file": "hf_20261108_163233_502fd02d-b3b3-4e37-96b8-7a9f7336ec7c.png"
+    },
+    "z4-plate.png": {
+      "job": "7a9ac2db-70ab-4728-9b48-e2234f227d9e",
+      "file": "hf_20261108_163500_7a9ac2db-70ab-4728-9b48-e2234f227d9e.png"
+    },
+    "t3-into-wreck.mp4": {
+      "job": "2d3ff41b-5d8d-4f7c-973c-cdf1c8986b9b",
+      "file": "hf_20261108_170922_2d3ff41b-5d8d-4f7c-973c-cdf1c8986b9b.mp4"
+    },
+    "t4-the-drop.mp4": {
+      "job": "53ed72ea-519d-4159-81f2-681a95cf3607",
+      "file": "hf_20261108_171411_53ed72ea-519d-4159-81f2-681a95cf3607.mp4"
+    },
+    "z4-loop.mp4": {
+      "job": "0c66fd54-c3dd-4b4c-91b6-c35c36c89b50",
+      "file": "hf_20261108_172123_0c66fd54-c3dd-4b4c-91b6-c35c36c89b50.mp4"
+    },
+    "cut-beam.png": {
+      "job": "e8a64676-8595-4eb0-a671-ae30dee62b84",
+      "file": "hf_20261108_164710_e8a64676-8595-4eb0-a671-ae30dee62b84.png"
+    },
+    "z5-plate.png": {
+      "job": "3872346f-78d1-4547-9f2d-361d83d49ae6",
+      "file": "hf_20261108_163357_3872346f-78d1-4547-9f2d-361d83d49ae6.png"
+    },
+    "octopus.png": {
+      "job": "75e13c59-20a9-4f77-9391-211f5794d676",
+      "file": "hf_20261111_020314_75e13c59-20a9-4f77-9391-211f5794d676.png"
+    },
+    "z5-lit-plate.png": {
+      "job": "c923aaf6-3d2e-4980-9204-690ffbd86112",
+      "file": "hf_20261108_164004_c923aaf6-3d2e-4980-9204-690ffbd86112.png"
+    },
+    "cut-glow-jelly.png": {
+      "job": "64c6bacb-238f-462a-b15a-163bc385efe1",
+      "file": "hf_20261108_164519_64c6bacb-238f-462a-b15a-163bc385efe1.png"
+    },
+    "z6-plate.png": {
+      "job": "b71b1c0a-04ce-448e-bac2-1566a6da2ae9",
+      "file": "hf_20261108_163358_b71b1c0a-04ce-448e-bac2-1566a6da2ae9.png"
+    },
+    "z6-loop.mp4": {
+      "job": "4e85ea12-5781-4e80-858e-62c5da1a2acb",
+      "file": "hf_20261108_172124_4e85ea12-5781-4e80-858e-62c5da1a2acb.mp4"
+    },
+    "cut-tube-worms.png": {
+      "job": "10692a69-c7e7-4430-b8f9-ce3fbdf5f2f0",
+      "file": "hf_20261108_164633_10692a69-c7e7-4430-b8f9-ce3fbdf5f2f0.png"
+    },
+    "z7-plate.png": {
+      "job": "0e47089e-c94e-4ab8-b108-70723f4f2626",
+      "file": "hf_20261108_163736_0e47089e-c94e-4ab8-b108-70723f4f2626.png"
+    },
+    "z7-phone.png": {
+      "job": "a1a45d6d-69a8-4bde-820c-6b89f5251386",
+      "file": "hf_20261108_164519_a1a45d6d-69a8-4bde-820c-6b89f5251386.png"
+    },
+    "z7-loop.mp4": {
+      "job": "98c8a211-3702-4f82-9670-114e6744ad14",
+      "file": "hf_20261108_172123_98c8a211-3702-4f82-9670-114e6744ad14.mp4"
+    },
+    "z7-phone-loop.mp4": {
+      "job": "508dee6b-b2bd-4b79-aae2-c603f6ba5c7b",
+      "file": "hf_20261108_172531_508dee6b-b2bd-4b79-aae2-c603f6ba5c7b.mp4"
     }
   }
 }

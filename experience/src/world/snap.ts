@@ -42,7 +42,7 @@ void main() {
 }`;
 
 type ClipKey = 'm01' | 'm02' | 'm03' | 'm04' | 'm05';
-type State = 'wave' | 'gust' | 'surprised' | 'hop' | 'leap' | 'chain';
+type State = 'wave' | 'gust' | 'surprised' | 'hop' | 'leap' | 'chain' | 'homeLeap' | 'home';
 
 export interface SnapCtx {
   /** Scroll from the top of the marina, in viewport heights, and when the beat happens. */
@@ -68,9 +68,12 @@ export interface SnapCtx {
    * On the reef: sliding down the chain to the sand (land 0 to 1), walking
    * there with the chain in his left claw, then back on the chain (ret 0 to 1)
    * and lowered out of view (drop, px). feet and body place the walk; hold
-   * places him on the chain; vel is how fast he walks, px per second.
+   * places him on the chain; vel is how fast he walks, px per second. At the
+   * vents the same: print, and he holds up his photo print, found.
    */
-  reef?: { land: number; ret: number; drop: number; feet: [number, number]; body: number; vel: number; hold: [number, number] };
+  reef?: { land: number; ret: number; drop: number; feet: [number, number]; body: number; vel: number; hold: [number, number]; print?: boolean };
+  /** Back at the surface: when on, he leaps off the chain onto the pier (feet, his height there) and waves with his print. */
+  home?: { on: boolean; feet: [number, number]; body: number };
 }
 
 const PRINT_AT = 0.83;
@@ -412,7 +415,7 @@ export class Snap {
     if (v) { if (v.phase === 'perch') this.rider.react(t, 'perch'); return; }
     if (this.walking) this.rider.react(t, 'walk');
     else if (this.riding) this.rider.react(t, 'chain');
-    else if (this.state === 'wave' || this.state === 'surprised') this.rider.react(t, 'pier');
+    else if (this.state === 'wave' || this.state === 'surprised' || this.state === 'home') this.rider.react(t, 'pier');
   }
   /** Is a screen point on him? */
   hit(x: number, y: number) {
@@ -504,6 +507,38 @@ export class Snap {
         this.caught = t;
         this.sparkles.burst(ctx.hold[0] + ctx.chainBody * 0.05, ctx.hold[1] + ctx.chainBody * 0.05, ctx.chainBody * 0.35, 3);
       }
+      return;
+    }
+    // Home at the surface: off the chain onto the pier, waving, his print held up (and back on the chain if the visitor scrolls up).
+    if (ctx.home) {
+      if (ctx.home.on && this.state === 'chain' && !this.visitNow) {
+        const from: [number, number] = [ctx.hold[0] + cxo, ctx.hold[1] + cyo];
+        this.leap = { t0: t, dur: LEAP, from, s0: 1, s1: ctx.home.body / ctx.chainBody, turns: 1, lift: Math.max(ctx.chainBody * 0.8, ctx.viewW * 0.06) };
+        this.state = 'homeLeap';
+      }
+      if (!ctx.home.on && (this.state === 'homeLeap' || this.state === 'home')) {
+        this.state = 'chain';
+        this.leap = null;
+        this.rider.land(t);
+        this.caught = t;
+      }
+    }
+    if (this.state === 'homeLeap' && this.leap && ctx.home) {
+      const [sx, sy] = this.rider.standCentre(ctx.home.body);
+      const { p, air } = this.fly(this.leap, t, [ctx.home.feet[0] + sx, ctx.home.feet[1] + sy]);
+      this.rider.update(dt, t, { ...riderCtx, hold: ctx.hold, lean: 0, air });
+      if (p >= 1) {
+        this.state = 'home';
+        this.leap = null;
+        this.sparkles.burst(ctx.home.feet[0], ctx.home.feet[1] - ctx.home.body * 0.4, ctx.home.body * 0.6, 3);
+      }
+      return;
+    }
+    if (this.state === 'home' && ctx.home) {
+      if (this.use3d) {
+        this.rider.stand(dt, t, { feet: ctx.home.feet, h: ctx.home.body, grade: ctx.grade, mouse: ctx.mouse, hello: 1, hold: 1 });
+        this.holdPrint(t, { ...ctx, body: ctx.home.body });
+      } else this.rider.update(dt, t, { ...riderCtx, visible: false, hold: ctx.hold, lean: 0 });
       return;
     }
     if (this.state !== 'chain') {
@@ -616,8 +651,9 @@ export class Snap {
     }
     this.walking = true;
     if (this.use3d) {
-      // Walking sideways in 3D, as big as on the chain, the chain in his raised claw.
-      this.claw = this.rider.stand(dt, t, { feet: r.feet, h: ctx.chainBody, grade: ctx.grade, mouse: ctx.mouse, vel: r.vel });
+      // Walking sideways in 3D, as big as on the chain, the chain in his raised claw (and at the vents, his print in the other).
+      this.claw = this.rider.stand(dt, t, { feet: r.feet, h: ctx.chainBody, grade: ctx.grade, mouse: ctx.mouse, vel: r.vel, hold: r.print ? 1 : 0 });
+      if (r.print) this.holdPrint(t, { ...ctx, body: ctx.chainBody });
       return;
     }
     // Walking, mirrored so the tracked claw is his left one on screen when he heads right.
@@ -653,6 +689,9 @@ export class Snap {
       this.claw = [bx.left + xq * bx.w, bx.top + yr * bx.h];
     }
   }
+
+  /** A little burst of stars at a point (the wax going on the octopus's letter). */
+  burst(x: number, y: number, size: number, n = 2) { this.sparkles.burst(x, y, size, n); }
 
   /** Pause videos when the tab hides; the next update resumes them. */
   pause() { for (const c of Object.values(this.clips)) c.v.pause(); this.rider.pause(); }

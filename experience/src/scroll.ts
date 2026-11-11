@@ -1,7 +1,7 @@
 import Lenis from 'lenis';
 
-export type SectionId = 's0' | 't1' | 's1' | 's2' | 't2' | 's3' | 's3b' | 'next';
-const IDS: SectionId[] = ['s0', 't1', 's1', 's2', 't2', 's3', 's3b', 'next'];
+export type SectionId = 's0' | 't1' | 's1' | 's2' | 't2' | 's3' | 's3b' | 's4' | 't3' | 's4b' | 't4' | 's5' | 's6' | 't5' | 's7';
+const IDS: SectionId[] = ['s0', 't1', 's1', 's2', 't2', 's3', 's3b', 's4', 't3', 's4b', 't4', 's5', 's6', 't5', 's7'];
 
 /** Native scroll, smoothed by Lenis when motion is allowed. */
 export class Scroll {

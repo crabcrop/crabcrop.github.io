@@ -1,5 +1,9 @@
 import { media } from './media';
 import { ReefUI, CROP_SEG, type CropShape } from './reef-ui';
+import { WreckUI, sealToken, type LogEntry } from './wreck-ui';
+import { TwilightUI, type Recipe } from './twilight-ui';
+import { VentsUI } from './vents-ui';
+import { SurfaceUI } from './surface-ui';
 import type { WorldOut, ZoneId } from './world';
 import type { Fmt } from './world/fish';
 import type { LookName } from './world/look';
@@ -14,15 +18,16 @@ const FINISH_SEG: Record<Finish, string> = { none: '', studio: 'studio(product,b
 const FINISH_NAME: Record<Finish, string> = { none: 'None', studio: 'Studio', cutout: 'Cut out' };
 const ZONES: Record<ZoneId, string> = {
   s0: 'The Marina', t1: 'The plunge', s1: 'The Shallows', s2: 'The Kelp Forest', t2: 'The drop-off',
-  s3: 'The Coral Reef', s3b: 'The Clam Studio', next: 'The Coral Reef',
+  s3: 'The Coral Reef', s3b: 'The Clam Studio', s4: 'The Shipwreck', t3: 'Into the wreck', s4b: 'The Shipwreck',
+  t4: 'The drop', s5: 'The Twilight Zone', s6: 'The Vents', t5: 'The ascent', s7: 'Back to the Surface',
 };
 /** Which gauge entry is current in each zone. */
-const GAUGE: Record<ZoneId, string> = { s0: 's0', t1: 's0', s1: 's1', s2: 's2', t2: 's2', s3: 's3', s3b: 's3', next: 's3' };
-const DEPTH: Record<string, number> = { s0: 0, s1: -5, s2: -15, s3: -30, s3b: -30, next: -30 };
-const TAG_KEYS = ['sig', 'fmt', 'look', 'crop', 'finish'] as const;
+const GAUGE: Record<ZoneId, string> = { s0: 's0', t1: 's0', s1: 's1', s2: 's2', t2: 's2', s3: 's3', s3b: 's3', s4: 's4', t3: 's4', s4b: 's4', t4: 's4', s5: 's5', s6: 's6', t5: 's6', s7: 's7' };
+const DEPTH: Record<string, number> = { s0: 0, s1: -5, s2: -15, s3: -30, s3b: -30, s4: -60, s4b: -60, s5: -500, s6: -2500, s7: 0 };
+const TAG_KEYS = ['sig', 'fmt', 'look', 'crop', 'finish', 'src'] as const;
 
 const kb = (n: number) => `${Math.round(n / 1024)} KB`;
-const metres = (d: number) => (Math.abs(d) < 0.05 ? '0 m' : `−${Math.abs(d).toFixed(Math.abs(d) < 10 && d % 1 ? 1 : 0)} m`);
+const metres = (d: number) => (Math.abs(d) < 0.05 ? '0 m' : Math.abs(d) >= 1000 ? `−${Math.round(Math.abs(d)).toLocaleString('en-US')} m` : `−${Math.abs(d).toFixed(Math.abs(d) < 10 && d % 1 ? 1 : 0)} m`);
 const asset = (path: string) => new URL(path, document.baseURI).href;
 /** Run once when an element comes within a couple of screens: CSS backgrounds don't load lazily on their own. */
 function whenNear(el: Element | null, fn: () => void) {
@@ -53,6 +58,9 @@ interface Hooks {
   onRemove: (rect: [number, number, number, number]) => void;
   onUpscale: (again: boolean) => void;
   onReefFocus: (station: number) => void;
+  /** Choice 5: the URL sealed or readable. */
+  onSeal: (sealed: boolean) => void;
+  onSealLetter: () => void;
 }
 
 /** Everything in the DOM: buttons, the gauge, cards, tags, both choices, the cargo and the curtains. */
@@ -69,8 +77,14 @@ export class UI {
   private cropTag = document.getElementById('tag-crop')!;
   private cards = [...document.querySelectorAll<HTMLElement>('.card')];
   /** Which zone each card hangs in; the reef's travelling cards have no thread. */
-  private cardZone = this.cards.map((c) => (c.closest('.s1') ? 's1' : c.closest('.s2') ? 's2' : c.closest('.s3b') ? 's3b' : 'reef'));
+  private cardZone = this.cards.map((c) => (c.closest('.s1') ? 's1' : c.closest('.s2') ? 's2' : c.closest('.s3b') ? 's3b' : c.closest('.s4b') ? 's4b' : c.closest('.s5') ? 's5' : c.closest('.s6') ? 's6' : 'reef'));
   private reefUI: ReefUI;
+  private wreckUI: WreckUI;
+  private twilightUI: TwilightUI;
+  private ventsUI = new VentsUI();
+  private surfaceUI = new SurfaceUI();
+  private sigTag = document.querySelector<HTMLElement>('#tags .tag.sig')!;
+  private sealInputs = [...document.querySelectorAll<HTMLInputElement>('input[name="seal"]')];
   private threads = document.getElementById('threads') as unknown as SVGSVGElement;
   private paths: SVGPathElement[] = [];
   private cargo = document.getElementById('cargo')!;
@@ -85,6 +99,7 @@ export class UI {
   private crop: CropShape = 'wide';
   private cropShown = false;
   private finish: Finish = 'none';
+  private sealed = false;
   private fishHidden = true;
   private frame = 0;
 
@@ -103,10 +118,18 @@ export class UI {
     if (big) document.getElementById('spec-fmt')!.innerHTML = `<span>This page's marina, 3200 px wide:</span> <b>AVIF ${kb(big.avif)}</b> · <b>WebP ${kb(big.webp)}</b>`;
 
     this.reefUI = new ReefUI({ wide: o.wide, onRemove: o.onRemove, onUpscale: o.onUpscale, onReefFocus: o.onReefFocus });
+    this.wreckUI = new WreckUI({
+      wide: o.wide,
+      // The desk's wax seal flips Choice 5.
+      onStamp: () => { const i = this.sealInputs.find((x) => x.value === (this.sealed ? 'readable' : 'sealed')); if (i) { i.checked = true; i.dispatchEvent(new Event('change')); } },
+      onSealLetter: o.onSealLetter,
+    });
+    this.twilightUI = new TwilightUI(o.wide);
     this.formatChoice();
     this.lookChoice();
     this.cropChoice();
     this.finishChoice();
+    this.sealChoice();
     this.url();
 
     // The fish atlas for the school labels.
@@ -275,11 +298,62 @@ export class UI {
     }
   }
 
-  /** The URL so far, from every choice. */
-  private url() {
+  /** Choice 5: sealed or readable. Sealed, the signature tag on the chain becomes the token and the other tags fold into it. */
+  private sealChoice() {
+    const status = document.getElementById('seal-status')!;
+    this.sealed = this.sealInputs.find((i) => i.checked)?.value === 'sealed';
+    for (const input of this.sealInputs) {
+      input.addEventListener('change', () => {
+        if (!input.checked) return;
+        this.sealed = input.value === 'sealed';
+        status.textContent = this.sealed ? 'Sealed: the whole recipe is one opaque token now.' : 'Readable: the recipe stays in plain sight.';
+        this.url();
+        this.o.onSeal(this.sealed);
+      });
+    }
+  }
+
+  /** The recipe: operations and source, everything after the signature. */
+  private recipe() {
     const f = [LOOK_SEG[this.look], FINISH_SEG[this.finish], SEGMENT[this.fmt]].filter(Boolean).join(':');
+    return `${CROP_SEG[this.crop]}/${f ? `filters:${f}/` : ''}root:photos/print.jpg`;
+  }
+
+  /** The ship's log: what the picture's Content Credentials record, from the choices so far. */
+  private logEntries(): LogEntry[] {
+    const done = [CROP_SEG[this.crop], LOOK_SEG[this.look]];
+    const rows: LogEntry[] = [
+      { when: 'Ingredient', what: 'root:photos/print.jpg, its hash recorded' },
+      { when: 'Transformed', what: done.join(' · ') },
+    ];
+    if (this.finish !== 'none') rows.push({ when: 'AI edit', what: `${FINISH_SEG[this.finish]}, marked as made with a trained model` });
+    rows.push(this.fmt === 'jxl'
+      ? { when: 'Unsigned', what: 'JPEG XL outputs are served unsigned in this version' }
+      : { when: 'Signed', what: 'as served, with your certificate' });
+    return rows;
+  }
+
+  /** The URL so far, from every choice, and everything that shows it. */
+  private url() {
+    const rest = this.recipe();
+    const token = sealToken(rest);
     // Line breaks go after slashes, not inside a filter.
-    document.getElementById('url-so-far')!.innerHTML = `https://img.example.com/3c1f6c18…/${CROP_SEG[this.crop]}/${f ? `filters:${f}/` : ''}root:photos/print.jpg`.replace(/\/(?!\/)/g, '/<wbr>');
+    document.getElementById('url-so-far')!.innerHTML = this.sealed
+      ? `https://img.example.com/<wbr>s1.${token}/<wbr>print.jpg`
+      : `https://img.example.com/3c1f6c18…/${rest}`.replace(/\/(?!\/)/g, '/<wbr>');
+    this.wreckUI.setRecipe(rest, token);
+    const recipe: Recipe = { crop: this.crop, look: this.look, finish: this.finish, fmt: this.fmt as Recipe['fmt'], sealed: this.sealed, rest, token };
+    this.twilightUI.setRecipe(recipe);
+    this.ventsUI.setRecipe(recipe);
+    this.surfaceUI.setRecipe(recipe);
+    this.wreckUI.setLog(this.logEntries());
+    this.wreckUI.setSealed(this.sealed);
+    const was = this.tagsEl.classList.contains('sealed');
+    this.tagsEl.classList.toggle('sealed', this.sealed);
+    if (was !== this.sealed) {
+      stamp(this.sigTag, this.sealed ? `s1.${token.slice(0, 8)}…` : '3c1f6c18…', this.sealed ? 'The whole recipe, sealed' : 'Proof the URL came from you');
+      this.sigTag.classList.toggle('seal', this.sealed);
+    }
   }
 
   private setCurrent(id: string) {
@@ -333,7 +407,8 @@ export class UI {
         const p = out.tags[k];
         const el = this.tagEls[i];
         if (!el) return;
-        const dangle = -p.a * 0.6 + Math.sin(t * 1.3 + i * 1.7) * 0.05;
+        // where the chain bends (by Snap's claw on the sea floor) the tags still hang more or less upright
+        const dangle = (k === 'src' ? 0.05 : Math.max(-0.35, Math.min(0.35, -p.a * 0.6))) + Math.sin(t * 1.3 + i * 1.7) * 0.05;
         el.style.setProperty('--pos', `translate(${(p.x + 9).toFixed(1)}px, ${(p.y - 11).toFixed(1)}px) rotate(${dangle.toFixed(3)}rad)`);
       });
     }
@@ -351,7 +426,7 @@ export class UI {
       const path = this.paths[i];
       if (!path) return;
       const z = this.cardZone[i];
-      const zoneOn = z === 's1' ? out.s1On : z === 's2' ? out.s2On : z === 's3b' && out.zone === 's3b' ? 1 : 0;
+      const zoneOn = z === 's1' ? out.s1On : z === 's2' ? out.s2On : z === 's3b' && out.zone === 's3b' ? 1 : z === 's4b' ? out.cabinOn : z === 's5' ? out.twi.on : z === 's6' ? out.vents.on : 0;
       const cx = out.chainX(r.top - 26);
       if (!onScreen || zoneOn < 0.5 || cx === null || cx < r.right) { path.setAttribute('d', ''); return; }
       const x0 = r.right - 22, y0 = r.top + 6, x1 = cx, y1 = r.top - 26;
@@ -375,6 +450,10 @@ export class UI {
     }
 
     this.reefUI.update(out, t, dt, mouse);
+    this.wreckUI.update(out);
+    this.twilightUI.update(out, t);
+    this.ventsUI.update(out, t, this.o.wide);
+    this.surfaceUI.update(out, t, this.o.wide);
 
     // The button on the tangled fish, unless a card has scrolled over the fish or the button.
     const f = out.fish;

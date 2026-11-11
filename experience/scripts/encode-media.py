@@ -3,7 +3,7 @@
 (fetch them first with scripts/fetch-sources.sh) into ../preview/dive/media,
 and write media/manifest.json with the numbers the page needs.
 
-usage: python3 scripts/encode-media.py [images] [reef] [video] [sequence] [snap] [snappost] [scuttle] [claw] [ride] [snap3d]
+usage: python3 scripts/encode-media.py [images] [reef] [wreck] [video] [sequence] [wreckseq] [beam] [pack] [twilight] [vents] [surface] [snap] [snappost] [scuttle] [claw] [ride] [snap3d]
        (no argument runs every step)
 needs: ffmpeg, numpy, scipy, Pillow with AVIF support; for snap3d also npx (gltf-transform) and trimesh
 """
@@ -87,7 +87,8 @@ def bbox(alpha, thr=0.5, pad=0):
 # ---------------------------------------------------------------- images
 # Phone windows of the 21:9 masters, as shares of their width (production-log.md).
 PHONE = {'z1': (0.62, 0.86), 'z2': (0.52, 0.76), 'z3': (0.68, 0.92),
-         'z3_2': (0.55, 0.79), 'z3_3': (0.22, 0.46), 'z3_4': (0.20, 0.44), 'z3b': (0.55, 0.79)}
+         'z3_2': (0.55, 0.79), 'z3_3': (0.22, 0.46), 'z3_4': (0.20, 0.44), 'z3b': (0.55, 0.79),
+         'z4x': (0.38, 0.62), 'z4': (0.54, 0.78), 'z5': (0.52, 0.76), 'z6': (0.42, 0.66)}
 ICON_BOXES = {'icon-chain': (220, 252, 1368, 1428), 'icon-fish': (1484, 252, 2632, 1428),
               'icon-reel': (2740, 252, 3900, 1428), 'icon-drops': (220, 1520, 1368, 2720),
               'icon-crop': (1484, 1520, 2632, 2716), 'icon-glass': (2740, 1520, 3904, 2720),
@@ -307,6 +308,128 @@ def reef():
     print('reef done')
 
 
+def wreck():
+    """The shipwreck: outside (z4x) and the captain's cabin (z4), the twilight
+    zone that the drop ends on (z5), their phone windows, the cabin's loop and
+    the barnacled beam."""
+    plates = man['plates']
+    for key, name in (('z4x', 'z4-ext-plate.png'), ('z4', 'z4-plate.png'), ('z5', 'z5-plate.png')):
+        im = Image.open(src(name)).convert('RGB')
+        files = {}
+        for w in (1600, 2400, 3200):
+            files[w] = save_pair(resize_w(im, w), f'{key}-{w}')
+        resize_w(im, 64).save(out(f'{key}-tiny.png'))  # read by thumbhash.mjs, then deleted
+        plates[key] = {'w': im.size[0], 'h': im.size[1], 'widths': [1600, 2400, 3200], 'bytes': files}
+        a, b = PHONE[key]
+        ph = im.crop((round(a * im.size[0]), 0, round(b * im.size[0]), im.size[1]))
+        pfiles = {w: save_pair(resize_w(ph, w), f'{key}p-{w}') for w in (720, 1080)}
+        resize_w(ph, 36).save(out(f'{key}p-tiny.png'))
+        plates[key + 'p'] = {'w': ph.size[0], 'h': ph.size[1], 'widths': [720, 1080], 'bytes': pfiles}
+        print(key, files, pfiles)
+    enc = ['-an', '-c:v', 'libx264', '-preset', 'slow', '-crf', '27', '-maxrate', '2.4M',
+           '-bufsize', '4.8M', '-pix_fmt', 'yuv420p', '-movflags', '+faststart', '-g', '48']
+    ff('-i', src('z4-loop.mp4'), '-vf', 'scale=1600:-2:flags=lanczos', *enc, out('z4-loop.mp4'))
+    ff('-i', src('z4-loop.mp4'), '-vf', f"crop=528:936:{round(PHONE['z4'][0] * 2212)}:0", *enc, out('z4p-loop.mp4'))
+    for n in ('z4-loop', 'z4p-loop'):
+        man['loops'][n] = os.path.getsize(out(n + '.mp4'))
+    cutout('cut-beam.png', 'beam', 700, blur=3.5)
+    octopus()
+    print('wreck done', man['loops'], man['beam'], man['octopus'])
+
+
+def octopus():
+    """The little octopus with its letter (Snap's kindness in the wreck), and
+    where the wax seal goes on the envelope's flap, as shares of the sprite."""
+    cutout('octopus.png', 'octopus', 520)
+    im = np.asarray(Image.open(out('octopus.webp')).convert('RGBA')).astype(np.float32)
+    rgb, a = im[..., :3], im[..., 3]
+    lum = rgb.mean(axis=2); chroma = rgb.max(axis=2) - rgb.min(axis=2)
+    paper = (a > 200) & (lum > 185) & (chroma < 40)
+    lab, k = ndimage.label(paper)
+    paper = lab == (1 + int(np.argmax(ndimage.sum(paper, lab, range(1, k + 1)))))
+    ys, xs = np.where(paper)
+    h, w = a.shape
+    # the flap's point sits just below the middle of the envelope
+    man['octopus']['seal'] = [round(float(xs.mean()) / w, 4), round(float(ys.min() + 0.6 * (ys.max() - ys.min())) / h, 4)]
+    man['octopus']['envelope'] = [round(xs.min() / w, 4), round(ys.min() / h, 4), round(xs.max() / w, 4), round(ys.max() / h, 4)]
+
+
+
+def twilight():
+    """The twilight zone lit by the lantern (z5lit, revealed round the cursor
+    over z5, same windows on phones) and a glowing jellyfish kept on black
+    for additive light."""
+    plates = man['plates']
+    im = Image.open(src('z5-lit-plate.png')).convert('RGB')
+    files = {w: save_pair(resize_w(im, w), f'z5lit-{w}') for w in (1600, 2400, 3200)}
+    plates['z5lit'] = {'w': im.size[0], 'h': im.size[1], 'widths': [1600, 2400, 3200], 'bytes': files, 'thumbhash': plates['z5']['thumbhash']}
+    a, b = PHONE['z5']
+    ph = im.crop((round(a * im.size[0]), 0, round(b * im.size[0]), im.size[1]))
+    pfiles = {w: save_pair(resize_w(ph, w), f'z5litp-{w}') for w in (720, 1080)}
+    plates['z5litp'] = {'w': ph.size[0], 'h': ph.size[1], 'widths': [720, 1080], 'bytes': pfiles, 'thumbhash': plates['z5p']['thumbhash']}
+    jelly = Image.open(src('cut-glow-jelly.png')).convert('RGB')
+    g = np.asarray(jelly).astype(np.float32)
+    ys, xs = np.where(g.max(axis=2) > 40)
+    jelly = jelly.crop((max(0, xs.min() - 20), max(0, ys.min() - 20), min(jelly.size[0], xs.max() + 20), min(jelly.size[1], ys.max() + 20)))
+    jelly = jelly.resize((round(jelly.size[0] * 640 / jelly.size[1]), 640), Image.LANCZOS)
+    man['glowJelly'] = {'w': jelly.size[0], 'h': jelly.size[1], 'bytes': save_pair(jelly, 'glow-jelly', 56, 80)}
+    print('twilight', files, pfiles, man['glowJelly'])
+
+
+
+def vents():
+    """The vents (z6) and its phone window, its loop, and the tube worms that
+    stand in the foreground and pull their plumes in from the cursor."""
+    plates = man['plates']
+    im = Image.open(src('z6-plate.png')).convert('RGB')
+    files = {w: save_pair(resize_w(im, w), f'z6-{w}') for w in (1600, 2400, 3200)}
+    resize_w(im, 64).save(out('z6-tiny.png'))
+    plates['z6'] = {'w': im.size[0], 'h': im.size[1], 'widths': [1600, 2400, 3200], 'bytes': files}
+    a, b = PHONE['z6']
+    ph = im.crop((round(a * im.size[0]), 0, round(b * im.size[0]), im.size[1]))
+    pfiles = {w: save_pair(resize_w(ph, w), f'z6p-{w}') for w in (720, 1080)}
+    resize_w(ph, 36).save(out('z6p-tiny.png'))
+    plates['z6p'] = {'w': ph.size[0], 'h': ph.size[1], 'widths': [720, 1080], 'bytes': pfiles}
+    enc = ['-an', '-c:v', 'libx264', '-preset', 'slow', '-crf', '27', '-maxrate', '2.4M',
+           '-bufsize', '4.8M', '-pix_fmt', 'yuv420p', '-movflags', '+faststart', '-g', '48']
+    ff('-i', src('z6-loop.mp4'), '-vf', 'scale=1600:-2:flags=lanczos', *enc, out('z6-loop.mp4'))
+    ff('-i', src('z6-loop.mp4'), '-vf', f"crop=528:936:{round(PHONE['z6'][0] * 2212)}:0", *enc, out('z6p-loop.mp4'))
+    for n in ('z6-loop', 'z6p-loop'):
+        man['loops'][n] = os.path.getsize(out(n + '.mp4'))
+    cutout('cut-tube-worms.png', 'worms', 760, blur=2.2)
+    print('vents', files, pfiles, man['worms'])
+
+
+
+def surface():
+    """Back at the surface at sunset (z7, and its own 9:16 plate for phones,
+    both with their waterlines as at the marina), and their loops."""
+    plates = man['plates']
+    for key, name, widths in (('z7', 'z7-plate.png', (1600, 2400, 3200)), ('z7p', 'z7-phone.png', (720, 1080))):
+        im = Image.open(src(name)).convert('RGB')
+        files = {w: save_pair(resize_w(im, w), f'{key}-{w}') for w in widths}
+        resize_w(im, 64 if key == 'z7' else 36).save(out(f'{key}-tiny.png'))
+        plates[key] = {'w': im.size[0], 'h': im.size[1], 'widths': list(widths), 'bytes': files}
+        print(key, files)
+    plates['z7']['waterline'] = 0.58
+    plates['z7p']['waterline'] = 0.33
+    enc = ['-an', '-c:v', 'libx264', '-preset', 'slow', '-crf', '27', '-maxrate', '2.4M',
+           '-bufsize', '4.8M', '-pix_fmt', 'yuv420p', '-movflags', '+faststart', '-g', '48']
+    ff('-i', src('z7-loop.mp4'), '-vf', 'scale=1600:-2:flags=lanczos', *enc, out('z7-loop.mp4'))
+    ff('-i', src('z7-phone-loop.mp4'), '-vf', 'scale=720:-2:flags=lanczos', *enc, out('z7p-loop.mp4'))
+    for n in ('z7-loop', 'z7p-loop'):
+        man['loops'][n] = os.path.getsize(out(n + '.mp4'))
+    print('surface', man['loops'])
+
+
+def wreckseq():
+    sequence(('t3', 't4'))
+
+
+def beam():
+    cutout('cut-beam.png', 'beam', 700, blur=3.5)
+
+
 # ---------------------------------------------------------------- video
 def ff(*args):
     subprocess.run(['ffmpeg', '-v', 'error', '-y', *args], check=True)
@@ -329,14 +452,19 @@ def video():
     print('loops', loops)
 
 
-def sequence():
+SEQS = {'t1': ('t1-plunge.mp4', 0.5, sum(PHONE['z1']) / 2),
+        't2': ('t2-into-reef.mp4', sum(PHONE['z2']) / 2, sum(PHONE['z3']) / 2),
+        't3': ('t3-into-wreck.mp4', sum(PHONE['z4x']) / 2, sum(PHONE['z4']) / 2),
+        't4': ('t4-the-drop.mp4', sum(PHONE['z4x']) / 2, sum(PHONE['z5']) / 2)}
+
+
+def sequence(keys=('t1', 't2')):
     """The transitions as image sequences for scrubbing: 72 frames each (9 per
     second of the 8 s clip), for desktop and for phones. The phone window pans
     across the frame so it starts and ends where the neighbouring phone plates
     are cropped."""
-    seqs = {'t1': ('t1-plunge.mp4', 0.5, sum(PHONE['z1']) / 2),
-            't2': ('t2-into-reef.mp4', sum(PHONE['z2']) / 2, sum(PHONE['z3']) / 2)}
-    for key, (name, c0, c1) in seqs.items():
+    for key in keys:
+        name, c0, c1 = SEQS[key]
         tmp = os.path.join(ROOT, '.cache', f'{key}-frames')
         os.makedirs(tmp, exist_ok=True)
         for f in os.listdir(tmp):
@@ -357,7 +485,38 @@ def sequence():
             total['d'] += os.path.getsize(out(f'{key}/d-{i:03d}.avif'))
             total['p'] += os.path.getsize(out(f'{key}/p-{i:03d}.avif'))
         man[key] = {'frames': len(frames), 'fps': 9, 'd': [1600, 677], 'p': [528, 936], 'bytes': total}
+        pack_frames(key)
         print(key, man[key])
+
+
+PACKS = 4
+
+
+def pack_frames(key):
+    """Pack a transition's frames into PACKS files per device, frame i in
+    pack i % PACKS: the first pack to arrive already scrubs the whole move,
+    coarsely, and the rest fill in between. Each pack is the frames' AVIF
+    files end to end (it opens as its first frame, so it is still served as
+    an image); the manifest has their lengths, in order."""
+    n = man[key]['frames']
+    lens = {}
+    for dev in ('d', 'p'):
+        lens[dev] = []
+        for j in range(PACKS):
+            blobs = [open(out(f'{key}/{dev}-{i:03d}.avif'), 'rb').read() for i in range(j, n, PACKS)]
+            open(out(f'{key}/{dev}-pack{j}.avif'), 'wb').write(b''.join(blobs))
+            lens[dev].append([len(b) for b in blobs])
+        for i in range(n):
+            os.remove(out(f'{key}/{dev}-{i:03d}.avif'))
+    man[key]['packs'] = lens
+
+
+def pack():
+    """Pack transitions encoded before packing existed (their frames still on disk)."""
+    for key in SEQS:
+        if os.path.exists(out(f'{key}/d-000.avif')):
+            pack_frames(key)
+            print('packed', key)
 
 
 def snap():
@@ -872,7 +1031,7 @@ def snap3d():
     print('snap3d', {k: v for k, v in man['snap3d'].items() if k not in ('limbs', 'eyes')}, kinds)
 
 
-steps = sys.argv[1:] or ['images', 'reef', 'video', 'sequence', 'snap', 'snappost', 'scuttle', 'claw', 'ride', 'snap3d']
+steps = sys.argv[1:] or ['images', 'reef', 'wreck', 'twilight', 'vents', 'surface', 'video', 'sequence', 'wreckseq', 'snap', 'snappost', 'scuttle', 'claw', 'ride', 'snap3d']
 for st in steps:
     globals()[st]()
     json.dump(man, open(MAN_PATH + '.tmp', 'w'), indent=1)   # written whole or not at all
