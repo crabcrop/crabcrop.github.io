@@ -521,10 +521,25 @@ anglerfish's lure runs down the chain and each tag explains its segment.
 The kindness: a tiny lost fish follows the light and goes home with Snap.
 Out: warmth rises from below and the chain goes slack.
 
+## The vents (S6)
+
+Built from the approved Z6 plate, the L-Z6 loop and the tube worms; no new
+assets. Out of the twilight through a warm, ember-dark dip, the camera
+sinks to the floor. Snap's print lies glowing in the open geode; he slides
+down the chain, lands in front of it, so it glows behind him, and holds
+his print up. The last tag on the chain, `root:photos/print.jpg`, is the
+source. Tube worms in the foreground pull their plumes in when the cursor
+comes close (and when he lands), and the water shimmers round the cursor.
+The cards: one Rust binary (the install and the start, typed out), the
+SDKs (the visitor's own URL built in TypeScript, Python and Rust) and the
+MCP server, with the brass submersible as the agent calling `sign_url`,
+`explain_url` and `fetch_meta`.
+
 ## Next
 
-The vents (S6): the anchor lands by the glowing geode, Snap's print. Then
-the express ascent (T5) and the finale at the surface (S7).
+The express ascent (T5): the winch pulls the chain up through every zone
+while the print in Snap's claw takes on the visitor's choices. Then the
+finale at the surface (S7), at sunset, with the receipt.
 
 Optional: the six format fish could become 3D schools (about 40 Tripo
 credits a species).

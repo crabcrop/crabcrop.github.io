@@ -12,7 +12,7 @@ precision highp float;
 uniform sampler2D uA, uB, uC, uStill, uLit;
 uniform vec4 uCoverA, uCoverB, uCoverC, uCoverPix, uStillCover, uLitCover;   // left, top, width, height in px
 uniform vec4 uLight;
-uniform float uWarm;
+uniform float uWarm, uShimmer;
 uniform float uMix, uTime, uMouseOn, uWaterY, uRipple, uGlint, uShafts, uTintAmt;
 uniform float uSplit, uRegionAmt, uCanSide, uPixSize, uLampsOn, uLampR;
 uniform vec4 uRegion, uPix, uSwing, uSwingR, uGlow;
@@ -63,6 +63,12 @@ void main() {
     wS = (1.0 - smoothstep(0.7, 1.0, length((px - uSwingR.xy) / uSwingR.zw))) * smoothstep(-4.0, 18.0, q.y);
     float th = uSwing.z * wS, c = cos(th), s = sin(th);
     pxS = uSwing.xy + vec2(c * q.x + s * q.y, -s * q.x + c * q.y);
+  }
+  // Heat shimmer at the vents: the water wavers round the cursor.
+  if (uShimmer > 0.0 && uMouseOn > 0.5) {
+    vec2 dm = px - uMouse;
+    float f = exp(-dot(dm, dm) / (2.0 * 140.0 * 140.0)) * uShimmer;
+    px += vec2(sin(px.y * 0.09 + uTime * 7.0), cos(px.x * 0.08 - uTime * 6.0)) * 3.5 * f;
   }
   vec2 d = px - uMouse;
   float r = length(d);
@@ -132,7 +138,7 @@ void main() {
 }`;
 
 /** z0 to z3 are the vertical zones; r0 to r4 are the reef panorama's panels, left to right, and r3c is r3 with the can removed; z4x is the wreck outside, z4 its cabin and z5 the twilight zone. */
-export type Zone = 'z0' | 'z1' | 'z2' | 'z3' | 'r0' | 'r1' | 'r2' | 'r3' | 'r3c' | 'r4' | 'z4x' | 'z4' | 'z5' | 'z5lit';
+export type Zone = 'z0' | 'z1' | 'z2' | 'z3' | 'r0' | 'r1' | 'r2' | 'r3' | 'r3c' | 'r4' | 'z4x' | 'z4' | 'z5' | 'z5lit' | 'z6';
 export type SeqKey = 't1' | 't2' | 't3' | 't4';
 const SEQ_KEYS: SeqKey[] = ['t1', 't2', 't3', 't4'];
 const isSeq = (k: SourceKey): k is SeqKey => (SEQ_KEYS as string[]).includes(k);
@@ -145,9 +151,9 @@ interface Seq { frames: (HTMLImageElement | null)[]; tex: THREE.Texture | null; 
 const PLATE: Record<Zone, [PlateKey, PlateKey]> = {
   z0: ['z0', 'z0p'], z1: ['z1', 'z1p'], z2: ['z2', 'z2p'], z3: ['z3', 'z3p'],
   r0: ['z3', 'z3'], r1: ['z3_2', 'z3_2'], r2: ['z3_3', 'z3_3'], r3: ['z3_4', 'z3_4'], r3c: ['z3_4c', 'z3_4c'], r4: ['z3b', 'z3b'],
-  z4x: ['z4x', 'z4xp'], z4: ['z4', 'z4p'], z5: ['z5', 'z5p'], z5lit: ['z5lit', 'z5litp'],
+  z4x: ['z4x', 'z4xp'], z4: ['z4', 'z4p'], z5: ['z5', 'z5p'], z5lit: ['z5lit', 'z5litp'], z6: ['z6', 'z6p'],
 };
-const LOOPS: Partial<Record<Zone, true>> = { z0: true, z1: true, z2: true, z4: true };
+const LOOPS: Partial<Record<Zone, true>> = { z0: true, z1: true, z2: true, z4: true, z6: true };
 export const PANELS: Zone[] = ['r0', 'r1', 'r2', 'r3', 'r4'];
 
 /** What the reef asks of the backdrop: where the camera is, and the effects on its panels. */
@@ -192,7 +198,7 @@ export class Backdrop {
       uSplit: { value: -1e5 }, uRegionAmt: { value: 0 }, uCanSide: { value: 0 }, uRegion: { value: new THREE.Vector4() },
       uPixSize: { value: 0 }, uPix: { value: new THREE.Vector4(0, 0, 1, 1) },
       uLampsOn: { value: 0 }, uLampR: { value: 100 }, uLamp0: v3(), uLamp1: v3(), uLamp2: v3(), uImpact: { value: new THREE.Vector3(0, 0, -10) },
-      uLit: { value: this.blank }, uLitCover: { value: new THREE.Vector4(0, 0, 1, 1) }, uLight: { value: new THREE.Vector4() }, uWarm: { value: 0 },
+      uLit: { value: this.blank }, uLitCover: { value: new THREE.Vector4(0, 0, 1, 1) }, uLight: { value: new THREE.Vector4() }, uWarm: { value: 0 }, uShimmer: { value: 0 },
       uSwing: { value: new THREE.Vector4() }, uSwingR: { value: new THREE.Vector4(0, 0, 1, 1) }, uGlow: { value: new THREE.Vector4(0, 0, 1, 0) },
       ...LOOK,
     };

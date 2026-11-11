@@ -68,9 +68,10 @@ export interface SnapCtx {
    * On the reef: sliding down the chain to the sand (land 0 to 1), walking
    * there with the chain in his left claw, then back on the chain (ret 0 to 1)
    * and lowered out of view (drop, px). feet and body place the walk; hold
-   * places him on the chain; vel is how fast he walks, px per second.
+   * places him on the chain; vel is how fast he walks, px per second. At the
+   * vents the same: print, and he holds up his photo print, found.
    */
-  reef?: { land: number; ret: number; drop: number; feet: [number, number]; body: number; vel: number; hold: [number, number] };
+  reef?: { land: number; ret: number; drop: number; feet: [number, number]; body: number; vel: number; hold: [number, number]; print?: boolean };
 }
 
 const PRINT_AT = 0.83;
@@ -616,8 +617,9 @@ export class Snap {
     }
     this.walking = true;
     if (this.use3d) {
-      // Walking sideways in 3D, as big as on the chain, the chain in his raised claw.
-      this.claw = this.rider.stand(dt, t, { feet: r.feet, h: ctx.chainBody, grade: ctx.grade, mouse: ctx.mouse, vel: r.vel });
+      // Walking sideways in 3D, as big as on the chain, the chain in his raised claw (and at the vents, his print in the other).
+      this.claw = this.rider.stand(dt, t, { feet: r.feet, h: ctx.chainBody, grade: ctx.grade, mouse: ctx.mouse, vel: r.vel, hold: r.print ? 1 : 0 });
+      if (r.print) this.holdPrint(t, { ...ctx, body: ctx.chainBody });
       return;
     }
     // Walking, mirrored so the tracked claw is his left one on screen when he heads right.

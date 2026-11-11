@@ -3,7 +3,7 @@
 (fetch them first with scripts/fetch-sources.sh) into ../preview/dive/media,
 and write media/manifest.json with the numbers the page needs.
 
-usage: python3 scripts/encode-media.py [images] [reef] [wreck] [video] [sequence] [wreckseq] [beam] [pack] [twilight] [snap] [snappost] [scuttle] [claw] [ride] [snap3d]
+usage: python3 scripts/encode-media.py [images] [reef] [wreck] [video] [sequence] [wreckseq] [beam] [pack] [twilight] [vents] [snap] [snappost] [scuttle] [claw] [ride] [snap3d]
        (no argument runs every step)
 needs: ffmpeg, numpy, scipy, Pillow with AVIF support; for snap3d also npx (gltf-transform) and trimesh
 """
@@ -88,7 +88,7 @@ def bbox(alpha, thr=0.5, pad=0):
 # Phone windows of the 21:9 masters, as shares of their width (production-log.md).
 PHONE = {'z1': (0.62, 0.86), 'z2': (0.52, 0.76), 'z3': (0.68, 0.92),
          'z3_2': (0.55, 0.79), 'z3_3': (0.22, 0.46), 'z3_4': (0.20, 0.44), 'z3b': (0.55, 0.79),
-         'z4x': (0.38, 0.62), 'z4': (0.54, 0.78), 'z5': (0.52, 0.76)}
+         'z4x': (0.38, 0.62), 'z4': (0.54, 0.78), 'z5': (0.52, 0.76), 'z6': (0.42, 0.66)}
 ICON_BOXES = {'icon-chain': (220, 252, 1368, 1428), 'icon-fish': (1484, 252, 2632, 1428),
               'icon-reel': (2740, 252, 3900, 1428), 'icon-drops': (220, 1520, 1368, 2720),
               'icon-crop': (1484, 1520, 2632, 2716), 'icon-glass': (2740, 1520, 3904, 2720),
@@ -374,6 +374,30 @@ def twilight():
     jelly = jelly.resize((round(jelly.size[0] * 640 / jelly.size[1]), 640), Image.LANCZOS)
     man['glowJelly'] = {'w': jelly.size[0], 'h': jelly.size[1], 'bytes': save_pair(jelly, 'glow-jelly', 56, 80)}
     print('twilight', files, pfiles, man['glowJelly'])
+
+
+
+def vents():
+    """The vents (z6) and its phone window, its loop, and the tube worms that
+    stand in the foreground and pull their plumes in from the cursor."""
+    plates = man['plates']
+    im = Image.open(src('z6-plate.png')).convert('RGB')
+    files = {w: save_pair(resize_w(im, w), f'z6-{w}') for w in (1600, 2400, 3200)}
+    resize_w(im, 64).save(out('z6-tiny.png'))
+    plates['z6'] = {'w': im.size[0], 'h': im.size[1], 'widths': [1600, 2400, 3200], 'bytes': files}
+    a, b = PHONE['z6']
+    ph = im.crop((round(a * im.size[0]), 0, round(b * im.size[0]), im.size[1]))
+    pfiles = {w: save_pair(resize_w(ph, w), f'z6p-{w}') for w in (720, 1080)}
+    resize_w(ph, 36).save(out('z6p-tiny.png'))
+    plates['z6p'] = {'w': ph.size[0], 'h': ph.size[1], 'widths': [720, 1080], 'bytes': pfiles}
+    enc = ['-an', '-c:v', 'libx264', '-preset', 'slow', '-crf', '27', '-maxrate', '2.4M',
+           '-bufsize', '4.8M', '-pix_fmt', 'yuv420p', '-movflags', '+faststart', '-g', '48']
+    ff('-i', src('z6-loop.mp4'), '-vf', 'scale=1600:-2:flags=lanczos', *enc, out('z6-loop.mp4'))
+    ff('-i', src('z6-loop.mp4'), '-vf', f"crop=528:936:{round(PHONE['z6'][0] * 2212)}:0", *enc, out('z6p-loop.mp4'))
+    for n in ('z6-loop', 'z6p-loop'):
+        man['loops'][n] = os.path.getsize(out(n + '.mp4'))
+    cutout('cut-tube-worms.png', 'worms', 760, blur=2.2)
+    print('vents', files, pfiles, man['worms'])
 
 
 def wreckseq():
@@ -985,7 +1009,7 @@ def snap3d():
     print('snap3d', {k: v for k, v in man['snap3d'].items() if k not in ('limbs', 'eyes')}, kinds)
 
 
-steps = sys.argv[1:] or ['images', 'reef', 'wreck', 'twilight', 'video', 'sequence', 'wreckseq', 'snap', 'snappost', 'scuttle', 'claw', 'ride', 'snap3d']
+steps = sys.argv[1:] or ['images', 'reef', 'wreck', 'twilight', 'vents', 'video', 'sequence', 'wreckseq', 'snap', 'snappost', 'scuttle', 'claw', 'ride', 'snap3d']
 for st in steps:
     globals()[st]()
     json.dump(man, open(MAN_PATH + '.tmp', 'w'), indent=1)   # written whole or not at all

@@ -512,6 +512,49 @@
     }
    },
    "thumbhash": "yOYFFAKJ9npnfczXp4d2cJkH5g=="
+  },
+  "z6": {
+   "w": 6336,
+   "h": 2688,
+   "widths": [
+    1600,
+    2400,
+    3200
+   ],
+   "bytes": {
+    "1600": {
+     "avif": 58642,
+     "webp": 93564
+    },
+    "2400": {
+     "avif": 103386,
+     "webp": 161236
+    },
+    "3200": {
+     "avif": 153137,
+     "webp": 233094
+    }
+   },
+   "thumbhash": "DBgGC4IHSEdxe4ZompDkCxo="
+  },
+  "z6p": {
+   "w": 1521,
+   "h": 2688,
+   "widths": [
+    720,
+    1080
+   ],
+   "bytes": {
+    "720": {
+     "avif": 31599,
+     "webp": 47842
+    },
+    "1080": {
+     "avif": 54550,
+     "webp": 77322
+    }
+   },
+   "thumbhash": "0AcOFAJoBpeoaIs3pnmIcHcJRw=="
   }
  },
  "snapChain": {
@@ -642,7 +685,9 @@
   "z2-loop": 1287278,
   "z2p-loop": 628536,
   "z4-loop": 810290,
-  "z4p-loop": 381716
+  "z4p-loop": 381716,
+  "z6-loop": 987299,
+  "z6p-loop": 460413
  },
  "t1": {
   "frames": 72,
@@ -3511,6 +3556,14 @@
   "bytes": {
    "avif": 10957,
    "webp": 14590
+  }
+ },
+ "worms": {
+  "w": 583,
+  "h": 760,
+  "bytes": {
+   "avif": 19017,
+   "webp": 44390
   }
  }
 }

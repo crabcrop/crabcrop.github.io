@@ -7,9 +7,9 @@ it uses. The live `index.html` and `docs.html` are untouched.
 It covers the marina (S0), the plunge (T1), the shallows (S1), the kelp
 forest (S2), the glide to the reef (T2), the reef (S3), the Clam Studio
 (S3b), the way down to the shipwreck (S4), in through its hull (T3), the
-captain's cabin (S4b), the drop into the dark (T4) and the twilight zone
-(S5), ending on a card in the warm glow above the vents that says they
-are next. The plan for the rest is in `design/snap-world/experience-plan.md`.
+captain's cabin (S4b), the drop into the dark (T4), the twilight zone (S5)
+and the vents (S6), ending on a card by the geode, as the winch starts,
+that says the way back up is next. The plan for the rest is in `design/snap-world/experience-plan.md`.
 
 ## Commands
 
@@ -49,11 +49,13 @@ functions to cut the chain hanging free out of his riding loops.
 | The fish in the line | Snap snips a fish free from fishing line; it follows him | `src/world/netfish.ts` |
 | The wreck | A barnacled beam drifting up past the camera on the way down; in the cabin, dust that rises, glints in the lantern's light and swirls from the cursor; and the octopus who climbs over the captain's chest with a letter, brings it to Snap, gets its wax seal when he snaps his claw, and swims off | `src/world/debris.ts`, `src/world/motes.ts`, `src/world/octopus.ts` |
 | The twilight | The lantern the visitor carries (the cursor; on phones a slow sweep and wherever they tap), a tiny lost fish that follows its light and then goes home with Snap, the anglerfish's lure running down the chain while the explain card is up, a glowing jellyfish drifting past, and at the end a warm glow below and the chain going slack | `src/world/twilight.ts` |
+| The vents | Snap's print glowing in the geode until he lands in front of it and holds it up; tube worms in the foreground that pull their plumes in when the cursor comes close; heat shimmer round the cursor (in the plate's shader) | `src/world/vents.ts` |
 | Looks | One grade shared by every shader: Crisp, Deep sea or Vintage, previewed on the whole kelp forest | `src/world/look.ts` |
 | Interface | Real HTML: header, depth gauge, cards, tags, five choices, the cargo, the silk curtains. Sealed, the signature tag on the chain becomes the token and the other tags blur into it | `index.html`, `src/ui.ts`, `src/styles.css` |
 | Reef interface | Station cards that slide in with each stop, the magnetic crop frame, face boxes, dragging a box over the can, the before and after slider | `src/reef-ui.ts` |
 | Wreck interface | The chest in the Sealed URLs card (shut the lid and your recipe scrambles into an `s1.` token as long as a real one would be), the ship's log of your picture's Content Credentials written from your choices, the loader's ledger of refused private addresses, the wax seal on the desk for Choice 5, the octopus's button | `src/wreck-ui.ts` |
 | Twilight interface | CLIP tags that light up next to the creatures the light finds, the meta answer and alt text they add up to, the message in the bottle read line by line with boxes and scores, the explain report for the visitor's own URL (refused if it is sealed), and the chain's tags explaining their segments as the lure passes | `src/twilight-ui.ts` |
+| Vents interface | The install and start typed out, the visitor's own URL built in TypeScript, Python and Rust, the little submersible's tool calls to the MCP server with its speech bubble over the plate, and the source tag, `root:photos/print.jpg`, at the end of the chain once Snap has his print | `src/vents-ui.ts` |
 
 One WebGL canvas (Three.js) sits behind the HTML. Scrolling stays native,
 smoothed by Lenis. With reduced motion, or without WebGL or JavaScript, the
@@ -86,7 +88,7 @@ needs the secret, like the real signatures.
 
 ## Not built yet
 
-- The vents and the way back up (S6, T5, S7).
+- The way back up and the finale (T5, S7).
 - Snap's claw moving for the snip in the kelp: the sparkle stands in for it.
 - The real signed URLs: the builder needs the signing secret in CI.
 - Depth maps for parallax, and sound.

@@ -144,7 +144,7 @@ export class TwilightUI {
     if (lure && !this.saved) {
       this.saved = this.chainTags.map((el) => el.querySelector('span')!.textContent ?? '');
       const g = this.glosses(this.recipe!);
-      this.chainTags.forEach((el, i) => { el.querySelector('span')!.textContent = g[i] ?? ''; el.classList.add('explaining'); });
+      this.chainTags.forEach((el, i) => { if (g[i] === undefined) return; el.querySelector('span')!.textContent = g[i]; el.classList.add('explaining'); });
     } else if (!lure && this.saved) {
       this.chainTags.forEach((el, i) => { el.querySelector('span')!.textContent = this.saved![i]; el.classList.remove('explaining', 'lit'); });
       this.saved = null;

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>crabcrop · All the Way Down</title>
-<meta name="description" content="Ride the anchor chain with Snap through crabcrop, the Rust image API. A preview from the marina down past the reef and the shipwreck to the twilight zone.">
+<meta name="description" content="Ride the anchor chain with Snap through crabcrop, the Rust image API. A preview from the marina all the way down to the vents.">
 <meta name="robots" content="noindex">
 <meta name="theme-color" content="#CFE8EE">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
@@ -36,7 +36,7 @@
     <li><a href="#s3" data-zone="s3"><span class="d">−30 m</span> <span class="name">The Coral Reef</span></a></li>
     <li><a href="#s4" data-zone="s4"><span class="d">−60 m</span> <span class="name">The Shipwreck</span></a></li>
     <li><a href="#s5" data-zone="s5"><span class="d">−500 m</span> <span class="name">The Twilight Zone</span></a></li>
-    <li class="soon"><span class="d">−2,500 m</span> <span class="name">The Vents</span></li>
+    <li><a href="#s6" data-zone="s6"><span class="d">−2,500 m</span> <span class="name">The Vents</span></a></li>
     <li class="soon"><span class="d">0 m</span> <span class="name">Back to the Surface</span></li>
   </ol>
   <div class="gauge-bar" aria-hidden="true"><span id="gauge-fill"></span></div>
@@ -90,6 +90,7 @@
       <li class="tag blank" id="tag-look"><code>look</code><span>Choice 2: in the kelp</span></li>
       <li class="tag blank" id="tag-crop"><code>crop</code><span>Choice 3: on the reef</span></li>
       <li class="tag blank" id="tag-finish"><code>finish</code><span>Choice 4: in the studio</span></li>
+      <li class="tag src" id="tag-src"><code>root:photos/print.jpg</code><span>The source: your print</span></li>
     </ol>
 
     <div class="cards">
@@ -591,17 +592,85 @@
     <img class="snap-static on-chain" src="media/snap-chain.webp" alt="" width="640" height="687" loading="lazy">
   </section>
 
+  <section id="s6" class="zone s6" aria-labelledby="s6-title">
+    <picture class="zone-bg">
+      <source media="(orientation: portrait)" type="image/avif" srcset="media/z6p-720.avif 720w, media/z6p-1080.avif 1080w" sizes="100vw">
+      <source media="(orientation: portrait)" type="image/webp" srcset="media/z6p-720.webp 720w, media/z6p-1080.webp 1080w" sizes="100vw">
+      <source type="image/avif" srcset="media/z6-1600.avif 1600w, media/z6-2400.avif 2400w, media/z6-3200.avif 3200w" sizes="(min-aspect-ratio: 21/9) 100vw, 233vh">
+      <img src="media/z6-1600.webp" srcset="media/z6-1600.webp 1600w, media/z6-2400.webp 2400w, media/z6-3200.webp 3200w" sizes="(min-aspect-ratio: 21/9) 100vw, 233vh" alt="" loading="lazy" decoding="async">
+    </picture>
+    <div class="zone-head panel">
+      <p class="tidemark">−2,500 m · The Vents</p>
+      <h2 id="s6-title">The engine <span class="coral">at the bottom.</span></h2>
+      <p>Everything up the chain runs on what is down here: one Rust binary, the libraries that build its URLs, and a server that agents can talk to. And in the glowing geode lies the source of it all.</p>
+    </div>
+
+    <div class="cards">
+      <article class="card" id="card-binary">
+        <div class="specimen spec-term" aria-label="Install and start crabcrop">
+          <p class="term-line" style="--i: 0"><span class="ps">$</span> curl --proto '=https' --tlsv1.2 -LsSf https://github.com/dayvson/crabcrop/releases/latest/download/crabcrop-installer.sh | sh</p>
+          <p class="term-line" style="--i: 1"><span class="ps">$</span> CRABCROP_SECRET=… crabcrop</p>
+          <p class="term-out" style="--i: 2">crabcrop listening on port 3000</p>
+        </div>
+        <div class="card-top">
+          <picture><source type="image/avif" srcset="media/icon-gear.avif"><img class="icon" src="media/icon-gear.webp" alt="" width="56" height="56" loading="lazy"></picture>
+          <h3>One binary, built in Rust</h3>
+        </div>
+        <p>Install it, give it a secret, and request images with the operations written into the URL. No pre-generated thumbnails, no build step: the URL is the API.</p>
+        <code class="chip">curl … crabcrop-installer.sh | sh</code>
+        <a class="docs" href="https://crabcrop.org/docs.html#start">Read the docs</a>
+      </article>
+
+      <article class="card" id="card-sdks">
+        <div class="specimen spec-sdk">
+          <div class="sdk-tabs" role="tablist" aria-label="Language">
+            <button type="button" role="tab" aria-selected="true" data-lang="ts">TypeScript</button>
+            <button type="button" role="tab" aria-selected="false" data-lang="py">Python</button>
+            <button type="button" role="tab" aria-selected="false" data-lang="rs">Rust</button>
+          </div>
+          <pre class="sdk-code" id="sdk-code" role="tabpanel"></pre>
+          <p class="sdk-out" id="sdk-out"></p>
+        </div>
+        <div class="card-top">
+          <picture><source type="image/avif" srcset="media/icon-chain.avif"><img class="icon" src="media/icon-chain.webp" alt="" width="56" height="56" loading="lazy"></picture>
+          <h3>SDKs and loaders</h3>
+        </div>
+        <p>Build and sign the same URL from TypeScript, Python, or the Rust crate the server verifies with, and drop in loaders for Next.js, Nuxt, Hydrogen, Astro and SvelteKit.</p>
+        <code class="chip">@crabcrop/url · crabcrop_url · crabcrop-url</code>
+        <a class="docs" href="https://crabcrop.org/docs.html#sdks">Read the docs</a>
+      </article>
+
+      <article class="card" id="card-mcp">
+        <div class="specimen spec-mcp">
+          <p class="spec-note">The little submersible is an agent. Its tool calls:</p>
+          <ol class="mcp" id="mcp-log"></ol>
+        </div>
+        <div class="card-top">
+          <picture><source type="image/avif" srcset="media/icon-reel.avif"><img class="icon" src="media/icon-reel.webp" alt="" width="56" height="56" loading="lazy"></picture>
+          <h3>An MCP server for agents</h3>
+        </div>
+        <p>Coding agents sign, explain and inspect URLs through four tools over the same SDK: <code>sign_url</code>, <code>explain_url</code>, <code>fetch_meta</code> and <code>purge_result</code>.</p>
+        <code class="chip">@crabcrop/mcp</code>
+        <a class="docs" href="https://crabcrop.org/docs.html#mcp">Read the docs</a>
+      </article>
+    </div>
+
+    <p class="sub-bubble" id="sub-bubble" aria-hidden="true"><code>sign_url</code> <b>✓</b></p>
+    <p class="story panel kind" id="kind-print">There it is, in the glow of the geode: Snap's print. The last tag on the chain says it all: <code>root:photos/print.jpg</code>, the source.</p>
+    <img class="snap-static stand vents-stand" src="media/snap-stand.webp" alt="" width="445" height="409" loading="lazy">
+  </section>
+
   <section id="next" class="zone slice-end">
     <picture class="zone-bg">
-      <source media="(orientation: portrait)" type="image/avif" srcset="media/z5p-720.avif 720w, media/z5p-1080.avif 1080w" sizes="100vw">
-      <source media="(orientation: portrait)" type="image/webp" srcset="media/z5p-720.webp 720w, media/z5p-1080.webp 1080w" sizes="100vw">
-      <source type="image/avif" srcset="media/z5-1600.avif 1600w, media/z5-2400.avif 2400w, media/z5-3200.avif 3200w" sizes="(min-aspect-ratio: 21/9) 100vw, 233vh">
-      <img src="media/z5-1600.webp" srcset="media/z5-1600.webp 1600w, media/z5-2400.webp 2400w, media/z5-3200.webp 3200w" sizes="(min-aspect-ratio: 21/9) 100vw, 233vh" alt="" loading="lazy" decoding="async">
+      <source media="(orientation: portrait)" type="image/avif" srcset="media/z6p-720.avif 720w, media/z6p-1080.avif 1080w" sizes="100vw">
+      <source media="(orientation: portrait)" type="image/webp" srcset="media/z6p-720.webp 720w, media/z6p-1080.webp 1080w" sizes="100vw">
+      <source type="image/avif" srcset="media/z6-1600.avif 1600w, media/z6-2400.avif 2400w, media/z6-3200.avif 3200w" sizes="(min-aspect-ratio: 21/9) 100vw, 233vh">
+      <img src="media/z6-1600.webp" srcset="media/z6-1600.webp 1600w, media/z6-2400.webp 2400w, media/z6-3200.webp 3200w" sizes="(min-aspect-ratio: 21/9) 100vw, 233vh" alt="" loading="lazy" decoding="async">
     </picture>
     <div class="panel">
-      <p class="tidemark">−1,000 m · Below the twilight</p>
-      <h2>The vents are <span class="coral">next.</span></h2>
-      <p>This preview goes as far as the twilight zone. Your URL so far:</p>
+      <p class="tidemark">−2,500 m · The winch starts</p>
+      <h2>The way back up is <span class="coral">next.</span></h2>
+      <p>This preview goes as far as the vents, where Snap found his print. Your URL so far:</p>
       <p class="url"><code id="url-so-far">https://<wbr>img.example.com/<wbr>3c1f6c18…/<wbr>crop:1200x630:smart/<wbr>filters:sharpen(1.2):saturation(1.1)/<wbr>root:photos/<wbr>print.jpg</code></p>
       <div class="ctas">
         <a class="btn" href="https://crabcrop.org/docs.html">Read the docs</a>
