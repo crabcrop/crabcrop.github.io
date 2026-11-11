@@ -228,7 +228,12 @@ export class Backdrop {
     entry.ready = true;
   }
 
-  /** A transition as a scrubbed image sequence, loaded a few frames at a time. */
+  /**
+   * A transition as a scrubbed image sequence. Its frames come in four packs
+   * (frame i in pack i % 4, each pack its frames' AVIF files end to end), so
+   * the first pack to arrive already covers the whole move and the others
+   * fill in between.
+   */
   async loadSequence(k: SeqKey) {
     const s = this.seqs[k];
     if (s.started) return;
@@ -236,15 +241,18 @@ export class Backdrop {
     const n = media[k].frames;
     s.frames = new Array(n).fill(null);
     if (!(await avifSupported())) return; // without AVIF the transition is a crossfade
-    const prefix = this.phone ? 'p' : 'd';
-    let next = 0;
-    const worker = async () => {
-      while (next < n) {
-        const i = next++;
-        try { s.frames[i] = await loadImage(url(`${k}/${prefix}-${String(i).padStart(3, '0')}.avif`)); } catch { /* skip a frame */ }
+    const dev = this.phone ? 'p' : 'd';
+    const packs = media[k].packs[dev];
+    await Promise.all(packs.map(async (lens, j) => {
+      let buf: ArrayBuffer;
+      try { buf = await (await fetch(url(`${k}/${dev}-pack${j}.avif`))).arrayBuffer(); } catch { return; /* its neighbours stand in */ }
+      let at = 0;
+      for (let m = 0; m < lens.length; m++) {
+        const frame = new Blob([buf.slice(at, at + lens[m])], { type: 'image/avif' });
+        at += lens[m];
+        try { s.frames[j + m * packs.length] = await loadImage(URL.createObjectURL(frame)); } catch { /* skip a frame */ }
       }
-    };
-    await Promise.all([worker(), worker(), worker(), worker()]);
+    }));
   }
 
   private source(k: SourceKey, frame: number): Src | null {

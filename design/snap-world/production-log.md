@@ -553,6 +553,10 @@ the stills; phone-format takes (9:16, 1080p) would fix that.
   on a 16:9 4K sheet of eight fish.
 - Background removals count toward the jobs in flight; a removal started
   next to five generations was refused.
+- The artifact host that serves the private preview holds at most 511
+  files a version, and counts removals in its 255 a publish. The four
+  transitions alone were 576 frame files, so the frames ship in packs of
+  18 (four a transition per device).
 - MiniMax H3 failed with the same image as start and end frame (no error
   given). With a start frame only it works, but the clip doesn't return to
   its first frame. Kling 4.0 handles start = end and loops cleanly, at 26

@@ -3,7 +3,7 @@
 (fetch them first with scripts/fetch-sources.sh) into ../preview/dive/media,
 and write media/manifest.json with the numbers the page needs.
 
-usage: python3 scripts/encode-media.py [images] [reef] [wreck] [video] [sequence] [wreckseq] [beam] [snap] [snappost] [scuttle] [claw] [ride] [snap3d]
+usage: python3 scripts/encode-media.py [images] [reef] [wreck] [video] [sequence] [wreckseq] [beam] [pack] [snap] [snappost] [scuttle] [claw] [ride] [snap3d]
        (no argument runs every step)
 needs: ffmpeg, numpy, scipy, Pillow with AVIF support; for snap3d also npx (gltf-transform) and trimesh
 """
@@ -417,7 +417,38 @@ def sequence(keys=('t1', 't2')):
             total['d'] += os.path.getsize(out(f'{key}/d-{i:03d}.avif'))
             total['p'] += os.path.getsize(out(f'{key}/p-{i:03d}.avif'))
         man[key] = {'frames': len(frames), 'fps': 9, 'd': [1600, 677], 'p': [528, 936], 'bytes': total}
+        pack_frames(key)
         print(key, man[key])
+
+
+PACKS = 4
+
+
+def pack_frames(key):
+    """Pack a transition's frames into PACKS files per device, frame i in
+    pack i % PACKS: the first pack to arrive already scrubs the whole move,
+    coarsely, and the rest fill in between. Each pack is the frames' AVIF
+    files end to end (it opens as its first frame, so it is still served as
+    an image); the manifest has their lengths, in order."""
+    n = man[key]['frames']
+    lens = {}
+    for dev in ('d', 'p'):
+        lens[dev] = []
+        for j in range(PACKS):
+            blobs = [open(out(f'{key}/{dev}-{i:03d}.avif'), 'rb').read() for i in range(j, n, PACKS)]
+            open(out(f'{key}/{dev}-pack{j}.avif'), 'wb').write(b''.join(blobs))
+            lens[dev].append([len(b) for b in blobs])
+        for i in range(n):
+            os.remove(out(f'{key}/{dev}-{i:03d}.avif'))
+    man[key]['packs'] = lens
+
+
+def pack():
+    """Pack transitions encoded before packing existed (their frames still on disk)."""
+    for key in SEQS:
+        if os.path.exists(out(f'{key}/d-000.avif')):
+            pack_frames(key)
+            print('packed', key)
 
 
 def snap():

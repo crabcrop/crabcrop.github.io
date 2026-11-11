@@ -72,7 +72,10 @@ The 3D Snap follows (0.7 MB of shape as base64 text and a 0.2 MB texture)
 with the print he holds, then the marina loop. Snap's eight films (6 MB)
 load only if the 3D Snap cannot. Each later zone and transition loads as
 the visitor gets near it. All the media together are about 41 MB, a third
-of it the four transitions (72 frames each).
+of it the four transitions (72 frames each). Each transition's frames come
+in four packs per device, frame i in pack i % 4, so the first pack to
+arrive already scrubs the whole move and the others fill in between (and a
+transition is 8 requests, not 144).
 
 The sealed token in the chest, on the chain and in the URL so far is a
 stand-in: random-looking base64url of the right length (a 12-byte nonce,

@@ -102,6 +102,8 @@ main { position: relative; z-index: 1; }
 .slice-end { min-height: 100vh; display: grid; place-items: center start; padding: 18vh 16px 18vh clamp(150px, 15vw, 230px); }
 .slice-end .panel { width: 100%; max-width: min(500px, 38vw); min-width: 0; }
 .slice-end .zone-bg { justify-self: stretch; align-self: start; }
+/* after the drop: the panel arrives once the glowing creatures have */
+#next.slice-end { padding-top: 70vh; }
 .slice-end .url code { display: block; padding: 12px 14px; background: var(--abyss); color: var(--sea-glass); border-radius: 12px; border: 2px solid var(--ink); overflow-wrap: anywhere; font-size: 13px; }
 
 .zone-bg { display: block; position: sticky; top: 0; height: 100vh; margin-bottom: -100vh; z-index: 0; overflow: hidden; }
@@ -432,6 +434,7 @@ body.on-snap { cursor: pointer; }
   .hero { top: calc(var(--top) + 40vh); }
   .story { left: 16px; right: 16px; width: auto; top: 200vh; }
   .slice-end { place-items: center; padding: 18vh 16px; }
+  #next.slice-end { padding-top: 70vh; }
   .gl .station > .station-body, .gl .station[data-st="0"] > .station-body { left: 12px; right: 12px; width: auto; top: calc(var(--top) + 12px); transform: none; gap: 10px; }
   .gl .station[data-phone="bottom"] > .station-body { top: auto; bottom: 12px; }
   .gl .reef-card { padding: 14px 16px 16px; }

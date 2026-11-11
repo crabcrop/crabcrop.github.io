@@ -3,6 +3,7 @@ import manifest from '../../preview/dive/media/manifest.json';
 export type Box = [number, number, number, number];
 export interface Clip { w: number; h: number; duration: number; box: Box; boxEnd: Box; crop: [number, number]; print?: number[][]; claw?: number[][]; clicks?: number[] }
 export interface Plate { w: number; h: number; widths: number[]; waterline?: number; thumbhash: string }
+export interface Seq { frames: number; fps: number; d: [number, number]; p: [number, number]; bytes: { d: number; p: number }; packs: { d: number[][]; p: number[][] } }
 
 export const media = manifest as unknown as {
   plates: Record<'z0' | 'z0p' | 'z1' | 'z1p' | 'z2' | 'z2p' | 'z3' | 'z3p' | 'z3_2' | 'z3_2p' | 'z3_3' | 'z3_3p' | 'z3_4' | 'z3_4p' | 'z3_4c' | 'z3b' | 'z3bp' | 'z4x' | 'z4xp' | 'z4' | 'z4p' | 'z5' | 'z5p', Plate>;
@@ -13,10 +14,8 @@ export const media = manifest as unknown as {
   seagrass: { w: number; h: number };
   kelp: { w: number; h: number };
   coral: { w: number; h: number };
-  t1: { frames: number; fps: number; d: [number, number]; p: [number, number]; bytes: { d: number; p: number } };
-  t2: { frames: number; fps: number; d: [number, number]; p: [number, number]; bytes: { d: number; p: number } };
-  t3: { frames: number; fps: number; d: [number, number]; p: [number, number]; bytes: { d: number; p: number } };
-  t4: { frames: number; fps: number; d: [number, number]; p: [number, number]; bytes: { d: number; p: number } };
+  /** The transitions: frames, their size on desktop (d) and phones (p), and the byte lengths of the frames in each of their packs. */
+  t1: Seq; t2: Seq; t3: Seq; t4: Seq;
   /** The barnacled beam (a foreground cutout in the wreck). */
   beam: { w: number; h: number };
   /** The octopus with its letter; seal is where the wax goes on the envelope's flap, envelope its box, as shares of the sprite. */
