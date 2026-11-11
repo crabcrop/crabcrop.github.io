@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__Higgsfield__generate_image",
+      "mcp__Higgsfield__generate_image_batch",
+      "mcp__Higgsfield__generate_video",
+      "mcp__Higgsfield__generate_video_batch",
+      "mcp__Higgsfield__jobs_wait",
+      "mcp__Higgsfield__job_display",
+      "mcp__Higgsfield__show_generation_by_ids",
+      "mcp__Higgsfield__remove_background",
+      "mcp__Higgsfield__sandbox_exec",
+      "mcp__Higgsfield__attach_project_asset",
+      "mcp__Higgsfield__move_project_asset",
+      "mcp__Higgsfield__list_project_assets",
+      "mcp__Higgsfield__create_folder",
+      "mcp__Higgsfield__show_reference_elements",
+      "mcp__Higgsfield__manage_reference_elements",
+      "mcp__Higgsfield__media_import_url",
+      "mcp__Higgsfield__balance",
+      "mcp__Higgsfield__models_explore",
+      "mcp__Higgsfield__get_preferences",
+      "mcp__Higgsfield__get_workflow_instructions"
+    ]
+  }
+}

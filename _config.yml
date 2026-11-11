@@ -1,0 +1,11 @@
+# GitHub Pages builds this site with Jekyll. The dive's source (experience/)
+# and its design notes (design/) live in the repo but are not part of the
+# site: of the dive, only its build, preview/dive/, is published. The rest
+# keeps Jekyll's own exclusions.
+exclude:
+  - experience
+  - design
+  - Gemfile
+  - Gemfile.lock
+  - node_modules
+  - vendor
