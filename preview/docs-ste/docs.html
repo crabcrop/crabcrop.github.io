@@ -705,15 +705,17 @@ docker pull ghcr.io/dayvson/crabcrop-ai:0.9.5</pre></div>
       <p>Prebuilt tarballs are on the <a href="https://github.com/dayvson/crabcrop/releases" target="_blank" rel="noopener">releases page</a>. The tarballs cover macOS and Linux. They cover x86_64 and arm64.</p>
       <p>You can also build from source with <code>cargo run</code>, <code>cargo build</code>, or <code>cargo install crabcrop</code>. A source build needs a C compiler. On x86_64, it also needs nasm. You need Meson and ninja only for the vendored AVIF decode route.</p>
       <h3>Quickstart</h3>
-      <div class="cb"><button class="copy-btn" type="button" data-copytarget>Copy</button><pre># 1. Start the server. A secret is required; unsafe is for local dev only.
-CRABCROP_SECRET=local-dev-secret CRABCROP_ALLOW_UNSAFE=1 crabcrop
+      <div class="cb"><button class="copy-btn" type="button" data-copytarget>Copy</button><pre># 1. Start the server with a new secret. Unsafe is for local dev only.
+export CRABCROP_SECRET="$(openssl rand -hex 16)"
+CRABCROP_ALLOW_UNSAFE=1 crabcrop
 # crabcrop listening on port 3000
 
 # 2. Request an image: resize a source photo to 300x200.
 curl "http://localhost:3000/unsafe/300x200/https://example.com/photo.jpg" --output photo.jpg
 
 # 3. In production, drop CRABCROP_ALLOW_UNSAFE and sign the URL instead.
-curl "http://localhost:3000/9e24ae8bf61c0d40cb6f1ca9f9e1d3e771f6c8bc8b8ab7270e6d15458d4c14ab/300x200/https://example.com/photo.jpg" --output photo.jpg</pre></div>
+#    In a shell with the same CRABCROP_SECRET, crabcrop sign prints the signed URL.
+curl "$(crabcrop sign 300x200/https://example.com/photo.jpg)" --output photo.jpg</pre></div>
       <p>Every image request has three parts: <code>GET /&lt;signature&gt;/&lt;operations&gt;/&lt;source-url&gt;</code>. The server applies the operations in path order. It caps the output at 16383 px per axis. It caps the output at 100 megapixels in total. A request over either cap fails with <code>400</code>, before the server allocates anything.</p>
     </section>
 
@@ -1394,7 +1396,8 @@ crabcrop convert-thumbor "unsafe/300x200/smart/https://example.com/photo.jpg"</p
       <h2>Deployment and CDN</h2>
       <p>Run crabcrop behind a reverse proxy or a CDN in production. The application bounds its own work. The processing, AI, video, and animation gates shed overload with <code>503</code>. But connection-level protections belong at the edge. These are request and header timeouts, connection limits, rate limiting, and TLS termination. Restrict <code>/health</code> to your internal network at the proxy. The endpoint has no authentication. <code>/metrics</code> is not open either. It exposes traffic counters and error counters. It returns <code>403</code> until you set <code>CRABCROP_METRICS_TOKEN</code>. Then it needs that bearer token. A missing or wrong token gets <code>401</code>.</p>
       <div class="cb"><button class="copy-btn" type="button" data-copytarget>Copy</button><pre>docker build -t crabcrop:latest .
-docker run -p 3000:3000 -e CRABCROP_SECRET=your-secret-change-me crabcrop:latest
+docker run -p 3000:3000 -e CRABCROP_SECRET="$(openssl rand -hex 32)" crabcrop:latest
+# This makes a new secret on each run. To sign URLs, generate one once and keep it.
 # For the AI features, build Dockerfile.ai on top of that image.</pre></div>
       <h3>Choose a platform</h3>
       <p>One recipe per platform, each a complete walkthrough in the repo:</p>
