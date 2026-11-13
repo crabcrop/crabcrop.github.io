@@ -3,7 +3,7 @@
 (fetch them first with scripts/fetch-sources.sh) into ../preview/dive/media,
 and write media/manifest.json with the numbers the page needs.
 
-usage: python3 scripts/encode-media.py [images] [opening] [reef] [wreck] [video] [sequence] [wreckseq] [beam] [pack] [twilight] [vents] [surface] [snap] [snappost] [scuttle] [claw] [ride] [snap3d]
+usage: python3 scripts/encode-media.py [images] [opening] [sub] [reef] [wreck] [video] [sequence] [wreckseq] [beam] [pack] [twilight] [vents] [surface] [snap] [snappost] [scuttle] [claw] [ride] [snap3d]
        (no argument runs every step)
 needs: ffmpeg, numpy, scipy, Pillow with AVIF support; for snap3d also npx (gltf-transform) and trimesh
 """
@@ -503,6 +503,72 @@ def opening():
     # ring: where the chain ends; ties: the two ends of its stock (left, right), where the float's line is made fast; ground: where it meets the sand
     man['anchor'] = {'w': an.size[0], 'h': an.size[1], 'ring': [0.855, 0.04], 'ties': [[0.485, 0.17], [0.965, 0.35]], 'ground': 0.925, 'bytes': save_pair(an, 'anchor', 58, 80)}
     print('float', fl.size, man['float']['bytes'], 'anchor', an.size, man['anchor']['bytes'])
+
+
+def sub():
+    """The little brass submersible that carries Snap back up, shot on grey
+    (the one painted into the vents' plate, from the same angle). Brass and
+    steel are solid; its glass is a thin film, so whatever is behind shows
+    through, with the highlights and what the glass bends kept."""
+    rgb = np.asarray(Image.open(src('sub-src.png')).convert('RGB')).astype(np.float32)
+    h, w = rgb.shape[:2]
+
+    def opp(c):
+        r, g, b = c[..., 0], c[..., 1], c[..., 2]
+        return np.dstack([(r + g + b) / 3, r - g, (r + g) / 2 - b])
+    yy, xx = np.mgrid[0:h, 0:w]
+    x = (xx / w - 0.5).astype(np.float32); y = (yy / h - 0.5).astype(np.float32)
+    A = np.dstack([np.ones_like(x), x, y, x * x, x * y, y * y, x ** 3, y ** 3, x * x * y, x * y * y])
+    ground = np.zeros((h, w), bool); m = int(0.07 * min(h, w))
+    ground[:m] = ground[-m:] = True; ground[:, :m] = ground[:, -m:] = True
+    for _ in range(4):
+        sel = ground[::7, ::7]
+        field = np.dstack([A @ np.linalg.lstsq(A[::7, ::7][sel], rgb[::7, ::7, c][sel], rcond=None)[0] for c in range(3)])
+        d = opp(rgb) - opp(field)
+        dist = np.sqrt((0.5 * d[..., 0]) ** 2 + d[..., 1] ** 2 + d[..., 2] ** 2)
+        ground = dist < 5
+    chroma = np.sqrt(d[..., 1] ** 2 + d[..., 2] ** 2)          # brass is far from grey in colour
+    # the whole submersible, glass included: everything that differs at all, closed up and filled
+    rough = ndimage.binary_opening(dist > 6, structure=np.ones((3, 3)))
+    lab, k = ndimage.label(rough)
+    sizes = ndimage.sum(rough, lab, range(1, k + 1))
+    rough = np.isin(lab, 1 + np.where(sizes > 0.01 * sizes.max())[0])
+    sil = ndimage.binary_fill_holes(ndimage.binary_closing(rough, structure=np.ones((25, 25))))
+    sil = ndimage.binary_erosion(sil, iterations=2)
+    # solid: brass by its colour; steel (the two arms, low and to the left of the hull) by where it is.
+    # Only small holes are filled there: the gap between the two arms stays open.
+    solid = ndimage.binary_closing(feather(chroma > 14, 1.2) > 0.5, structure=np.ones((5, 5)))
+    ys, xs = np.where(sil)
+    x0, x1, y0, y1 = xs.min(), xs.max(), ys.min(), ys.max()
+    arms = sil & (xx < x0 + 0.40 * (x1 - x0)) & (yy > y0 + 0.66 * (y1 - y0))
+    steel = ndimage.binary_closing(dist > 3.5, structure=np.ones((5, 5)))
+    holes, hk = ndimage.label(~steel)
+    hs = ndimage.sum(~steel, holes, range(1, hk + 1))
+    steel = steel | np.isin(holes, 1 + np.where(hs < 0.00012 * steel.size)[0])
+    arm = arms & steel
+    bits, bk = ndimage.label(arm)                               # and no stray specks beside them
+    bs = ndimage.sum(arm, bits, range(1, bk + 1))
+    arm = np.isin(bits, 1 + np.where(bs > 0.02 * bs.max())[0])
+    solid_a = feather(((solid | arm) & sil).astype(np.float32), 1.0)
+    # glass: a thin film, more where it catches the light or bends what is behind it; none between the arms
+    key = np.clip((dist - 5) / 22, 0, 1)
+    glass_a = np.where(arms, 0, np.clip(0.26 + 0.75 * key, 0, 0.92) * feather(sil.astype(np.float32), 1.5))
+    a = np.clip(np.maximum(solid_a, np.where(sil, glass_a, 0)), 0, 1)
+    out_rgb = rgb.copy()
+    e = (a > 0.02) & (a < 0.985)                                # the colour without the grey that shows through
+    out_rgb[e] = np.clip((rgb[e] - (1 - a[e])[:, None] * field[e]) / a[e][:, None], 0, 255)
+    im = Image.fromarray(np.dstack([out_rgb.astype(np.uint8), (a * 255).astype(np.uint8)]), 'RGBA')
+    bx0, by0, bx1, by1 = bbox(a, 0.03)
+    im = im.crop((bx0, by0, bx1, by1))
+    # the flat cap of its tower, where Snap stands: the topmost brass, about the middle of its width
+    cap = solid[by0:by1, bx0:bx1]
+    rows = np.where(cap.sum(axis=1) > 0.04 * cap.shape[1])[0]
+    top = rows.min()
+    cols = np.where(cap[top:top + max(4, cap.shape[0] // 40)].any(axis=0))[0]
+    stand = [round(float((cols.min() + cols.max()) / 2 / cap.shape[1]), 4), round(float((top + cap.shape[0] * 0.034) / cap.shape[0]), 4)]
+    im = im.resize((900, round(im.size[1] * 900 / im.size[0])), Image.LANCZOS)
+    man['sub'] = {'w': im.size[0], 'h': im.size[1], 'stand': stand, 'bytes': save_pair(im, 'sub', 56, 80)}
+    print('sub', im.size, man['sub'])
 
 
 def wreckseq():
@@ -1113,7 +1179,7 @@ def snap3d():
     print('snap3d', {k: v for k, v in man['snap3d'].items() if k not in ('limbs', 'eyes')}, kinds)
 
 
-steps = sys.argv[1:] or ['images', 'opening', 'reef', 'wreck', 'twilight', 'vents', 'surface', 'video', 'sequence', 'wreckseq', 'snap', 'snappost', 'scuttle', 'claw', 'ride', 'snap3d']
+steps = sys.argv[1:] or ['images', 'opening', 'sub', 'reef', 'wreck', 'twilight', 'vents', 'surface', 'video', 'sequence', 'wreckseq', 'snap', 'snappost', 'scuttle', 'claw', 'ride', 'snap3d']
 for st in steps:
     globals()[st]()
     json.dump(man, open(MAN_PATH + '.tmp', 'w'), indent=1)   # written whole or not at all

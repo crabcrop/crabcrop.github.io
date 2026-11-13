@@ -579,8 +579,8 @@ change by scene change. What it showed:
   into a place (T02, T03), the lantern, the choices, the ending, and above
   all the reef, the one place he walks.
 
-The rule since: **Snap rides the chain once, then walks.** The opening is
-rebuilt that way (the rest follows):
+The rule since: **Snap rides the chain once, then walks.** The opening was
+rebuilt that way first (the rest of the dive is in the next section):
 
 - The chain ends at its anchor, on the sand at the foot of the pier
   (−5 m). T01 is retired. The plunge is the marina's plate itself, pushed
@@ -595,12 +595,10 @@ rebuilt that way (the rest follows):
   into the kelp the same way, the forest's edge passing the lens.
 - In the shallows and the kelp he stands on the ground, and leaps to the
   cards from there. For the glide to the reef he pushes off and swims.
-- Further down the scenes are as first built, with his line in place of
-  the chain, until they are redone: he swims between them, and swims up
-  through the ascent's bands with his float. Back at the surface the
-  anchor chain and its anchor fade in again as the camera pulls out to the
-  whole marina (the anchor a little to the left of where it is in the
-  morning plate, clear of the friends painted into the sunset one).
+- Back at the surface the anchor chain and its anchor fade in again as
+  the camera pulls out to the whole marina (the anchor a little to the
+  left of where it is in the morning plate, clear of the friends painted
+  into the sunset one).
 - The still page (reduced motion, no WebGL) is as it was.
 
 New props, Nano Banana Pro, 1:1, 2K, on mid-grey (folder 05):
@@ -615,12 +613,63 @@ in the build (`grey_matte` in `encode-media.py`): the grey ground is
 fitted as a smooth field and the prop keyed by its distance in colour
 from it.
 
+## The rest of the dive, by the same rule
+
+From the Clam Studio on, the dive was redone the same way. No new plates
+or films were needed, only one prop.
+
+- **Clam Studio to the wreck is a walk.** The reef's panorama has a sixth
+  panel: the wreck seen from outside (the first frame of T03's world, the
+  Z4 exterior plate). The camera travels on from the studio as Snap
+  walks; a last coral, taller than the others and dimmed as it passes into
+  the wreck's darker water, crosses the lens where the reef ends; the
+  water is murky just there (a haze in the plate's shader, thickest at the
+  join); a barnacled beam lies in the foreground a little further on. The
+  fade through flat teal is gone, and the depth gauge now counts down
+  while the picture moves.
+- **Snap is on his feet at the wreck.** He stands on the sand beside the
+  hole in the hull. With T03 he pushes off and swims in through it, and
+  comes down on the cabin's floor by the captain's desk, where the octopus
+  comes out to meet him. He leaps to the cards from the floor.
+- **Out again with no fade.** T03 plays backwards (out through the hole),
+  and T04, the drop, starts from its first frame, which is that same view
+  of the wreck from outside: one move from the cabin to the twilight zone.
+- **The fall is the one place he falls.** Beyond the wreck there is
+  nothing under him: through the twilight zone and down to the vents he
+  sinks with his float, and lands by the geode.
+- **The submarine carries him up.** The little brass submersible painted
+  into the vents' plate (the MCP card's agent) offers him a lift once he
+  has his print: "Going up? Hop on." He pushes off, the ascent's colours
+  begin, and it comes up under him. He rides it standing on its tower,
+  the print beside his free claw taking on the visitor's choices. At the
+  top it surfaces with him by the pier, its tower just under the water
+  (below the surface both take on the sunset water's own dark blue, not
+  the morning's turquoise); his line and its tags are let go as the
+  receipt comes up with the whole URL on it; he leaps home and it sinks
+  away.
+- **The tags keep clear of his face.** The line is a little longer and its
+  last tag hangs well above his claw. With his print in his claw the
+  source's tag takes the last place on the line and the others move up
+  for it (it used to hang across his body).
+
+The prop, Nano Banana Pro, 3:2, 2K, on mid-grey (folder 05), with the
+vents' plate (`b71b1c0a-04ce-448e-bac2-1566a6da2ae9`) as the reference so
+it is the same model as the one painted there:
+
+| Prop | Job | Notes |
+| --- | --- | --- |
+| The submarine | `88d7b42c-aef2-4477-b639-d356e60dc25d` | Seen from the same three-quarter angle as in the plate, nose to the lower left, glass empty. Alternate, exactly from the side: `76818d44-c31f-49d7-b497-1ea4b2ebcfd8` |
+
+It is cut out in the build (`sub()` in `encode-media.py`): the grey key
+again, with the brass and steel kept solid and the glass left as a thin
+film, so whatever is behind it shows through.
+
 ## Next
 
-Redo the rest by the same rule: a walk from the Clam Studio to the wreck
-in place of the fade to teal; Snap on his feet outside the wreck and in
-the cabin; his way out of the cabin and off the edge into the dark; and a
-way up that needs no chain (the little submersible could carry him).
+The still page (reduced motion, no WebGL) still shows Snap hugging a piece
+of chain in each zone. The way from the twilight zone to the vents still
+dips through an ember dark (it reads as sinking into the glow, so it was
+left). The page is about 46 screens long; trimming it is its own job.
 
 Still open besides: the real signed URLs (the builder needs the signing
 secret in CI), Snap's claw moving for the snip in the kelp, depth maps for
@@ -694,6 +743,18 @@ the stills; phone-format takes (9:16, 1080p) would fix that.
 - Asked for a share of the frame ("45 percent of the frame height"), Nano
   Banana Pro fills about three quarters of it. "Wide shot with a lot of
   empty space" plus explicit proportions gives real headroom.
+- A film between two plates that are not one place morphs: things lift
+  off the ground and slide. Films work where the camera goes into a place
+  (through the kelp to the reef, through the hull) or along one picture.
+  Between two places, put the plates side by side, travel the camera, and
+  pass something close to the lens where they meet.
+- A film that ends where another begins joins with no fade: T03 backwards
+  ends on the wreck from outside, which is T04's first frame.
+- To get a prop that matches one already painted into a plate, pass the
+  plate as the reference and say where in it the thing is ("the small
+  brass toy submersible from the lower right of the reference image, alone
+  and whole, exactly the same model"). Glass has to be asked for empty
+  ("so the plain background shows through it"), and keyed by hand.
 - Asked to scuttle "in place", Kling paced right and left across the
   frame. "A walk cycle on the spot" with "his body stays exactly in the
   center and never travels left or right", at 4 s, held him within 1

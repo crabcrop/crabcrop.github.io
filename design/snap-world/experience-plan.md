@@ -12,9 +12,10 @@ How the page works, scene by scene, and how to build it. Read
 > there he goes on foot, sideways along the sea floor from place to place,
 > with the URL's tags on a little line of his own that a float holds up;
 > he swims where a film glides into a place, and falls only where there
-> is nothing below him, off the edge beyond the wreck. S0 to S2 are
-> rebuilt this way; where this plan says he rides the chain past S1, read
-> it as history until the rest is redone.
+> is nothing below him, off the edge beyond the wreck. The little
+> submarine at the vents carries him back up. The whole dive is built
+> this way now; where this plan says he rides the chain past S1, or is
+> winched up it, read it as history.
 
 ## 1. Shape of the page
 

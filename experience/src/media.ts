@@ -21,6 +21,8 @@ export const media = manifest as unknown as {
   float: { w: number; h: number; ring: [number, number] };
   /** The anchor the chain ends on: its ring (the chain's end), the two ends of its stock (the float's line is made fast to one until Snap takes it) and where it meets the sand, as shares of the sprite. */
   anchor: { w: number; h: number; ring: [number, number]; ties: [[number, number], [number, number]]; ground: number };
+  /** The little brass submersible that carries Snap back up; stand is the top of its tower, where he stands, as shares of the sprite. */
+  sub: { w: number; h: number; stand: [number, number] };
   /** The transitions: frames, their size on desktop (d) and phones (p), and the byte lengths of the frames in each of their packs. */
   t2: Seq; t3: Seq; t4: Seq;
   /** The tube worms of the vents, cut out. */

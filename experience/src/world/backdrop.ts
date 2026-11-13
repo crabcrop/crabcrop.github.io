@@ -17,6 +17,7 @@ uniform float uWarm, uShimmer;
 uniform float uMix, uTime, uMouseOn, uWaterY, uRipple, uGlint, uShafts, uTintAmt;
 uniform float uSplit, uRegionAmt, uCanSide, uPixSize, uLampsOn, uLampR;
 uniform vec4 uRegion, uPix, uSwing, uSwingR, uGlow;
+uniform vec3 uHaze, uHazeCol;
 uniform vec3 uLamp0, uLamp1, uLamp2, uImpact;
 uniform vec2 uRes, uMouse;
 uniform vec3 uTint;
@@ -159,12 +160,14 @@ void main() {
     float r2 = dot(g2, g2);
     col += uGlow.w * (exp(-r2 * 18.0) * 0.55 + exp(-r2 * 2.2) * 0.22) * vec3(1.0, 0.68, 0.32);
   }
+  // Murky water where two places meet: thickest at the join, clearing to both sides.
+  if (uHaze.z > 0.0) col = mix(col, uHazeCol, uHaze.z * (1.0 - smoothstep(0.0, uHaze.y, abs(sp.x - uHaze.x))));
   col = applyLook(mix(col, uTint, uTintAmt));
   gl_FragColor = vec4(col, 1.0);
 }`;
 
-/** z0 to z3 are the zones' plates (z0u is the marina's underwater half, sharper, for the plunge); r0 to r4 are the reef panorama's panels, left to right, and r3c is r3 with the can removed; z4x is the wreck outside, z4 its cabin and z5 the twilight zone. */
-export type Zone = 'z0' | 'z0u' | 'z1' | 'z2' | 'z3' | 'r0' | 'r1' | 'r2' | 'r3' | 'r3c' | 'r4' | 'z4x' | 'z4' | 'z5' | 'z5lit' | 'z6' | 'z7';
+/** z0 to z3 are the zones' plates (z0u is the marina's underwater half, sharper, for the plunge); r0 to r5 are the reef panorama's panels, left to right: four stations, the Clam Studio and, past the last coral, the wreck seen from outside (r5, the whole plate on phones too); r3c is r3 with the can removed; z4x is the wreck outside on its own, z4 its cabin and z5 the twilight zone. */
+export type Zone = 'z0' | 'z0u' | 'z1' | 'z2' | 'z3' | 'r0' | 'r1' | 'r2' | 'r3' | 'r3c' | 'r4' | 'r5' | 'z4x' | 'z4' | 'z5' | 'z5lit' | 'z6' | 'z7';
 export type SeqKey = 't2' | 't3' | 't4';
 const SEQ_KEYS: SeqKey[] = ['t2', 't3', 't4'];
 const isSeq = (k: SourceKey): k is SeqKey => (SEQ_KEYS as string[]).includes(k);
@@ -176,11 +179,11 @@ interface Seq { frames: (HTMLImageElement | null)[]; tex: THREE.Texture | null; 
 /** The file behind each zone, on wide screens and on phones. The reef pans across whole plates on phones too. */
 const PLATE: Record<Zone, [PlateKey, PlateKey]> = {
   z0: ['z0', 'z0p'], z0u: ['z0u', 'z0up'], z1: ['z1', 'z1p'], z2: ['z2', 'z2p'], z3: ['z3', 'z3p'],
-  r0: ['z3', 'z3'], r1: ['z3_2', 'z3_2'], r2: ['z3_3', 'z3_3'], r3: ['z3_4', 'z3_4'], r3c: ['z3_4c', 'z3_4c'], r4: ['z3b', 'z3b'],
+  r0: ['z3', 'z3'], r1: ['z3_2', 'z3_2'], r2: ['z3_3', 'z3_3'], r3: ['z3_4', 'z3_4'], r3c: ['z3_4c', 'z3_4c'], r4: ['z3b', 'z3b'], r5: ['z4x', 'z4x'],
   z4x: ['z4x', 'z4xp'], z4: ['z4', 'z4p'], z5: ['z5', 'z5p'], z5lit: ['z5lit', 'z5litp'], z6: ['z6', 'z6p'], z7: ['z7', 'z7p'],
 };
 const LOOPS: Partial<Record<Zone, true>> = { z0: true, z1: true, z2: true, z4: true, z6: true, z7: true };
-export const PANELS: Zone[] = ['r0', 'r1', 'r2', 'r3', 'r4'];
+export const PANELS: Zone[] = ['r0', 'r1', 'r2', 'r3', 'r4', 'r5'];
 
 /** What the reef asks of the backdrop: where the camera is, and the effects on its panels. */
 export interface ReefView {
@@ -193,6 +196,8 @@ export interface ReefView {
   pix: { panel: number; cu: number; cv: number; ru: number; rv: number; size: number } | null;
   /** The three lamps on r4, in its plate shares, with how far each is switched on. */
   lamps: [number, number, number][] | null;
+  /** Murky water at a join between two places: where it is across the screen (px), how far it reaches to each side (px), how thick (0 to 1). */
+  haze?: { x: number; reach: number; amt: number } | null;
 }
 
 /** The world behind everything: plates, their loops, the transition frames and the reef panorama. */
@@ -225,6 +230,7 @@ export class Backdrop {
       uLampsOn: { value: 0 }, uLampR: { value: 100 }, uLamp0: v3(), uLamp1: v3(), uLamp2: v3(), uImpact: { value: new THREE.Vector3(0, 0, -10) },
       uLit: { value: this.blank }, uLitCover: { value: new THREE.Vector4(0, 0, 1, 1) }, uLight: { value: new THREE.Vector4() }, uWarm: { value: 0 }, uShimmer: { value: 0 }, uAscent: { value: new THREE.Vector2() },
       uSwing: { value: new THREE.Vector4() }, uSwingR: { value: new THREE.Vector4(0, 0, 1, 1) }, uGlow: { value: new THREE.Vector4(0, 0, 1, 0) },
+      uHaze: { value: new THREE.Vector3(0, 1, 0) }, uHazeCol: { value: new THREE.Vector3(0.06, 0.27, 0.34) },
       ...LOOK,
     };
     const mat = new THREE.ShaderMaterial({ vertexShader: VERT, fragmentShader: FRAG, uniforms: this.u, depthTest: false, depthWrite: false });
@@ -347,6 +353,7 @@ export class Backdrop {
     this.u.uWarm.value = 0;
     this.u.uSwing.value.w = 0;
     this.u.uGlow.value.w = 0;
+    this.u.uHaze.value.z = 0;
     this.u.uSplit.value = -1e5;
     this.u.uRegionAmt.value = 0;
     this.u.uPixSize.value = 0;
@@ -478,6 +485,7 @@ export class Backdrop {
       this.u.uLampR.value = base.dh * 0.12;
       this.u.uLampsOn.value = 1;
     }
+    if (view.haze && view.haze.amt > 0) this.u.uHaze.value.set(view.haze.x, view.haze.reach, view.haze.amt);
     this.u.uRes.value.set(s.w, s.h);
     place(this.mesh, 0, 0, s.w, s.h);
     this.mesh.visible = true;

@@ -70,9 +70,11 @@ export interface SnapCtx {
    * walking there with his line in his raised claw, then up off it again
    * (lift 0 to 1). feet and body place him there; hold is where his raised
    * claw is while he is off the ground; vel is how fast he walks, px per
-   * second. print: he holds up his photo print, found (the vents).
+   * second. print: he holds up his photo print, found (the vents). raise: his
+   * free claw is up with nothing drawn in it (on the way up the page shows
+   * the print beside it, taking on the visitor's choices).
    */
-  ground?: { land: number; lift: number; feet: [number, number]; body: number; vel: number; hold: [number, number]; print?: boolean };
+  ground?: { land: number; lift: number; feet: [number, number]; body: number; vel: number; hold: [number, number]; print?: boolean; raise?: boolean };
   /** Back at the surface: when on, he leaps off the chain onto the pier (feet, his height there) and waves with his print. */
   home?: { on: boolean; feet: [number, number]; body: number };
 }
@@ -529,7 +531,9 @@ export class Snap {
     // Home at the surface: off the chain onto the pier, waving, his print held up (and back on the chain if the visitor scrolls up).
     if (ctx.home) {
       if (ctx.home.on && this.state === 'chain' && !this.visitNow) {
-        const from: [number, number] = [ctx.hold[0] + cxo, ctx.hold[1] + cyo];
+        // from where he is: on his feet (on the submarine's tower), or swimming
+        const g = ctx.ground, [sx, sy] = this.rider.standCentre(ctx.chainBody);
+        const from: [number, number] = g && this.use3d && g.land >= 1 && g.lift <= 0 ? [g.feet[0] + sx, g.feet[1] + sy] : [ctx.hold[0] + cxo, ctx.hold[1] + cyo];
         this.leap = { t0: t, dur: LEAP, from, s0: 1, s1: ctx.home.body / ctx.chainBody, turns: 1, lift: Math.max(ctx.chainBody * 0.8, ctx.viewW * 0.06) };
         this.state = 'homeLeap';
       }
@@ -677,7 +681,7 @@ export class Snap {
     this.walking = true;
     if (this.use3d) {
       // On his feet in 3D, as big as on the chain, his line in his raised claw (and at the vents, his print in the other).
-      this.claw = this.rider.stand(dt, t, { feet: r.feet, h: ctx.chainBody, grade: ctx.grade, mouse: ctx.mouse, vel: r.vel, hold: r.print ? 1 : 0 });
+      this.claw = this.rider.stand(dt, t, { feet: r.feet, h: ctx.chainBody, grade: ctx.grade, mouse: ctx.mouse, vel: r.vel, hold: r.print || r.raise ? 1 : 0 });
       this.grip = this.claw;
       this.standAt = r.feet;
       if (r.print) this.holdPrint(t, { ...ctx, body: ctx.chainBody });

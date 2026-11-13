@@ -58,5 +58,7 @@ export class Prop {
   }
 
   grade(r: number, g: number, b: number) { this.u.uGrade.value.set(r, g, b); }
+  /** How much of the water's colour it takes on, and that colour. */
+  haze(amount: number, water?: [number, number, number]) { this.u.uHaze.value = amount; if (water) this.u.uWater.value.set(...water); }
   hide() { this.mesh.visible = false; }
 }

@@ -78,7 +78,7 @@ const VERT_RIG = /* glsl */ `
   }`;
 
 const FRAG_HEAD = /* glsl */ `
-uniform vec3 uGrade, uKeyDir, uLid, uDeep;
+uniform vec3 uGrade, uKeyDir, uLid, uDeep, uSea;
 uniform float uFade, uKey, uFill, uUnder, uBlink, uSquint, uWater, uSub, uTime, uDpr;
 varying vec4 vEye;
 ${LOOK_GLSL}
@@ -120,6 +120,9 @@ const FRAG_LIGHT = /* glsl */ `
     reflectedLight.indirectDiffuse = material.diffuseColor * uFill * fill;
   }`;
 
+/** The colour of the water at the morning marina, which he takes on below its surface. */
+export const SEA = [0.36, 0.76, 0.79] as const;
+
 // The zone's grade and look; under the water's surface (uWater, device px from
 // the bottom, with a ripple), the water's colour, and foam along the line.
 const FRAG_OUT = /* glsl */ `
@@ -128,7 +131,7 @@ const FRAG_OUT = /* glsl */ `
   if (uSub > 0.0) {
     float wy = uWater + sin(gl_FragCoord.x / uDpr * 0.045 + uTime * 2.2) * 1.8 * uDpr;
     float below = 1.0 - smoothstep(wy - uDpr, wy + uDpr, gl_FragCoord.y);
-    vec3 deep = mix(gl_FragColor.rgb, vec3(0.36, 0.76, 0.79), 0.3) * uDeep;
+    vec3 deep = mix(gl_FragColor.rgb, uSea, 0.3) * uDeep;
     gl_FragColor.rgb = mix(gl_FragColor.rgb, deep, below * uSub);
     float foam = (1.0 - smoothstep(0.0, 2.4 * uDpr, abs(gl_FragCoord.y - wy))) * uSub;
     gl_FragColor.rgb = mix(gl_FragColor.rgb, vec3(0.93, 0.98, 1.0), foam * 0.6);
@@ -180,7 +183,7 @@ export class Snap3D {
     uBlink: { value: 0 }, uSquint: { value: 0 },
     uLid: { value: new THREE.Color(0.6, 0.06, 0.055) },
     uWater: { value: -1e5 }, uSub: { value: 0 }, uTime: { value: 0 }, uDpr: { value: 1 },
-    uDeep: { value: new THREE.Vector3(0.92, 1.0, 1.0) },
+    uDeep: { value: new THREE.Vector3(0.92, 1.0, 1.0) }, uSea: { value: new THREE.Vector3(...SEA) },
     ...LOOK,
   };
   /** Per limb: two axes across it, for its swing, and its tip. */
@@ -192,7 +195,7 @@ export class Snap3D {
   private sway = 0;
   /** The middle of his feet, in his rig frame. */
   readonly foot = new THREE.Vector3(0.3, -0.68, 0);
-  private water: { y: number; sub: number } = { y: 1e5, sub: 0 };
+  private water: { y: number; sub: number; sea: readonly [number, number, number] } = { y: 1e5, sub: 0, sea: SEA };
   ready = false;
   private loading: Promise<void> | null = null;
 
@@ -370,8 +373,8 @@ export class Snap3D {
   freeClaw() { return this.screenOf(this.tips[FREE] ?? new THREE.Vector3()); }
   pincer() { return this.screenOf(this.tips[CLAW] ?? new THREE.Vector3()); }
 
-  /** The water's surface on screen (px from the top), and how much of the water's colour he takes below it (0 to 1). */
-  setWater(y: number | null, sub: number) { this.water = { y: y ?? -1e5, sub: y == null ? 0 : sub }; }
+  /** The water's surface on screen (px from the top), how much of the water's colour he takes below it (0 to 1), and that colour (the morning marina's unless given). */
+  setWater(y: number | null, sub: number, sea: readonly [number, number, number] = SEA) { this.water = { y: y ?? -1e5, sub: y == null ? 0 : sub, sea }; }
 
   hide() { this.group.visible = false; }
 
@@ -397,6 +400,7 @@ export class Snap3D {
     this.u.uTime.value = life.t;
     this.u.uWater.value = (this.stage.h - this.water.y) * dpr;
     this.u.uSub.value = this.water.sub;
+    this.u.uSea.value.set(...this.water.sea);
     this.live(life);
   }
 

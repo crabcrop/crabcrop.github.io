@@ -36,7 +36,7 @@ function whenNear(el: Element | null, fn: () => void) {
   io.observe(el);
 }
 
-/** A tag on the chain takes a value, with a little stamp. */
+/** A tag on Snap's line takes a value, with a little stamp. */
 function stamp(tag: HTMLElement, code: string, note: string) {
   tag.classList.remove('blank');
   tag.querySelector('code')!.textContent = code;
@@ -292,7 +292,7 @@ export class UI {
     }
   }
 
-  /** Choice 5: sealed or readable. Sealed, the signature tag on the chain becomes the token and the other tags fold into it. */
+  /** Choice 5: sealed or readable. Sealed, the signature tag on his line becomes the token and the other tags fold into it. */
   private sealChoice() {
     const status = document.getElementById('seal-status')!;
     this.sealed = this.sealInputs.find((i) => i.checked)?.value === 'sealed';
@@ -386,7 +386,7 @@ export class UI {
     this.story.classList.toggle('on', out.storyOn);
     this.kind.classList.toggle('on', out.kindOn);
 
-    // Tags on the chain. Reaching the kelp, the look tag shows the look already on.
+    // The tags on Snap's line. Reaching the kelp, the look tag shows the look already on.
     this.tagsEl.classList.toggle('on', out.tagsOn > 0.5);
     if (!this.lookShown && out.s2On > 0.6) {
       this.lookShown = true;
@@ -402,7 +402,7 @@ export class UI {
         const el = this.tagEls[i];
         if (!el) return;
         // where the line leans (trailing behind Snap as he walks) the tags still hang more or less upright
-        const dangle = (k === 'src' ? 0.05 : Math.max(-0.35, Math.min(0.35, -p.a * 0.6))) + Math.sin(t * 1.3 + i * 1.7) * 0.05;
+        const dangle = Math.max(-0.35, Math.min(0.35, -p.a * 0.6)) + Math.sin(t * 1.3 + i * 1.7) * 0.05;
         el.style.setProperty('--pos', `translate(${(p.x + 9).toFixed(1)}px, ${(p.y - 11).toFixed(1)}px) rotate(${dangle.toFixed(3)}rad)`);
       });
     }
