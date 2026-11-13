@@ -33,9 +33,11 @@ void main() {
   gl_FragColor = vec4(applyLook(col), c.a * uOpacity);
 }`;
 
-/** Knitted kelp stalks in the foreground of the forest. */
+/** Knitted kelp stalks in the foreground of the forest, and a clump of them at its edge that passes the camera on the way in. */
 export class Kelp {
   private stalks: THREE.Mesh[] = [];
+  private edge: THREE.Mesh[] = [];
+  private eu: Record<string, THREE.IUniform>;
   private u: Record<string, THREE.IUniform>;
   private ready = false;
 
@@ -58,6 +60,20 @@ export class Kelp {
       this.stalks.push(m);
       stage.scene.add(m);
     }
+    // The forest's edge: always fully there while it passes, whatever the forest's own layers are doing.
+    this.eu = { ...this.u, uOpacity: { value: 1 } };
+    for (let i = 0; i < (phone ? 2 : 3); i++) {
+      const mat = new THREE.ShaderMaterial({
+        vertexShader: VERT, fragmentShader: FRAG, transparent: true, depthTest: false, depthWrite: false,
+        uniforms: { ...this.eu, uPhase: { value: 0.9 + i * 1.7 } },
+      });
+      const m = new THREE.Mesh(geo, mat);
+      m.renderOrder = 9;
+      m.frustumCulled = false;
+      m.visible = false;
+      this.edge.push(m);
+      stage.scene.add(m);
+    }
   }
 
   async load() {
@@ -65,7 +81,8 @@ export class Kelp {
     this.ready = true;
   }
 
-  update(t: number, o: { vis: number; w: number; h: number; mouse: [number, number] | null }) {
+  /** edge: where the forest's edge is across the screen (px) while the camera passes it, else null. */
+  update(t: number, o: { vis: number; w: number; h: number; mouse: [number, number] | null; edge?: number | null }) {
     const on = this.ready && o.vis > 0.01;
     this.u.uOpacity.value = o.vis;
     this.u.uTime.value = t;
@@ -80,6 +97,18 @@ export class Kelp {
       const x = right ? o.w + w * 0.08 + par : -w * 0.08 + par;
       m.position.set(x, -(o.h * 1.12), 0);
       m.scale.set(right ? -w : w, h, 1);
+    });
+    // The edge of the forest: stalks side by side, wide enough to hide where the two places meet.
+    const ex = o.edge ?? null;
+    const spread = this.phone ? [-0.13, 0.16] : [-0.11, 0.02, 0.13];
+    const tall = this.phone ? [1.2, 1.32] : [1.42, 1.6, 1.36];
+    this.edge.forEach((m, i) => {
+      const x = ex === null ? 0 : ex + spread[i] * (this.phone ? o.w * 1.6 : o.w);
+      const eh = o.h * tall[i], ew = eh * (k.w / k.h);
+      m.visible = this.ready && ex !== null && x > -ew && x < o.w + ew;
+      if (!m.visible) return;
+      m.position.set(x, -(o.h * 1.14), 0);
+      m.scale.set(i % 2 ? -ew : ew, eh, 1);
     });
   }
 }

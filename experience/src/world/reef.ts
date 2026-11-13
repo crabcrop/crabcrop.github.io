@@ -23,7 +23,7 @@ export const REEF_UNITS = 7;
 const FRAG = /* glsl */ `
 precision highp float;
 uniform sampler2D uMap;
-uniform float uOpacity, uFlip;
+uniform float uOpacity, uFlip, uDim;
 varying vec2 vUv;
 ${LOOK_GLSL}
 void main() {
@@ -31,6 +31,8 @@ void main() {
   if (c.a < 0.01) discard;
   // Nearer the camera, so a little darker and bluer through the water.
   vec3 col = mix(c.rgb * 0.82, vec3(0.06, 0.24, 0.3), 0.14);
+  // In the darker water by the wreck: dimmer still, and bluer.
+  col = mix(col, mix(col * 0.42, vec3(0.04, 0.2, 0.26), 0.3), uDim);
   gl_FragColor = vec4(applyLook(col), c.a * uOpacity);
 }`;
 const VERT = /* glsl */ `
@@ -68,8 +70,9 @@ export class Reef {
   vel = 0;
 
   constructor(stage: Stage, private phone: boolean) {
-    for (let i = 0; i < 4; i++) {
-      const u = { uMap: { value: null as THREE.Texture | null }, uOpacity: { value: 1 }, uFlip: { value: i % 2 }, ...LOOK };
+    // one for each join between panels: the four on the reef, and the one where the reef ends and the wreck's water begins
+    for (let i = 0; i < 5; i++) {
+      const u = { uMap: { value: null as THREE.Texture | null }, uOpacity: { value: 1 }, uFlip: { value: i % 2 }, uDim: { value: 0 }, ...LOOK };
       const m = quad(new THREE.ShaderMaterial({ vertexShader: VERT, fragmentShader: FRAG, uniforms: u, transparent: true, depthTest: false, depthWrite: false }), 9);
       m.visible = false;
       stage.scene.add(m);
@@ -138,9 +141,12 @@ export class Reef {
 
   /**
    * One frame. L is the camera (left edge, in panels); mouse is the cursor
-   * or the last tap. Returns what the backdrop draws and Snap's walking speed.
+   * or the last tap; haze is how murky the water is where the reef ends and
+   * the wreck begins, and dim how far the last coral has passed into the
+   * wreck's darker water (both 0 to 1). Returns what the backdrop draws and
+   * Snap's walking speed.
    */
-  update(dt: number, t: number, o: { L: number; k: number; W: number; H: number; dw: number; dh: number; oy: number; F: number[]; snapU: number; mouse: [number, number] | null; on: boolean }): { view: ReefView; out: ReefOut } {
+  update(dt: number, t: number, o: { L: number; k: number; W: number; H: number; dw: number; dh: number; oy: number; F: number[]; snapU: number; mouse: [number, number] | null; on: boolean; haze?: number; dim?: number }): { view: ReefView; out: ReefOut } {
     const { L, W, H, dw, dh, oy, F } = o;
     const win = W / dw;
     const near = F.map((f) => 1 - smooth(0.08, 0.4, Math.abs(L - f) / win));
@@ -190,10 +196,12 @@ export class Reef {
 
     const region = this.region ? { rect: this.region.rect, amt: clamp((t - this.region.t0) / 0.9) } : null;
 
-    // Foreground coral passes in front of each join between panels.
-    const ch = this.phone ? H * 0.52 : H * 0.8;
-    const cw = ch * (media.coral.w / media.coral.h);
+    // Foreground coral passes in front of each join between panels (the last
+    // one, where the reef ends, taller: the two places it joins are less alike).
     this.corals.forEach((m, i) => {
+      const ch = (this.phone ? H * 0.52 : H * 0.8) * (i === 4 ? 1.2 : 1);
+      this.cu[i].uDim.value = i === 4 ? o.dim ?? 0 : 0;
+      const cw = ch * (media.coral.w / media.coral.h);
       const seam = sx(i + 1);
       const x = W / 2 + (seam - W / 2) * 1.15;
       const on = o.on && this.ready && x > -cw && x < W + cw;
@@ -202,7 +210,7 @@ export class Reef {
     });
 
     return {
-      view: { L, fy: 0.5, region, pix, lamps },
+      view: { L, fy: 0.5, region, pix, lamps, haze: o.haze ? { x: sx(5), reach: W * 0.6, amt: o.haze } : null },
       out: { on: o.on, L, win, dw, dh, oy, F, near, removed: !!region, cards: this.cards(o.k) },
     };
   }
