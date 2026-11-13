@@ -105,7 +105,7 @@ const DESC = 0.5, LAND = 0.09, WALK = 0.62, TRAVEL = 1.2;
  * make room for it (LINE_TAGS_SRC).
  */
 const LINE_TAGS = { sig: 0.05, fmt: 0.205, look: 0.36, crop: 0.515, finish: 0.67, src: 0.7 };
-const LINE_TAGS_SRC: typeof LINE_TAGS = { sig: 0.05, fmt: 0.18, look: 0.31, crop: 0.44, finish: 0.57, src: 0.7 };
+const LINE_TAGS_SRC: typeof LINE_TAGS = { sig: 0.03, fmt: 0.164, look: 0.298, crop: 0.432, finish: 0.566, src: 0.7 };
 /** The colour of the water under the sunset marina, darker and bluer than the morning's: Snap and the submarine take it on below the surface. */
 const SEA_DUSK: [number, number, number] = [0.1, 0.34, 0.42];
 
