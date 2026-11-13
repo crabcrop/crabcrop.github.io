@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-H2FC2B8sszqj8mdqcpKLwvu3RczJXmmqgAnOCIDD4Rg='; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://images.crabcrop.org; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.googletagmanager.com 'sha256-JOJJSXuPIsj/UiWkC5Tba1DCiOuf7Zmi212F4r+CtKs=' 'sha256-H2FC2B8sszqj8mdqcpKLwvu3RczJXmmqgAnOCIDD4Rg='; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://images.crabcrop.org https://*.google-analytics.com https://*.googletagmanager.com; connect-src 'self' https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>crabcrop: Blazing Fast On-Demand Image Service</title>
 <meta name="description" content="Crabcrop is a Rust-built, lightning-fast on-demand image API supporting all major formats in and out, with over 50 filters and AI features like background removal. It resizes, crops, converts, and filters your images straight from a signed URL. One binary, no pre-generated thumbnails, no build step.">
@@ -623,6 +623,13 @@ a.strip-card:focus-visible{outline:3px solid var(--sun);outline-offset:2px}
 .bdg.in{background:var(--sea-glass)} .bdg.out{background:var(--sun-soft)} .bdg.off{background:var(--sand-200);color:var(--ink-2);border-color:var(--sand-300)}
 .fmt-cell p{font-size:14px;color:var(--ink-2)}
 </style>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-56Q9ZPMWLX"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-56Q9ZPMWLX');
+</script>
 <style>
 /* Feature cards preview: grid layout for the features section only.
    Scoped under #features so the strip elsewhere (AI gallery) is untouched.
@@ -806,7 +813,7 @@ url = build_url(
     </div>
   </div>
   <p class="signoff">Built on the shore, in Rust. MIT licensed.<br>Snapped, not generated. See you at low tide. 🦀</p>
-<p class="signoff" id="privacy" style="max-width:640px;margin:12px auto 0;padding:0 20px">Privacy: this site uses no analytics and sets no cookies. GitHub Pages serves the pages, and images.crabcrop.org, a crabcrop server, renders the photos. Like any web server, both see your IP address and browser details.</p>
+<p class="signoff" id="privacy" style="max-width:640px;margin:12px auto 0;padding:0 20px">Privacy: this site uses Google Analytics to count visits. Google Analytics sets two cookies, <code>_ga</code> and <code>_ga_56Q9ZPMWLX</code>. GitHub Pages serves the pages, and images.crabcrop.org, a crabcrop server, renders the photos. Like any web server, all three see your IP address and browser details.</p>
 </footer>
 
 <script>

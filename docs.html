@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-v2jBsL7qExTJQ8FhY/sXLx7GA+zc/ZQOiiR36xuqpTk='; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://images.crabcrop.org; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.googletagmanager.com 'sha256-JOJJSXuPIsj/UiWkC5Tba1DCiOuf7Zmi212F4r+CtKs=' 'sha256-v2jBsL7qExTJQ8FhY/sXLx7GA+zc/ZQOiiR36xuqpTk='; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://images.crabcrop.org https://*.google-analytics.com https://*.googletagmanager.com; connect-src 'self' https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>crabcrop documentation: Every Operation, Endpoint, and SDK</title>
 <meta name="description" content="The full crabcrop documentation: install, signing, URL anatomy, every operation family with interactive demos, the meta and explain endpoints, purge, upload, SDKs, MCP, the CLI, and deployment recipes.">
@@ -638,6 +638,13 @@ footer a{color:var(--sea-glass)}
 .anatomy{margin-top:20px}
 input[type=number].din,select.din,input[type=text].din{padding:9px 11px;border:2px solid var(--sand-300);border-radius:10px;font:inherit;font-size:14.5px;background:#fff}
 </style>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-56Q9ZPMWLX"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-56Q9ZPMWLX');
+</script>
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
@@ -1603,7 +1610,7 @@ docker run -p 3000:3000 -e CRABCROP_SECRET=your-secret-change-me crabcrop:latest
     </div>
   </div>
   <p class="signoff">Built on the shore, in Rust. MIT licensed.<br>Snapped, not generated. See you at low tide. 🦀</p>
-<p class="signoff" id="privacy" style="max-width:640px;margin:12px auto 0;padding:0 20px">Privacy: this site uses no analytics and sets no cookies. GitHub Pages serves the pages, and images.crabcrop.org, a crabcrop server, renders the photos. Like any web server, both see your IP address and browser details.</p>
+<p class="signoff" id="privacy" style="max-width:640px;margin:12px auto 0;padding:0 20px">Privacy: this site uses Google Analytics to count visits. Google Analytics sets two cookies, <code>_ga</code> and <code>_ga_56Q9ZPMWLX</code>. GitHub Pages serves the pages, and images.crabcrop.org, a crabcrop server, renders the photos. Like any web server, all three see your IP address and browser details.</p>
 </footer>
 
 <script>
