@@ -46,10 +46,6 @@ h3 { font-size: 22px; font-weight: 800; letter-spacing: -0.005em; line-height: 1
 .placeholder { position: fixed; inset: 0; z-index: -2; background: var(--haze) center / cover no-repeat; }
 #world { position: fixed; left: 0; top: 0; width: 100vw; height: 100vh; height: 100lvh; z-index: -1; display: none; }
 .gl #world { display: block; }
-.overlay { position: fixed; inset: 0; z-index: 3; pointer-events: none; display: none; }
-.gl .overlay { display: block; }
-.threads { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
-.threads path { fill: none; stroke: #c4543d; stroke-width: 1.6; stroke-linecap: round; opacity: .9; }
 
 /* Header */
 .top { position: fixed; top: 0; left: 0; right: 0; height: var(--top); z-index: 20; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 0 clamp(16px, 3vw, 36px); background: rgba(251, 244, 230, .82); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-bottom: 1.5px solid rgba(20, 40, 50, .08); }
@@ -97,6 +93,8 @@ main { position: relative; z-index: 1; }
 .zone { position: relative; }
 .s0 { min-height: 200vh; }
 .plunge { height: 100vh; }
+/* with the moving world the plunge is longer: down the marina's picture, onto the sand, and the walk to the shallows */
+.gl #t1 { height: 185vh; }
 .s1 { min-height: 250vh; padding-bottom: 20vh; }
 .s2 { min-height: 250vh; padding-bottom: 24vh; --zone-accent: #6E7F2E; --zone-ink: #4E5E1C; }
 .slice-end { min-height: 100vh; display: grid; place-items: center start; padding: 18vh 16px 18vh clamp(150px, 15vw, 230px); }
@@ -119,6 +117,7 @@ main { position: relative; z-index: 1; }
 .zone-head { width: min(500px, 34vw); margin-left: clamp(150px, 15vw, 230px); }
 .zone-head p:last-child { margin: 16px 0 0; color: var(--ink-2); }
 .s1 .zone-head { margin-top: 88vh; }
+.gl .s1 .zone-head { margin-top: 52vh; }
 .s2 .zone-head { margin-top: 95vh; }
 
 /* The reef: pinned, and the camera travels sideways along it */

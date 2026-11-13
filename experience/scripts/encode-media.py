@@ -3,7 +3,7 @@
 (fetch them first with scripts/fetch-sources.sh) into ../preview/dive/media,
 and write media/manifest.json with the numbers the page needs.
 
-usage: python3 scripts/encode-media.py [images] [reef] [wreck] [video] [sequence] [wreckseq] [beam] [pack] [twilight] [vents] [surface] [snap] [snappost] [scuttle] [claw] [ride] [snap3d]
+usage: python3 scripts/encode-media.py [images] [opening] [reef] [wreck] [video] [sequence] [wreckseq] [beam] [pack] [twilight] [vents] [surface] [snap] [snappost] [scuttle] [claw] [ride] [snap3d]
        (no argument runs every step)
 needs: ffmpeg, numpy, scipy, Pillow with AVIF support; for snap3d also npx (gltf-transform) and trimesh
 """
@@ -422,6 +422,89 @@ def surface():
     print('surface', man['loops'])
 
 
+def grey_matte(name, lum_w=0.35, lo=7.0, hi=16.0):
+    """A prop shot on a plain mid-grey ground (the float, the anchor): the
+    ground is fitted as a smooth field and the prop keyed by how far its
+    colour is from it. lum_w weighs lightness: low keeps a soft shadow on the
+    ground out of the matte. Returns RGBA, trimmed."""
+    rgb = np.asarray(Image.open(src(name)).convert('RGB')).astype(np.float32)
+    h, w = rgb.shape[:2]
+
+    def opp(c):
+        r, g, b = c[..., 0], c[..., 1], c[..., 2]
+        return np.dstack([(r + g + b) / 3, r - g, (r + g) / 2 - b])
+    yy, xx = np.mgrid[0:h, 0:w]
+    x = (xx / w - 0.5).astype(np.float32); y = (yy / h - 0.5).astype(np.float32)
+    A = np.dstack([np.ones_like(x), x, y, x * x, x * y, y * y])
+    ground = np.zeros((h, w), bool); m = int(0.06 * min(h, w))
+    ground[:m] = ground[-m:] = True; ground[:, :m] = ground[:, -m:] = True
+    for _ in range(3):
+        sel = ground[::7, ::7]
+        field = np.dstack([A @ np.linalg.lstsq(A[::7, ::7][sel], rgb[::7, ::7, c][sel], rcond=None)[0] for c in range(3)])
+        d = opp(rgb) - opp(field)
+        dist = np.sqrt((lum_w * d[..., 0]) ** 2 + d[..., 1] ** 2 + d[..., 2] ** 2)
+        ground = dist < lo * 0.8
+    a = np.clip((dist - lo) / (hi - lo), 0, 1)
+    a = a * a * (3 - 2 * a)
+    # only the prop and what touches it: stray specks on the ground go
+    solid = ndimage.binary_opening(a > 0.5, structure=np.ones((5, 5)))
+    lab, k = ndimage.label(solid)
+    if k > 1:
+        sizes = ndimage.sum(solid, lab, range(1, k + 1))
+        keep = np.isin(lab, 1 + np.where(sizes > 0.002 * sizes.max())[0])
+        a = np.where(ndimage.binary_dilation(keep, iterations=6), a, 0)
+    # choked a little, so no grey rim is left
+    a = np.clip((feather(a, 1.0) - 0.2) / 0.8, 0, 1)
+    im = rgba(rgb, a, bg=None)
+    e = (a > 0.03) & (a < 0.97)
+    px = np.asarray(im).copy()
+    px[e, :3] = np.clip((rgb[e] - (1 - a[e])[:, None] * field[e]) / a[e][:, None], 0, 255).astype(np.uint8)
+    im = Image.fromarray(px, 'RGBA')
+    return im.crop(bbox(a, 0.03))
+
+
+# The marina's underwater half, as shares of its plates: what the plunge pushes in on.
+UNDER = {'z0u': ('z0-plate.png', (0.30, 0.50, 1.0, 1.0), (2400, 3200, 4096)),
+         'z0up': ('z0-phone.png', (0.12, 0.45, 0.88, 1.0), (1080, 1620, 2160))}
+
+
+def opening():
+    """The new opening: sharper crops of the marina's underwater half for the
+    plunge (one continuous picture, down to the sand at the foot of the pier);
+    a pier post for the foreground of the walk to the shallows; the anchor
+    the chain ends on; and the little float that holds up Snap's line of tags."""
+    plates = man['plates']
+    for key, (name, (u0, v0, u1, v1), widths) in UNDER.items():
+        im = Image.open(src(name)).convert('RGB')
+        W, H = im.size
+        c = im.crop((round(u0 * W), round(v0 * H), round(u1 * W), round(v1 * H)))
+        files = {w: save_pair(resize_w(c, w), f'{key}-{w}', 50, 78) for w in widths}
+        plates[key] = {'w': c.size[0], 'h': c.size[1], 'widths': list(widths), 'bytes': files, 'rect': [u0, v0, u1, v1]}
+        print(key, c.size, files)
+    # A pier post, close to the camera and out of focus: the front right one, under water.
+    im = Image.open(src('z0-plate.png')).convert('RGB')
+    W, H = im.size
+    post = im.crop((round(0.7345 * W), round(0.63 * H), round(0.7685 * W), H))
+    post = post.resize((round(post.size[0] * 900 / post.size[1]), 900), Image.LANCZOS).filter(ImageFilter.GaussianBlur(5))
+    a = np.ones((post.size[1], post.size[0]), np.float32)
+    edge = np.minimum(np.arange(post.size[0]), post.size[0] - 1 - np.arange(post.size[0])) / 9.0
+    a *= np.clip(edge, 0, 1)[None, :]
+    post = Image.fromarray(np.dstack([np.asarray(post), (a * 255).astype(np.uint8)]), 'RGBA')
+    man['post'] = {'w': post.size[0], 'h': post.size[1], 'bytes': save_pair(post, 'post', 50, 76)}
+    print('post', post.size, man['post']['bytes'])
+    # The float, with its brass ring at the bottom, and the anchor in its mound of sand.
+    fl = grey_matte('float-src.png')
+    fl = fl.resize((round(fl.size[0] * 360 / fl.size[1]), 360), Image.LANCZOS)
+    man['float'] = {'w': fl.size[0], 'h': fl.size[1], 'ring': [0.5, 0.955], 'bytes': save_pair(fl, 'float', 60, 82)}
+    an = grey_matte('anchor-src.png', lum_w=0.12)
+    # its own bit of chain is cut off just above the ring: the page's chain ends there
+    an = an.crop((0, round(0.215 * an.size[1]), an.size[0], an.size[1]))
+    an = an.resize((round(an.size[0] * 620 / an.size[1]), 620), Image.LANCZOS)
+    # ring: where the chain ends; ties: the two ends of its stock (left, right), where the float's line is made fast; ground: where it meets the sand
+    man['anchor'] = {'w': an.size[0], 'h': an.size[1], 'ring': [0.855, 0.04], 'ties': [[0.485, 0.17], [0.965, 0.35]], 'ground': 0.925, 'bytes': save_pair(an, 'anchor', 58, 80)}
+    print('float', fl.size, man['float']['bytes'], 'anchor', an.size, man['anchor']['bytes'])
+
+
 def wreckseq():
     sequence(('t3', 't4'))
 
@@ -452,13 +535,12 @@ def video():
     print('loops', loops)
 
 
-SEQS = {'t1': ('t1-plunge.mp4', 0.5, sum(PHONE['z1']) / 2),
-        't2': ('t2-into-reef.mp4', sum(PHONE['z2']) / 2, sum(PHONE['z3']) / 2),
+SEQS = {'t2': ('t2-into-reef.mp4', sum(PHONE['z2']) / 2, sum(PHONE['z3']) / 2),
         't3': ('t3-into-wreck.mp4', sum(PHONE['z4x']) / 2, sum(PHONE['z4']) / 2),
         't4': ('t4-the-drop.mp4', sum(PHONE['z4x']) / 2, sum(PHONE['z5']) / 2)}
 
 
-def sequence(keys=('t1', 't2')):
+def sequence(keys=('t2',)):
     """The transitions as image sequences for scrubbing: 72 frames each (9 per
     second of the 8 s clip), for desktop and for phones. The phone window pans
     across the frame so it starts and ends where the neighbouring phone plates
@@ -1031,7 +1113,7 @@ def snap3d():
     print('snap3d', {k: v for k, v in man['snap3d'].items() if k not in ('limbs', 'eyes')}, kinds)
 
 
-steps = sys.argv[1:] or ['images', 'reef', 'wreck', 'twilight', 'vents', 'surface', 'video', 'sequence', 'wreckseq', 'snap', 'snappost', 'scuttle', 'claw', 'ride', 'snap3d']
+steps = sys.argv[1:] or ['images', 'opening', 'reef', 'wreck', 'twilight', 'vents', 'surface', 'video', 'sequence', 'wreckseq', 'snap', 'snappost', 'scuttle', 'claw', 'ride', 'snap3d']
 for st in steps:
     globals()[st]()
     json.dump(man, open(MAN_PATH + '.tmp', 'w'), indent=1)   # written whole or not at all

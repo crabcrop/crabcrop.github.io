@@ -559,6 +559,31 @@ hyperbolic crochet coral clusters (Z3); a hanging crochet jellyfish (Z3b);
 a barnacled beam end (Z4); a crochet glow jellyfish (Z5); a tube worm
 cluster (Z6).
 
+For the new opening, two more props in the same way (no background
+removal needed: the build cuts them out of the grey):
+
+```
+A single small crocheted marker buoy float in coral and cream stripes,
+matching the yarn and colours of the buoy in the reference, a plump
+teardrop shape seen from the side, floating upright, with a small brass
+ring sewn to its bottom, nothing else in the frame, no rope coil.
+Photographed on a plain mid-grey seamless background, isolated, centred,
+sharp edges, soft even light, no shadow on the background. {WORLD_DNA}
+```
+
+Reference: the Z0 rope-coil-and-buoy source.
+
+```
+A single small toy ship's anchor made of real rusty iron with a
+coral-orange rust patina, classic fisherman's anchor with two curved
+flukes, a straight shank, a crossbar stock and a ring at the top, with
+three links of rusty iron chain rising from the ring toward the top of the
+frame. It rests half upright, leaning to the left, one fluke dug in as if
+into sand, seen from the side at eye level. Photographed on a plain
+mid-grey seamless background, isolated, centred, sharp edges, soft even
+light, no shadow on the background. {WORLD_DNA}
+```
+
 ## 5. Phase D: ambient loops
 
 MiniMax H3 · 21:9 · 2K · 8 s · start image = end image = the zone plate.

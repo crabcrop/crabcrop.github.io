@@ -3,6 +3,19 @@
 How the page works, scene by scene, and how to build it. Read
 `art-direction.md` first for the concept and the look.
 
+> **Revised after the first full build (see "The review, and the new
+> opening" in `production-log.md`).** The plan below sends Snap all the
+> way down on the anchor chain. Built, that did not hold: every place is
+> drawn standing on its own sea floor, and one chain through all of them
+> made no sense. The rule now: **Snap rides the chain once, then walks.**
+> The chain ends at its anchor on the sand under the pier (−5 m). From
+> there he goes on foot, sideways along the sea floor from place to place,
+> with the URL's tags on a little line of his own that a float holds up;
+> he swims where a film glides into a place, and falls only where there
+> is nothing below him, off the edge beyond the wreck. S0 to S2 are
+> rebuilt this way; where this plan says he rides the chain past S1, read
+> it as history until the rest is redone.
+
 ## 1. Shape of the page
 
 | Scene | Zone | Scroll length | Layout |

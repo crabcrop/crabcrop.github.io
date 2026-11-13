@@ -163,10 +163,10 @@ void main() {
   gl_FragColor = vec4(col, 1.0);
 }`;
 
-/** z0 to z3 are the vertical zones; r0 to r4 are the reef panorama's panels, left to right, and r3c is r3 with the can removed; z4x is the wreck outside, z4 its cabin and z5 the twilight zone. */
-export type Zone = 'z0' | 'z1' | 'z2' | 'z3' | 'r0' | 'r1' | 'r2' | 'r3' | 'r3c' | 'r4' | 'z4x' | 'z4' | 'z5' | 'z5lit' | 'z6' | 'z7';
-export type SeqKey = 't1' | 't2' | 't3' | 't4';
-const SEQ_KEYS: SeqKey[] = ['t1', 't2', 't3', 't4'];
+/** z0 to z3 are the zones' plates (z0u is the marina's underwater half, sharper, for the plunge); r0 to r4 are the reef panorama's panels, left to right, and r3c is r3 with the can removed; z4x is the wreck outside, z4 its cabin and z5 the twilight zone. */
+export type Zone = 'z0' | 'z0u' | 'z1' | 'z2' | 'z3' | 'r0' | 'r1' | 'r2' | 'r3' | 'r3c' | 'r4' | 'z4x' | 'z4' | 'z5' | 'z5lit' | 'z6' | 'z7';
+export type SeqKey = 't2' | 't3' | 't4';
+const SEQ_KEYS: SeqKey[] = ['t2', 't3', 't4'];
 const isSeq = (k: SourceKey): k is SeqKey => (SEQ_KEYS as string[]).includes(k);
 export type SourceKey = Zone | SeqKey;
 type PlateKey = keyof typeof media.plates;
@@ -175,7 +175,7 @@ interface Seq { frames: (HTMLImageElement | null)[]; tex: THREE.Texture | null; 
 
 /** The file behind each zone, on wide screens and on phones. The reef pans across whole plates on phones too. */
 const PLATE: Record<Zone, [PlateKey, PlateKey]> = {
-  z0: ['z0', 'z0p'], z1: ['z1', 'z1p'], z2: ['z2', 'z2p'], z3: ['z3', 'z3p'],
+  z0: ['z0', 'z0p'], z0u: ['z0u', 'z0up'], z1: ['z1', 'z1p'], z2: ['z2', 'z2p'], z3: ['z3', 'z3p'],
   r0: ['z3', 'z3'], r1: ['z3_2', 'z3_2'], r2: ['z3_3', 'z3_3'], r3: ['z3_4', 'z3_4'], r3c: ['z3_4c', 'z3_4c'], r4: ['z3b', 'z3b'],
   z4x: ['z4x', 'z4xp'], z4: ['z4', 'z4p'], z5: ['z5', 'z5p'], z5lit: ['z5lit', 'z5litp'], z6: ['z6', 'z6p'], z7: ['z7', 'z7p'],
 };
@@ -202,7 +202,6 @@ export class Backdrop {
   private plate: Partial<Record<PlateKey, Src & { loading?: Promise<void> }>> = {};
   private loop: Partial<Record<Zone, { v: HTMLVideoElement; tex: THREE.VideoTexture; ready: boolean; fade: number }>> = {};
   private seqs: Record<SeqKey, Seq> = {
-    t1: { frames: [], tex: null, shown: -1, started: false },
     t2: { frames: [], tex: null, shown: -1, started: false },
     t3: { frames: [], tex: null, shown: -1, started: false },
     t4: { frames: [], tex: null, shown: -1, started: false },
@@ -211,7 +210,7 @@ export class Backdrop {
   private blank: THREE.DataTexture;
 
   constructor(private stage: Stage, readonly phone: boolean) {
-    this.seqSize = phone ? media.t1.p : media.t1.d;
+    this.seqSize = phone ? media.t2.p : media.t2.d;
     this.blank = new THREE.DataTexture(new Uint8Array([207, 232, 238, 255]), 1, 1);
     this.blank.needsUpdate = true;
     const v3 = () => ({ value: new THREE.Vector3() });
@@ -247,7 +246,9 @@ export class Backdrop {
     const meta = media.plates[k];
     const s = this.stage;
     const coverW = Math.max(s.w, s.h * (meta.w / meta.h)) * s.dpr * 1.12;
-    const w = meta.widths.find((x) => x >= coverW * 0.85) ?? meta.widths[meta.widths.length - 1];
+    // a crop is there to be pushed in on: its sharpest file on sharp screens, the middle one otherwise
+    const w = meta.rect ? meta.widths[s.dpr > 1.3 ? meta.widths.length - 1 : meta.widths.length - 2]
+      : meta.widths.find((x) => x >= coverW * 0.85) ?? meta.widths[meta.widths.length - 1];
     const entry: Src & { loading?: Promise<void> } = { tex: null, w: meta.w, h: meta.h };
     entry.loading = loadPicture(`${k}-${w}`).then((img) => {
       if (this.plate[k] !== entry) return; // dropped while loading
@@ -408,6 +409,31 @@ export class Backdrop {
     this.u.uRes.value.set(s.w, s.h);
     place(this.mesh, 0, 0, s.w, s.h);
     return { a: ca, b: cb };
+  }
+
+  /**
+   * Two sources with their covers given: laid side by side, b to the right of
+   * x = split (a soft join, for the camera travelling from one place to the
+   * next), or with split null blended by mix (for a crop laid over its plate).
+   */
+  drawPair(dt: number, a: SourceKey, b: SourceKey, ca: Cover, cb: Cover, mix: number, split: number | null, frames: Partial<Record<SeqKey, number>> = {}) {
+    const s = this.stage;
+    this.noEffects();
+    for (const l of Object.values(this.loop)) if (l?.ready && l.fade < 1) l.fade = Math.min(1, l.fade + dt / 0.8);
+    const frameOf = (k: SourceKey) => (isSeq(k) ? frames[k] ?? 0 : 0);
+    const A = this.source(a, frameOf(a)), B = this.source(b, frameOf(b));
+    // one of them still loading: the other fills in, at its own place
+    const one = A ?? B;
+    if (!one) return;
+    this.u.uA.value = (A ?? one).tex;
+    this.u.uB.value = (B ?? one).tex;
+    const xa = A ? ca : cb, xb = B ? cb : ca;
+    this.u.uCoverA.value.set(xa.ox, xa.oy, xa.dw, xa.dh);
+    this.u.uCoverB.value.set(xb.ox, xb.oy, xb.dw, xb.dh);
+    this.u.uMix.value = A && B ? mix : 0;
+    this.u.uSplit.value = split !== null && A && B ? split : -1e5;
+    this.u.uRes.value.set(s.w, s.h);
+    place(this.mesh, 0, 0, s.w, s.h);
   }
 
   /** The reef: the two panels in view side by side, with the station effects. Returns the cover of panel 0's size (dw, dh, oy). */

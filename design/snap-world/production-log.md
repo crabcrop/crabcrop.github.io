@@ -114,7 +114,7 @@ each.
 
 | Clip | Frames | Job | Status | Notes |
 | --- | --- | --- | --- | --- |
-| T01 The plunge | Z0 → Z1 | `0b81c961-2167-4f16-ac70-7d15c3b2cf7b` | Approved | Sinks through the waterline, settles on the shallows set. No need for the premium Seedance try |
+| T01 The plunge | Z0 → Z1 | `0b81c961-2167-4f16-ac70-7d15c3b2cf7b` | Retired | Sinks through the waterline, settles on the shallows set. Out of the page since the review: the pier posts lift off the sand half way (see "The review, and the new opening") |
 | T02 Into the reef | Z2 → Z3-1 | `0ec958e5-0f1a-4385-8b7b-03e50735a7c3` | Approved | Glides out of the kelp, over the rocks, onto the reef and the turtle |
 | T03 Into the wreck | Z4-EXT → Z4 | `2d3ff41b-5d8d-4f7c-973c-cdf1c8986b9b` | Approved | Pushes through the hull breach into the lantern-lit cabin |
 | T04 The drop | Z4-EXT → Z5 | `53ed72ea-519d-4159-81f2-681a95cf3607` | Approved | Glides past the wreck to a trench in the seabed and dives into the dark, where the glowing creatures appear |
@@ -558,11 +558,73 @@ and Install, Read the docs and GitHub close the page; the footer says "See
 you at low tide." On phones the receipt starts lower, so his homecoming
 shows above it, and the polaroid lands on the receipt's top edge.
 
+## The review, and the new opening
+
+With the whole dive built, the page was filmed from top to bottom on a
+desktop and a phone (a frame every eighth of a screen) and judged scene
+change by scene change. What it showed:
+
+- Every plate but the twilight zone's is a place seen from the ground,
+  standing on its own sea floor. The story sent Snap straight down through
+  all of them on one chain, which the pictures cannot show. So the page
+  faked it: the chain ran through each floor and through the cabin's roof,
+  was dragged sideways along the reef, would have been 2.5 km long, and
+  kept Snap hanging at one spot of the screen for most of the dive.
+- T01, the plunge: the marina's plate already shows the sand under the
+  pier, so the film had nowhere to go down to. It morphed: from about
+  frame 32 the pier posts lift off the sand and slide away.
+- Shallows to kelp was a cross-fade (the cargo showed through the kelp);
+  Clam Studio to wreck a fade through flat teal.
+- What worked: the look, Snap's animation, the pier, the two films that go
+  into a place (T02, T03), the lantern, the choices, the ending, and above
+  all the reef, the one place he walks.
+
+The rule since: **Snap rides the chain once, then walks.** The opening is
+rebuilt that way (the rest follows):
+
+- The chain ends at its anchor, on the sand at the foot of the pier
+  (−5 m). T01 is retired. The plunge is the marina's plate itself, pushed
+  in on and down along the chain to the sand, with its underwater half
+  laid over it as a sharper crop: one picture, so the posts stay planted.
+- Snap slides down, steps off beside the anchor and takes a little line
+  that was made fast to it: a light chain held up by a crochet float. The
+  URL's tags hang on it from here on, and it goes where he goes.
+- He walks to the shallows: the camera travels sideways, the foot of the
+  pier and the shallows' plate side by side, and a pier post passes close
+  to the lens where they meet (the reef's way of joining plates). He walks
+  into the kelp the same way, the forest's edge passing the lens.
+- In the shallows and the kelp he stands on the ground, and leaps to the
+  cards from there. For the glide to the reef he pushes off and swims.
+- Further down the scenes are as first built, with his line in place of
+  the chain, until they are redone: he swims between them, and swims up
+  through the ascent's bands with his float. Back at the surface the
+  anchor chain and its anchor fade in again as the camera pulls out to the
+  whole marina (the anchor a little to the left of where it is in the
+  morning plate, clear of the friends painted into the sunset one).
+- The still page (reduced motion, no WebGL) is as it was.
+
+New props, Nano Banana Pro, 1:1, 2K, on mid-grey (folder 05):
+
+| Prop | Job | Notes |
+| --- | --- | --- |
+| The float | `98c1d82f-a365-4d6c-b58a-b2830c2bf5df` | Coral and cream crochet, a brass ring at the bottom, with the Z0 rope buoy as the reference. Alternate with a rope loop: `21027447-13bd-4a25-8fd6-4733882a4ebc` |
+| The anchor | `4bfad40b-9b04-421e-bc03-084a7078d583` | Rusty iron, half upright in a mound of sand. Its own bit of chain is cropped off above the ring, where the page's chain ends. Alternate, lying down: `ce50a785-69d9-4686-a967-8ae9d5177b91` |
+
+Higgsfield's background remover was down that day, so both are cut out
+in the build (`grey_matte` in `encode-media.py`): the grey ground is
+fitted as a smooth field and the prop keyed by its distance in colour
+from it.
+
 ## Next
 
-The dive is built from end to end. Still open: the real signed URLs (the
-builder needs the signing secret in CI), Snap's claw moving for the snip in
-the kelp, depth maps for parallax, and sound.
+Redo the rest by the same rule: a walk from the Clam Studio to the wreck
+in place of the fade to teal; Snap on his feet outside the wreck and in
+the cabin; his way out of the cabin and off the edge into the dark; and a
+way up that needs no chain (the little submersible could carry him).
+
+Still open besides: the real signed URLs (the builder needs the signing
+secret in CI), Snap's claw moving for the snip in the kelp, depth maps for
+parallax, and sound.
 
 Optional: the six format fish could become 3D schools (about 40 Tripo
 credits a species).
@@ -686,3 +748,11 @@ the stills; phone-format takes (9:16, 1080p) would fix that.
 - On phones the receipt fills the screen's width, so a polaroid fixed to
   the screen ends up over its title. Pinned to the receipt's top edge, it
   scrolls with it and stays clear.
+- A film between two plates that are not the same place morphs. T01 went
+  from the marina, which already shows the sand, to another patch of sand,
+  and the model pulled the pier posts up out of the sea floor to get
+  there. Pushing in on one picture cannot do that, and two plates side by
+  side with something passing the lens at the join reads as walking on.
+- A rope whose ends move with the camera must not be simulated in screen
+  space: it trails behind the camera's travel. The anchor chain is laid
+  out straight between its two ends each frame, with a slow sway.

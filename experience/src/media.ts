@@ -2,11 +2,12 @@ import manifest from '../../preview/dive/media/manifest.json';
 
 export type Box = [number, number, number, number];
 export interface Clip { w: number; h: number; duration: number; box: Box; boxEnd: Box; crop: [number, number]; print?: number[][]; claw?: number[][]; clicks?: number[] }
-export interface Plate { w: number; h: number; widths: number[]; waterline?: number; thumbhash: string }
+/** rect: for a crop of another plate, its box there (u0, v0, u1, v1), so the two can be laid exactly over each other. */
+export interface Plate { w: number; h: number; widths: number[]; waterline?: number; thumbhash?: string; rect?: [number, number, number, number] }
 export interface Seq { frames: number; fps: number; d: [number, number]; p: [number, number]; bytes: { d: number; p: number }; packs: { d: number[][]; p: number[][] } }
 
 export const media = manifest as unknown as {
-  plates: Record<'z0' | 'z0p' | 'z1' | 'z1p' | 'z2' | 'z2p' | 'z3' | 'z3p' | 'z3_2' | 'z3_2p' | 'z3_3' | 'z3_3p' | 'z3_4' | 'z3_4p' | 'z3_4c' | 'z3b' | 'z3bp' | 'z4x' | 'z4xp' | 'z4' | 'z4p' | 'z5' | 'z5p' | 'z5lit' | 'z5litp' | 'z6' | 'z6p' | 'z7' | 'z7p', Plate>;
+  plates: Record<'z0' | 'z0p' | 'z0u' | 'z0up' | 'z1' | 'z1p' | 'z2' | 'z2p' | 'z3' | 'z3p' | 'z3_2' | 'z3_2p' | 'z3_3' | 'z3_3p' | 'z3_4' | 'z3_4p' | 'z3_4c' | 'z3b' | 'z3bp' | 'z4x' | 'z4xp' | 'z4' | 'z4p' | 'z5' | 'z5p' | 'z5lit' | 'z5litp' | 'z6' | 'z6p' | 'z7' | 'z7p', Plate>;
   snapChain: { w: number; h: number; chainX: number; chainTop: number; chainBottom: number; linkLen: number };
   snapStand: { w: number; h: number };
   print: { w: number; h: number };
@@ -14,8 +15,14 @@ export const media = manifest as unknown as {
   seagrass: { w: number; h: number };
   kelp: { w: number; h: number };
   coral: { w: number; h: number };
+  /** A pier post, out of focus, for the foreground of the walk from under the pier to the shallows. */
+  post: { w: number; h: number };
+  /** The little float that holds up Snap's line of tags; ring is where the line is tied, as shares of the sprite. */
+  float: { w: number; h: number; ring: [number, number] };
+  /** The anchor the chain ends on: its ring (the chain's end), the two ends of its stock (the float's line is made fast to one until Snap takes it) and where it meets the sand, as shares of the sprite. */
+  anchor: { w: number; h: number; ring: [number, number]; ties: [[number, number], [number, number]]; ground: number };
   /** The transitions: frames, their size on desktop (d) and phones (p), and the byte lengths of the frames in each of their packs. */
-  t1: Seq; t2: Seq; t3: Seq; t4: Seq;
+  t2: Seq; t3: Seq; t4: Seq;
   /** The tube worms of the vents, cut out. */
   worms: { w: number; h: number };
   /** The glowing jellyfish of the twilight zone, on black (it is added to the light). */
