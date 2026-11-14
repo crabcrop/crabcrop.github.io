@@ -13,9 +13,17 @@ How the page works, scene by scene, and how to build it. Read
 > with the URL's tags on a little line of his own that a float holds up;
 > he swims where a film glides into a place, and falls only where there
 > is nothing below him, off the edge beyond the wreck. The little
-> submarine at the vents carries him back up. The whole dive is built
-> this way now; where this plan says he rides the chain past S1, or is
-> winched up it, read it as history.
+> submarine at the vents carries him back up.
+>
+> **Revised again (see "The submarine, all the way down and back").** The
+> submarine was the part that worked, and the line of tags he carried was
+> hard to read. So now he dives in it: a brass toy submarine with a glass
+> bubble, moored at the pier. He hops in when the gust takes his print,
+> rides inside it to the vents and back, and gets out on the pier where he
+> started; "Dive again" starts the day over. Its pincer does what his claw
+> did, and the URL builds up in a bar along the bottom of the view, in the
+> URL's own order. The anchor chain is scenery. Where this plan says he
+> rides the chain, walks, or carries the tags, read it as history.
 
 ## 1. Shape of the page
 

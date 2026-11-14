@@ -1,22 +1,23 @@
 import type { WorldOut } from './world';
 import type { Recipe } from './twilight-ui';
+import { showTag } from './ui';
 
 const LOOK_SEG = { crisp: 'sharpen(1.2):saturation(1.1)', deep: 'duotone(0d202e,ffd88a)', vintage: 'sepia' };
 const CROP_SEG = { wide: 'crop:1200x630:smart', square: 'crop:760x760:smart', whole: 'fit-in:1200x630' };
 const FINISH_SEG = { none: '', studio: 'studio(product,bg:brand,shadow:soft,pad:10)', cutout: 'removebg' };
-/** The ascent's steps: where in the climb each choice goes on, and the tag on his line that lights up for it. */
+/** The ascent's steps: where in the climb each choice goes on, and the part of the URL (in the bar) that lights up for it. */
 const STEPS = [
-  { at: 0.14, cls: 's-fmt', tag: 1 },
-  { at: 0.3, cls: 's-look', tag: 2 },
-  { at: 0.46, cls: 's-crop', tag: 3 },
-  { at: 0.62, cls: 's-finish', tag: 4 },
-  { at: 0.78, cls: 's-seal', tag: 0 },
+  { at: 0.14, cls: 's-fmt', tag: 'tag-format' },
+  { at: 0.3, cls: 's-look', tag: 'tag-look' },
+  { at: 0.46, cls: 's-crop', tag: 'tag-crop' },
+  { at: 0.62, cls: 's-finish', tag: 'tag-finish' },
+  { at: 0.78, cls: 's-seal', tag: 'tag-sig' },
 ] as const;
 
 /**
- * The way up and the finale in the DOM: the print riding beside Snap that
- * takes on the visitor's choices one by one as the submarine carries him up
- * (its tag on his line lighting up), and at the surface the receipt (the URL,
+ * The way up and the finale in the DOM: the print hanging from the
+ * submarine's pincer, which takes on the visitor's choices one by one on the
+ * way up (its part of the URL lighting up in the bar), and at the surface the receipt (the URL,
  * a copy button and the picture) and the polaroid that drops in when Snap
  * takes its picture.
  */
@@ -64,18 +65,16 @@ export class SurfaceUI {
     }
   }
 
-  update(out: WorldOut, t: number, wide: boolean) {
+  update(out: WorldOut) {
     const a = out.ascent;
     const on = a.on > 0.3 && !!this.recipe;
     this.print.classList.toggle('on', on);
     if (on) {
-      // On wide screens held up beside his free claw: clear of his eyes, and its lower edge above the submarine
-      // under him (it stays there as the picture changes size). On phones at the right, clear of the tags on his line.
+      // It hangs from the submarine's pincer by its top corner, kept on screen.
       const w = this.print.offsetWidth, right = innerWidth - w - 14;
-      const x = wide ? Math.min(a.claw[0] + 60, right) : right;
-      const y = wide ? a.claw[1] + 70 - this.frame.offsetHeight : a.claw[1] - 30;
+      const x = Math.min(a.at[0] - 10, right), y = a.at[1] - 6;
       this.print.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px)`;
-      // the steps done so far, the latest named under the picture and lit on his line
+      // the steps done so far, the latest named under the picture and lit in the URL's bar
       let n = -1;
       STEPS.forEach((s, i) => { const done = a.q >= s.at; this.frame.classList.toggle(s.cls, done); if (done) n = i; });
       if (n !== this.shown) {
@@ -83,7 +82,11 @@ export class SurfaceUI {
         this.step.textContent = n >= 0 ? this.caption(n) : 'root:photos/print.jpg';
         this.step.classList.remove('pop'); void this.step.offsetWidth; this.step.classList.add('pop');
       }
-      this.chainTags.forEach((el, i) => el.classList.toggle('lit', n >= 0 && STEPS[n].tag === i));
+      for (const el of this.chainTags) {
+        const lit = n >= 0 && STEPS[n].tag === el.id;
+        if (lit && !el.classList.contains('lit')) showTag(el);
+        el.classList.toggle('lit', lit);
+      }
     } else if (this.shown !== -2) {
       this.shown = -2;
       this.chainTags.forEach((el) => el.classList.remove('lit'));

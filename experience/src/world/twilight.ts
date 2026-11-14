@@ -24,17 +24,6 @@ void main() {
   gl_FragColor = vec4(applyLook(col), c.a * uOpacity);
 }`;
 
-// A soft orb of light: the anglerfish's lure running down the chain.
-const ORB_FRAG = /* glsl */ `
-precision highp float;
-uniform float uA;
-varying vec2 vUv;
-void main() {
-  float r = length(vUv * 2.0 - 1.0);
-  float a = exp(-r * r * 9.0) + 0.35 * exp(-r * r * 2.5);
-  gl_FragColor = vec4(vec3(0.62, 1.0, 0.92), a * uA);
-}`;
-
 // The glowing jellyfish, on black: added to the light behind it, its tentacles swaying.
 const JELLY_VERT = /* glsl */ `
 uniform float uTime;
@@ -62,8 +51,6 @@ type FishState = 'lost' | 'follow' | 'home';
 export interface TwilightOut {
   /** The lantern: where its light is and its radius, px. */
   light: [number, number, number];
-  /** The lure's light on the chain, while the explain card is up. */
-  lure: { x: number; y: number; on: boolean };
   /** The little fish has gone home with Snap (for the story). */
   homeAt: number;
 }
@@ -71,33 +58,27 @@ export interface TwilightOut {
 /**
  * The twilight zone's life: the lantern the visitor carries (the cursor, or
  * on phones a slow sweep and wherever they tap), a tiny lost fish that
- * follows its light and then goes home with Snap, the anglerfish's lure
- * running down the chain, and a glowing jellyfish drifting past.
+ * follows its light and then keeps the submarine company, and a glowing
+ * jellyfish drifting past.
  */
 export class Twilight {
   private light = { x: -1, y: -1 };
   private fish: THREE.Mesh;
   private fu: Record<string, THREE.IUniform>;
-  private orb: THREE.Mesh;
-  private ou: Record<string, THREE.IUniform>;
   private jelly: THREE.Mesh;
   private ju: Record<string, THREE.IUniform>;
   private ready = false;
   private f = { state: 'lost' as FishState, x: 0, y: 0, vx: 0, lit: 0, since: 0 };
-  private lureS = 0;
-  readonly out: TwilightOut = { light: [-999, -999, 1], lure: { x: -999, y: -999, on: false }, homeAt: -10 };
+  readonly out: TwilightOut = { light: [-999, -999, 1], homeAt: -10 };
 
   constructor(stage: Stage, private phone: boolean) {
     this.fu = { uMap: { value: null }, uRect: { value: new THREE.Vector4() }, uOpacity: { value: 0 }, uFlip: { value: 1 }, uLit: { value: 0 }, ...LOOK };
     this.fish = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.ShaderMaterial({ vertexShader: VERT, fragmentShader: FISH_FRAG, uniforms: this.fu, transparent: true, depthTest: false, depthWrite: false }));
     this.fish.renderOrder = 6;
-    this.ou = { uA: { value: 0 } };
-    this.orb = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.ShaderMaterial({ vertexShader: VERT, fragmentShader: ORB_FRAG, uniforms: this.ou, transparent: true, depthTest: false, depthWrite: false, blending: THREE.AdditiveBlending }));
-    this.orb.renderOrder = 6;
     this.ju = { uMap: { value: null }, uA: { value: 0 }, uTime: { value: 0 } };
     this.jelly = new THREE.Mesh(new THREE.PlaneGeometry(1, 1, 1, 16), new THREE.ShaderMaterial({ vertexShader: JELLY_VERT, fragmentShader: JELLY_FRAG, uniforms: this.ju, transparent: true, depthTest: false, depthWrite: false, blending: THREE.AdditiveBlending }));
     this.jelly.renderOrder = 8;
-    for (const m of [this.fish, this.orb, this.jelly]) { m.visible = false; m.frustumCulled = false; stage.scene.add(m); }
+    for (const m of [this.fish, this.jelly]) { m.visible = false; m.frustumCulled = false; stage.scene.add(m); }
   }
 
   async load() {
@@ -113,14 +94,11 @@ export class Twilight {
 
   /**
    * vis: how much the zone is on; k: 0 to 1 through it; mouse: the cursor
-   * (or a recent tap); lost: where the fish waits, px; hold: Snap on the
-   * chain; chainAt: a point on the chain s px below the top of the screen
-   * down to his hold (null if the chain is not there); lure: the explain card
-   * is up.
+   * (or a recent tap); lost: where the fish waits, px; side: where it swims
+   * once it has gone home with Snap, by the submarine's lamp.
    */
   update(dt: number, t: number, o: {
-    vis: number; k: number; w: number; h: number; mouse: [number, number] | null; lost: [number, number];
-    hold: [number, number]; body: number; chainAt: (s: number) => { x: number; y: number } | null; chainLen: number; lure: boolean;
+    vis: number; k: number; w: number; h: number; mouse: [number, number] | null; lost: [number, number]; side: [number, number];
   }) {
     const on = o.vis > 0.01;
     const { w, h } = o;
@@ -134,8 +112,8 @@ export class Twilight {
     const r = h * (this.phone ? 0.22 : 0.3);
     this.out.light = [this.light.x, this.light.y, r];
 
-    this.fish.visible = this.orb.visible = this.jelly.visible = false;
-    if (!on || !this.ready) { this.out.lure.on = false; return; }
+    this.fish.visible = this.jelly.visible = false;
+    if (!on || !this.ready) return;
 
     // The lost fish: it circles where it is lost, follows the light once found, and goes home with Snap.
     const f = this.f, s = h * 0.03;
@@ -150,8 +128,8 @@ export class Twilight {
       // just ahead of the light, wiggling round it
       tx = this.light.x + Math.cos(t * 1.7) * r * 0.25; ty = this.light.y + Math.sin(t * 2.3) * r * 0.18;
     } else {
-      // tucked in by Snap's side, swimming small loops
-      tx = o.hold[0] + o.body * 0.95 + Math.cos(t * 1.1) * s * 2; ty = o.hold[1] + o.body * 0.45 + Math.sin(t * 1.6) * s * 1.2;
+      // keeping the submarine company, swimming small loops by its lamp
+      tx = o.side[0] + Math.cos(t * 1.1) * s * 2; ty = o.side[1] + Math.sin(t * 1.6) * s * 1.2;
     }
     const k = 1 - Math.exp(-dt * (f.state === 'lost' ? 3 : 2.2));
     const nx = f.x + (tx - f.x) * k;
@@ -168,22 +146,6 @@ export class Twilight {
     if (Math.abs(f.vx) > 8) this.fu.uFlip.value = f.vx > 0 ? 1 : -1;
     this.fu.uLit.value = f.lit;
     this.fu.uOpacity.value = o.vis;
-
-    // The lure's light runs down the chain to Snap, over and over, while the report is up.
-    this.out.lure.on = o.lure;
-    if (o.lure) {
-      this.lureS = (this.lureS + dt * h * 0.45) % (o.chainLen + h * 0.2);
-      const p = o.chainAt(this.lureS);
-      if (p) {
-        const a = clamp(this.lureS / (h * 0.08)) * clamp((o.chainLen - this.lureS) / (h * 0.05) + 0.2);
-        this.orb.visible = true;
-        this.orb.position.set(p.x, -p.y, 0);
-        const sz = h * 0.09 * (1 + 0.1 * Math.sin(t * 9));
-        this.orb.scale.set(sz, sz, 1);
-        this.ou.uA.value = a * o.vis;
-        this.out.lure.x = p.x; this.out.lure.y = p.y;
-      }
-    } else this.lureS = 0;
 
     // A glowing jellyfish drifts up through the right of the frame.
     const jm = media.glowJelly;

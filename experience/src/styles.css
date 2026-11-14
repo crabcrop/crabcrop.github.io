@@ -26,7 +26,8 @@
 }
 
 *, *::before, *::after { box-sizing: border-box; }
-html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; background: var(--haze); }
+/* (keyboard focus scrolls a control clear of the bar with the URL along the bottom) */
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; background: var(--haze); scroll-padding-bottom: 96px; }
 body { margin: 0; font-family: var(--body); font-size: 18px; line-height: 1.5; color: var(--ink); background: transparent; overflow-x: hidden; }
 a { color: var(--tide-deep); text-underline-offset: 3px; }
 a:hover { color: var(--coral-deep); }
@@ -38,6 +39,8 @@ h3 { font-size: 22px; font-weight: 800; letter-spacing: -0.005em; line-height: 1
 .coral { color: var(--coral); }
 .sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 :focus-visible { outline: 3px solid var(--sun); outline-offset: 3px; border-radius: 6px; }
+/* (the title takes focus after "Dive again", so the keyboard starts from the top: no ring on a heading) */
+h1[tabindex="-1"]:focus { outline: none; }
 
 .skip { position: fixed; left: 12px; top: -60px; z-index: 100; background: var(--ink); color: var(--foam); padding: 10px 16px; border-radius: 10px; font-weight: 800; text-decoration: none; transition: top .2s var(--reveal); }
 .skip:focus { top: 12px; color: var(--foam); }
@@ -95,7 +98,7 @@ main { position: relative; z-index: 1; }
 .plunge { height: 100vh; }
 /* the way out of the cabin: back out through the hull, then the drop */
 .gl #t4 { height: 190vh; }
-/* with the moving world the plunge is longer: down the marina's picture, onto the sand, and the walk to the shallows */
+/* with the moving world the plunge is longer: down the marina's picture to the sand, and the cruise to the shallows */
 .gl #t1 { height: 185vh; }
 .s1 { min-height: 250vh; padding-bottom: 20vh; }
 .s2 { min-height: 250vh; padding-bottom: 24vh; --zone-accent: #6E7F2E; --zone-ink: #4E5E1C; }
@@ -131,7 +134,7 @@ main { position: relative; z-index: 1; }
 /* flow-root: the first panel's top margin stays inside its section instead of pushing the section down */
 .s4 { display: flow-root; min-height: 190vh; --zone-accent: #C9A24A; --zone-ink: #8A5A1C; }
 .s4 .zone-head { margin-top: 110vh; }
-/* with the moving world the way there is a walk, shorter than the old descent */
+/* with the moving world the way there is a cruise along the sea floor, shorter than the old descent */
 .gl .s4 { min-height: 160vh; }
 .gl .s4 .zone-head { margin-top: 85vh; }
 .s4b { display: flow-root; min-height: 300vh; padding-bottom: 36vh; --zone-accent: #C9A24A; --zone-ink: #8A5A1C; }
@@ -180,6 +183,8 @@ main { position: relative; z-index: 1; }
 .s6 { display: flow-root; min-height: 250vh; padding-bottom: 30vh; --zone-accent: #FF6A2B; --zone-ink: #B4431A; }
 .s6 .zone-head { margin-top: 70vh; }
 .s6 .kind { top: auto; bottom: 8vh; }
+/* (on wide screens the submarine is over the geode, lower right: the story goes above it) */
+.gl.wide .s6 .kind { top: calc(var(--top) + 30px); bottom: auto; right: 3vw; width: min(320px, 25vw); }
 .spec-term { background: #0B1622; }
 .term-line, .term-out { margin: 0; font-size: 11.5px; line-height: 1.5; overflow-wrap: anywhere; }
 .term-line + .term-line { margin-top: 4px; }
@@ -205,11 +210,8 @@ main { position: relative; z-index: 1; }
 .gl .sub-bubble { display: block; position: fixed; left: 0; top: 0; z-index: 2; margin: -52px 0 0 0; font-family: var(--mono); font-size: 12px; font-weight: 800; color: var(--ink); background: var(--cream); border: 2px solid var(--ink); border-radius: 12px 12px 3px 12px; padding: 5px 10px; box-shadow: var(--shadow-sm); pointer-events: none; white-space: nowrap; opacity: 0; transition: opacity .35s; }
 .gl .sub-bubble.on { opacity: 1; }
 .sub-bubble b { color: #2E9E4F; }
-.tag.src { background: #FFF3D6; border-color: #C98A12; }
-.tag.src::before { background: var(--sun); }
-.gl .tag.src { display: none; }
-.gl .tags.source .tag.src { display: inline-flex; }
-.static .vents-stand, .no-js .vents-stand { top: 40vh; }
+.tag.src:not(.blank) { background: #FFF3D6; border-color: #C98A12; }
+.tag.src:not(.blank)::before { background: var(--sun); }
 
 /* The way up: the print beside Snap takes on the choices, one at a time */
 .plunge.ascent { height: 150vh; }
@@ -244,6 +246,14 @@ main { position: relative; z-index: 1; }
 .receipt figcaption { display: grid; gap: 8px; justify-items: start; min-width: 0; }
 .receipt code { display: block; max-width: 100%; padding: 10px 12px; background: var(--abyss); color: var(--sea-glass); border-radius: 12px; border: 2px solid var(--ink); overflow-wrap: anywhere; font-size: 12px; }
 .receipt-note { margin: 12px 0 0; font-size: 13.5px; color: var(--ink-2); }
+.again { margin: 18px 0 0; font-size: 14.5px; color: var(--ink-2); }
+.again a { margin-right: 8px; font-family: var(--mono); font-size: 12px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--tide-deep); }
+/* "Dive again": the view fades to the next morning while the page goes back to the top. */
+.dawn { display: none; }
+/* (over the gauge, the URL's bar and the footer; the header stays) */
+.gl .dawn { display: grid; place-items: center; position: fixed; inset: 0; z-index: 18; background: linear-gradient(180deg, #FFE1B4 0%, #FBF0D9 46%, var(--haze) 100%); opacity: 0; visibility: hidden; pointer-events: none; transition: opacity .45s ease, visibility 0s .45s; }
+.gl .dawn.on { opacity: 1; visibility: visible; transition: opacity .45s ease; }
+.dawn p { margin: 0; font-family: var(--display); font-variation-settings: 'SOFT' var(--soft); font-size: clamp(28px, 3.4vw, 52px); font-weight: 860; letter-spacing: -0.015em; color: var(--ink); }
 .s7 > .polaroid { position: absolute; right: 9vw; top: 150vh; z-index: 1; width: min(250px, 22vw); margin: 0; padding: 12px 12px 30px; background: #FFFDF7; border-radius: 3px; box-shadow: 0 18px 40px rgba(20, 40, 50, .35); transform: rotate(5deg); }
 .polaroid figcaption { margin-top: 10px; font-family: var(--display); font-style: italic; font-size: 14px; color: var(--ink-2); text-align: center; }
 .gl .polaroid { position: fixed; left: 57vw; right: auto; top: 16vh; z-index: 2; pointer-events: none; opacity: 0; transform: translateY(-120vh) rotate(-14deg); }
@@ -494,27 +504,41 @@ html:not(.gl.wide) .on-narrow { display: revert; }
 .gl.wide .free-fish, .gl.wide .seal-letter { transform: var(--at, translate(-999px, -999px)) translate(48px, -50%); }
 .gl.wide .free-fish::after, .gl.wide .seal-letter::after { left: auto; right: 100%; top: 50%; bottom: auto; width: 14px; height: 2px; margin: -1px 0 0; }
 .gl .free-fish:hover, .gl .seal-letter:hover { background: var(--sun-soft); }
-/* the octopus waits by Snap's side, low in the cabin: its button sits to its right, clear of the tags above them */
+/* the octopus waits at the submarine's pincer, low in the cabin: its button sits to its right */
 .gl.wide .seal-letter { transform: var(--at, translate(-999px, -999px)) translate(calc(var(--lift, 60px) * 0.9 + 16px), -50%); }
 
 .s2 .kind { top: 30vh; }
-.gl .kind { position: fixed !important; top: auto; bottom: 8vh; left: auto; right: 4vw; width: min(380px, 28vw); z-index: 4; pointer-events: none; visibility: hidden; transition: opacity .6s var(--reveal), transform .6s var(--reveal), visibility 0s .6s; }
+.gl .kind { position: fixed !important; top: auto; bottom: calc(8vh + 62px); left: auto; right: 4vw; width: min(380px, 28vw); z-index: 4; pointer-events: none; visibility: hidden; transition: opacity .6s var(--reveal), transform .6s var(--reveal), visibility 0s .6s; }
 .gl .kind.on { visibility: visible; transition: opacity .6s var(--reveal), transform .6s var(--reveal); }
 .gl:not(.wide) .kind { top: calc(var(--top) + 14px); bottom: auto; left: 16px; right: 16px; width: auto; font-size: 15px; }
 
-/* Chain tags */
-.tags { list-style: none; margin: 8vh 0 0 clamp(150px, 15vw, 230px); padding: 0; display: flex; flex-wrap: wrap; gap: 10px; }
-.tag { display: inline-flex; flex-direction: column; gap: 2px; background: #FFF6E2; color: var(--ink); border: 1.5px solid rgba(20, 40, 50, .7); border-radius: 4px 9px 9px 4px; padding: 5px 9px 5px 16px; font-size: 11px; position: relative; box-shadow: 2px 2px 0 rgba(20, 40, 50, .18); }
+/* The visitor's URL so far: a bar along the bottom of the view, one tag for each part, filling in as they choose. */
+.urlbar { position: fixed; left: 14px; right: 14px; bottom: max(12px, env(safe-area-inset-bottom)); z-index: 12; display: flex; align-items: center; gap: 12px; width: fit-content; max-width: calc(100vw - 28px); margin: 0 auto; padding: 7px 10px 7px 14px; background: rgba(13, 32, 46, .93); border: 2px solid var(--ink); border-radius: 16px; box-shadow: 0 10px 28px rgba(8, 24, 34, .35); }
+/* (it slides up once the dive is under way, and makes way for the receipt at the surface) */
+.js .urlbar { transform: translateY(150%); opacity: 0; visibility: hidden; transition: transform .55s var(--reveal), opacity .4s, visibility 0s .55s; }
+.js .urlbar.on { transform: none; opacity: 1; visibility: visible; transition: transform .55s var(--reveal), opacity .4s; }
+.no-js .urlbar { display: none; }
+.urlbar-label { margin: 0; flex: none; font-family: var(--mono); font-size: 10px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: var(--sun-soft); }
+.tags { list-style: none; margin: 0; padding: 2px; display: flex; gap: 15px; min-width: 0; }
+/* (in the URL's own order; on wide screens the long parts give way so the whole URL stays in view) */
+.tag { flex: 0 1 auto; min-width: 58px; display: inline-flex; flex-direction: column; gap: 1px; max-width: 232px; background: #FFF6E2; color: var(--ink); border: 1.5px solid rgba(20, 40, 50, .7); border-radius: 4px 9px 9px 4px; padding: 4px 9px 4px 16px; font-size: 11px; position: relative; white-space: nowrap; }
+.tag.sig, .tag.src { flex-shrink: 0; }
 .tag::before { content: ''; position: absolute; left: 5px; top: 50%; width: 5px; height: 5px; margin-top: -2.5px; border-radius: 50%; background: var(--ink-2); }
+/* (the slashes of the URL, between its parts; the filters join with colons inside their one segment) */
+.tag:not(:last-child)::after { content: '/'; position: absolute; right: -12px; top: 50%; transform: translateY(-50%); font-family: var(--mono); font-size: 13px; color: rgba(255, 246, 226, .5); }
+.tag.join:not(:last-child)::after { content: ':'; right: -11px; }
+/* (a part that adds nothing to the URL: no format named, no finish) */
+.tag.empty { background: rgba(255, 246, 226, .78); }
+.tag.empty code { font-weight: 600; font-style: italic; color: var(--ink-2); }
+.tag code, .tag span { overflow: hidden; text-overflow: ellipsis; }
 .tag code { font-size: 11.5px; font-weight: 800; }
-.tag span { font-size: 10.5px; color: var(--ink-2); }
-.tag.blank { background: rgba(255, 246, 226, .55); border-style: dashed; color: var(--ink-2); }
+.tag span { font-size: 10px; color: var(--ink-2); }
+.tag.blank { background: rgba(255, 246, 226, .14); border-style: dashed; border-color: rgba(255, 246, 226, .5); color: rgba(255, 246, 226, .85); }
+.tag.blank span { color: rgba(255, 246, 226, .62); }
+.tag.blank::before { background: rgba(255, 246, 226, .5); }
+.tag.blank.explaining span { color: #8FE3E1; }
 .tag.stamp { animation: stamp .45s var(--snap); }
-@keyframes stamp { 0% { transform: var(--pos) scale(1.35) rotate(-6deg); } 100% { transform: var(--pos) scale(1); } }
-.gl .tags { position: fixed; inset: 0; margin: 0; display: block; pointer-events: none; z-index: 0; opacity: 0; transition: opacity .5s; }
-.gl .tags.on { opacity: 1; }
-.gl .tag { position: absolute; left: 0; top: 0; transform-origin: 0 50%; transform: var(--pos); white-space: nowrap; }
-.gl .tag.later { opacity: .8; }
+@keyframes stamp { 0% { transform: scale(1.3) rotate(-5deg); } 100% { transform: none; } }
 /* Sealed: the signature tag is the token, with a blob of wax; the rest of the recipe is folded inside it. */
 .tag.seal { background: #FFF1E6; border-color: #8A1F14; }
 .tag.seal::before { width: 9px; height: 9px; margin-top: -4.5px; left: 4px; background: radial-gradient(circle at 35% 30%, #e0584a, #b3201a 60%, #7d140f); }
@@ -529,7 +553,8 @@ body.on-snap { cursor: pointer; }
 /* Static mode: no WebGL, or reduced motion. Each zone shows its still plate. */
 .static .snap-static, .no-js .snap-static { display: block; position: absolute; z-index: 1; pointer-events: none; }
 .static .stand, .no-js .stand { width: min(170px, 14vw); right: 9vw; top: 15vh; height: auto; }
-.static .on-chain, .no-js .on-chain { width: min(260px, 24vw); right: 8vw; top: 60vh; height: auto; }
+/* (Snap in his submarine, in every zone between the pier and the pier) */
+.static .in-sub, .no-js .in-sub { width: min(380px, 30vw); right: 6vw; top: 56vh; height: auto; }
 .no-js .story { position: relative !important; top: auto; left: auto; margin: 70vh 0 0 clamp(150px, 15vw, 230px); }
 
 .static .s2[data-look="crisp"] .zone-bg img { filter: saturate(1.1) contrast(1.05); }
@@ -538,7 +563,6 @@ body.on-snap { cursor: pointer; }
 
 .static .s3 .station, .no-js .s3 .station { min-height: 100vh; padding: 16vh 0 10vh; }
 .static .station > .station-body, .no-js .station > .station-body { margin-left: clamp(150px, 15vw, 230px); width: min(460px, 38vw); display: grid; gap: 22px; }
-.static .reef-stand, .no-js .reef-stand { top: 30vh; }
 
 /* Phones and narrow windows */
 @media (max-width: 760px) {
@@ -550,14 +574,20 @@ body.on-snap { cursor: pointer; }
   .gauge ol, .gauge-readout { display: none; }
   .gauge-bar { display: block; height: 3px; background: rgba(20, 40, 50, .15); }
   .gauge-bar span { display: block; height: 100%; width: 0; background: var(--coral); transition: width .2s linear; }
-  .hero, .zone-head, .cards, .cargo, .tags { width: auto; margin-left: 16px; margin-right: 16px; }
+  .hero, .zone-head, .cards, .cargo { width: auto; margin-left: 16px; margin-right: 16px; }
+  .urlbar { left: 8px; right: 8px; bottom: max(8px, env(safe-area-inset-bottom)); width: auto; max-width: none; padding: 6px 8px 6px 10px; gap: 9px; border-radius: 14px; }
+  .urlbar-label { font-size: 9px; letter-spacing: .1em; }
+  .tags { overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; }
+  .tags::-webkit-scrollbar { display: none; }
+  .tag { flex: none; max-width: 200px; }
   .hero { top: calc(var(--top) + 40vh); }
   .story { left: 16px; right: 16px; width: auto; top: 200vh; }
   .slice-end { place-items: center; padding: 18vh 16px; }
   #next.slice-end { padding-top: 70vh; }
   .slice-end .zone-bg { margin-left: -16px; }
   .gl .station > .station-body, .gl .station[data-st="0"] > .station-body { left: 12px; right: 12px; width: auto; top: calc(var(--top) + 12px); transform: none; gap: 10px; }
-  .gl .station[data-phone="bottom"] > .station-body { top: auto; bottom: 12px; }
+  /* (above the URL bar) */
+  .gl .station[data-phone="bottom"] > .station-body { top: auto; bottom: 74px; }
   .gl .reef-card { padding: 14px 16px 16px; }
   .gl .reef-card p { font-size: 14px; margin-bottom: 8px; }
   .gl .reef-card .card-top { margin: 0 0 6px; }
@@ -587,7 +617,7 @@ body.on-snap { cursor: pointer; }
   .cards { gap: 40vh; }
   .card { padding: 16px; }
   .static .stand, .no-js .stand { width: 34vw; right: 4vw; top: 16vh; }
-  .static .on-chain, .no-js .on-chain { width: 40vw; right: 4vw; top: 64vh; }
+  .static .in-sub, .no-js .in-sub { width: 56vw; right: 4vw; top: 62vh; }
 }
 
 @media (prefers-reduced-motion: reduce) {

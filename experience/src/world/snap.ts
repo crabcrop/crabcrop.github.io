@@ -1,8 +1,7 @@
 import * as THREE from 'three';
 import { media, makeVideo, whenPlayable, loadPicture, type Clip } from '../media';
 import { quad, place, videoTexture, imageTexture, type Stage } from './stage';
-import type { Hold } from './chain';
-import { Rider, type RideOut } from './rider';
+import { Rider } from './rider';
 import { Sparkles } from './sparkle';
 import { clamp } from '../scroll';
 import { LOOK, LOOK_GLSL } from './look';
@@ -41,8 +40,8 @@ void main() {
   gl_FragColor = vec4(applyLook(c.rgb * uGrade), c.a * uOpacity);
 }`;
 
-type ClipKey = 'm01' | 'm02' | 'm03' | 'm04' | 'm05';
-type State = 'wave' | 'gust' | 'surprised' | 'hop' | 'leap' | 'chain' | 'homeLeap' | 'home';
+type ClipKey = 'm01' | 'm02' | 'm03';
+type State = 'wave' | 'gust' | 'surprised' | 'hop' | 'leap' | 'dive' | 'homeLeap' | 'home';
 
 export interface SnapCtx {
   /** Scroll from the top of the marina, in viewport heights, and when the beat happens. */
@@ -51,31 +50,20 @@ export interface SnapCtx {
   /** His feet on the pier and his height there, px. */
   feet: [number, number];
   body: number;
-  /** Where his top hold sits on the chain, and his height there, px. */
-  hold: [number, number];
-  chainBody: number;
+  /**
+   * His seat in the submarine's glass bubble: the middle of his feet on its
+   * floor and his height there, px, and how far the submarine is tilted
+   * (radians, nose down positive). raise: his free claw is up (on the way
+   * home, with his print found).
+   */
+  seat: { feet: [number, number]; h: number; lean: number; raise?: boolean };
   /** The waterline on screen, px, and the viewport width. */
   water: number;
   viewW: number;
-  /** Lean from the chain above him, radians. */
-  lean: number;
   grade: [number, number, number];
-  /** Scroll speed (px per frame), the cursor, and whether the visitor has paused. */
-  speed: number;
+  /** The cursor, or the last tap. */
   mouse: [number, number] | null;
-  idle: boolean;
-  /**
-   * On the ground (the sand under the pier, the shallows, the kelp forest,
-   * the reef, the vents): coming down to it (land 0 to 1), standing or
-   * walking there with his line in his raised claw, then up off it again
-   * (lift 0 to 1). feet and body place him there; hold is where his raised
-   * claw is while he is off the ground; vel is how fast he walks, px per
-   * second. print: he holds up his photo print, found (the vents). raise: his
-   * free claw is up with nothing drawn in it (on the way up the page shows
-   * the print beside it, taking on the visitor's choices).
-   */
-  ground?: { land: number; lift: number; feet: [number, number]; body: number; vel: number; hold: [number, number]; print?: boolean; raise?: boolean };
-  /** Back at the surface: when on, he leaps off the chain onto the pier (feet, his height there) and waves with his print. */
+  /** Back at the surface: when on, he leaps out of the submarine onto the pier (feet, his height there) and waves with his print. */
   home?: { on: boolean; feet: [number, number]; body: number };
 }
 
@@ -83,15 +71,11 @@ const PRINT_AT = 0.83;
 /** When his feet leave the pier in the hop clip, s. */
 const TAKEOFF = 1.76;
 const LEAP = 0.9;
-const VISIT_JUMP = 0.75;
-/** The claw tip beside his head in the snap clip, as shares of its frame. */
-const CLAW_AT: [number, number] = [0.2, 0.47];
 /**
  * In 3D: the gust tears the print from his claw this long after it starts,
- * and he stays startled this long; he crouches this long before he hops;
- * he stays on a card this long, snapping his pincer at these moments.
+ * and he stays startled this long; he crouches this long before he hops.
  */
-const GUST_TEAR = 0.3, GUST_LEN = 1.6, CROUCH = 0.38, PERCH = 2.6, PERCH_SNAPS = [0.35, 1.45];
+const GUST_TEAR = 0.3, GUST_LEN = 1.6, CROUCH = 0.38;
 /** The print he holds, in his heights. */
 const PRINT_H = 0.28;
 const easeInOut = (x: number) => (x < 0.5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2);
@@ -106,17 +90,12 @@ function spriteMaterial() {
 /** A flight between two points with a spin: Bézier arc, turns, growing or shrinking. */
 interface Flight { t0: number; dur: number; from: [number, number]; s0: number; s1: number; turns: number; lift: number; wet?: boolean }
 
-/** A visit to a card: the leap out, the claw snap on its top edge, the leap back (to the chain, or to the ground he left). */
-interface Visit { phase: 'out' | 'perch' | 'back'; t0: number; flight: Flight; feet: () => [number, number] | null; clicks: number; body: number }
-
-type RiderCtx = { visible: boolean; h: number; speed: number; mouse: [number, number] | null; grade: [number, number, number]; idle: boolean };
-
 /**
- * Snap: on the pier, the leap onto the chain, riding it down, on the ground
- * from there (standing, walking sideways, swimming between places with his
- * line) and his visits to the cards. He is the 3D model throughout once it has
- * loaded (Rider and Snap3D bring him to life); if it cannot load, he is the
- * alpha clips M01 to M05 and the riding sprite and film, as before.
+ * Snap: on the pier, the leap into his submarine, the dive inside its glass
+ * bubble, and the leap back out onto the pier at the end. He is the 3D model
+ * throughout once it has loaded (Rider and Snap3D bring him to life); if it
+ * cannot load, he is the alpha clips M01 to M03 on the pier and the sprite
+ * in the bubble.
  */
 export class Snap {
   state: State = 'wave';
@@ -133,35 +112,20 @@ export class Snap {
   private loaded = false;
   private clipBox = { left: 0, top: 0, w: 0, h: 0 };
   private leap: Flight | null = null;
-  private visitNow: Visit | null = null;
   /** Snap is the 3D model (else the films and sprite). */
   use3d = false;
   /** In 3D: the print is still in his claw; when the gust came and when he crouched to hop. */
   private printHeld = true;
   private gustAt = -10;
   private hopAt = -10;
-  private walking = false;
-  /** Holds on the chain while he rides it (or swims with his line). */
-  holds: RideOut | null = null;
-  /** His raised claw on screen while he stands or walks on the ground: his line hangs from it. */
-  claw: [number, number] | null = null;
-  /** Where his raised claw is, whatever he is doing, for the line he carries; null when he holds nothing (on the pier). */
-  grip: [number, number] | null = null;
-  /** The middle of his feet while he is on the ground. */
-  private standAt: [number, number] | null = null;
-  /** The moment he last came down on the ground from a card, for a puff of sand. */
-  touched = -10;
-  /** The moment he last caught the chain, for the jolt and the splash. */
+  /** He is inside the bubble (the world draws its glass over him), from the end of his leap in to the start of his leap out. */
+  inside = false;
+  /** The moment he last dropped into his seat, for the submarine's bob. */
   caught = -10;
   /** In 3D: when and where his leap went into the water, for the splash. */
   entered = { t: -10, x: 0 };
-  /** The card he is standing on, and since when. */
-  perch: { feet: [number, number]; since: number } | null = null;
-  private flip = true;
-  private landedAt = -1;
-  /** True once he has landed on the chain. */
-  get riding() { return this.state === 'chain'; }
-  get visiting() { return !!this.visitNow; }
+  /** True once he is in the submarine. */
+  get riding() { return this.state === 'dive'; }
 
   constructor(stage: Stage) {
     this.clipU = { uMap: { value: null }, uOpacity: { value: 1 }, uCutX: { value: 2 }, uFlip: { value: 0 }, uGrade: { value: new THREE.Vector3(1, 1, 1) }, ...LOOK };
@@ -202,27 +166,14 @@ export class Snap {
     this.loaded = true;
   }
 
-  /** Everything for the story beat and the ride (in 3D, all there already). */
+  /** Everything for the story beat and the dive (in 3D, all there already). */
   async loadRest() {
     if (this.use3d) return;
     const chainImg = await loadPicture('snap-chain');
     this.rider.setTexture(imageTexture(chainImg));
     this.clips.m02.v.preload = this.clips.m03.v.preload = 'auto';
     await Promise.all([this.ready('m02'), this.ready('m03')]);
-    // The ride (the film, the model having failed); the sprite stands in until it plays.
-    this.rider.loadRide().catch(() => {});
   }
-
-  private async loadClip(k: 'm04' | 'm05', loop: boolean) {
-    if (this.use3d || this.clips[k]) return;
-    const v = makeVideo(`snap-${k}.mp4`, loop);
-    this.clips[k] = { v, tex: videoTexture(v), ready: false, meta: media.clips[k] };
-    await this.ready(k);
-  }
-  /** The sideways walk, for the reef (the film only). */
-  loadReef() { return this.loadClip('m04', true); }
-  /** The claw snap, for his visits to the cards (the film only). */
-  loadClaw() { return this.loadClip('m05', false); }
 
   private use(k: ClipKey) {
     if (this.cur !== k) {
@@ -244,15 +195,13 @@ export class Snap {
     for (const c of Object.values(this.clips)) { c.v.pause(); }
     this.pr.on = false;
     this.leap = null;
-    this.visitNow = null;
-    this.perch = null;
     this.clipU.uCutX.value = 2;
     this.state = 'wave';
     this.printHeld = true;
     if (!this.use3d) this.use('m01');
   }
 
-  /** Off the pier: a leap with a spin from where he stands on screen now, or straight onto the chain if he is out of view. */
+  /** Off the pier: a leap with a spin from where he stands on screen now into the submarine, or straight into it if he is out of view. */
   private takeOff(t: number, ctx: SnapCtx) {
     for (const c of Object.values(this.clips)) c.v.pause();
     let from: [number, number] | null = null;
@@ -269,11 +218,10 @@ export class Snap {
       if (this.clipMesh.visible && b.w > 0 && b.top + b.h > 0 && m) from = [b.left + ((m.box[0] + m.box[2]) / 2) * b.w, b.top + 0.66 * b.h];
     }
     if (from) {
-      this.leap = { t0: t, dur: LEAP, from, s0: ctx.body / ctx.chainBody, s1: 1, turns: -1, lift: Math.max(ctx.chainBody * 0.7, ctx.viewW * 0.06) };
+      this.leap = { t0: t, dur: LEAP, from, s0: ctx.body / ctx.seat.h, s1: 1, turns: -1, lift: Math.max(ctx.seat.h * 1.3, ctx.viewW * 0.06) };
       this.state = 'leap';
     } else {
-      this.state = 'chain';
-      this.rider.land(t);
+      this.state = 'dive';
       this.caught = t;
     }
   }
@@ -288,53 +236,6 @@ export class Snap {
     const y = (1 - e) * (1 - e) * y0 + 2 * (1 - e) * e * my + e * e * to[1];
     return { p, air: { x, y, rot: f.turns * Math.PI * 2 * easeOut(p), s: f.s0 + (f.s1 - f.s0) * easeOut(p) } };
   }
-
-  /** Visit a card: leap onto its top edge (feet gives where, each frame), snap the claw, come back. */
-  visit(t: number, feet: () => [number, number] | null, ctx: { chainBody: number; body: number }) {
-    if (!this.riding || this.visitNow || !(this.use3d || this.clips.m05?.ready)) return false;
-    let from: [number, number];
-    if (this.holds) {
-      const [cx, cy] = this.rider.centre(ctx.chainBody);
-      from = [this.holds.top[0] + cx, this.holds.top[1] + cy];
-    } else if (this.use3d && this.standAt) {
-      const [sx, sy] = this.rider.standCentre(ctx.chainBody);
-      from = [this.standAt[0] + sx, this.standAt[1] + sy];
-    } else return false;
-    const f = feet();
-    if (!f) return false;
-    this.visitNow = {
-      phase: 'out', t0: t, feet, clicks: 0, body: ctx.body,
-      flight: { t0: t, dur: VISIT_JUMP, from, s0: 1, s1: ctx.body / ctx.chainBody, turns: f[0] < from[0] ? -1 : 1, lift: ctx.chainBody * 0.45 },
-    };
-    return true;
-  }
-  /** Cut a visit short: back to the chain now. */
-  endVisit(t: number) {
-    const v = this.visitNow;
-    if (!v || v.phase === 'back') return;
-    this.goBack(t, v);
-  }
-  private goBack(t: number, v: Visit) {
-    const perched = v.phase === 'perch';
-    let from: [number, number] = [this.lastAir.x, this.lastAir.y];
-    if (perched) {
-      const f = v.feet();
-      if (this.use3d && f) {
-        const [cx, cy] = this.rider.standCentre(v.body);
-        from = [f[0] + cx, f[1] + cy];
-      } else if (!this.use3d) {
-        const b = this.clipBox;
-        from = [b.left + b.w / 2, b.top + b.h * 0.6];
-      }
-    }
-    v.flight = { t0: t, dur: VISIT_JUMP, from, s0: perched ? v.flight.s1 : this.lastAir.s, s1: 1, turns: -v.flight.turns, lift: v.flight.lift };
-    v.phase = 'back';
-    v.t0 = t;
-    this.perch = null;
-    this.clipMesh.visible = false;
-    this.clips.m05?.v.pause();
-  }
-  private lastAir = { x: 0, y: 0, rot: 0, s: 0.7 };
 
   private placeClip(ctx: { feet: [number, number]; body: number }, dy = 0, flip = false) {
     const m = this.clips[this.cur].meta;
@@ -424,19 +325,16 @@ export class Snap {
     place(this.printSprite, -p.w / 2, -p.h / 2, p.w, p.h);
   }
 
-  /** Tapped or clicked: on the chain he spins (or, in 3D, waves, snaps or wiggles); in 3D he answers anywhere. */
+  /** Tapped or clicked: he waves, snaps his pincer, hops or wiggles, wherever he is (the sprite, in its bubble, just bobs). */
   poke(t: number) {
-    if (!this.use3d) { if (this.riding && !this.visitNow) this.rider.spin(t, true); return; }
-    const v = this.visitNow;
-    if (v) { if (v.phase === 'perch') this.rider.react(t, 'perch'); return; }
-    if (this.walking) this.rider.react(t, 'walk');
-    else if (this.riding) this.rider.react(t, 'chain');
+    if (!this.use3d) return;
+    if (this.riding) this.rider.react(t, 'sub');
     else if (this.state === 'wave' || this.state === 'surprised' || this.state === 'home') this.rider.react(t, 'pier');
   }
   /** Is a screen point on him? */
   hit(x: number, y: number) {
-    if (this.use3d) return this.state !== 'leap' && this.rider.hit(x, y);
-    return this.riding && !this.visitNow && this.rider.hit(x, y);
+    if (this.use3d) return this.state !== 'leap' && this.state !== 'homeLeap' && this.rider.hit(x, y);
+    return this.riding && this.rider.hit(x, y);
   }
 
   /** The story beat on the pier, in 3D: the gust takes the print, he is startled, he crouches and hops. */
@@ -502,52 +400,46 @@ export class Snap {
     }
     this.stepPrint(dt, t, ctx);
 
-    this.claw = null;
-    this.holds = null;
-    this.grip = null;
-    this.standAt = null;
-    this.walking = false;
-    const [cxo, cyo] = this.rider.centre(ctx.chainBody);
-    const riderCtx: RiderCtx = { visible: true, h: ctx.chainBody, speed: ctx.speed, mouse: ctx.mouse, grade: ctx.grade, idle: ctx.idle };
+    // His seat: the middle of him, as he stands in the bubble.
+    const seat = ctx.seat;
+    const [sx, sy] = this.use3d ? this.rider.standCentre(seat.h) : [0, -seat.h * 0.5];
+    const mid: [number, number] = [seat.feet[0] + sx, seat.feet[1] + sy];
+    const body = { h: seat.h, mouse: ctx.mouse, grade: ctx.grade };
+    this.inside = this.state === 'dive';
 
-    // The leap: a spinning arc from the pier to his hold on the chain.
+    // The leap: a spinning arc from the pier, over the submarine and down into its bubble.
     if (this.state === 'leap' && this.leap) {
-      const to: [number, number] = [ctx.hold[0] + cxo, ctx.hold[1] + cyo];
-      const { p, air } = this.fly(this.leap, t, to);
-      this.rider.update(dt, t, { ...riderCtx, hold: ctx.hold, lean: 0, air });
-      this.grip = [air.x - cxo, air.y - cyo];
-      // Through the surface: the splash is where he goes in.
+      const { p, air } = this.fly(this.leap, t, mid);
+      this.rider.fly(dt, t, { ...body, air });
+      this.inside = p > 0.8;
+      // Through the surface (the bubble's top is under it): the splash is where he goes in.
       if (this.use3d && !this.leap.wet && air.y > ctx.water) { this.leap.wet = true; this.entered = { t, x: air.x }; }
       if (p >= 1) {
-        this.state = 'chain';
+        this.state = 'dive';
         this.leap = null;
-        // Into the water at the marina: he dips under and bobs up (the world adds the splash).
-        this.rider.land(t, this.use3d && Math.abs(ctx.hold[1] - ctx.water) < ctx.chainBody);
         this.caught = t;
-        this.sparkles.burst(ctx.hold[0] + ctx.chainBody * 0.05, ctx.hold[1] + ctx.chainBody * 0.05, ctx.chainBody * 0.35, 3);
+        this.rider.act(t, 'hop');
+        this.sparkles.burst(mid[0], mid[1] - seat.h * 0.5, seat.h * 0.5, 3);
       }
       return;
     }
-    // Home at the surface: off the chain onto the pier, waving, his print held up (and back on the chain if the visitor scrolls up).
+    // Home at the surface: out of the submarine onto the pier, waving, his print held up (and back inside if the visitor scrolls up).
     if (ctx.home) {
-      if (ctx.home.on && this.state === 'chain' && !this.visitNow) {
-        // from where he is: on his feet (on the submarine's tower), or swimming
-        const g = ctx.ground, [sx, sy] = this.rider.standCentre(ctx.chainBody);
-        const from: [number, number] = g && this.use3d && g.land >= 1 && g.lift <= 0 ? [g.feet[0] + sx, g.feet[1] + sy] : [ctx.hold[0] + cxo, ctx.hold[1] + cyo];
-        this.leap = { t0: t, dur: LEAP, from, s0: 1, s1: ctx.home.body / ctx.chainBody, turns: 1, lift: Math.max(ctx.chainBody * 0.8, ctx.viewW * 0.06) };
+      if (ctx.home.on && this.state === 'dive') {
+        this.leap = { t0: t, dur: LEAP, from: mid, s0: 1, s1: ctx.home.body / seat.h, turns: 1, lift: Math.max(seat.h * 1.5, ctx.viewW * 0.06) };
         this.state = 'homeLeap';
       }
       if (!ctx.home.on && (this.state === 'homeLeap' || this.state === 'home')) {
-        this.state = 'chain';
+        this.state = 'dive';
         this.leap = null;
-        this.rider.land(t);
         this.caught = t;
       }
     }
     if (this.state === 'homeLeap' && this.leap && ctx.home) {
-      const [sx, sy] = this.rider.standCentre(ctx.home.body);
-      const { p, air } = this.fly(this.leap, t, [ctx.home.feet[0] + sx, ctx.home.feet[1] + sy]);
-      this.rider.update(dt, t, { ...riderCtx, hold: ctx.hold, lean: 0, air });
+      const [hx, hy] = this.rider.standCentre(ctx.home.body);
+      const { p, air } = this.fly(this.leap, t, [ctx.home.feet[0] + hx, ctx.home.feet[1] + hy]);
+      this.rider.fly(dt, t, { ...body, air });
+      this.inside = p < 0.12;
       if (p >= 1) {
         this.state = 'home';
         this.leap = null;
@@ -559,22 +451,19 @@ export class Snap {
       if (this.use3d) {
         this.rider.stand(dt, t, { feet: ctx.home.feet, h: ctx.home.body, grade: ctx.grade, mouse: ctx.mouse, hello: 1, hold: 1 });
         this.holdPrint(t, { ...ctx, body: ctx.home.body });
-      } else this.rider.update(dt, t, { ...riderCtx, visible: false, hold: ctx.hold, lean: 0 });
+      } else this.rider.hide();
       return;
     }
-    if (this.state !== 'chain') {
+    if (this.state !== 'dive') {
       if (this.use3d && stillOnPier && k < 2.05) this.pier3d(dt, t, ctx);
-      else this.rider.update(dt, t, { ...riderCtx, visible: false, hold: ctx.hold, lean: 0 });
+      else this.rider.hide();
       return;
     }
 
-    if (this.visitNow) { this.visiting_(dt, t, ctx, riderCtx); return; }
-    if (ctx.ground) { this.onGround(dt, t, ctx, ctx.ground, riderCtx); return; }
-
+    // In his seat: on his feet in the bubble, looking about, tilting with the submarine.
     this.clipMesh.visible = false;
-    const r = this.rider.update(dt, t, { ...riderCtx, hold: ctx.hold, lean: ctx.lean });
-    this.holds = r;
-    this.grip = r?.top ?? null;
+    if (this.use3d) this.rider.stand(dt, t, { feet: seat.feet, h: seat.h, grade: ctx.grade, mouse: ctx.mouse, lean: seat.lean, hold: seat.raise ? 1 : 0, headroom: seat.h * 0.07 });
+    else this.rider.fly(dt, t, { ...body, air: { x: mid[0], y: mid[1], rot: seat.lean, s: 1 }, legs: 0.15 });
   }
 
   /** On the pier in 3D: waving hello with the print in his other claw, startled by the gust, crouching to hop. */
@@ -593,140 +482,27 @@ export class Snap {
     if (this.printHeld) this.holdPrint(t, ctx);
   }
 
-  /** A visit to a card: out, perched with the claw snap, and back. */
-  private visiting_(dt: number, t: number, ctx: SnapCtx, riderCtx: RiderCtx) {
-    const v = this.visitNow!;
-    const [cxo, cyo] = this.rider.centre(ctx.chainBody);
-    const body = ctx.chainBody * v.flight.s1;
-    const feet = v.feet();
-    if (v.phase === 'out') {
-      if (!feet) { this.goBack(t, v); return; }
-      const [sx, sy] = this.use3d ? this.rider.standCentre(body) : [0, -body * 0.55];
-      const to: [number, number] = [feet[0] + sx, feet[1] + sy];
-      const { p, air } = this.fly(v.flight, t, to);
-      this.lastAir = air;
-      this.rider.update(dt, t, { ...riderCtx, hold: ctx.hold, lean: 0, air });
-      this.grip = [air.x - cxo * air.s, air.y - cyo * air.s];
-      this.clipMesh.visible = false;
-      if (p >= 1) {
-        v.phase = 'perch';
-        v.t0 = t;
-        if (!this.use3d) {
-          this.rider.update(dt, t, { ...riderCtx, visible: false, hold: ctx.hold, lean: 0 });
-          this.start('m05', t, 'chain');
-        }
-        this.perch = { feet, since: t };
-      }
-      return;
-    }
-    if (v.phase === 'perch') {
-      if (this.use3d) {
-        // On the card's top edge in 3D: two snaps of his pincer, with stars.
-        if (!feet || t - v.t0 >= PERCH) { this.goBack(t, v); return; }
-        if (v.clicks < PERCH_SNAPS.length && t - v.t0 >= PERCH_SNAPS[v.clicks]) { this.rider.act(t, 'snap'); v.clicks++; }
-        this.grip = this.rider.stand(dt, t, { feet, h: body, grade: ctx.grade, mouse: ctx.mouse });
-        this.perch = { feet, since: this.perch?.since ?? t };
-        return;
-      }
-      const c = this.clips.m05;
-      if (!feet || c.v.ended || c.v.currentTime >= c.meta.duration - 0.08) { this.goBack(t, v); return; }
-      this.use('m05');
-      this.rider.update(dt, t, { ...riderCtx, visible: false, hold: ctx.hold, lean: 0 });
-      this.placeClip({ feet, body });
-      this.clipMesh.visible = true;
-      this.clipU.uFlip.value = 0;
-      this.clipU.uCutX.value = 2;
-      this.clipU.uGrade.value.set(...ctx.grade);
-      this.perch = { feet, since: this.perch?.since ?? t };
-      // His sparkles at each click of the claw.
-      const clicks = c.meta.clicks ?? [];
-      if (v.clicks < clicks.length && c.v.currentTime >= clicks[v.clicks]) {
-        const b = this.clipBox;
-        this.sparkles.burst(b.left + CLAW_AT[0] * b.w, b.top + CLAW_AT[1] * b.h, body * 0.32, 2);
-        v.clicks++;
-      }
-      return;
-    }
-    // Back: to the ground he left, or to where he swims with his line.
-    const g = ctx.ground;
-    const down = !!g && this.use3d && g.land >= 1 && g.lift <= 0;
-    const [sx, sy] = down ? this.rider.standCentre(ctx.chainBody) : [cxo, cyo];
-    const to: [number, number] = down ? [g!.feet[0] + sx, g!.feet[1] + sy] : [(g ? g.hold : ctx.hold)[0] + cxo, (g ? g.hold : ctx.hold)[1] + cyo];
-    const { p, air } = this.fly(v.flight, t, to);
-    this.rider.update(dt, t, { ...riderCtx, hold: ctx.hold, lean: 0, air });
-    this.grip = [air.x - cxo * air.s, air.y - cyo * air.s];
-    this.clipMesh.visible = false;
-    if (p >= 1) {
-      this.visitNow = null;
-      if (down) { this.touched = t; return; }
-      this.rider.land(t);
-      this.caught = t;
-      this.sparkles.burst(ctx.hold[0], ctx.hold[1], ctx.chainBody * 0.3, 2);
-    }
-  }
-
-  /** On the ground: down to it, standing or walking sideways there, and up off it again. */
-  private onGround(dt: number, t: number, ctx: SnapCtx, r: NonNullable<SnapCtx['ground']>, riderCtx: RiderCtx) {
-    const m04 = this.clips.m04;
-    const walking = r.land >= 1 && r.lift <= 0 && (this.use3d || !!m04?.ready);
-    if (!walking) {
-      // Off the ground: coming down to it, or pushing off at the end.
-      this.landedAt = -1;
-      if (m04 && !m04.v.paused) m04.v.pause();
-      this.clipMesh.visible = false;
-      this.holds = this.rider.update(dt, t, { ...riderCtx, hold: r.hold, lean: 0 });
-      this.grip = this.holds?.top ?? r.hold;
-      return;
-    }
-    this.walking = true;
-    if (this.use3d) {
-      // On his feet in 3D, as big as on the chain, his line in his raised claw (and at the vents, his print in the other).
-      this.claw = this.rider.stand(dt, t, { feet: r.feet, h: ctx.chainBody, grade: ctx.grade, mouse: ctx.mouse, vel: r.vel, hold: r.print || r.raise ? 1 : 0 });
-      this.grip = this.claw;
-      this.standAt = r.feet;
-      if (r.print) this.holdPrint(t, { ...ctx, body: ctx.chainBody });
-      return;
-    }
-    // Walking, mirrored so the tracked claw is his left one on screen when he heads right.
-    this.rider.update(dt, t, { ...riderCtx, visible: false, hold: r.hold, lean: 0 });
-    if (this.landedAt < 0) this.landedAt = t;
-    this.use('m04');
-    const c = m04!;
-    const speed = Math.abs(r.vel);
-    if (speed > 30) {
-      c.v.playbackRate = clamp(speed / 240, 0.7, 2.4);
-      if (c.v.paused) c.v.play().catch(() => {});
-      this.flip = r.vel > 0;
-    } else if (!c.v.paused) {
-      c.v.pause();
-    }
-    const b = clamp((t - this.landedAt) / 0.4);
-    const bounce = -Math.sin(b * Math.PI) * r.body * 0.08 * (1 - b);
-    this.placeClip(r, bounce, this.flip);
-    this.clipMesh.visible = true;
-    this.clipU.uFlip.value = this.flip ? 1 : 0;
-    this.clipU.uCutX.value = 2;
-    this.clipU.uGrade.value.set(...ctx.grade);
-    // His left claw: the tracked right claw, mirrored when the clip is.
-    const track = c.meta.claw ?? [];
-    if (track.length) {
-      const dur = c.meta.duration || 4;
-      const tt = (c.v.currentTime % dur);
-      const i = Math.min(track.length - 1, Math.floor((tt / dur) * track.length));
-      const [, xr, yr] = track[i];
-      const centre = (c.meta.box[0] + c.meta.box[2]) / 2;
-      const xq = this.flip ? 1 - xr : 2 * centre - xr;
-      const bx = this.clipBox;
-      this.claw = [bx.left + xq * bx.w, bx.top + yr * bx.h];
-      this.grip = this.claw;
-    }
+  /**
+   * His print, carried outside him: in the submarine's pincer once it is
+   * found. x, y is its middle, h its height, px. Call after update, each
+   * frame it should show.
+   */
+  carryPrint(x: number, y: number, h: number, rot: number, grade: [number, number, number], opacity = 1) {
+    if (!this.printU.uMap.value || opacity <= 0.01) return;
+    const w = h * (media.print.w / media.print.h);
+    this.printG.visible = true;
+    this.printSprite.renderOrder = 6;
+    this.printG.position.set(x, -y, 0);
+    this.printG.rotation.z = -rot;
+    place(this.printSprite, -w / 2, -h / 2, w, h);
+    this.printU.uOpacity.value = opacity;
+    this.printU.uGrade.value.set(...grade);
   }
 
   /** A little burst of stars at a point (the wax going on the octopus's letter). */
   burst(x: number, y: number, size: number, n = 2) { this.sparkles.burst(x, y, size, n); }
 
   /** Pause videos when the tab hides; the next update resumes them. */
-  pause() { for (const c of Object.values(this.clips)) c.v.pause(); this.rider.pause(); }
+  pause() { for (const c of Object.values(this.clips)) c.v.pause(); }
 }
 
-export type { Hold };

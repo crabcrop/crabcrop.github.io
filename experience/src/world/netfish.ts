@@ -38,7 +38,7 @@ type State = 'tangled' | 'snip' | 'free';
 
 /**
  * Snap's good deed in the kelp forest: a little fish caught in fishing line.
- * He clicks his claw, the line parts, the fish spins free and follows him.
+ * The submarine's pincer snips the line, and the fish spins free and follows.
  */
 export class NetFish {
   state: State = 'tangled';
@@ -152,7 +152,7 @@ export class NetFish {
       (this.line.material as THREE.LineBasicMaterial).opacity = 0.85 * (1 - cut) * o.vis;
     }
 
-    // The sparkle where his claw cuts the line, just above the fish.
+    // The sparkle where the pincer cuts the line, just above the fish.
     const sp = this.state === 'snip' ? 1 - clamp(age / 0.45) : 0;
     this.spark.visible = sp > 0;
     this.su.uA.value = sp;

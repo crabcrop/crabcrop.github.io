@@ -664,16 +664,89 @@ It is cut out in the build (`sub()` in `encode-media.py`): the grey key
 again, with the brass and steel kept solid and the glass left as a thin
 film, so whatever is behind it shows through.
 
+## The submarine, all the way down and back
+
+With the walking version live in the preview, the note that came back was:
+the submarine is the good idea, the line Snap carries is hard to read, so
+put him inside the submarine for the whole dive, bring him back up to the
+marina in it, let him get out there, and let the page start over. That is
+what the page does now.
+
+- **One vehicle for the whole dive.** A brass toy submarine with a glass
+  bubble for a cockpit is moored at the pier, half under the water. The
+  gust takes the print, Snap hops off the pier and in through the top, and
+  from there he is where the submarine is: nose down along the marina's
+  picture to the sand, across to the shallows and into the kelp (the same
+  sideways crossings as before, a pier post and the forest's edge passing
+  the lens), along the reef, into the wreck and out again with the films,
+  down the drop, over the geode at the vents, and up.
+- **How he is inside it.** The submarine is one cutout: brass and steel
+  solid, the glass a thin film. Snap, the 3D model, stands on the bubble's
+  floor and is drawn between the backdrop and the cutout, so the glass, its
+  highlights and its brass ring are in front of him. He leans with the
+  submarine and takes less of the water's tint than it does, so he stays
+  red behind the glass.
+- **Its pincer does what his claw did.** It snips the fishing line in the
+  kelp, presses the wax on the octopus's letter in the cabin, and lifts
+  the print out of the geode. On the way up the print that takes on the
+  visitor's choices hangs from it.
+- **Its lamp** glows where the water is dark, and the lost fish of the
+  twilight zone swims along by it.
+- **It keeps to the water.** Pinned to a spot on screen, it flew above the
+  surface while the camera crossed the waterline, at both ends of the dive.
+  It is held under the waterline now (a soft maximum, so it does not jolt):
+  it goes under before it goes down, and at sunset it stops at the surface
+  while the camera pulls back.
+- **The URL has its own bar.** With no line to hang them on, the URL's
+  parts sit in a bar along the bottom of the view, in the URL's own order:
+  signature / crop / filters (look : finish : format) / source. A blank
+  part says where it gets picked; each takes what is already on as the dive
+  reaches its place, and a stamp when the visitor picks; sealed, the
+  signature becomes the token and the rest blur; while the explain card is
+  up the parts explain themselves one after another; on the way up each
+  lights as the print takes it on.
+- **The loop closes.** Snap leaps out onto the pier with his print, the
+  submarine rides the swell where it was moored that morning, and "Dive
+  again" fades to "The next morning…" and puts the page back at the top
+  with the visitor's URL kept. (The gust takes the print again. He does not
+  learn.)
+- **What went.** The line of tags and its float, walking, the leaps to the
+  cards, the lift offered at the vents, and with them the ride films
+  (M10 to M12), the scuttle and the claw snap (M04, M05) and the float's
+  cutout: 5 MB of media. The anchor chain stays as scenery, boat to anchor,
+  morning and sunset. The submersible painted into the vents' plate is
+  still the MCP card's agent: "the other little submarine down here".
+- **The still page** shows Snap in the submarine where it showed him
+  hugging a piece of chain. The picture is taken from the page itself
+  (`scripts/snap-still.mjs`): the dev build's world with everything but
+  Snap and the submarine hidden, read off the canvas, which is clear where
+  nothing is drawn.
+
+The prop, Nano Banana Pro, 3:2, 2K, on mid-grey (folder 05), with the
+first submarine (`88d7b42c-aef2-4477-b639-d356e60dc25d`) as the reference
+so it is the same brass, glass and steel:
+
+| Prop | Job | Notes |
+| --- | --- | --- |
+| The submarine with a bubble cockpit | `86da1a4c-5b7d-4bf0-a533-a47e1a010770` | Exactly from the side, the front half one clear, empty glass sphere, a hatch tower, a headlamp, two grabber arms, a ballast tank, tail and propeller. It came nose to the left; the build mirrors it. Alternates: `71e7360d-103f-4f73-aa82-db821bc4e329` (a bigger sphere, but with a shadow on the ground), `eaffa7ac-765f-4092-90c9-6515bd1c4787`, `50951f22-0c1d-45f6-8e2d-a0d44d5c99af` |
+
+It is cut out in the build (`sub()` in `encode-media.py`). The grey key
+alone lost the sphere, whose outline is fainter than the noise, so the
+sphere is found as a circle: a search round a guess by eye for the centre
+and radius with the strongest edge along the outer arc. Inside it only
+brass as wide as the ring is kept solid (warm glints beside the ring are
+reflections, not metal), the gap between the arms and the tank is opened,
+and the glass keeps a little of its own light, most at the rim.
+
 ## Next
 
-The still page (reduced motion, no WebGL) still shows Snap hugging a piece
-of chain in each zone. The way from the twilight zone to the vents still
-dips through an ember dark (it reads as sinking into the glow, so it was
-left). The page is about 46 screens long; trimming it is its own job.
+The way from the twilight zone to the vents still dips through an ember
+dark (it reads as sinking into the glow, so it was left). The page is
+about 46 screens long; trimming it is its own job.
 
 Still open besides: the real signed URLs (the builder needs the signing
-secret in CI), Snap's claw moving for the snip in the kelp, depth maps for
-parallax, and sound.
+secret in CI), the pincer's jaws (the cutout nudges forward to snip, seal
+and lift, but they do not move), depth maps for parallax, and sound.
 
 Optional: the six format fish could become 3D schools (about 40 Tripo
 credits a species).
@@ -817,3 +890,17 @@ the stills; phone-format takes (9:16, 1080p) would fix that.
 - A rope whose ends move with the camera must not be simulated in screen
   space: it trails behind the camera's travel. The anchor chain is laid
   out straight between its two ends each frame, with a slow sway.
+- Glass on a grey ground keys away with the ground. A clear sphere has to
+  be found by its shape (the strongest circle of edge near where it should
+  be) and given its alpha by hand: a faint film, a brighter rim.
+- A hero pinned to a spot on screen needs a rule for the water's surface.
+  While the camera crosses the waterline the picture moves and he does
+  not, so he hangs in the air. Hold him under the line while it is in
+  view, with a soft maximum so the hold eases in.
+- To get a cut-out still that matches the moving page, photograph the
+  page: hide every layer but the ones wanted, draw one frame and read the
+  canvas, which is clear where nothing was drawn. A handle on the world
+  that only the dev build sets is enough to reach the layers.
+- Name a class for what the thing is, and search before using it. The
+  URL's empty parts were given `.skip`, which is also the skip link's
+  class: they left the bar and sat fixed above it.

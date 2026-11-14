@@ -21,10 +21,11 @@ const ZONES: Record<ZoneId, string> = {
   s3: 'The Coral Reef', s3b: 'The Clam Studio', s4: 'The Shipwreck', t3: 'Into the wreck', s4b: 'The Shipwreck',
   t4: 'The drop', s5: 'The Twilight Zone', s6: 'The Vents', t5: 'The ascent', s7: 'Back to the Surface',
 };
+/** The zones in the order the dive passes them. */
+const ORDER: ZoneId[] = ['s0', 't1', 's1', 's2', 't2', 's3', 's3b', 's4', 't3', 's4b', 't4', 's5', 's6', 't5', 's7'];
 /** Which gauge entry is current in each zone. */
 const GAUGE: Record<ZoneId, string> = { s0: 's0', t1: 's0', s1: 's1', s2: 's2', t2: 's2', s3: 's3', s3b: 's3', s4: 's4', t3: 's4', s4b: 's4', t4: 's4', s5: 's5', s6: 's6', t5: 's6', s7: 's7' };
 const DEPTH: Record<string, number> = { s0: 0, s1: -5, s2: -15, s3: -30, s3b: -30, s4: -60, s4b: -60, s5: -500, s6: -2500, s7: 0 };
-const TAG_KEYS = ['sig', 'fmt', 'look', 'crop', 'finish', 'src'] as const;
 
 const kb = (n: number) => `${Math.round(n / 1024)} KB`;
 const metres = (d: number) => (Math.abs(d) < 0.05 ? '0 m' : Math.abs(d) >= 1000 ? `−${Math.round(Math.abs(d)).toLocaleString('en-US')} m` : `−${Math.abs(d).toFixed(Math.abs(d) < 10 && d % 1 ? 1 : 0)} m`);
@@ -36,14 +37,23 @@ function whenNear(el: Element | null, fn: () => void) {
   io.observe(el);
 }
 
-/** A tag on Snap's line takes a value, with a little stamp. */
-function stamp(tag: HTMLElement, code: string, note: string) {
+/** Bring a part of the URL into view in its bar (on narrow screens the bar scrolls sideways). */
+export function showTag(tag: HTMLElement) {
+  const bar = tag.parentElement;
+  if (!bar || bar.scrollWidth <= bar.clientWidth) return;
+  bar.scrollTo({ left: tag.offsetLeft - (bar.clientWidth - tag.offsetWidth) / 2, behavior: 'smooth' });
+}
+
+/** A part of the URL takes a value in the bar, with a little stamp (empty: a part that adds nothing to the URL). */
+export function stamp(tag: HTMLElement, code: string, note: string, empty = false) {
   tag.classList.remove('blank');
+  tag.classList.toggle('empty', empty);
   tag.querySelector('code')!.textContent = code;
   tag.querySelector('span')!.textContent = note;
   tag.classList.remove('stamp');
   void tag.offsetWidth;
   tag.classList.add('stamp');
+  showTag(tag);
 }
 
 interface Hooks {
@@ -63,7 +73,7 @@ interface Hooks {
   onSealLetter: () => void;
 }
 
-/** Everything in the DOM: buttons, the gauge, cards, tags, both choices, the cargo and the curtains. */
+/** Everything in the DOM: buttons, the gauge, cards, the URL bar, the choices, the cargo and the curtains. */
 export class UI {
   private depthEl = document.getElementById('depth')!;
   private zoneEl = document.getElementById('zone')!;
@@ -71,10 +81,12 @@ export class UI {
   private fill = document.getElementById('gauge-fill')!;
   private story = document.getElementById('story')!;
   private kind = document.getElementById('kind')!;
+  private urlbar = document.getElementById('urlbar')!;
   private tagsEl = document.getElementById('tags')!;
-  private tagEls = [...document.querySelectorAll<HTMLElement>('#tags .tag')];
+  private fmtTag = document.getElementById('tag-format')!;
   private lookTag = document.getElementById('tag-look')!;
   private cropTag = document.getElementById('tag-crop')!;
+  private finishTag = document.getElementById('tag-finish')!;
   private cards = [...document.querySelectorAll<HTMLElement>('.card')];
   private reefUI: ReefUI;
   private wreckUI: WreckUI;
@@ -91,10 +103,12 @@ export class UI {
   private lastZone = '';
   private fmt: Choice = 'auto';
   private look: LookName = 'crisp';
+  private fmtShown = false;
   private lookShown = false;
   private crop: CropShape = 'wide';
   private cropShown = false;
   private finish: Finish = 'none';
+  private finishShown = false;
   private sealed = false;
   private fishHidden = true;
   private frame = 0;
@@ -176,7 +190,8 @@ export class UI {
         const f = input.value as Choice;
         const seg = SEGMENT[f];
         this.fmt = f;
-        stamp(tag, seg || 'auto', seg ? 'Your format' : 'The Accept header decides');
+        this.fmtShown = true;
+        stamp(tag, seg || 'no format', seg ? 'Your format' : 'The Accept header decides', !seg);
         status.textContent = seg ? `Format set: ${seg}.` : 'No format: the Accept header decides.';
         this.url();
         this.o.onFormat(f);
@@ -213,7 +228,7 @@ export class UI {
     const choose = (l: LookName) => {
       this.look = l;
       this.lookShown = true;
-      stamp(this.lookTag, LOOK_SEG[l], 'Your look');
+      stamp(this.lookTag, `filters:${LOOK_SEG[l]}`, 'Your look');
       show(l);
       status.textContent = `Look set: ${LOOK_NAME[l]}, ${LOOK_SEG[l]}.`;
       this.silks.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.look === l)));
@@ -285,14 +300,15 @@ export class UI {
         if (!input.checked) return;
         const f = input.value as Finish;
         this.finish = f;
-        stamp(tag, FINISH_SEG[f] || 'none', f === 'none' ? 'No finish' : 'Your finish');
+        this.finishShown = true;
+        stamp(tag, FINISH_SEG[f] || 'no finish', f === 'none' ? 'As photographed' : 'Your finish', f === 'none');
         status.textContent = f === 'none' ? 'No finish: the picture leaves as photographed.' : `Finish set: ${FINISH_NAME[f]}, ${FINISH_SEG[f]}.`;
         this.url();
       });
     }
   }
 
-  /** Choice 5: sealed or readable. Sealed, the signature tag on his line becomes the token and the other tags fold into it. */
+  /** Choice 5: sealed or readable. Sealed, the signature's part of the bar becomes the token and the other parts fold into it. */
   private sealChoice() {
     const status = document.getElementById('seal-status')!;
     this.sealed = this.sealInputs.find((i) => i.checked)?.value === 'sealed';
@@ -350,6 +366,30 @@ export class UI {
     }
   }
 
+  /**
+   * Each part of the URL in the bar takes what is already on as the dive
+   * reaches its place (or has passed it: the gauge can skip zones), until the
+   * visitor picks something else.
+   */
+  private fillIn(format: boolean, look: boolean, crop: boolean, finish: boolean) {
+    if (format && !this.fmtShown) {
+      this.fmtShown = true;
+      stamp(this.fmtTag, SEGMENT[this.fmt] || 'no format', this.fmt === 'auto' ? 'The Accept header decides' : 'Your format', this.fmt === 'auto');
+    }
+    if (look && !this.lookShown) {
+      this.lookShown = true;
+      stamp(this.lookTag, `filters:${LOOK_SEG[this.look]}`, `${LOOK_NAME[this.look]} for now`);
+    }
+    if (crop && !this.cropShown) {
+      this.cropShown = true;
+      stamp(this.cropTag, CROP_SEG[this.crop], `${CROP_NAME[this.crop]} for now`);
+    }
+    if (finish && !this.finishShown) {
+      this.finishShown = true;
+      stamp(this.finishTag, FINISH_SEG[this.finish] || 'no finish', this.finish === 'none' ? 'As photographed, for now' : 'Your finish', this.finish === 'none');
+    }
+  }
+
   private setCurrent(id: string) {
     this.gaugeLinks.forEach((a) => (a.dataset.zone === id ? a.setAttribute('aria-current', 'true') : a.removeAttribute('aria-current')));
   }
@@ -363,6 +403,12 @@ export class UI {
         this.depthEl.textContent = metres(DEPTH[id] ?? 0);
         this.zoneEl.textContent = ZONES[id];
         this.setCurrent(GAUGE[id]);
+        // The bar with the URL: up between the marina and the surface, its parts filled in zone by zone.
+        const at = ORDER.indexOf(id);
+        this.urlbar.classList.toggle('on', id !== 's0' && id !== 's7');
+        this.fillIn(at >= 2, at >= 3, at >= 5, at >= 6);
+        const src = document.getElementById('tag-src')!;
+        if (at >= 12 && src.classList.contains('blank')) stamp(src, 'root:photos/print.jpg', 'The source: your print');
       }
     }, { rootMargin: '-45% 0px -54% 0px' });
     for (const id of Object.keys(DEPTH)) { const el = document.getElementById(id); if (el) io.observe(el); }
@@ -386,36 +432,17 @@ export class UI {
     this.story.classList.toggle('on', out.storyOn);
     this.kind.classList.toggle('on', out.kindOn);
 
-    // The tags on Snap's line. Reaching the kelp, the look tag shows the look already on.
-    this.tagsEl.classList.toggle('on', out.tagsOn > 0.5);
-    if (!this.lookShown && out.s2On > 0.6) {
-      this.lookShown = true;
-      stamp(this.lookTag, LOOK_SEG[this.look], `${LOOK_NAME[this.look]} for now`);
-    }
-    if (!this.cropShown && out.reef && out.reef.near[1] > 0.6) {
-      this.cropShown = true;
-      stamp(this.cropTag, CROP_SEG[this.crop], `${CROP_NAME[this.crop]} for now`);
-    }
-    if (out.tagsOn > 0.01) {
-      TAG_KEYS.forEach((k, i) => {
-        const p = out.tags[k];
-        const el = this.tagEls[i];
-        if (!el) return;
-        // where the line leans (trailing behind Snap as he walks) the tags still hang more or less upright
-        const dangle = Math.max(-0.35, Math.min(0.35, -p.a * 0.6)) + Math.sin(t * 1.3 + i * 1.7) * 0.05;
-        el.style.setProperty('--pos', `translate(${(p.x + 9).toFixed(1)}px, ${(p.y - 11).toFixed(1)}px) rotate(${dangle.toFixed(3)}rad)`);
-      });
-    }
+    // The bar with the visitor's URL.
+    this.urlbar.classList.toggle('on', out.urlOn);
+    const at = ORDER.indexOf(out.zone);
+    this.fillIn(at > 2 || out.s1On > 0.6, at > 3 || out.s2On > 0.6, at > 5 || (!!out.reef && out.reef.near[1] > 0.6), at >= 6);
 
     // Cards sway gently in the water.
     const H = innerHeight;
     this.cards.forEach((c, i) => {
       const r = c.getBoundingClientRect();
       const onScreen = r.bottom > 0 && r.top < H;
-      // Snap standing on a card tips it: a bump as he lands, then his weight.
-      const on = out.perch && out.perch.el === c ? t - out.perch.since : -1;
-      const bump = on >= 0 ? Math.min(1, on * 6) * 0.9 + 2.4 * Math.sin(on * 10) * Math.exp(-on * 3.5) : 0;
-      const sway = Math.sin(t * 0.8 + i * 1.9) * 0.55 + Math.max(-1.5, Math.min(1.5, v * 0.04)) + bump;
+      const sway = Math.sin(t * 0.8 + i * 1.9) * 0.55 + Math.max(-1.5, Math.min(1.5, v * 0.04));
       if (onScreen) c.style.transform = `rotate(${sway.toFixed(2)}deg)`;
     });
 
@@ -438,7 +465,7 @@ export class UI {
     this.wreckUI.update(out);
     this.twilightUI.update(out, t);
     this.ventsUI.update(out, t, this.o.wide);
-    this.surfaceUI.update(out, t, this.o.wide);
+    this.surfaceUI.update(out);
 
     // The button on the tangled fish, unless a card has scrolled over the fish or the button.
     const f = out.fish;

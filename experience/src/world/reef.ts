@@ -12,10 +12,10 @@ export { SPOTS };
 const SUBJECT = [0.796, 1.68, 2.366, 3.352];
 
 /**
- * The pinned reef in scroll units (viewport heights): Snap slides down the
- * chain, then the camera travels to each station and lingers there.
- * Each key is [scroll, framing]: 0 is where the glide into the reef ended,
- * 1 to 4 the stations, 5 the arrival at the Clam Studio.
+ * The pinned reef in scroll units (viewport heights): the camera travels to
+ * each station with the submarine and lingers there. Each key is
+ * [scroll, framing]: 0 is where the glide into the reef ended, 1 to 4 the
+ * stations, 5 the arrival at the Clam Studio.
  */
 const KEYS: [number, number][] = [[0, 0], [0.45, 0], [0.85, 1], [1.85, 1], [2.55, 2], [3.25, 2], [3.95, 3], [4.65, 3], [5.35, 4], [6.25, 4], [7, 5]];
 export const REEF_UNITS = 7;
@@ -66,14 +66,16 @@ export class Reef {
   private shyArmed = true;
   private pearlAt = -1;
   private lampsAt = -1;
-  private lastU = NaN;
+  private lastL = NaN;
+  /** How fast the camera travels along the reef, px a second: the submarine's cruising speed here. */
   vel = 0;
 
   constructor(stage: Stage, private phone: boolean) {
     // one for each join between panels: the four on the reef, and the one where the reef ends and the wreck's water begins
     for (let i = 0; i < 5; i++) {
       const u = { uMap: { value: null as THREE.Texture | null }, uOpacity: { value: 1 }, uFlip: { value: i % 2 }, uDim: { value: 0 }, ...LOOK };
-      const m = quad(new THREE.ShaderMaterial({ vertexShader: VERT, fragmentShader: FRAG, uniforms: u, transparent: true, depthTest: false, depthWrite: false }), 9);
+      // (drawn behind the submarine, which is nearer still)
+      const m = quad(new THREE.ShaderMaterial({ vertexShader: VERT, fragmentShader: FRAG, uniforms: u, transparent: true, depthTest: false, depthWrite: false }), 4.2);
       m.visible = false;
       stage.scene.add(m);
       this.corals.push(m);
@@ -89,19 +91,16 @@ export class Reef {
 
   /** The camera's left edge at each framing, for this viewport (win = view width in panels). */
   framings(win: number) {
-    const sx = this.phone ? 0.55 : 0.76;
+    // (on wide screens the can sits a little further right, leaving the submarine room between it and the cards)
+    const sx = this.phone ? [0.55, 0.55, 0.55, 0.55] : [0.76, 0.76, 0.76, 0.8];
     const start = this.phone ? 0.8 - win / 2 : 0.62 * (1 - win);
     const studio = this.phone ? 4.32 - win / 2 : 4.09;
-    const F = [start, ...SUBJECT.map((u) => u - sx * win), studio].map((L) => clamp(L, 0, 5 - win));
+    const F = [start, ...SUBJECT.map((u, i) => u - sx[i] * win), studio].map((L) => clamp(L, 0, 5 - win));
     F[1] = Math.max(F[1], F[0]); // on phones the glide already ends on the turtle
     return F;
   }
   /** Where the camera settles in the studio, with the pearl clear of the cards. */
   studioEnd(win: number) { return clamp(this.phone ? 4.678 - 0.7 * win : 4.678 - 0.74 * win, 0, 5 - win); }
-  /** Where Snap stands in the studio, in panels. */
-  studioSpot() { return this.phone ? 4.585 : 4.56; }
-  /** Snap's place across the screen while the camera travels. */
-  snapAt() { return this.phone ? 0.3 : 0.53; }
 
   /** Camera position for a scroll position k in [0, REEF_UNITS]. */
   camera(k: number, F: number[]) {
@@ -144,17 +143,17 @@ export class Reef {
    * or the last tap; haze is how murky the water is where the reef ends and
    * the wreck begins, and dim how far the last coral has passed into the
    * wreck's darker water (both 0 to 1). Returns what the backdrop draws and
-   * Snap's walking speed.
+   * what the page needs to know.
    */
-  update(dt: number, t: number, o: { L: number; k: number; W: number; H: number; dw: number; dh: number; oy: number; F: number[]; snapU: number; mouse: [number, number] | null; on: boolean; haze?: number; dim?: number }): { view: ReefView; out: ReefOut } {
+  update(dt: number, t: number, o: { L: number; k: number; W: number; H: number; dw: number; dh: number; oy: number; F: number[]; mouse: [number, number] | null; on: boolean; haze?: number; dim?: number }): { view: ReefView; out: ReefOut } {
     const { L, W, H, dw, dh, oy, F } = o;
     const win = W / dw;
     const near = F.map((f) => 1 - smooth(0.08, 0.4, Math.abs(L - f) / win));
     const sx = (u: number) => (u - L) * dw, sy = (v: number) => oy + v * dh;
 
-    // Snap's walking speed, from how far his spot on the reef moved.
-    const du = Number.isNaN(this.lastU) ? 0 : o.snapU - this.lastU;
-    this.lastU = o.snapU;
+    // The camera's speed along the reef.
+    const du = Number.isNaN(this.lastL) ? 0 : L - this.lastL;
+    this.lastL = L;
     const v = dt > 0 ? (du * dw) / dt : 0;
     this.vel += (v - this.vel) * clamp(dt * 10);
 
@@ -182,7 +181,7 @@ export class Reef {
       pix = { panel: 4, cu: SPOTS.pearl.c[0] - 4, cv: SPOTS.pearl.c[1], ru: SPOTS.pearl.r[0], rv: SPOTS.pearl.r[1], size: s };
     }
 
-    // The jellyfish softboxes flicker on, one after another, as Snap arrives.
+    // The jellyfish softboxes flicker on, one after another, as the submarine arrives.
     let lamps: ReefView['lamps'] = null;
     if (L > 3.4) {
       if (near[5] > 0.6 && this.lampsAt < 0) this.lampsAt = t + 0.3;

@@ -9,8 +9,8 @@
 <meta name="theme-color" content="#CFE8EE">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <script>(function (d) { d.classList.replace('no-js', 'js'); if (!matchMedia('(prefers-reduced-motion: reduce)').matches) d.classList.add('gl'); })(document.documentElement)</script>
-  <script type="module" crossorigin src="./assets/index-DLNeJZKU.js"></script>
-  <link rel="stylesheet" crossorigin href="./assets/index-CokKkHbL.css">
+  <script type="module" crossorigin src="./assets/index-4B2nCGS2.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-CS3sqdjj.css">
 </head>
 <body>
 <a class="skip" href="https://crabcrop.org/">Skip the dive</a>
@@ -25,6 +25,7 @@
   <nav class="top-links" aria-label="Site">
     <a href="https://crabcrop.org/#install">Install</a>
     <a href="https://crabcrop.org/docs.html">Docs</a>
+    <a href="https://play.crabcrop.org">Playground</a>
     <a href="https://github.com/dayvson/crabcrop">GitHub</a>
     <a class="skip-inline" href="https://crabcrop.org/">Skip the dive</a>
   </nav>
@@ -45,6 +46,20 @@
   <div class="gauge-bar" aria-hidden="true"><span id="gauge-fill"></span></div>
 </nav>
 
+<aside class="urlbar" id="urlbar" aria-label="Your URL so far, part by part">
+  <p class="urlbar-label" aria-hidden="true">Your URL</p>
+  <ol class="tags" id="tags">
+    <li class="tag sig" id="tag-sig"><code>3c1f6c18…</code><span>Proof the URL came from you</span></li>
+    <li class="tag blank" id="tag-crop"><code>crop</code><span>Pick it on the reef</span></li>
+    <li class="tag join blank" id="tag-look"><code>look</code><span>Pick it in the kelp</span></li>
+    <li class="tag join blank" id="tag-finish"><code>finish</code><span>Pick it in the studio</span></li>
+    <li class="tag fmt blank" id="tag-format"><code>format</code><span>Pick it in the shallows</span></li>
+    <li class="tag src blank" id="tag-src"><code>source</code><span>Waiting at the bottom</span></li>
+  </ol>
+</aside>
+
+<div class="dawn" id="dawn" aria-hidden="true"><p>The next morning…</p></div>
+
 <main>
   <section id="s0" class="zone s0" aria-labelledby="s0-title">
     <picture class="zone-bg">
@@ -55,8 +70,8 @@
     </picture>
     <div class="hero panel">
       <p class="tidemark">0 m · The Marina</p>
-      <h1 id="s0-title">Blazing fast,<br><span class="coral">on-demand images.</span></h1>
-      <p class="lede">Crabcrop is a Rust-built, lightning-fast on-demand image API supporting all major formats in and out, with over 50 filters and AI features like background removal. It resizes, crops, converts, and filters your images straight from a signed URL.</p>
+      <h1 id="s0-title" tabindex="-1">Blazing fast,<br><span class="coral">on-demand images.</span></h1>
+      <p class="lede">Crabcrop is a Rust-built, lightning-fast on-demand image API supporting all major formats in and out, with over 50 filters and AI features like background removal. It resizes, crops, converts, and filters your images straight from a signed URL. One binary, no pre-generated thumbnails, no build step.</p>
       <div class="cmdstrip">
         <code>curl --proto '=https' --tlsv1.2 -LsSf https://github.com/dayvson/crabcrop/releases/latest/download/crabcrop-installer.sh | sh</code>
         <button class="copybtn" type="button" data-copy="curl --proto '=https' --tlsv1.2 -LsSf https://github.com/dayvson/crabcrop/releases/latest/download/crabcrop-installer.sh | sh">Copy</button>
@@ -67,7 +82,7 @@
       </div>
       <p class="hint" aria-hidden="true">Scroll to follow Snap down</p>
     </div>
-    <p class="story panel" id="story">A gust lifts Snap's favorite photo print off the pier and it sinks. He doesn't hesitate: he grabs the anchor chain and goes after it.</p>
+    <p class="story panel" id="story">A gust lifts Snap's favorite photo print off the pier, and it sinks. He doesn't hesitate: he hops into his little submarine and goes after it.</p>
     <img class="snap-static stand" src="media/snap-stand.webp" alt="" width="445" height="409" loading="lazy">
   </section>
 
@@ -84,17 +99,8 @@
     <div class="zone-head panel">
       <p class="tidemark">−5 m · The Shallows</p>
       <h2 id="s1-title">One URL does <span class="coral">the whole job.</span></h2>
-      <p>A crabcrop URL is a chain: a signature, then operations, then the source. Snap carries yours under a little float, one tag for each part, and you pick some of them on the way down.</p>
+      <p>A crabcrop URL reads left to right: a signature, then the operations, then the source. Yours takes shape in the bar below as Snap dives. Five choices on the way down are yours, and the source is waiting at the bottom.</p>
     </div>
-
-    <ol class="tags" id="tags" aria-label="Your URL, link by link">
-      <li class="tag sig"><code>3c1f6c18…</code><span>Proof the URL came from you</span></li>
-      <li class="tag fmt blank" id="tag-format"><code>format</code><span>Choice 1: pick below</span></li>
-      <li class="tag blank" id="tag-look"><code>look</code><span>Choice 2: in the kelp</span></li>
-      <li class="tag blank" id="tag-crop"><code>crop</code><span>Choice 3: on the reef</span></li>
-      <li class="tag blank" id="tag-finish"><code>finish</code><span>Choice 4: in the studio</span></li>
-      <li class="tag src" id="tag-src"><code>root:photos/print.jpg</code><span>The source: your print</span></li>
-    </ol>
 
     <div class="cards">
       <article class="card" id="card-signing">
@@ -121,7 +127,7 @@
 
       <fieldset class="choice panel" id="choice-format">
         <legend><span class="step">Choice 1 of 5</span> Pick a format</legend>
-        <p class="help">Each school of fish is one format. Pick one and it goes on your chain.</p>
+        <p class="help">Each school of fish is one format. Pick one and it goes into your URL.</p>
         <div class="schools">
           <label class="school"><input type="radio" name="format" value="auto" checked><span class="fish none" aria-hidden="true"></span><span class="lab">Auto</span><span class="sub">Accept decides</span></label>
           <label class="school"><input type="radio" name="format" value="avif"><span class="fish avif" aria-hidden="true"></span><span class="lab">AVIF</span><span class="sub">format(avif)</span></label>
@@ -152,7 +158,7 @@
       <li><button type="button" class="hot" data-u="0.858" data-v="0.785" aria-expanded="false">Mooring buoy</button><span class="tip"><code>root:photos/cat.jpg</code> A short root reference</span></li>
     </ul>
 
-    <img class="snap-static on-chain" src="media/snap-chain.webp" alt="" width="640" height="687" loading="lazy">
+    <img class="snap-static in-sub" src="media/snap-sub.webp" alt="" width="760" height="462" loading="lazy">
   </section>
 
 
@@ -184,8 +190,8 @@
 
       <fieldset class="choice panel" id="choice-look">
         <legend><span class="step">Choice 2 of 5</span> Pick a look</legend>
-        <p class="help on-wide">Sweep across the silk curtains to see a look on the whole forest. Pick one and it goes on your chain.</p>
-        <p class="help on-narrow">Tap a look to see it on the whole forest. It goes on your chain.</p>
+        <p class="help on-wide">Sweep across the silk curtains to see a look on the whole forest. Pick one and it goes into your URL.</p>
+        <p class="help on-narrow">Tap a look to see it on the whole forest. It goes into your URL.</p>
         <div class="looks">
           <label class="look"><input type="radio" name="look" value="crisp" checked><span class="swatch crisp" aria-hidden="true"></span><span class="lab">Crisp</span><span class="sub">sharpen(1.2):saturation(1.1)</span></label>
           <label class="look"><input type="radio" name="look" value="deep"><span class="swatch deep" aria-hidden="true"></span><span class="lab">Deep sea</span><span class="sub">duotone(0d202e,ffd88a)</span></label>
@@ -228,8 +234,8 @@
     </ul>
 
     <button type="button" class="free-fish" id="free-fish">Free the fish</button>
-    <p class="story panel kind" id="kind">A little fish is caught in an old fishing line. Snap clicks his claw, snips it, and the fish spins free. It follows him for a while.</p>
-    <img class="snap-static on-chain" src="media/snap-chain.webp" alt="" width="640" height="687" loading="lazy">
+    <p class="story panel kind" id="kind">A little fish is caught in an old fishing line. The submarine's pincer snips it, and the fish spins free. It follows Snap for a while.</p>
+    <img class="snap-static in-sub" src="media/snap-sub.webp" alt="" width="760" height="462" loading="lazy">
   </section>
 
   <section id="t2" class="plunge" aria-hidden="true"></section>
@@ -253,7 +259,7 @@
           <div class="zone-head panel">
             <p class="tidemark">−30 m · The Coral Reef</p>
             <h2 id="s3-title">It sees <span class="coral">what matters.</span></h2>
-            <p>Smart crops that keep faces whole, face detection, redaction and object removal. Snap walks the sand past all four, his chain of tags in his claw.</p>
+            <p>Smart crops that keep faces whole, face detection, redaction and object removal. Snap cruises along the reef, past all four.</p>
           </div>
         </div>
       </div>
@@ -296,7 +302,7 @@
               <picture><source type="image/avif" srcset="media/icon-glass.avif"><img class="icon" src="media/icon-glass.webp" alt="" width="56" height="56" loading="lazy"></picture>
               <h3>Face detection</h3>
             </div>
-            <p>Find every face in a picture, then crop to them or blur them. All seven of these fish count.</p>
+            <p>A YuNet model finds every face in a picture. Crop to them or blur them. All seven of these fish count.</p>
             <code class="chip">crop:760x760:face · filters:blurfaces</code>
             <a class="docs" href="https://crabcrop.org/docs.html#ai">Read the docs</a>
             <p class="try on-wide">Move the cursor over the school.</p>
@@ -317,7 +323,7 @@
               <picture><source type="image/avif" srcset="media/icon-seal.avif"><img class="icon" src="media/icon-seal.webp" alt="" width="56" height="56" loading="lazy"></picture>
               <h3>Redaction</h3>
             </div>
-            <p>Blur a whole class of thing, like people, before a picture goes out. <em>Privacy is a kindness.</em></p>
+            <p>Blur a whole class of thing, like people, before a picture goes out. It never guesses: if detection fails, so does the request. <em>Privacy is a kindness.</em></p>
             <code class="chip">filters:blurclass(person)</code>
             <a class="docs" href="https://crabcrop.org/docs.html#ai">Read the docs</a>
             <p class="try on-wide">Get close to the cuttlefish.</p>
@@ -339,7 +345,7 @@
               <picture><source type="image/avif" srcset="media/icon-drops.avif"><img class="icon" src="media/icon-drops.webp" alt="" width="56" height="56" loading="lazy"></picture>
               <h3>Object removal</h3>
             </div>
-            <p>Mark a box and it fills in with what should be behind it. The reef keeps its coral, not the can.</p>
+            <p>Mark a box and an inpainting model fills it in with what should be behind it. The reef keeps its coral, not the can.</p>
             <code class="chip" id="remove-chip">filters:remove_region(40,120,300,200)</code>
             <a class="docs" href="https://crabcrop.org/docs.html#ai">Read the docs</a>
             <p class="try on-wide">Drag a box over the can, or</p>
@@ -361,7 +367,7 @@
     <div class="zone-head panel">
       <p class="tidemark">−30 m · The Clam Studio</p>
       <h2 id="s3b-title">A studio <span class="coral">in a shell.</span></h2>
-      <p>Studio light for product shots, clean cut-outs and sharper small pictures. Each one is one more step in the URL.</p>
+      <p>Studio light for product shots, clean cut-outs and sharper small pictures. Each one is one more step in the URL, run in process on a model you supply.</p>
     </div>
 
     <div class="cards">
@@ -407,7 +413,7 @@
 
       <fieldset class="choice panel" id="choice-finish">
         <legend><span class="step">Choice 4 of 5</span> Pick a finish</legend>
-        <p class="help">How the picture leaves the studio. It goes on your chain.</p>
+        <p class="help">How the picture leaves the studio. It goes into your URL.</p>
         <div class="finishes">
           <label class="finish"><input type="radio" name="finish" value="none" checked><span class="mini none" aria-hidden="true"></span><span class="lab">None</span><span class="sub">as photographed</span></label>
           <label class="finish"><input type="radio" name="finish" value="studio"><span class="mini studio" aria-hidden="true"></span><span class="lab">Studio</span><span class="sub">studio(product,bg:brand,shadow:soft,pad:10)</span></label>
@@ -416,7 +422,7 @@
         <p class="sr-only" aria-live="polite" id="finish-status"></p>
       </fieldset>
     </div>
-    <img class="snap-static stand reef-stand" src="media/snap-stand.webp" alt="" width="445" height="409" loading="lazy">
+    <img class="snap-static in-sub" src="media/snap-sub.webp" alt="" width="760" height="462" loading="lazy">
   </section>
 
   <section id="s4" class="zone s4" aria-labelledby="s4-title">
@@ -429,9 +435,9 @@
     <div class="zone-head panel">
       <p class="tidemark">−60 m · The Shipwreck</p>
       <h2 id="s4-title">Signed, sealed, <span class="coral">provable.</span></h2>
-      <p>Some links should stay unreadable, some pictures should prove where they came from, and some addresses should never be fetched at all. Snap squeezes in through the hole in the hull.</p>
+      <p>Some links should stay unreadable, some pictures should prove where they came from, and some addresses should never be fetched at all. Snap steers in through the hole in the hull.</p>
     </div>
-    <img class="snap-static on-chain" src="media/snap-chain.webp" alt="" width="640" height="687" loading="lazy">
+    <img class="snap-static in-sub" src="media/snap-sub.webp" alt="" width="760" height="462" loading="lazy">
   </section>
 
   <section id="t3" class="plunge" aria-hidden="true"></section>
@@ -466,8 +472,8 @@
 
       <fieldset class="choice panel" id="choice-seal">
         <legend><span class="step">Choice 5 of 5</span> Seal it, or keep it readable</legend>
-        <p class="help on-wide">Press the wax seal on the captain's desk, or pick here. It goes on your chain.</p>
-        <p class="help on-narrow">Pick one. It goes on your chain.</p>
+        <p class="help on-wide">Press the wax seal on the captain's desk, or pick here, and watch what it does to your URL.</p>
+        <p class="help on-narrow">Pick one, and watch what it does to your URL.</p>
         <div class="seals">
           <label class="seal-opt"><input type="radio" name="seal" value="readable" checked><span class="mini-url" aria-hidden="true">crop:…/root:…</span><span class="lab">Readable</span><span class="sub">the recipe in plain sight</span></label>
           <label class="seal-opt"><input type="radio" name="seal" value="sealed"><span class="wax" aria-hidden="true"></span><span class="lab">Sealed</span><span class="sub">s1.&lt;token&gt;</span></label>
@@ -514,8 +520,8 @@
     </ul>
 
     <button type="button" class="seal-letter" id="seal-letter">Seal the letter</button>
-    <p class="story panel kind" id="kind-seal">A little octopus has a letter only its friend should read. Snap presses his claw to the wax, and now nobody else can open it.</p>
-    <img class="snap-static on-chain" src="media/snap-chain.webp" alt="" width="640" height="687" loading="lazy">
+    <p class="story panel kind" id="kind-seal">A little octopus has a letter only its friend should read. Snap presses the submarine's pincer into the wax, and now nobody else can open it.</p>
+    <img class="snap-static in-sub" src="media/snap-sub.webp" alt="" width="760" height="462" loading="lazy">
   </section>
 
   <section id="t4" class="plunge" aria-hidden="true"></section>
@@ -576,7 +582,7 @@
           <picture><source type="image/avif" srcset="media/icon-chain.avif"><img class="icon" src="media/icon-chain.webp" alt="" width="56" height="56" loading="lazy"></picture>
           <h3>URLs that explain themselves</h3>
         </div>
-        <p>Put <code>explain/</code> in front of the signature and the server answers with a report on the URL: the signature's verdict, the source, every operation in plain words, and what will come out. <span class="on-wide">Watch the tags on the chain.</span></p>
+        <p>Put <code>explain/</code> in front of the signature and the server answers with a report on the URL: the signature's verdict, the source, every operation in plain words, and what will come out. Watch your URL in the bar below.</p>
         <code class="chip">GET /explain/&lt;signature&gt;/…</code>
         <a class="docs" href="https://crabcrop.org/docs.html#explain">Read the docs</a>
       </article>
@@ -592,7 +598,7 @@
     </ul>
     <p class="alt-line" id="alt-line" aria-hidden="true"><span>alt_text</span> <q id="alt-text"></q></p>
     <p class="story panel kind" id="kind-fish">A tiny fish was lost in the dark. It followed your light all the way to Snap, and now he is taking it home.</p>
-    <img class="snap-static on-chain" src="media/snap-chain.webp" alt="" width="640" height="687" loading="lazy">
+    <img class="snap-static in-sub" src="media/snap-sub.webp" alt="" width="760" height="462" loading="lazy">
   </section>
 
   <section id="s6" class="zone s6" aria-labelledby="s6-title">
@@ -605,7 +611,7 @@
     <div class="zone-head panel">
       <p class="tidemark">−2,500 m · The Vents</p>
       <h2 id="s6-title">The engine <span class="coral">at the bottom.</span></h2>
-      <p>Everything up the chain runs on what is down here: one Rust binary, the libraries that build its URLs, and a server that agents can talk to. And in the glowing geode lies the source of it all.</p>
+      <p>Everything above runs on what is down here: one Rust binary, the libraries that build its URLs, and a server that agents can talk to. And in the glowing geode lies the source of it all.</p>
     </div>
 
     <div class="cards">
@@ -645,7 +651,7 @@
 
       <article class="card" id="card-mcp">
         <div class="specimen spec-mcp">
-          <p class="spec-note">The little submersible is an agent. Its tool calls:</p>
+          <p class="spec-note">The other little submarine down here is an agent. Its tool calls:</p>
           <ol class="mcp" id="mcp-log"></ol>
         </div>
         <div class="card-top">
@@ -659,8 +665,8 @@
     </div>
 
     <p class="sub-bubble" id="sub-bubble" aria-hidden="true"><code>sign_url</code> <b>✓</b></p>
-    <p class="story panel kind" id="kind-print">There it is, in the glow of the geode: Snap's print. The last tag on his line says it all: <code>root:photos/print.jpg</code>, the source.</p>
-    <img class="snap-static stand vents-stand" src="media/snap-stand.webp" alt="" width="445" height="409" loading="lazy">
+    <p class="story panel kind" id="kind-print">There it is, in the glow of the geode: Snap's print. The pincer lifts it out, and your URL gets its last part: <code>root:photos/print.jpg</code>, the source.</p>
+    <img class="snap-static in-sub" src="media/snap-sub.webp" alt="" width="760" height="462" loading="lazy">
   </section>
 
   <section id="t5" class="plunge ascent" aria-hidden="true"></section>
@@ -675,7 +681,7 @@
     <div class="finale panel" id="receipt">
       <p class="tidemark">0 m · Back to the Surface</p>
       <h2 id="s7-title">Your image, <span class="coral">served.</span></h2>
-      <p>Every choice you made on the way down is one link of this URL: the format, the look, the crop, the finish, and whether it is sealed.</p>
+      <p>Every choice you made on the way down is one part of this URL: the format, the look, the crop, the finish, and whether it is sealed.</p>
       <figure class="receipt">
         <span class="receipt-img recipe-img" id="receipt-img"><img src="media/print.webp" alt="Snap's print, with your choices applied" width="360" height="282" loading="lazy"></span>
         <figcaption>
@@ -683,7 +689,7 @@
           <button class="copybtn" type="button" id="copy-url">Copy</button>
         </figcaption>
       </figure>
-      <p class="receipt-note">A preview of what this URL serves. On the live site the URLs are signed with the secret, in CI, and crabcrop renders them.</p>
+      <p class="receipt-note">A preview, drawn in your browser: the host and the signature are stand-ins. Sign this same path with your own secret and your crabcrop server renders the picture. The <a href="https://play.crabcrop.org">playground</a> builds and signs real ones.</p>
       <div class="cmdstrip">
         <code>curl --proto '=https' --tlsv1.2 -LsSf https://github.com/dayvson/crabcrop/releases/latest/download/crabcrop-installer.sh | sh</code>
         <button class="copybtn" type="button" data-copy="curl --proto '=https' --tlsv1.2 -LsSf https://github.com/dayvson/crabcrop/releases/latest/download/crabcrop-installer.sh | sh">Copy</button>
@@ -691,8 +697,10 @@
       <div class="ctas">
         <a class="btn" href="https://crabcrop.org/#install">Install</a>
         <a class="btn btn-foam" href="https://crabcrop.org/docs.html">Read the docs</a>
+        <a class="btn btn-foam" href="https://play.crabcrop.org">Playground</a>
         <a class="btn btn-foam" href="https://github.com/dayvson/crabcrop">GitHub</a>
       </div>
+      <p class="again"><a href="#s0" id="dive-again">Dive again <span aria-hidden="true">↑</span></a> Your URL comes along, so you can try other choices.</p>
     </div>
     <figure class="polaroid" id="polaroid" aria-hidden="true">
       <span class="pol-img recipe-img" id="pol-img"><img src="media/print.webp" alt="" width="360" height="282" loading="lazy"></span>
