@@ -46,6 +46,7 @@ const ui = new UI({
   onRemove: (rect) => world?.removeRegion(rect),
   onUpscale: (again) => world?.upscalePearl(again),
   onReefFocus: (i) => { if (world) scrollRef?.to(world.reefStopY(i)); },
+  onChoice: () => world?.noteChoice(),
   onSeal: (sealed) => world?.sealUrl(sealed),
   onSealLetter: () => world?.sealLetter(),
 });
@@ -71,7 +72,7 @@ async function start() {
     w.mouse = [e.clientX, e.clientY];
     document.body.classList.toggle('on-snap', w.snapHit(e.clientX, e.clientY) && !(e.target as Element).closest?.('a, button, input, label, .card, .panel'));
   });
-  // Click or tap Snap and he answers: a wave, a snap of his pincer, a hop.
+  // Click or tap Snap and he answers: a spin round the chain, a wave, a snap of his pincer, a hop.
   addEventListener('click', (e) => {
     if ((e.target as Element).closest?.('a, button, input, label, select, textarea, .card, .panel')) return;
     if (w.snapHit(e.clientX, e.clientY)) w.pokeSnap();

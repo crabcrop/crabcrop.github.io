@@ -4,7 +4,7 @@
 and write media/manifest.json with the numbers the page needs.
 
 usage: python3 scripts/encode-media.py [images] [opening] [sub] [reef] [wreck] [video] [sequence] [wreckseq] [beam] [pack] [twilight] [vents] [surface] [snap] [snappost] [snap3d] [still]
-       (no argument runs every step but still, which needs the picture scripts/snap-still.mjs takes of the built page)
+       (no argument runs every step but still, which needs the pictures scripts/snap-still.mjs takes of the page)
 needs: ffmpeg, numpy, scipy, Pillow with AVIF support; for snap3d also npx (gltf-transform) and trimesh
 """
 import json, os, subprocess, sys
@@ -596,17 +596,19 @@ def sub():
 
 
 def still():
-    """Snap in his submarine, for the page without motion: the picture
-    scripts/snap-still.mjs takes of the page's own world (.cache/snap-sub.png),
-    cropped to the two of them."""
-    im = Image.open(os.path.join(ROOT, '.cache', 'snap-sub.png')).convert('RGBA')
-    a = np.asarray(im)[:, :, 3].astype(np.float32) / 255
-    x0, y0, x1, y1 = bbox(a, 0.02, 6)
-    im = resize_w(im.crop((x0, y0, x1, y1)), 760)
-    # (WebP only: the still page shows it in a plain image element, as it does Snap on the pier)
-    im.save(out('snap-sub.webp'), quality=84, method=6)
-    man['snapSub'] = {'w': im.size[0], 'h': im.size[1], 'bytes': {'webp': os.path.getsize(out('snap-sub.webp'))}}
-    print('still', im.size, man['snapSub']['bytes'])
+    """Snap on his feet and Snap in the submarine, for the page without
+    motion: the pictures scripts/snap-still.mjs takes of the page's own world
+    (.cache/snap-walk.png and .cache/snap-sub.png), each cropped to what is
+    in it."""
+    for src_name, name, key, width in (('snap-walk.png', 'snap-walk.webp', 'snapWalk', 440), ('snap-sub.png', 'snap-sub.webp', 'snapSub', 760)):
+        im = Image.open(os.path.join(ROOT, '.cache', src_name)).convert('RGBA')
+        a = np.asarray(im)[:, :, 3].astype(np.float32) / 255
+        x0, y0, x1, y1 = bbox(a, 0.02, 6)
+        im = resize_w(im.crop((x0, y0, x1, y1)), width)
+        # (WebP only: the still page shows them in plain image elements, as it does Snap on the pier)
+        im.save(out(name), quality=84, method=6)
+        man[key] = {'w': im.size[0], 'h': im.size[1], 'bytes': {'webp': os.path.getsize(out(name))}}
+        print('still', name, im.size, man[key]['bytes'])
 
 
 def wreckseq():

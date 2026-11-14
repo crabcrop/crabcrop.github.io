@@ -4,17 +4,19 @@ import { LOOK, LOOK_GLSL } from './look';
 import type { Stage } from './stage';
 
 /**
- * Snap in 3D: Tripo's model of the pose-2 painting with the chain it held
- * edited out, seen as in the painting. It comes in his rig frame: x right,
- * y up, z toward the viewer, in his heights, measured from a point in his
- * raised claw.
+ * Snap in 3D: Tripo's model of the pose-2 painting with the chain edited
+ * out, seen as in the painting. It comes in his rig frame: x right, y up, z
+ * toward the viewer, in his heights on the chain, from the point in his
+ * raised claw the chain runs through. So the chain, drawn at z = 0, passes
+ * through that claw and hangs in front of his legs, and the depth buffer
+ * sorts out which is in front.
  *
- * He stands with his feet on the pier or on the floor of the submarine's
- * bubble, or flies centred on his middle. He is brought to life in the
- * vertex shader. Each limb (two eye stalks, the raised claw, the other
- * claw, seven legs) swings about its root, more toward its tip: his legs
- * paddle in the air and shift his weight on the ground, his stalks sway,
- * either claw waves, and the pincer of the raised claw snaps shut. His eyes turn in their
+ * He hangs from that point on the chain, flies centred on his middle, or
+ * stands with his feet on the pier, a card or the sand. He is brought to
+ * life in the vertex shader. Each limb (two eye stalks, the raised claw, the
+ * other claw, seven legs) swings about its root, more toward its tip: his
+ * legs paddle or walk, his stalks sway and lag behind the swing, either claw
+ * waves, and the pincer of the raised claw snaps shut. His eyes turn in their
  * stalks toward the cursor (or whatever he watches), coral lids come down
  * when he blinks and half close when he is happy. Below the
  * water's surface he takes on the water's colour, with a line of foam where
@@ -22,7 +24,7 @@ import type { Stage } from './stage';
  */
 
 const N_LIMBS = 12;
-/** The raised claw and the other one, in media.snap3d.limbs. */
+/** The raised claw (it holds the chain) and the other one, in media.snap3d.limbs. */
 const CLAW = 2, FREE = 3;
 // Scratch values for each frame's eye work.
 const _q = new THREE.Quaternion(), _v = new THREE.Vector3(), _rest = new THREE.Vector3(), _want = new THREE.Vector3(), _axis = new THREE.Vector3(), _rs = new THREE.Vector3();
@@ -137,33 +139,34 @@ const FRAG_OUT = /* glsl */ `
   gl_FragColor.a *= uFade;`;
 
 /**
- * One frame's life. kick: how hard his legs paddle (0 to 1); mouse: the
- * cursor; look: something to watch instead of it (screen px); blink and
- * squint (happy eyes), 0 to 1; planted: standing, so his legs stay still; hello:
+ * One frame's life. kick: how hard his legs paddle (0 to 1); swingV: the
+ * swing's speed; mouse: the cursor; look: something to watch instead of it
+ * (screen px); blink and squint (happy eyes), 0 to 1. walk: the walk cycle's
+ * phase while he walks; planted: standing, so his legs stay still; hello:
  * waving the raised claw; wave: waving the other one; hold: the other one
  * lifted, with something in it; snap: how far through a double snap of his
  * pincer (0 for none); surprise: stalks thrown back, eyes wide. All 0 to 1
  * unless said.
  */
 export interface Life {
-  t: number; dt: number; kick: number; mouse: [number, number] | null; blink: number;
-  look?: [number, number] | null; squint?: number; planted?: boolean;
+  t: number; dt: number; kick: number; swingV: number; mouse: [number, number] | null; blink: number;
+  look?: [number, number] | null; squint?: number; walk?: number; planted?: boolean;
   hello?: number; wave?: number; hold?: number; snap?: number; surprise?: number;
 }
 
 /**
- * Where he is, as a screen point (px, y down): his middle when he flies, the
- * middle of his feet when he stands; h is his height. roll turns him in the
- * picture, spin about his up, tumble head over heels; squash flattens him
- * (negative stretches).
+ * Where he is, as a screen point (px, y down): his chain point when he hangs,
+ * his middle when he flies, the middle of his feet when he stands; h is his
+ * height. roll turns him in the picture, spin about his up (the chain when he
+ * hangs), tumble head over heels; squash flattens him (negative stretches).
  */
-export interface Pose { at: [number, number]; h: number; roll: number; spin: number; squash: number; mode: 'air' | 'stand'; tumble?: number }
+export interface Pose { at: [number, number]; h: number; roll: number; spin: number; squash: number; mode: 'hang' | 'air' | 'stand'; tumble?: number }
 
 export class Snap3D {
   readonly group = new THREE.Group();
-  /** Turns about his up. */
+  /** Turns about his up (through the chain when he hangs). */
   private turn = new THREE.Group();
-  /** Puts his middle or his feet at the turn's centre. */
+  /** Puts his chain point, middle or feet at the turn's centre. */
   private offset = new THREE.Group();
   private mesh: THREE.Mesh | null = null;
   private readonly u = {
@@ -189,6 +192,7 @@ export class Snap3D {
   /** How far out along its stalk each eye's centre sits (0 to 1). */
   private eyeW = [0.8, 0.8];
   private look = [new THREE.Vector3(), new THREE.Vector3()];
+  private sway = 0;
   /** The middle of his feet, in his rig frame. */
   readonly foot = new THREE.Vector3(0.3, -0.68, 0);
   private water: { y: number; sub: number; sea: readonly [number, number, number] } = { y: 1e5, sub: 0, sea: SEA };
@@ -330,9 +334,10 @@ export class Snap3D {
     this.ready = true;
   }
 
-  /** His rig frame's origin on screen, for a pose (ignoring its roll and spin). */
-  private origin(p: Pose): [number, number] {
+  /** His chain point on screen, for a pose (ignoring its roll and spin). */
+  grip(p: Pose): [number, number] {
     const h = p.h;
+    if (p.mode === 'hang') return [p.at[0], p.at[1]];
     if (p.mode === 'stand') return [p.at[0] - this.foot.x * h, p.at[1] + this.foot.y * h];
     const [cx, cy] = Snap3D.centre(h);
     return [p.at[0] - cx, p.at[1] - cy];
@@ -340,11 +345,11 @@ export class Snap3D {
 
   /** His front box on screen in a pose. */
   box(p: Pose) {
-    const b = media.snap3d.box, [x, y] = this.origin(p), h = p.h;
+    const b = media.snap3d.box, [x, y] = this.grip(p), h = p.h;
     return { x: x + b[0] * h, y: y - b[3] * h, w: (b[2] - b[0]) * h, h: (b[3] - b[1]) * h };
   }
 
-  /** His middle, from his rig frame's origin, px (y down), when he is h tall. */
+  /** His middle, from his chain point, px (y down), when he is h tall. */
   static centre(h: number): [number, number] {
     const { lo, hi } = media.snap3d;
     return [((lo[0] + hi[0]) / 2) * h, -((lo[1] + hi[1]) / 2) * h];
@@ -384,7 +389,8 @@ export class Snap3D {
     this.group.scale.set(1 + p.squash * 0.6, 1 - p.squash, 1);
     this.turn.rotation.set(p.tumble ?? 0, p.spin, 0);
     if (p.mode === 'air') this.offset.position.set((-(lo[0] + hi[0]) / 2) * h, (-(lo[1] + hi[1]) / 2) * h, (-(lo[2] + hi[2]) / 2) * h);
-    else this.offset.position.set(-this.foot.x * h, -this.foot.y * h, -this.foot.z * h);
+    else if (p.mode === 'stand') this.offset.position.set(-this.foot.x * h, -this.foot.y * h, -this.foot.z * h);
+    else this.offset.position.set(0, 0, 0);
     // A slow breath.
     m.scale.setScalar(h * (1 + Math.sin(life.t * 1.6) * 0.008));
     this.u.uGrade.value.set(...grade);
@@ -402,7 +408,10 @@ export class Snap3D {
   private live(o: Life) {
     const s = media.snap3d, U = this.u, t = o.t;
     const rot = U.uRot.value;
+    // The stalks lag behind the swing.
+    this.sway += (-o.swingV * 0.12 - this.sway) * Math.min(1, o.dt * 5);
     const surprise = o.surprise ?? 0, hello = o.hello ?? 0, wave = o.wave ?? 0;
+    const walking = o.walk != null;
     const legW = 4.2 + o.kick * 7;
     // A double snap of the pincer: shut, open, shut, open.
     const shut = o.snap ? Math.max(0, Math.sin(o.snap * Math.PI * 4)) : 0;
@@ -410,9 +419,13 @@ export class Snap3D {
     s.limbs.forEach((L, i) => {
       const { a, b } = this.axes[i], r = rot[i];
       if (L.kind === 'stalk') {
-        r.set(Math.sin(t * 2.1 + 1 + i) * 0.05 - surprise * 0.3, 0, Math.sin(t * 1.25 + i * 1.7) * 0.07 + (i ? -1 : 1) * surprise * 0.08);
+        r.set(Math.sin(t * 2.1 + 1 + i) * 0.05 - surprise * 0.3, 0, Math.sin(t * 1.25 + i * 1.7) * 0.07 + this.sway + (i ? -1 : 1) * surprise * 0.08);
       } else if (L.kind === 'leg') {
-        if (o.planted) {
+        if (walking) {
+          // Walking sideways: the legs swing across in two alternating sets, each lifting as it swings.
+          const ph = o.walk! + (leg++ % 2) * Math.PI;
+          r.set(0, 0, Math.sin(ph) * 0.34).addScaledVector(a, Math.max(0, Math.cos(ph)) * 0.28);
+        } else if (o.planted) {
           // Standing: only the slightest shift of weight.
           r.copy(b).multiplyScalar(Math.sin(t * 0.9 + leg++ * 1.3) * 0.03);
         } else {

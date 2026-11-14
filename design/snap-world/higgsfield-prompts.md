@@ -603,7 +603,7 @@ seamless background, isolated, centred, sharp from nose to tail, soft even
 light, no shadow on the background. {WORLD_DNA}
 ```
 
-For the dive itself, the submarine Snap rides in, 3:2, with the submarine
+For the deep half of the dive, the submarine Snap rides in, 3:2, with the submarine
 above as the reference (the same brass, glass and steel), cut out of the
 grey in the build. It tends to come out nose to the left whatever the
 prompt says; the build mirrors it.

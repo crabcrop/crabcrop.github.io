@@ -738,15 +738,70 @@ brass as wide as the ring is kept solid (warm glints beside the ring are
 reflections, not metal), the gap between the arms and the tank is opened,
 and the glass keeps a little of its own light, most at the rim.
 
+## The chain, the walk, and then the submarine
+
+With the submarine version in the preview, the note that came back had two
+parts. Snap should not be in the submarine from the start: he should go
+down the anchor chain and move through a few scenes on foot, as he did
+before, and only then get into the submarine, to go deeper and to come all
+the way back up. And the bar with the URL's parts, there through the whole
+dive, was not convincing: find something more interesting, or ask whether
+it is needed at all.
+
+- **Three ways of moving, each where it makes sense.** Down the anchor
+  chain from the boat to the sand under the pier. On foot from there: the
+  shallows, the kelp forest, the reef, the Clam Studio and the wreck,
+  inside and out. What he did with his own claw he does again: the fish in
+  the line, the leaps to the cards, the wax on the octopus's letter. This
+  is the walking version's code, back as it was, without the line of tags
+  he carried.
+- **The submarine waits where the sea floor ends.** It hangs over the
+  wreck's stern, a little hazed, and comes into view with the wreck. On
+  the way out of the cabin Snap leaps up to the hatch on its tower,
+  squeezes in (he grows small, the brass hides him) and shows up behind
+  the glass. The story gives the submarine an owner: the octopus, whose
+  letter he has just sealed, returns the favor.
+- **The boarding has its own stretch of scroll.** In the first build the
+  drop began a tenth of a screen after he set off, so he was still in the
+  air as the submarine left. The way out of the cabin is 20vh longer now:
+  the hull film backwards, then a pause on the wreck seen from outside
+  while he gets in, then the drop. And his leap is tied to that stretch as
+  well as to the clock: it is always at least as far along as the scroll
+  is toward the drop, so a fast scroll makes him quick, and he is in his
+  seat when the submarine goes.
+- **Out the same way.** At the pier he comes up through the hatch and
+  leaps onto the planks. The submarine waits a moment and slips back
+  under: it is not his, and the next morning starts with the anchor chain
+  again.
+- **The URL: said where it is chosen, shown where it is used.** The bar is
+  gone. Each of the five choice panels has a line at its foot that says
+  what the choice put in the URL ("Crisp is in your URL:
+  `sharpen(1.2):saturation(1.1)`"), or that it adds nothing. The URL
+  itself is put together on the way up, where the page already showed the
+  choices going onto the print one by one: each step now also prints its
+  line on a ticket under the picture, top to bottom as the URL reads, so
+  the visitor watches each part of the URL do its work. The steps run in
+  the order the server works through a URL (crop, look, finish, format,
+  seal); the format, which changes the bytes and not the look, puts a
+  label on the picture; a choice that adds nothing gets a grey line; and
+  sealed, the lines fold into the token. At the surface the whole URL is
+  on the receipt, as before.
+- **The still page** follows the story: Snap on the chain in the shallows,
+  on his feet in the kelp and the cabin, in the submarine below the wreck.
+- **What did not come back.** The line of tags and its float, the lift
+  offered at the vents, the ride films and the scuttle clips. If the 3D
+  model cannot load, the painted sprite does the chain, floats where he
+  would walk, and stands in the bubble.
+
 ## Next
 
 The way from the twilight zone to the vents still dips through an ember
 dark (it reads as sinking into the glow, so it was left). The page is
-about 46 screens long; trimming it is its own job.
+about 47 screens long; trimming it is its own job.
 
 Still open besides: the real signed URLs (the builder needs the signing
-secret in CI), the pincer's jaws (the cutout nudges forward to snip, seal
-and lift, but they do not move), depth maps for parallax, and sound.
+secret in CI), the pincer's jaws (the cutout nudges forward to lift the
+print, but they do not move), depth maps for parallax, and sound.
 
 Optional: the six format fish could become 3D schools (about 40 Tripo
 credits a species).

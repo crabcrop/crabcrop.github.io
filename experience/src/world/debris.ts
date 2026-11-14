@@ -23,7 +23,7 @@ void main() {
 
 /**
  * A barnacled beam from the wreck, lying in the foreground on the way to
- * the ship: it passes close to the camera as the submarine heads there.
+ * the ship: it passes close to the camera as Snap walks there.
  */
 export class Debris {
   private mesh: THREE.Mesh;

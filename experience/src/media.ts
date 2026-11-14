@@ -20,7 +20,7 @@ export const media = manifest as unknown as {
   /** The anchor the chain ends on: its ring (the chain's end) and where it meets the sand, as shares of the sprite. */
   anchor: { w: number; h: number; ring: [number, number]; ground: number };
   /**
-   * Snap's submarine (it faces right). As shares of the sprite: the glass
+   * The submarine (it faces right). As shares of the sprite: the glass
    * bubble he sits in (its middle, and its radius as a share of the width),
    * the lid of its hatch, its lamp, the tips of its near pincer and the hub
    * of its propeller.

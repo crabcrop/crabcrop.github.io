@@ -1,6 +1,5 @@
 import type { WorldOut } from './world';
 import type { Recipe } from './twilight-ui';
-import { stamp } from './ui';
 
 type Lang = 'ts' | 'py' | 'rs';
 const SOURCE = 'root:photos/print.jpg';
@@ -13,8 +12,7 @@ const SUB = [0.685, 0.6] as const;
  * The vents in the DOM: the SDK card building the visitor's own URL in
  * TypeScript, Python and Rust (the same URL from all three), the MCP card's
  * tool calls from the little submersible that works down there, its speech
- * bubble over the plate, the source's part of the URL once Snap has his
- * print, and the story.
+ * bubble over the plate, and the story of the print.
  */
 export class VentsUI {
   private tabs = [...document.querySelectorAll<HTMLButtonElement>('.sdk-tabs [role="tab"]')];
@@ -24,7 +22,6 @@ export class VentsUI {
   private bubble = document.getElementById('sub-bubble')!;
   private card = document.getElementById('card-mcp')!;
   private kind = document.getElementById('kind-print')!;
-  private srcTag = document.getElementById('tag-src')!;
   private lang: Lang = 'ts';
   private recipe: Recipe | null = null;
   private takenAt = -10;
@@ -114,18 +111,9 @@ export class VentsUI {
       this.bubble.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px) translateX(-100%)`;
     }
     this.bubble.classList.toggle('on', show);
-    // His print: the URL gets its last part, the source, and the story shows for a while.
-    if (v.taken && !this.wasTaken) { this.takenAt = t; stamp(this.srcTag, SOURCE, 'The source: your print'); }
+    // His print: the story shows for a while.
+    if (v.taken && !this.wasTaken) this.takenAt = t;
     this.wasTaken = v.taken;
-    const up = out.zone === 't5' || out.zone === 's7', blank = this.srcTag.classList.contains('blank');
-    // (a visitor who skipped the vents with the gauge still comes up with the print: its part is filled in on the way)
-    if (up && out.ascent.on > 0.5 && blank) stamp(this.srcTag, SOURCE, 'The source: your print');
-    // Above the vents without the print (scrolled back up, or the day started over), the source is waiting down there again.
-    if (!v.taken && !up && !blank) {
-      this.srcTag.classList.add('blank');
-      this.srcTag.querySelector('code')!.textContent = 'source';
-      this.srcTag.querySelector('span')!.textContent = 'Waiting at the bottom';
-    }
     this.kind.classList.toggle('on', v.taken && t - this.takenAt < 7 && v.on > 0.5);
   }
 }

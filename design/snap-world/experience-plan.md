@@ -22,8 +22,19 @@ How the page works, scene by scene, and how to build it. Read
 > rides inside it to the vents and back, and gets out on the pier where he
 > started; "Dive again" starts the day over. Its pincer does what his claw
 > did, and the URL builds up in a bar along the bottom of the view, in the
-> URL's own order. The anchor chain is scenery. Where this plan says he
-> rides the chain, walks, or carries the tags, read it as history.
+> URL's own order. The anchor chain is scenery.
+>
+> **Revised a third time (see "The chain, the walk, and then the
+> submarine").** Each of the two revisions was half right, and the page
+> now keeps the right half of each. Snap goes down the anchor chain to the
+> sand, walks from there through the shallows, the kelp, the reef, the
+> studio and the wreck, and gets into the submarine where the sea floor
+> ends, beyond the wreck: it takes him to the vents and all the way back
+> up to the pier. He carries no tags and there is no bar. Each choice is
+> confirmed on its own panel, and the URL is put together on the way up,
+> a line printed under the print for each part as it is applied. Where
+> this plan says he rides the chain all the way down, or carries the tags,
+> read it as history.
 
 ## 1. Shape of the page
 

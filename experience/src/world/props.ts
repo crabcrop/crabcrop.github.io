@@ -42,7 +42,7 @@ void main() {
 
 /**
  * A cutout set into the world: the anchor on the sand, a pier post passing
- * close to the camera, Snap's submarine. grade tints it, haze mixes it
+ * close to the camera, the submarine. grade tints it, haze mixes it
  * toward the water's colour (how far away it sits in the water), and
  * sea() gives it a waterline to float at.
  */

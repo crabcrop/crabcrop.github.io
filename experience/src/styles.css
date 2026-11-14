@@ -26,8 +26,7 @@
 }
 
 *, *::before, *::after { box-sizing: border-box; }
-/* (keyboard focus scrolls a control clear of the bar with the URL along the bottom) */
-html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; background: var(--haze); scroll-padding-bottom: 96px; }
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; background: var(--haze); }
 body { margin: 0; font-family: var(--body); font-size: 18px; line-height: 1.5; color: var(--ink); background: transparent; overflow-x: hidden; }
 a { color: var(--tide-deep); text-underline-offset: 3px; }
 a:hover { color: var(--coral-deep); }
@@ -96,9 +95,9 @@ main { position: relative; z-index: 1; }
 .zone { position: relative; }
 .s0 { min-height: 200vh; }
 .plunge { height: 100vh; }
-/* the way out of the cabin: back out through the hull, then the drop */
-.gl #t4 { height: 190vh; }
-/* with the moving world the plunge is longer: down the marina's picture to the sand, and the cruise to the shallows */
+/* the way out of the cabin: back out through the hull, a pause while Snap gets into the submarine, then the drop */
+.gl #t4 { height: 210vh; }
+/* with the moving world the plunge is longer: down the marina's picture, onto the sand, and the walk to the shallows */
 .gl #t1 { height: 185vh; }
 .s1 { min-height: 250vh; padding-bottom: 20vh; }
 .s2 { min-height: 250vh; padding-bottom: 24vh; --zone-accent: #6E7F2E; --zone-ink: #4E5E1C; }
@@ -134,7 +133,7 @@ main { position: relative; z-index: 1; }
 /* flow-root: the first panel's top margin stays inside its section instead of pushing the section down */
 .s4 { display: flow-root; min-height: 190vh; --zone-accent: #C9A24A; --zone-ink: #8A5A1C; }
 .s4 .zone-head { margin-top: 110vh; }
-/* with the moving world the way there is a cruise along the sea floor, shorter than the old descent */
+/* with the moving world the way there is a walk, shorter than the old descent */
 .gl .s4 { min-height: 160vh; }
 .gl .s4 .zone-head { margin-top: 85vh; }
 .s4b { display: flow-root; min-height: 300vh; padding-bottom: 36vh; --zone-accent: #C9A24A; --zone-ink: #8A5A1C; }
@@ -175,9 +174,6 @@ main { position: relative; z-index: 1; }
 .explain dd { margin: 0; color: #E8FFFC; overflow-wrap: anywhere; }
 .gl .explain dt, .gl .explain dd { opacity: 0; }
 .gl .card.in .explain dt, .gl .card.in .explain dd { animation: fadein .4s forwards; animation-delay: calc(var(--i) * .22s + .2s); }
-.tag.explaining span { color: #0B7A78; font-weight: 700; }
-.tag { transition: box-shadow .3s; }
-.tag.lit { box-shadow: 0 0 0 2px rgba(95, 242, 224, .95), 0 0 24px rgba(95, 242, 224, .8); }
 
 /* The vents: the engine at the bottom */
 .s6 { display: flow-root; min-height: 250vh; padding-bottom: 30vh; --zone-accent: #FF6A2B; --zone-ink: #B4431A; }
@@ -210,16 +206,22 @@ main { position: relative; z-index: 1; }
 .gl .sub-bubble { display: block; position: fixed; left: 0; top: 0; z-index: 2; margin: -52px 0 0 0; font-family: var(--mono); font-size: 12px; font-weight: 800; color: var(--ink); background: var(--cream); border: 2px solid var(--ink); border-radius: 12px 12px 3px 12px; padding: 5px 10px; box-shadow: var(--shadow-sm); pointer-events: none; white-space: nowrap; opacity: 0; transition: opacity .35s; }
 .gl .sub-bubble.on { opacity: 1; }
 .sub-bubble b { color: #2E9E4F; }
-.tag.src:not(.blank) { background: #FFF3D6; border-color: #C98A12; }
-.tag.src:not(.blank)::before { background: var(--sun); }
 
-/* The way up: the print beside Snap takes on the choices, one at a time */
+/* The way up: the print in the submarine's pincer takes on the choices one at a time, and the URL prints under it, a line for each */
 .plunge.ascent { height: 150vh; }
 .ascent-print { display: none; }
 .gl .ascent-print { display: grid; justify-items: start; gap: 8px; position: fixed; left: 0; top: 0; z-index: 3; margin: 0; pointer-events: none; opacity: 0; transition: opacity .4s; }
 .gl .ascent-print.on { opacity: 1; }
-.ap-step { font-family: var(--mono); font-size: 11.5px; font-weight: 800; color: var(--ink); background: var(--sun-soft); border: 2px solid var(--ink); border-radius: 8px 8px 8px 2px; padding: 3px 8px; max-width: 280px; overflow-wrap: anywhere; box-shadow: var(--shadow-sm); }
-.ap-step.pop { animation: chip .45s var(--snap); }
+.ap-ticket { display: block; min-width: 150px; max-width: 290px; padding: 6px 10px 8px; font-family: var(--mono); color: var(--ink); background: #FFFDF7; border: 2px solid var(--ink); border-radius: 3px 3px 10px 10px; box-shadow: var(--shadow-sm); }
+.ap-title { display: block; margin-bottom: 3px; padding-bottom: 3px; border-bottom: 1.5px dashed rgba(20, 40, 50, .35); font-size: 9.5px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-2); }
+.ap-lines { list-style: none; margin: 0; padding: 0; display: grid; gap: 1px; font-size: 11px; font-weight: 800; line-height: 1.35; }
+.ap-lines li { padding: 1px 5px; margin: 0 -5px; border-radius: 5px; overflow-wrap: break-word; }
+/* (a filter after the first sits inside the same segment, joined by its colon) */
+.ap-lines li.more { padding-left: 17px; }
+/* (a choice that adds nothing to the URL) */
+.ap-lines li.mute { font-weight: 600; font-style: italic; color: var(--ink-2); }
+.ap-lines li.now { background: var(--sun-soft); animation: line-in .5s var(--snap); }
+@keyframes line-in { 0% { opacity: 0; transform: translateY(-7px) scale(1.06); } 100% { opacity: 1; transform: none; } }
 .recipe-img { position: relative; display: block; overflow: hidden; border-radius: 6px; background: #20343c; }
 .recipe-img img { display: block; width: 100%; height: 100%; object-fit: cover; transition: filter .6s, padding .6s; }
 .recipe-img.s-look[data-look="crisp"] img { filter: saturate(1.35) contrast(1.08); }
@@ -230,6 +232,11 @@ main { position: relative; z-index: 1; }
 .recipe-img.s-finish[data-finish="studio"] img { object-fit: contain; padding: 8% 12% 14%; }
 .recipe-img.s-finish[data-finish="cutout"] { background: repeating-conic-gradient(#E9D3A1 0 25%, #F6E7C8 0 50%) 0 0 / 14px 14px; }
 .recipe-img.s-finish[data-finish="cutout"] img { object-fit: contain; padding: 6%; }
+/* (the format changes the bytes, not the look: the picture gets a label for what it was encoded as) */
+.recipe-img.s-fmt::before { content: 'AVIF'; position: absolute; left: 5%; top: 7%; z-index: 1; padding: 1px 6px; font-family: var(--mono); font-size: 10px; font-weight: 800; letter-spacing: .05em; line-height: 1.5; color: var(--ink); background: var(--sun); border: 1.5px solid var(--ink); border-radius: 5px; animation: chip .45s var(--snap); }
+.recipe-img.s-fmt[data-fmt="webp"]::before { content: 'WebP'; }
+.recipe-img.s-fmt[data-fmt="jxl"]::before { content: 'JPEG XL'; }
+.pol-img.s-fmt::before { display: none; }
 .recipe-img.s-seal[data-sealed="true"]::after { content: ''; position: absolute; right: 7%; bottom: 9%; width: 18%; aspect-ratio: 1; border-radius: 47% 53% 50% 50% / 52% 48% 52% 48%; background: radial-gradient(circle at 50% 50%, transparent 38%, rgba(0, 0, 0, .14) 40%, transparent 47%), radial-gradient(circle at 34% 28%, #e86a5a, #b3201a 58%, #7d140f); box-shadow: 0 2px 0 rgba(20, 40, 50, .3); animation: chip .45s var(--snap); }
 .ap-frame { width: 220px; height: 172px; border: 3px solid #fff; box-shadow: 0 10px 26px rgba(0, 0, 0, .4); transition: width .6s var(--reveal), height .6s var(--reveal), background .6s; }
 .ap-frame.s-crop[data-crop="wide"], .ap-frame.s-crop[data-crop="whole"] { width: 250px; height: 131px; }
@@ -250,7 +257,7 @@ main { position: relative; z-index: 1; }
 .again a { margin-right: 8px; font-family: var(--mono); font-size: 12px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--tide-deep); }
 /* "Dive again": the view fades to the next morning while the page goes back to the top. */
 .dawn { display: none; }
-/* (over the gauge, the URL's bar and the footer; the header stays) */
+/* (over the gauge and the footer; the header stays) */
 .gl .dawn { display: grid; place-items: center; position: fixed; inset: 0; z-index: 18; background: linear-gradient(180deg, #FFE1B4 0%, #FBF0D9 46%, var(--haze) 100%); opacity: 0; visibility: hidden; pointer-events: none; transition: opacity .45s ease, visibility 0s .45s; }
 .gl .dawn.on { opacity: 1; visibility: visible; transition: opacity .45s ease; }
 .dawn p { margin: 0; font-family: var(--display); font-variation-settings: 'SOFT' var(--soft); font-size: clamp(28px, 3.4vw, 52px); font-weight: 860; letter-spacing: -0.015em; color: var(--ink); }
@@ -504,47 +511,21 @@ html:not(.gl.wide) .on-narrow { display: revert; }
 .gl.wide .free-fish, .gl.wide .seal-letter { transform: var(--at, translate(-999px, -999px)) translate(48px, -50%); }
 .gl.wide .free-fish::after, .gl.wide .seal-letter::after { left: auto; right: 100%; top: 50%; bottom: auto; width: 14px; height: 2px; margin: -1px 0 0; }
 .gl .free-fish:hover, .gl .seal-letter:hover { background: var(--sun-soft); }
-/* the octopus waits at the submarine's pincer, low in the cabin: its button sits to its right */
+/* the octopus waits by Snap's side, low in the cabin: its button sits to its right */
 .gl.wide .seal-letter { transform: var(--at, translate(-999px, -999px)) translate(calc(var(--lift, 60px) * 0.9 + 16px), -50%); }
 
 .s2 .kind { top: 30vh; }
-.gl .kind { position: fixed !important; top: auto; bottom: calc(8vh + 62px); left: auto; right: 4vw; width: min(380px, 28vw); z-index: 4; pointer-events: none; visibility: hidden; transition: opacity .6s var(--reveal), transform .6s var(--reveal), visibility 0s .6s; }
+.gl .kind { position: fixed !important; top: auto; bottom: 8vh; left: auto; right: 4vw; width: min(380px, 28vw); z-index: 4; pointer-events: none; visibility: hidden; transition: opacity .6s var(--reveal), transform .6s var(--reveal), visibility 0s .6s; }
 .gl .kind.on { visibility: visible; transition: opacity .6s var(--reveal), transform .6s var(--reveal); }
 .gl:not(.wide) .kind { top: calc(var(--top) + 14px); bottom: auto; left: 16px; right: 16px; width: auto; font-size: 15px; }
 
-/* The visitor's URL so far: a bar along the bottom of the view, one tag for each part, filling in as they choose. */
-.urlbar { position: fixed; left: 14px; right: 14px; bottom: max(12px, env(safe-area-inset-bottom)); z-index: 12; display: flex; align-items: center; gap: 12px; width: fit-content; max-width: calc(100vw - 28px); margin: 0 auto; padding: 7px 10px 7px 14px; background: rgba(13, 32, 46, .93); border: 2px solid var(--ink); border-radius: 16px; box-shadow: 0 10px 28px rgba(8, 24, 34, .35); }
-/* (it slides up once the dive is under way, and makes way for the receipt at the surface) */
-.js .urlbar { transform: translateY(150%); opacity: 0; visibility: hidden; transition: transform .55s var(--reveal), opacity .4s, visibility 0s .55s; }
-.js .urlbar.on { transform: none; opacity: 1; visibility: visible; transition: transform .55s var(--reveal), opacity .4s; }
-.no-js .urlbar { display: none; }
-.urlbar-label { margin: 0; flex: none; font-family: var(--mono); font-size: 10px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: var(--sun-soft); }
-.tags { list-style: none; margin: 0; padding: 2px; display: flex; gap: 15px; min-width: 0; }
-/* (in the URL's own order; on wide screens the long parts give way so the whole URL stays in view) */
-.tag { flex: 0 1 auto; min-width: 58px; display: inline-flex; flex-direction: column; gap: 1px; max-width: 232px; background: #FFF6E2; color: var(--ink); border: 1.5px solid rgba(20, 40, 50, .7); border-radius: 4px 9px 9px 4px; padding: 4px 9px 4px 16px; font-size: 11px; position: relative; white-space: nowrap; }
-.tag.sig, .tag.src { flex-shrink: 0; }
-.tag::before { content: ''; position: absolute; left: 5px; top: 50%; width: 5px; height: 5px; margin-top: -2.5px; border-radius: 50%; background: var(--ink-2); }
-/* (the slashes of the URL, between its parts; the filters join with colons inside their one segment) */
-.tag:not(:last-child)::after { content: '/'; position: absolute; right: -12px; top: 50%; transform: translateY(-50%); font-family: var(--mono); font-size: 13px; color: rgba(255, 246, 226, .5); }
-.tag.join:not(:last-child)::after { content: ':'; right: -11px; }
-/* (a part that adds nothing to the URL: no format named, no finish) */
-.tag.empty { background: rgba(255, 246, 226, .78); }
-.tag.empty code { font-weight: 600; font-style: italic; color: var(--ink-2); }
-.tag code, .tag span { overflow: hidden; text-overflow: ellipsis; }
-.tag code { font-size: 11.5px; font-weight: 800; }
-.tag span { font-size: 10px; color: var(--ink-2); }
-.tag.blank { background: rgba(255, 246, 226, .14); border-style: dashed; border-color: rgba(255, 246, 226, .5); color: rgba(255, 246, 226, .85); }
-.tag.blank span { color: rgba(255, 246, 226, .62); }
-.tag.blank::before { background: rgba(255, 246, 226, .5); }
-.tag.blank.explaining span { color: #8FE3E1; }
-.tag.stamp { animation: stamp .45s var(--snap); }
-@keyframes stamp { 0% { transform: scale(1.3) rotate(-5deg); } 100% { transform: none; } }
-/* Sealed: the signature tag is the token, with a blob of wax; the rest of the recipe is folded inside it. */
-.tag.seal { background: #FFF1E6; border-color: #8A1F14; }
-.tag.seal::before { width: 9px; height: 9px; margin-top: -4.5px; left: 4px; background: radial-gradient(circle at 35% 30%, #e0584a, #b3201a 60%, #7d140f); }
-.tags .tag:not(.sig) code, .tags .tag:not(.sig) span { transition: filter .5s, opacity .5s; }
-.tags.sealed .tag:not(.sig) code { filter: blur(3px); opacity: .55; }
-.tags.sealed .tag:not(.sig) span { opacity: .5; }
+/* What a choice put in the visitor's URL, said on the panel where they made it. */
+.picked { clear: both; margin: 14px 0 0; padding: 8px 12px; font-size: 13.5px; font-weight: 600; line-height: 1.45; color: var(--ink); background: color-mix(in srgb, var(--zone-accent) 9%, white); border: 1.5px dashed color-mix(in srgb, var(--zone-accent) 60%, transparent); border-radius: 10px; }
+.picked code { font-size: 12px; font-weight: 800; color: var(--zone-ink, var(--tide-deep)); overflow-wrap: anywhere; }
+.picked.pop { animation: chip .45s var(--snap); }
+/* (without scripts the choices change nothing, so nothing is claimed) */
+.no-js .picked { display: none; }
+.choice.compact .picked { margin-top: 10px; padding: 6px 10px; font-size: 13px; }
 
 .snap-static { display: none; }
 body.on-snap { cursor: pointer; }
@@ -553,8 +534,14 @@ body.on-snap { cursor: pointer; }
 /* Static mode: no WebGL, or reduced motion. Each zone shows its still plate. */
 .static .snap-static, .no-js .snap-static { display: block; position: absolute; z-index: 1; pointer-events: none; }
 .static .stand, .no-js .stand { width: min(170px, 14vw); right: 9vw; top: 15vh; height: auto; }
-/* (Snap in his submarine, in every zone between the pier and the pier) */
+/* (down the anchor chain into the shallows, on his feet in the kelp and the cabin, in the submarine below the wreck) */
+.static .on-chain, .no-js .on-chain { width: min(230px, 20vw); right: 8vw; top: 12vh; height: auto; }
+.static .on-foot, .no-js .on-foot { width: min(170px, 14vw); height: auto; }
+.static .kelp-foot, .no-js .kelp-foot { right: 12vw; top: 62vh; }
+.static .cabin-foot, .no-js .cabin-foot { right: 42vw; top: 60vh; }
 .static .in-sub, .no-js .in-sub { width: min(380px, 30vw); right: 6vw; top: 56vh; height: auto; }
+/* (the story of how he came by the submarine opens the twilight zone, above its heading) */
+.static #kind-sub, .no-js #kind-sub { top: 14vh; bottom: auto; }
 .no-js .story { position: relative !important; top: auto; left: auto; margin: 70vh 0 0 clamp(150px, 15vw, 230px); }
 
 .static .s2[data-look="crisp"] .zone-bg img { filter: saturate(1.1) contrast(1.05); }
@@ -575,19 +562,13 @@ body.on-snap { cursor: pointer; }
   .gauge-bar { display: block; height: 3px; background: rgba(20, 40, 50, .15); }
   .gauge-bar span { display: block; height: 100%; width: 0; background: var(--coral); transition: width .2s linear; }
   .hero, .zone-head, .cards, .cargo { width: auto; margin-left: 16px; margin-right: 16px; }
-  .urlbar { left: 8px; right: 8px; bottom: max(8px, env(safe-area-inset-bottom)); width: auto; max-width: none; padding: 6px 8px 6px 10px; gap: 9px; border-radius: 14px; }
-  .urlbar-label { font-size: 9px; letter-spacing: .1em; }
-  .tags { overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; }
-  .tags::-webkit-scrollbar { display: none; }
-  .tag { flex: none; max-width: 200px; }
   .hero { top: calc(var(--top) + 40vh); }
   .story { left: 16px; right: 16px; width: auto; top: 200vh; }
   .slice-end { place-items: center; padding: 18vh 16px; }
   #next.slice-end { padding-top: 70vh; }
   .slice-end .zone-bg { margin-left: -16px; }
   .gl .station > .station-body, .gl .station[data-st="0"] > .station-body { left: 12px; right: 12px; width: auto; top: calc(var(--top) + 12px); transform: none; gap: 10px; }
-  /* (above the URL bar) */
-  .gl .station[data-phone="bottom"] > .station-body { top: auto; bottom: 74px; }
+  .gl .station[data-phone="bottom"] > .station-body { top: auto; bottom: 12px; }
   .gl .reef-card { padding: 14px 16px 16px; }
   .gl .reef-card p { font-size: 14px; margin-bottom: 8px; }
   .gl .reef-card .card-top { margin: 0 0 6px; }
@@ -609,7 +590,8 @@ body.on-snap { cursor: pointer; }
   .ap-frame { width: 170px; height: 133px; }
   .ap-frame.s-crop[data-crop="wide"], .ap-frame.s-crop[data-crop="whole"] { width: 196px; height: 103px; }
   .ap-frame.s-crop[data-crop="square"] { width: 146px; height: 146px; }
-  .ap-step { font-size: 10.5px; max-width: 200px; }
+  .ap-ticket { max-width: 210px; padding: 5px 8px 7px; }
+  .ap-lines { font-size: 10.5px; }
   .s4b .cards { margin-top: 80vh; }
   .chest { width: 96px; height: 96px; }
   .slice-end .panel { max-width: 720px; }
@@ -617,6 +599,10 @@ body.on-snap { cursor: pointer; }
   .cards { gap: 40vh; }
   .card { padding: 16px; }
   .static .stand, .no-js .stand { width: 34vw; right: 4vw; top: 16vh; }
+  .static .on-chain, .no-js .on-chain { width: 30vw; right: 4vw; top: 8vh; }
+  .static .on-foot, .no-js .on-foot { width: 32vw; }
+  .static .kelp-foot, .no-js .kelp-foot { right: 6vw; top: 52vh; }
+  .static .cabin-foot, .no-js .cabin-foot { right: auto; left: 6vw; top: 58vh; }
   .static .in-sub, .no-js .in-sub { width: 56vw; right: 4vw; top: 62vh; }
 }
 

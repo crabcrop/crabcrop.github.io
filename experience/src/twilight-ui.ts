@@ -1,5 +1,4 @@
 import type { WorldOut } from './world';
-import { showTag } from './ui';
 
 /** The visitor's choices, as the twilight zone's demos need them. */
 export interface Recipe {
@@ -23,9 +22,8 @@ const NOUN: Record<string, string> = { jellyfish: 'glowing jellyfish', 'glowing 
 
 /**
  * The twilight zone in the DOM: CLIP tags that light up next to the
- * creatures the visitor's light finds, the meta answer they add up to, the
- * explain report for the visitor's own URL, and the parts of that URL in the
- * bar explaining themselves, one after another, while the report is up.
+ * creatures the visitor's light finds, the meta answer they add up to, and
+ * the explain report for the visitor's own URL.
  */
 export class TwilightUI {
   private tagsList = document.getElementById('glow-tags')!;
@@ -38,8 +36,6 @@ export class TwilightUI {
   private req = document.getElementById('explain-req')!;
   private report = document.getElementById('explain-report')!;
   private kind = document.getElementById('kind-fish')!;
-  private chainTags = [...document.querySelectorAll<HTMLElement>('#tags .tag')];
-  private saved: string[] | null = null;
   private recipe: Recipe | null = null;
 
   constructor(private wide: boolean) {
@@ -52,19 +48,6 @@ export class TwilightUI {
     this.recipe = r;
     this.renderReport();
     this.renderJson();
-  }
-
-  /** What explain says about each part of the URL in the bar, by the part's id. */
-  private glosses(r: Recipe): Record<string, string> {
-    const inside = 'sealed inside the token';
-    if (r.sealed) return { 'tag-sig': 'sealed: explain will not open it', 'tag-crop': inside, 'tag-look': inside, 'tag-finish': inside, 'tag-format': inside };
-    return {
-      'tag-sig': 'valid · key 1 · never expires',
-      'tag-crop': CROP_GLOSS[r.crop],
-      'tag-look': LOOK_GLOSS[r.look],
-      'tag-finish': FINISH_GLOSS[r.finish] || 'no finish',
-      'tag-format': r.fmt === 'auto' ? 'no format named: Accept picks AVIF' : `${FMT_NAME[r.fmt]} out`,
-    };
   }
 
   private renderReport() {
@@ -141,27 +124,6 @@ export class TwilightUI {
     if (added) this.renderJson();
     this.altLine.classList.toggle('on', on && this.wide && this.seen.size > 0);
     this.kind.classList.toggle('on', out.fishOn);
-
-    // While the explain card is up, the parts of the URL in the bar explain themselves, one after another.
-    const explaining = tw.explain && !!this.recipe;
-    if (explaining && !this.saved) {
-      this.saved = this.chainTags.map((el) => el.querySelector('span')!.textContent ?? '');
-      const g = this.glosses(this.recipe!);
-      for (const el of this.chainTags) { if (g[el.id] === undefined) continue; el.querySelector('span')!.textContent = g[el.id]; el.classList.add('explaining'); }
-    } else if (!explaining && this.saved) {
-      this.chainTags.forEach((el, i) => { el.querySelector('span')!.textContent = this.saved![i]; el.classList.remove('explaining', 'lit'); });
-      this.saved = null;
-    }
-    if (explaining) {
-      // (left to right, the way the report reads the URL; the source is still at the bottom of the sea)
-      const parts = this.chainTags.filter((el) => el.classList.contains('explaining'));
-      const now = parts[Math.floor(t / 1.25) % parts.length];
-      for (const el of this.chainTags) {
-        const lit = el === now;
-        if (lit && !el.classList.contains('lit')) showTag(el);
-        el.classList.toggle('lit', lit);
-      }
-    }
   }
 }
 
