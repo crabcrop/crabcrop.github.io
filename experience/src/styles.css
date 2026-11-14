@@ -46,10 +46,6 @@ h3 { font-size: 22px; font-weight: 800; letter-spacing: -0.005em; line-height: 1
 .placeholder { position: fixed; inset: 0; z-index: -2; background: var(--haze) center / cover no-repeat; }
 #world { position: fixed; left: 0; top: 0; width: 100vw; height: 100vh; height: 100lvh; z-index: -1; display: none; }
 .gl #world { display: block; }
-.overlay { position: fixed; inset: 0; z-index: 3; pointer-events: none; display: none; }
-.gl .overlay { display: block; }
-.threads { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
-.threads path { fill: none; stroke: #c4543d; stroke-width: 1.6; stroke-linecap: round; opacity: .9; }
 
 /* Header */
 .top { position: fixed; top: 0; left: 0; right: 0; height: var(--top); z-index: 20; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 0 clamp(16px, 3vw, 36px); background: rgba(251, 244, 230, .82); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-bottom: 1.5px solid rgba(20, 40, 50, .08); }
@@ -97,6 +93,10 @@ main { position: relative; z-index: 1; }
 .zone { position: relative; }
 .s0 { min-height: 200vh; }
 .plunge { height: 100vh; }
+/* the way out of the cabin: back out through the hull, then the drop */
+.gl #t4 { height: 190vh; }
+/* with the moving world the plunge is longer: down the marina's picture, onto the sand, and the walk to the shallows */
+.gl #t1 { height: 185vh; }
 .s1 { min-height: 250vh; padding-bottom: 20vh; }
 .s2 { min-height: 250vh; padding-bottom: 24vh; --zone-accent: #6E7F2E; --zone-ink: #4E5E1C; }
 .slice-end { min-height: 100vh; display: grid; place-items: center start; padding: 18vh 16px 18vh clamp(150px, 15vw, 230px); }
@@ -119,6 +119,7 @@ main { position: relative; z-index: 1; }
 .zone-head { width: min(500px, 34vw); margin-left: clamp(150px, 15vw, 230px); }
 .zone-head p:last-child { margin: 16px 0 0; color: var(--ink-2); }
 .s1 .zone-head { margin-top: 88vh; }
+.gl .s1 .zone-head { margin-top: 52vh; }
 .s2 .zone-head { margin-top: 95vh; }
 
 /* The reef: pinned, and the camera travels sideways along it */
@@ -130,9 +131,14 @@ main { position: relative; z-index: 1; }
 /* flow-root: the first panel's top margin stays inside its section instead of pushing the section down */
 .s4 { display: flow-root; min-height: 190vh; --zone-accent: #C9A24A; --zone-ink: #8A5A1C; }
 .s4 .zone-head { margin-top: 110vh; }
+/* with the moving world the way there is a walk, shorter than the old descent */
+.gl .s4 { min-height: 160vh; }
+.gl .s4 .zone-head { margin-top: 85vh; }
 .s4b { display: flow-root; min-height: 300vh; padding-bottom: 36vh; --zone-accent: #C9A24A; --zone-ink: #8A5A1C; }
 .s4b .cards { margin-top: 85vh; }
 .s4b .kind { top: auto; bottom: 8vh; }
+/* Snap stands at the foot of the desk now, the octopus beside him: the story goes up by the porthole, clear of both */
+.gl.wide .s4b .kind { top: 16vh; bottom: auto; right: 2vw; width: min(300px, 21vw); }
 
 /* The twilight zone: the visitor's light finds the creatures */
 .s5 { display: flow-root; min-height: 250vh; padding-bottom: 30vh; --zone-accent: #2BB3B1; --zone-ink: #0B7A78; }
@@ -488,8 +494,8 @@ html:not(.gl.wide) .on-narrow { display: revert; }
 .gl.wide .free-fish, .gl.wide .seal-letter { transform: var(--at, translate(-999px, -999px)) translate(48px, -50%); }
 .gl.wide .free-fish::after, .gl.wide .seal-letter::after { left: auto; right: 100%; top: 50%; bottom: auto; width: 14px; height: 2px; margin: -1px 0 0; }
 .gl .free-fish:hover, .gl .seal-letter:hover { background: var(--sun-soft); }
-.gl.wide .seal-letter { transform: var(--at, translate(-999px, -999px)) translate(-50%, calc(-100% - var(--lift, 60px) - 14px)); }
-.gl.wide .seal-letter::after { left: 50%; right: auto; top: 100%; bottom: auto; width: 2px; height: 14px; margin: 0 0 0 -1px; }
+/* the octopus waits by Snap's side, low in the cabin: its button sits to its right, clear of the tags above them */
+.gl.wide .seal-letter { transform: var(--at, translate(-999px, -999px)) translate(calc(var(--lift, 60px) * 0.9 + 16px), -50%); }
 
 .s2 .kind { top: 30vh; }
 .gl .kind { position: fixed !important; top: auto; bottom: 8vh; left: auto; right: 4vw; width: min(380px, 28vw); z-index: 4; pointer-events: none; visibility: hidden; transition: opacity .6s var(--reveal), transform .6s var(--reveal), visibility 0s .6s; }
@@ -561,6 +567,7 @@ body.on-snap { cursor: pointer; }
   .static .station > .station-body, .no-js .station > .station-body { margin: 0 16px; width: auto; }
   .s3b .zone-head { margin-top: 70vh; }
   .s4 .zone-head { margin-top: 100vh; }
+  .gl .s4 .zone-head { margin-top: 80vh; }
   .s5 .zone-head { margin-top: 70vh; }
   .s6 .zone-head { margin-top: 80vh; }
   .finale { width: auto; margin: 140vh 16px 0; }

@@ -18,10 +18,6 @@
       "job": "6258bb2b-4817-4cdb-bc97-fabc5c785d96",
       "file": "hf_20261108_172404_6258bb2b-4817-4cdb-bc97-fabc5c785d96.mp4"
     },
-    "t1-plunge.mp4": {
-      "job": "0b81c961-2167-4f16-ac70-7d15c3b2cf7b",
-      "file": "hf_20261108_170107_0b81c961-2167-4f16-ac70-7d15c3b2cf7b.mp4"
-    },
     "z1-plate.png": {
       "job": "58d5245c-1744-4fd4-a863-0a84328a0ce1",
       "file": "hf_20261108_163233_58d5245c-1744-4fd4-a863-0a84328a0ce1.png"
@@ -241,6 +237,18 @@
     "z7-phone-loop.mp4": {
       "job": "508dee6b-b2bd-4b79-aae2-c603f6ba5c7b",
       "file": "hf_20261108_172531_508dee6b-b2bd-4b79-aae2-c603f6ba5c7b.mp4"
+    },
+    "float-src.png": {
+      "job": "98c1d82f-a365-4d6c-b58a-b2830c2bf5df",
+      "file": "hf_20261113_130354_98c1d82f-a365-4d6c-b58a-b2830c2bf5df.png"
+    },
+    "anchor-src.png": {
+      "job": "4bfad40b-9b04-421e-bc03-084a7078d583",
+      "file": "hf_20261113_130355_4bfad40b-9b04-421e-bc03-084a7078d583.png"
+    },
+    "sub-src.png": {
+      "job": "88d7b42c-aef2-4477-b639-d356e60dc25d",
+      "file": "hf_20261113_155133_88d7b42c-aef2-4477-b639-d356e60dc25d.png"
     }
   }
 }

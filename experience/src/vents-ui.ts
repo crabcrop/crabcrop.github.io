@@ -11,8 +11,9 @@ const SUB = [0.685, 0.6] as const;
 /**
  * The vents in the DOM: the SDK card building the visitor's own URL in
  * TypeScript, Python and Rust (the same URL from all three), the MCP card's
- * tool calls from the little submersible, its speech bubble over the plate,
- * the source tag on the chain once Snap has his print, and the story.
+ * tool calls from the little submersible, its speech bubble over the plate
+ * (at the end it offers Snap a lift), the source tag on his line once he has
+ * his print, and the story.
  */
 export class VentsUI {
   private tabs = [...document.querySelectorAll<HTMLButtonElement>('.sdk-tabs [role="tab"]')];
@@ -26,6 +27,7 @@ export class VentsUI {
   private lang: Lang = 'ts';
   private recipe: Recipe | null = null;
   private takenAt = -10;
+  private said: 'call' | 'offer' = 'call';
   private wasTaken = false;
 
   constructor() {
@@ -107,14 +109,24 @@ export class VentsUI {
       const r = this.card.getBoundingClientRect();
       show = r.top < innerHeight * 0.75 && r.bottom > innerHeight * 0.25;
       const [a, b] = wide ? [0, 1] : [0.42, 0.66];
-      const x = z.ox + ((SUB[0] - a) / (b - a)) * z.dw, y = z.oy + SUB[1] * z.dh;
+      // (on phones the submersible is at the right edge of the view, its nose just in: the bubble stays on screen)
+      const x = Math.min(z.ox + ((SUB[0] - a) / (b - a)) * z.dw, innerWidth - 10), y = z.oy + SUB[1] * z.dh;
       this.bubble.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px) translateX(-100%)`;
     }
-    this.bubble.classList.toggle('on', show);
-    // His print: the source tag hangs at the end of the chain, and the story shows for a while.
+    // Snap has his print: before he pushes off for the way up, it offers him a lift.
+    const lift = !!z && v.offer;
+    // (its words change only when it has something else to say, not while the bubble fades away)
+    const say = lift ? 'offer' : show ? 'call' : this.said;
+    if (say !== this.said) {
+      this.said = say;
+      this.bubble.innerHTML = say === 'offer' ? 'Going up? Hop on.' : '<code>sign_url</code> <b>✓</b>';
+    }
+    this.bubble.classList.toggle('on', show || lift);
+    // His print: the source's tag takes the last place on his line, and the story shows for a while.
     if (v.taken && !this.wasTaken) this.takenAt = t;
     this.wasTaken = v.taken;
     this.tagsEl.classList.toggle('source', v.taken && v.on > 0.5);
-    this.kind.classList.toggle('on', v.taken && t - this.takenAt < 7 && v.on > 0.5);
+    // (on wide screens the story sits over the submersible: it makes way when that speaks up)
+    this.kind.classList.toggle('on', v.taken && t - this.takenAt < 7 && v.on > 0.5 && !(wide && lift));
   }
 }

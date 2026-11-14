@@ -22,8 +22,8 @@ void main() {
 }`;
 
 /**
- * A barnacled beam from the wreck, drifting up past the camera in the
- * foreground on the way down to the ship: it gives the descent depth.
+ * A barnacled beam from the wreck, lying in the foreground on the way to
+ * the ship: it passes close to the camera as Snap walks there.
  */
 export class Debris {
   private mesh: THREE.Mesh;
@@ -44,17 +44,16 @@ export class Debris {
     this.ready = true;
   }
 
-  /** k: 0 to 1 through its pass (below the screen to above it); t for a slow turn; mouse for a little parallax. */
-  update(t: number, o: { k: number; vis: number; w: number; h: number; mouse: [number, number] | null }) {
-    this.mesh.visible = this.ready && o.vis > 0.01 && o.k > 0 && o.k < 1;
-    if (!this.mesh.visible) return;
+  /** x: where its middle is across the screen, px (it lies along the bottom edge); t for a slow rock; mouse for a little parallax. */
+  update(t: number, o: { x: number; vis: number; w: number; h: number; mouse: [number, number] | null }) {
     const b = media.beam;
-    const h = o.h * (this.phone ? 0.4 : 0.52), w = h * (b.w / b.h);
+    const h = o.h * (this.phone ? 0.34 : 0.46), w = h * (b.w / b.h);
+    const reach = Math.hypot(w, h);
+    this.mesh.visible = this.ready && o.vis > 0.01 && o.x > -reach && o.x < o.w + reach;
+    if (!this.mesh.visible) return;
     const par = o.mouse ? (o.mouse[0] / o.w - 0.5) * -40 : 0;
-    const x = o.w * (this.phone ? 0.96 : 1.0) + par;
-    const y = o.h * 1.2 - o.k * o.h * 1.8;
-    this.mesh.position.set(x, -y, 0);
-    this.mesh.rotation.z = -(0.5 + o.k * 0.35 + Math.sin(t * 0.4) * 0.03);
+    this.mesh.position.set(o.x + par, -(o.h * 0.97), 0);
+    this.mesh.rotation.z = -(1.25 + Math.sin(t * 0.4) * 0.02);
     this.mesh.scale.set(w, h, 1);
     this.u.uOpacity.value = o.vis;
   }
