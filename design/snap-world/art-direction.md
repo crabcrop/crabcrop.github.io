@@ -13,6 +13,12 @@ the surface to the source and back.*
 
 ### The anchor chain is the URL
 
+> Revised: the chain stays the image of the URL, but not the boat's
+> anchor chain all the way down. That one ends at its anchor on the sand
+> under the pier. From there the URL is a little chain of Snap's own, held
+> up by a float, one tag for each part, and he carries it to the bottom
+> and back. See the note at the top of `experience-plan.md`.
+
 A crabcrop URL is a chain: a signature, then operations, then the source
 image at the end.
 

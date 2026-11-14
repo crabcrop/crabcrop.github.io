@@ -3,7 +3,7 @@
 (fetch them first with scripts/fetch-sources.sh) into ../preview/dive/media,
 and write media/manifest.json with the numbers the page needs.
 
-usage: python3 scripts/encode-media.py [images] [reef] [wreck] [video] [sequence] [wreckseq] [beam] [pack] [twilight] [vents] [surface] [snap] [snappost] [scuttle] [claw] [ride] [snap3d]
+usage: python3 scripts/encode-media.py [images] [opening] [sub] [reef] [wreck] [video] [sequence] [wreckseq] [beam] [pack] [twilight] [vents] [surface] [snap] [snappost] [scuttle] [claw] [ride] [snap3d]
        (no argument runs every step)
 needs: ffmpeg, numpy, scipy, Pillow with AVIF support; for snap3d also npx (gltf-transform) and trimesh
 """
@@ -422,6 +422,155 @@ def surface():
     print('surface', man['loops'])
 
 
+def grey_matte(name, lum_w=0.35, lo=7.0, hi=16.0):
+    """A prop shot on a plain mid-grey ground (the float, the anchor): the
+    ground is fitted as a smooth field and the prop keyed by how far its
+    colour is from it. lum_w weighs lightness: low keeps a soft shadow on the
+    ground out of the matte. Returns RGBA, trimmed."""
+    rgb = np.asarray(Image.open(src(name)).convert('RGB')).astype(np.float32)
+    h, w = rgb.shape[:2]
+
+    def opp(c):
+        r, g, b = c[..., 0], c[..., 1], c[..., 2]
+        return np.dstack([(r + g + b) / 3, r - g, (r + g) / 2 - b])
+    yy, xx = np.mgrid[0:h, 0:w]
+    x = (xx / w - 0.5).astype(np.float32); y = (yy / h - 0.5).astype(np.float32)
+    A = np.dstack([np.ones_like(x), x, y, x * x, x * y, y * y])
+    ground = np.zeros((h, w), bool); m = int(0.06 * min(h, w))
+    ground[:m] = ground[-m:] = True; ground[:, :m] = ground[:, -m:] = True
+    for _ in range(3):
+        sel = ground[::7, ::7]
+        field = np.dstack([A @ np.linalg.lstsq(A[::7, ::7][sel], rgb[::7, ::7, c][sel], rcond=None)[0] for c in range(3)])
+        d = opp(rgb) - opp(field)
+        dist = np.sqrt((lum_w * d[..., 0]) ** 2 + d[..., 1] ** 2 + d[..., 2] ** 2)
+        ground = dist < lo * 0.8
+    a = np.clip((dist - lo) / (hi - lo), 0, 1)
+    a = a * a * (3 - 2 * a)
+    # only the prop and what touches it: stray specks on the ground go
+    solid = ndimage.binary_opening(a > 0.5, structure=np.ones((5, 5)))
+    lab, k = ndimage.label(solid)
+    if k > 1:
+        sizes = ndimage.sum(solid, lab, range(1, k + 1))
+        keep = np.isin(lab, 1 + np.where(sizes > 0.002 * sizes.max())[0])
+        a = np.where(ndimage.binary_dilation(keep, iterations=6), a, 0)
+    # choked a little, so no grey rim is left
+    a = np.clip((feather(a, 1.0) - 0.2) / 0.8, 0, 1)
+    im = rgba(rgb, a, bg=None)
+    e = (a > 0.03) & (a < 0.97)
+    px = np.asarray(im).copy()
+    px[e, :3] = np.clip((rgb[e] - (1 - a[e])[:, None] * field[e]) / a[e][:, None], 0, 255).astype(np.uint8)
+    im = Image.fromarray(px, 'RGBA')
+    return im.crop(bbox(a, 0.03))
+
+
+# The marina's underwater half, as shares of its plates: what the plunge pushes in on.
+UNDER = {'z0u': ('z0-plate.png', (0.30, 0.50, 1.0, 1.0), (2400, 3200, 4096)),
+         'z0up': ('z0-phone.png', (0.12, 0.45, 0.88, 1.0), (1080, 1620, 2160))}
+
+
+def opening():
+    """The new opening: sharper crops of the marina's underwater half for the
+    plunge (one continuous picture, down to the sand at the foot of the pier);
+    a pier post for the foreground of the walk to the shallows; the anchor
+    the chain ends on; and the little float that holds up Snap's line of tags."""
+    plates = man['plates']
+    for key, (name, (u0, v0, u1, v1), widths) in UNDER.items():
+        im = Image.open(src(name)).convert('RGB')
+        W, H = im.size
+        c = im.crop((round(u0 * W), round(v0 * H), round(u1 * W), round(v1 * H)))
+        files = {w: save_pair(resize_w(c, w), f'{key}-{w}', 50, 78) for w in widths}
+        plates[key] = {'w': c.size[0], 'h': c.size[1], 'widths': list(widths), 'bytes': files, 'rect': [u0, v0, u1, v1]}
+        print(key, c.size, files)
+    # A pier post, close to the camera and out of focus: the front right one, under water.
+    im = Image.open(src('z0-plate.png')).convert('RGB')
+    W, H = im.size
+    post = im.crop((round(0.7345 * W), round(0.63 * H), round(0.7685 * W), H))
+    post = post.resize((round(post.size[0] * 900 / post.size[1]), 900), Image.LANCZOS).filter(ImageFilter.GaussianBlur(5))
+    a = np.ones((post.size[1], post.size[0]), np.float32)
+    edge = np.minimum(np.arange(post.size[0]), post.size[0] - 1 - np.arange(post.size[0])) / 9.0
+    a *= np.clip(edge, 0, 1)[None, :]
+    post = Image.fromarray(np.dstack([np.asarray(post), (a * 255).astype(np.uint8)]), 'RGBA')
+    man['post'] = {'w': post.size[0], 'h': post.size[1], 'bytes': save_pair(post, 'post', 50, 76)}
+    print('post', post.size, man['post']['bytes'])
+    # The float, with its brass ring at the bottom, and the anchor in its mound of sand.
+    fl = grey_matte('float-src.png')
+    fl = fl.resize((round(fl.size[0] * 360 / fl.size[1]), 360), Image.LANCZOS)
+    man['float'] = {'w': fl.size[0], 'h': fl.size[1], 'ring': [0.5, 0.955], 'bytes': save_pair(fl, 'float', 60, 82)}
+    an = grey_matte('anchor-src.png', lum_w=0.12)
+    # its own bit of chain is cut off just above the ring: the page's chain ends there
+    an = an.crop((0, round(0.215 * an.size[1]), an.size[0], an.size[1]))
+    an = an.resize((round(an.size[0] * 620 / an.size[1]), 620), Image.LANCZOS)
+    # ring: where the chain ends; ties: the two ends of its stock (left, right), where the float's line is made fast; ground: where it meets the sand
+    man['anchor'] = {'w': an.size[0], 'h': an.size[1], 'ring': [0.855, 0.04], 'ties': [[0.485, 0.17], [0.965, 0.35]], 'ground': 0.925, 'bytes': save_pair(an, 'anchor', 58, 80)}
+    print('float', fl.size, man['float']['bytes'], 'anchor', an.size, man['anchor']['bytes'])
+
+
+def sub():
+    """The little brass submersible that carries Snap back up, shot on grey
+    (the one painted into the vents' plate, from the same angle). Brass and
+    steel are solid; its glass is a thin film, so whatever is behind shows
+    through, with the highlights and what the glass bends kept."""
+    rgb = np.asarray(Image.open(src('sub-src.png')).convert('RGB')).astype(np.float32)
+    h, w = rgb.shape[:2]
+
+    def opp(c):
+        r, g, b = c[..., 0], c[..., 1], c[..., 2]
+        return np.dstack([(r + g + b) / 3, r - g, (r + g) / 2 - b])
+    yy, xx = np.mgrid[0:h, 0:w]
+    x = (xx / w - 0.5).astype(np.float32); y = (yy / h - 0.5).astype(np.float32)
+    A = np.dstack([np.ones_like(x), x, y, x * x, x * y, y * y, x ** 3, y ** 3, x * x * y, x * y * y])
+    ground = np.zeros((h, w), bool); m = int(0.07 * min(h, w))
+    ground[:m] = ground[-m:] = True; ground[:, :m] = ground[:, -m:] = True
+    for _ in range(4):
+        sel = ground[::7, ::7]
+        field = np.dstack([A @ np.linalg.lstsq(A[::7, ::7][sel], rgb[::7, ::7, c][sel], rcond=None)[0] for c in range(3)])
+        d = opp(rgb) - opp(field)
+        dist = np.sqrt((0.5 * d[..., 0]) ** 2 + d[..., 1] ** 2 + d[..., 2] ** 2)
+        ground = dist < 5
+    chroma = np.sqrt(d[..., 1] ** 2 + d[..., 2] ** 2)          # brass is far from grey in colour
+    # the whole submersible, glass included: everything that differs at all, closed up and filled
+    rough = ndimage.binary_opening(dist > 6, structure=np.ones((3, 3)))
+    lab, k = ndimage.label(rough)
+    sizes = ndimage.sum(rough, lab, range(1, k + 1))
+    rough = np.isin(lab, 1 + np.where(sizes > 0.01 * sizes.max())[0])
+    sil = ndimage.binary_fill_holes(ndimage.binary_closing(rough, structure=np.ones((25, 25))))
+    sil = ndimage.binary_erosion(sil, iterations=2)
+    # solid: brass by its colour; steel (the two arms, low and to the left of the hull) by where it is.
+    # Only small holes are filled there: the gap between the two arms stays open.
+    solid = ndimage.binary_closing(feather(chroma > 14, 1.2) > 0.5, structure=np.ones((5, 5)))
+    ys, xs = np.where(sil)
+    x0, x1, y0, y1 = xs.min(), xs.max(), ys.min(), ys.max()
+    arms = sil & (xx < x0 + 0.40 * (x1 - x0)) & (yy > y0 + 0.66 * (y1 - y0))
+    steel = ndimage.binary_closing(dist > 3.5, structure=np.ones((5, 5)))
+    holes, hk = ndimage.label(~steel)
+    hs = ndimage.sum(~steel, holes, range(1, hk + 1))
+    steel = steel | np.isin(holes, 1 + np.where(hs < 0.00012 * steel.size)[0])
+    arm = arms & steel
+    bits, bk = ndimage.label(arm)                               # and no stray specks beside them
+    bs = ndimage.sum(arm, bits, range(1, bk + 1))
+    arm = np.isin(bits, 1 + np.where(bs > 0.02 * bs.max())[0])
+    solid_a = feather(((solid | arm) & sil).astype(np.float32), 1.0)
+    # glass: a thin film, more where it catches the light or bends what is behind it; none between the arms
+    key = np.clip((dist - 5) / 22, 0, 1)
+    glass_a = np.where(arms, 0, np.clip(0.26 + 0.75 * key, 0, 0.92) * feather(sil.astype(np.float32), 1.5))
+    a = np.clip(np.maximum(solid_a, np.where(sil, glass_a, 0)), 0, 1)
+    out_rgb = rgb.copy()
+    e = (a > 0.02) & (a < 0.985)                                # the colour without the grey that shows through
+    out_rgb[e] = np.clip((rgb[e] - (1 - a[e])[:, None] * field[e]) / a[e][:, None], 0, 255)
+    im = Image.fromarray(np.dstack([out_rgb.astype(np.uint8), (a * 255).astype(np.uint8)]), 'RGBA')
+    bx0, by0, bx1, by1 = bbox(a, 0.03)
+    im = im.crop((bx0, by0, bx1, by1))
+    # the flat cap of its tower, where Snap stands: the topmost brass, about the middle of its width
+    cap = solid[by0:by1, bx0:bx1]
+    rows = np.where(cap.sum(axis=1) > 0.04 * cap.shape[1])[0]
+    top = rows.min()
+    cols = np.where(cap[top:top + max(4, cap.shape[0] // 40)].any(axis=0))[0]
+    stand = [round(float((cols.min() + cols.max()) / 2 / cap.shape[1]), 4), round(float((top + cap.shape[0] * 0.034) / cap.shape[0]), 4)]
+    im = im.resize((900, round(im.size[1] * 900 / im.size[0])), Image.LANCZOS)
+    man['sub'] = {'w': im.size[0], 'h': im.size[1], 'stand': stand, 'bytes': save_pair(im, 'sub', 56, 80)}
+    print('sub', im.size, man['sub'])
+
+
 def wreckseq():
     sequence(('t3', 't4'))
 
@@ -452,13 +601,12 @@ def video():
     print('loops', loops)
 
 
-SEQS = {'t1': ('t1-plunge.mp4', 0.5, sum(PHONE['z1']) / 2),
-        't2': ('t2-into-reef.mp4', sum(PHONE['z2']) / 2, sum(PHONE['z3']) / 2),
+SEQS = {'t2': ('t2-into-reef.mp4', sum(PHONE['z2']) / 2, sum(PHONE['z3']) / 2),
         't3': ('t3-into-wreck.mp4', sum(PHONE['z4x']) / 2, sum(PHONE['z4']) / 2),
         't4': ('t4-the-drop.mp4', sum(PHONE['z4x']) / 2, sum(PHONE['z5']) / 2)}
 
 
-def sequence(keys=('t1', 't2')):
+def sequence(keys=('t2',)):
     """The transitions as image sequences for scrubbing: 72 frames each (9 per
     second of the 8 s clip), for desktop and for phones. The phone window pans
     across the frame so it starts and ends where the neighbouring phone plates
@@ -1031,7 +1179,7 @@ def snap3d():
     print('snap3d', {k: v for k, v in man['snap3d'].items() if k not in ('limbs', 'eyes')}, kinds)
 
 
-steps = sys.argv[1:] or ['images', 'reef', 'wreck', 'twilight', 'vents', 'surface', 'video', 'sequence', 'wreckseq', 'snap', 'snappost', 'scuttle', 'claw', 'ride', 'snap3d']
+steps = sys.argv[1:] or ['images', 'opening', 'sub', 'reef', 'wreck', 'twilight', 'vents', 'surface', 'video', 'sequence', 'wreckseq', 'snap', 'snappost', 'scuttle', 'claw', 'ride', 'snap3d']
 for st in steps:
     globals()[st]()
     json.dump(man, open(MAN_PATH + '.tmp', 'w'), indent=1)   # written whole or not at all
