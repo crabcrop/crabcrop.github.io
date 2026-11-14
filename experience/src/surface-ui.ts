@@ -4,7 +4,7 @@ import type { Recipe } from './twilight-ui';
 const LOOK_SEG = { crisp: 'sharpen(1.2):saturation(1.1)', deep: 'duotone(0d202e,ffd88a)', vintage: 'sepia' };
 const CROP_SEG = { wide: 'crop:1200x630:smart', square: 'crop:760x760:smart', whole: 'fit-in:1200x630' };
 const FINISH_SEG = { none: '', studio: 'studio(product,bg:brand,shadow:soft,pad:10)', cutout: 'removebg' };
-/** The ascent's steps: where in the climb each choice goes on, and the tag on the chain that lights up for it. */
+/** The ascent's steps: where in the climb each choice goes on, and the tag on his line that lights up for it. */
 const STEPS = [
   { at: 0.14, cls: 's-fmt', tag: 1 },
   { at: 0.3, cls: 's-look', tag: 2 },
@@ -15,8 +15,8 @@ const STEPS = [
 
 /**
  * The way up and the finale in the DOM: the print riding beside Snap that
- * takes on the visitor's choices one by one as the winch pulls him up (its
- * tag on the chain lighting up), and at the surface the receipt (the URL,
+ * takes on the visitor's choices one by one as the submarine carries him up
+ * (its tag on his line lighting up), and at the surface the receipt (the URL,
  * a copy button and the picture) and the polaroid that drops in when Snap
  * takes its picture.
  */
@@ -69,11 +69,13 @@ export class SurfaceUI {
     const on = a.on > 0.3 && !!this.recipe;
     this.print.classList.toggle('on', on);
     if (on) {
-      // beside his claw, kept on screen; on phones at the right, clear of the tags on the chain
+      // On wide screens held up beside his free claw: clear of his eyes, and its lower edge above the submarine
+      // under him (it stays there as the picture changes size). On phones at the right, clear of the tags on his line.
       const w = this.print.offsetWidth, right = innerWidth - w - 14;
-      const x = wide ? Math.min(a.claw[0] + 18, right) : right;
-      this.print.style.transform = `translate(${x.toFixed(1)}px, ${(a.claw[1] - 30).toFixed(1)}px)`;
-      // the steps done so far, the latest named under the picture and lit on the chain
+      const x = wide ? Math.min(a.claw[0] + 60, right) : right;
+      const y = wide ? a.claw[1] + 70 - this.frame.offsetHeight : a.claw[1] - 30;
+      this.print.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px)`;
+      // the steps done so far, the latest named under the picture and lit on his line
       let n = -1;
       STEPS.forEach((s, i) => { const done = a.q >= s.at; this.frame.classList.toggle(s.cls, done); if (done) n = i; });
       if (n !== this.shown) {

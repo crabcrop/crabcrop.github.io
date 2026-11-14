@@ -20,7 +20,7 @@ function hasWebGL() {
 }
 
 // A blurred preview of the marina while the real plate loads.
-const hash = media.plates[phone ? 'z0p' : 'z0'].thumbhash;
+const hash = media.plates[phone ? 'z0p' : 'z0'].thumbhash ?? '';
 document.getElementById('placeholder')!.style.backgroundImage =
   `url(${thumbHashToDataURL(Uint8Array.from(atob(hash), (c) => c.charCodeAt(0)))})`;
 
