@@ -720,15 +720,17 @@ docker pull ghcr.io/dayvson/crabcrop-ai:0.11.0</pre></div>
       <p>Prebuilt tarballs for macOS and Linux, on x86_64 and arm64, are on the <a href="https://github.com/dayvson/crabcrop/releases" target="_blank" rel="noopener">releases page</a>.</p>
       <p>Building from source instead (<code>cargo run</code>, <code>cargo build</code>, or <code>cargo install crabcrop</code>) needs a C compiler and, on x86_64, nasm. Meson and ninja are needed only for the vendored AVIF decode route.</p>
       <h3>Quickstart</h3>
-      <div class="cb"><button class="copy-btn" type="button" data-copytarget>Copy</button><pre># 1. Start the server. A secret is required; unsafe is for local dev only.
-CRABCROP_SECRET=local-dev-secret CRABCROP_ALLOW_UNSAFE=1 crabcrop
+      <div class="cb"><button class="copy-btn" type="button" data-copytarget>Copy</button><pre># 1. Start the server with a new secret. Unsafe is for local dev only.
+export CRABCROP_SECRET="$(openssl rand -hex 16)"
+CRABCROP_ALLOW_UNSAFE=1 crabcrop
 # crabcrop listening on port 3000
 
 # 2. Request an image: resize a source photo to 300x200.
 curl "http://localhost:3000/unsafe/300x200/https://example.com/photo.jpg" --output photo.jpg
 
 # 3. In production, drop CRABCROP_ALLOW_UNSAFE and sign the URL instead.
-curl "http://localhost:3000/9e24ae8bf61c0d40cb6f1ca9f9e1d3e771f6c8bc8b8ab7270e6d15458d4c14ab/300x200/https://example.com/photo.jpg" --output photo.jpg</pre></div>
+#    In a shell with the same CRABCROP_SECRET, crabcrop sign prints the signed URL.
+curl "$(crabcrop sign 300x200/https://example.com/photo.jpg)" --output photo.jpg</pre></div>
       <p>Every image request has three parts: <code>GET /&lt;signature&gt;/&lt;operations&gt;/&lt;source-url&gt;</code>. Operations apply in path order. Requested outputs are capped at 16383 px per axis and 100 megapixels in total, and so is every size a step works out along the way; a request past either bound fails with <code>400</code> before anything is allocated. The image the server encodes is held to the same cap, so a source with a 16384 px side needs a step that brings it within. A factor from the <code>DPR</code> client hint is the exception: it steps down to the largest factor that fits instead of failing. A request also runs at most 100 operations, counted after <code>preset:</code> references expand and with the server's default operations merged in, each filter in a <code>filters:</code> segment once; a request over the cap answers <code>400</code> (<code>unsupported_operation</code>) right after parsing, before any source fetch. A URL whose own operations already pass the cap is refused before its presets expand, and preset references may expand to at most 256 KiB of text.</p>
     </section>
 
@@ -1475,7 +1477,8 @@ crabcrop convert-thumbor "unsafe/300x200/smart/https://example.com/photo.jpg"</p
       <h2>Deployment and CDN</h2>
       <p>Run crabcrop behind a reverse proxy or CDN in production. The application bounds its own work (the processing, slow-lane, AI, video, and animation gates shed overload with <code>503</code>) and the source bytes it holds before that work starts (<code>CRABCROP_SOURCE_BUFFER_MAX_MB</code>, shedding with the same <code>503</code>), and runs at most 128 source host lookups at once, but connection-level protections belong at the edge: request and header timeouts, connection limits, rate limiting, and TLS termination. Restrict <code>/health</code> to your internal network at the proxy: it is unauthenticated. <code>/metrics</code> exposes traffic and error counters and is not open either: it answers <code>403</code> until <code>CRABCROP_METRICS_TOKEN</code> is set, and then requires that bearer token, answering <code>401</code> to a missing or wrong one.</p>
       <div class="cb"><button class="copy-btn" type="button" data-copytarget>Copy</button><pre>docker build -t crabcrop:latest .
-docker run -p 3000:3000 -e CRABCROP_SECRET=your-secret-change-me crabcrop:latest
+docker run -p 3000:3000 -e CRABCROP_SECRET="$(openssl rand -hex 32)" crabcrop:latest
+# This makes a new secret on each run. To sign URLs, generate one once and keep it.
 # For the AI features, build Dockerfile.ai on top of that image.</pre></div>
       <h3>Choose a platform</h3>
       <p>One recipe per platform, each a complete walkthrough in the repo:</p>
