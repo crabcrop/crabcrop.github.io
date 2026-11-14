@@ -65,13 +65,16 @@ export interface SnapCtx {
   mouse: [number, number] | null;
   idle: boolean;
   /**
-   * On the reef: sliding down the chain to the sand (land 0 to 1), walking
-   * there with the chain in his left claw, then back on the chain (ret 0 to 1)
-   * and lowered out of view (drop, px). feet and body place the walk; hold
-   * places him on the chain; vel is how fast he walks, px per second. At the
-   * vents the same: print, and he holds up his photo print, found.
+   * On the ground (the sand under the pier, the shallows, the kelp forest,
+   * the reef, the vents): coming down to it (land 0 to 1), standing or
+   * walking there with his line in his raised claw, then up off it again
+   * (lift 0 to 1). feet and body place him there; hold is where his raised
+   * claw is while he is off the ground; vel is how fast he walks, px per
+   * second. print: he holds up his photo print, found (the vents). raise: his
+   * free claw is up with nothing drawn in it (on the way up the page shows
+   * the print beside it, taking on the visitor's choices).
    */
-  reef?: { land: number; ret: number; drop: number; feet: [number, number]; body: number; vel: number; hold: [number, number]; print?: boolean };
+  ground?: { land: number; lift: number; feet: [number, number]; body: number; vel: number; hold: [number, number]; print?: boolean; raise?: boolean };
   /** Back at the surface: when on, he leaps off the chain onto the pier (feet, his height there) and waves with his print. */
   home?: { on: boolean; feet: [number, number]; body: number };
 }
@@ -103,14 +106,15 @@ function spriteMaterial() {
 /** A flight between two points with a spin: Bézier arc, turns, growing or shrinking. */
 interface Flight { t0: number; dur: number; from: [number, number]; s0: number; s1: number; turns: number; lift: number; wet?: boolean }
 
-/** A visit to a card: the leap out, the claw snap on its top edge, the leap back. */
+/** A visit to a card: the leap out, the claw snap on its top edge, the leap back (to the chain, or to the ground he left). */
 interface Visit { phase: 'out' | 'perch' | 'back'; t0: number; flight: Flight; feet: () => [number, number] | null; clicks: number; body: number }
 
 type RiderCtx = { visible: boolean; h: number; speed: number; mouse: [number, number] | null; grade: [number, number, number]; idle: boolean };
 
 /**
- * Snap: on the pier, the leap onto the chain, riding it, his visits to the
- * cards and his walk on the reef. He is the 3D model throughout once it has
+ * Snap: on the pier, the leap onto the chain, riding it down, on the ground
+ * from there (standing, walking sideways, swimming between places with his
+ * line) and his visits to the cards. He is the 3D model throughout once it has
  * loaded (Rider and Snap3D bring him to life); if it cannot load, he is the
  * alpha clips M01 to M05 and the riding sprite and film, as before.
  */
@@ -137,10 +141,16 @@ export class Snap {
   private gustAt = -10;
   private hopAt = -10;
   private walking = false;
-  /** Holds on the chain while he rides it. */
+  /** Holds on the chain while he rides it (or swims with his line). */
   holds: RideOut | null = null;
-  /** His left claw on screen while he walks the reef: the chain hangs from it. */
+  /** His raised claw on screen while he stands or walks on the ground: his line hangs from it. */
   claw: [number, number] | null = null;
+  /** Where his raised claw is, whatever he is doing, for the line he carries; null when he holds nothing (on the pier). */
+  grip: [number, number] | null = null;
+  /** The middle of his feet while he is on the ground. */
+  private standAt: [number, number] | null = null;
+  /** The moment he last came down on the ground from a card, for a puff of sand. */
+  touched = -10;
   /** The moment he last caught the chain, for the jolt and the splash. */
   caught = -10;
   /** In 3D: when and where his leap went into the water, for the splash. */
@@ -281,9 +291,15 @@ export class Snap {
 
   /** Visit a card: leap onto its top edge (feet gives where, each frame), snap the claw, come back. */
   visit(t: number, feet: () => [number, number] | null, ctx: { chainBody: number; body: number }) {
-    if (!this.riding || this.visitNow || !(this.use3d || this.clips.m05?.ready) || !this.holds) return false;
-    const [cx, cy] = this.rider.centre(ctx.chainBody);
-    const from: [number, number] = [this.holds.top[0] + cx, this.holds.top[1] + cy];
+    if (!this.riding || this.visitNow || !(this.use3d || this.clips.m05?.ready)) return false;
+    let from: [number, number];
+    if (this.holds) {
+      const [cx, cy] = this.rider.centre(ctx.chainBody);
+      from = [this.holds.top[0] + cx, this.holds.top[1] + cy];
+    } else if (this.use3d && this.standAt) {
+      const [sx, sy] = this.rider.standCentre(ctx.chainBody);
+      from = [this.standAt[0] + sx, this.standAt[1] + sy];
+    } else return false;
     const f = feet();
     if (!f) return false;
     this.visitNow = {
@@ -488,6 +504,8 @@ export class Snap {
 
     this.claw = null;
     this.holds = null;
+    this.grip = null;
+    this.standAt = null;
     this.walking = false;
     const [cxo, cyo] = this.rider.centre(ctx.chainBody);
     const riderCtx: RiderCtx = { visible: true, h: ctx.chainBody, speed: ctx.speed, mouse: ctx.mouse, grade: ctx.grade, idle: ctx.idle };
@@ -497,6 +515,7 @@ export class Snap {
       const to: [number, number] = [ctx.hold[0] + cxo, ctx.hold[1] + cyo];
       const { p, air } = this.fly(this.leap, t, to);
       this.rider.update(dt, t, { ...riderCtx, hold: ctx.hold, lean: 0, air });
+      this.grip = [air.x - cxo, air.y - cyo];
       // Through the surface: the splash is where he goes in.
       if (this.use3d && !this.leap.wet && air.y > ctx.water) { this.leap.wet = true; this.entered = { t, x: air.x }; }
       if (p >= 1) {
@@ -512,7 +531,9 @@ export class Snap {
     // Home at the surface: off the chain onto the pier, waving, his print held up (and back on the chain if the visitor scrolls up).
     if (ctx.home) {
       if (ctx.home.on && this.state === 'chain' && !this.visitNow) {
-        const from: [number, number] = [ctx.hold[0] + cxo, ctx.hold[1] + cyo];
+        // from where he is: on his feet (on the submarine's tower), or swimming
+        const g = ctx.ground, [sx, sy] = this.rider.standCentre(ctx.chainBody);
+        const from: [number, number] = g && this.use3d && g.land >= 1 && g.lift <= 0 ? [g.feet[0] + sx, g.feet[1] + sy] : [ctx.hold[0] + cxo, ctx.hold[1] + cyo];
         this.leap = { t0: t, dur: LEAP, from, s0: 1, s1: ctx.home.body / ctx.chainBody, turns: 1, lift: Math.max(ctx.chainBody * 0.8, ctx.viewW * 0.06) };
         this.state = 'homeLeap';
       }
@@ -547,12 +568,13 @@ export class Snap {
       return;
     }
 
-    if (ctx.reef) { this.reef(dt, t, ctx, ctx.reef, riderCtx); return; }
     if (this.visitNow) { this.visiting_(dt, t, ctx, riderCtx); return; }
+    if (ctx.ground) { this.onGround(dt, t, ctx, ctx.ground, riderCtx); return; }
 
     this.clipMesh.visible = false;
     const r = this.rider.update(dt, t, { ...riderCtx, hold: ctx.hold, lean: ctx.lean });
     this.holds = r;
+    this.grip = r?.top ?? null;
   }
 
   /** On the pier in 3D: waving hello with the print in his other claw, startled by the gust, crouching to hop. */
@@ -584,6 +606,7 @@ export class Snap {
       const { p, air } = this.fly(v.flight, t, to);
       this.lastAir = air;
       this.rider.update(dt, t, { ...riderCtx, hold: ctx.hold, lean: 0, air });
+      this.grip = [air.x - cxo * air.s, air.y - cyo * air.s];
       this.clipMesh.visible = false;
       if (p >= 1) {
         v.phase = 'perch';
@@ -601,7 +624,7 @@ export class Snap {
         // On the card's top edge in 3D: two snaps of his pincer, with stars.
         if (!feet || t - v.t0 >= PERCH) { this.goBack(t, v); return; }
         if (v.clicks < PERCH_SNAPS.length && t - v.t0 >= PERCH_SNAPS[v.clicks]) { this.rider.act(t, 'snap'); v.clicks++; }
-        this.rider.stand(dt, t, { feet, h: body, grade: ctx.grade, mouse: ctx.mouse });
+        this.grip = this.rider.stand(dt, t, { feet, h: body, grade: ctx.grade, mouse: ctx.mouse });
         this.perch = { feet, since: this.perch?.since ?? t };
         return;
       }
@@ -624,35 +647,43 @@ export class Snap {
       }
       return;
     }
-    // Back to the chain.
-    const to: [number, number] = [ctx.hold[0] + cxo, ctx.hold[1] + cyo];
+    // Back: to the ground he left, or to where he swims with his line.
+    const g = ctx.ground;
+    const down = !!g && this.use3d && g.land >= 1 && g.lift <= 0;
+    const [sx, sy] = down ? this.rider.standCentre(ctx.chainBody) : [cxo, cyo];
+    const to: [number, number] = down ? [g!.feet[0] + sx, g!.feet[1] + sy] : [(g ? g.hold : ctx.hold)[0] + cxo, (g ? g.hold : ctx.hold)[1] + cyo];
     const { p, air } = this.fly(v.flight, t, to);
     this.rider.update(dt, t, { ...riderCtx, hold: ctx.hold, lean: 0, air });
+    this.grip = [air.x - cxo * air.s, air.y - cyo * air.s];
     this.clipMesh.visible = false;
     if (p >= 1) {
       this.visitNow = null;
+      if (down) { this.touched = t; return; }
       this.rider.land(t);
       this.caught = t;
       this.sparkles.burst(ctx.hold[0], ctx.hold[1], ctx.chainBody * 0.3, 2);
     }
   }
 
-  /** The reef: down the chain to the sand, the sideways walk, and back. */
-  private reef(dt: number, t: number, ctx: SnapCtx, r: NonNullable<SnapCtx['reef']>, riderCtx: RiderCtx) {
+  /** On the ground: down to it, standing or walking sideways there, and up off it again. */
+  private onGround(dt: number, t: number, ctx: SnapCtx, r: NonNullable<SnapCtx['ground']>, riderCtx: RiderCtx) {
     const m04 = this.clips.m04;
-    const walking = r.land >= 1 && r.ret <= 0 && (this.use3d || !!m04?.ready);
+    const walking = r.land >= 1 && r.lift <= 0 && (this.use3d || !!m04?.ready);
     if (!walking) {
-      // On the chain: sliding down to the sand, or back up on it at the end.
+      // Off the ground: coming down to it, or pushing off at the end.
       this.landedAt = -1;
       if (m04 && !m04.v.paused) m04.v.pause();
       this.clipMesh.visible = false;
-      this.holds = this.rider.update(dt, t, { ...riderCtx, hold: [r.hold[0], r.hold[1] + r.drop], lean: 0 });
+      this.holds = this.rider.update(dt, t, { ...riderCtx, hold: r.hold, lean: 0 });
+      this.grip = this.holds?.top ?? r.hold;
       return;
     }
     this.walking = true;
     if (this.use3d) {
-      // Walking sideways in 3D, as big as on the chain, the chain in his raised claw (and at the vents, his print in the other).
-      this.claw = this.rider.stand(dt, t, { feet: r.feet, h: ctx.chainBody, grade: ctx.grade, mouse: ctx.mouse, vel: r.vel, hold: r.print ? 1 : 0 });
+      // On his feet in 3D, as big as on the chain, his line in his raised claw (and at the vents, his print in the other).
+      this.claw = this.rider.stand(dt, t, { feet: r.feet, h: ctx.chainBody, grade: ctx.grade, mouse: ctx.mouse, vel: r.vel, hold: r.print || r.raise ? 1 : 0 });
+      this.grip = this.claw;
+      this.standAt = r.feet;
       if (r.print) this.holdPrint(t, { ...ctx, body: ctx.chainBody });
       return;
     }
@@ -687,6 +718,7 @@ export class Snap {
       const xq = this.flip ? 1 - xr : 2 * centre - xr;
       const bx = this.clipBox;
       this.claw = [bx.left + xq * bx.w, bx.top + yr * bx.h];
+      this.grip = this.claw;
     }
   }
 

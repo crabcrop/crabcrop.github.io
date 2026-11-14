@@ -9,12 +9,16 @@
 //   - or a variable's default differs (backticks and spacing aside).
 // Descriptions are prose and are not compared.
 //
+// It also runs scripts.mjs, which needs no crabcrop checkout, because
+// only the owner can add a step for it to site-checks.yml.
+//
 // Usage:
 //   node .github/site-checks/config-table.mjs <crabcrop-checkout>
 
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { checkScripts } from "./scripts.mjs";
 
 const SITE = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const crabcrop = process.argv[2] && resolve(process.argv[2]);
@@ -23,6 +27,8 @@ if (!mdPath || !existsSync(mdPath)) {
   console.error("usage: node .github/site-checks/config-table.mjs <crabcrop-checkout>");
   process.exit(2);
 }
+
+const scriptsOk = checkScripts(SITE);
 
 const NAME = /\b(?:CRABCROP_[A-Z0-9_]+|PORT)\b/g;
 const norm = (s) => s.replace(/`/g, "").replace(/\s+/g, " ").trim();
@@ -87,3 +93,4 @@ if (problems.length) {
   process.exit(1);
 }
 console.log(`ok   ${site.size} variables on docs.html match the ${repo.size} in docs/configuration.md`);
+if (!scriptsOk) process.exit(1);

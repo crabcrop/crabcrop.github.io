@@ -559,6 +559,50 @@ hyperbolic crochet coral clusters (Z3); a hanging crochet jellyfish (Z3b);
 a barnacled beam end (Z4); a crochet glow jellyfish (Z5); a tube worm
 cluster (Z6).
 
+For the new opening, two more props in the same way (no background
+removal needed: the build cuts them out of the grey):
+
+```
+A single small crocheted marker buoy float in coral and cream stripes,
+matching the yarn and colours of the buoy in the reference, a plump
+teardrop shape seen from the side, floating upright, with a small brass
+ring sewn to its bottom, nothing else in the frame, no rope coil.
+Photographed on a plain mid-grey seamless background, isolated, centred,
+sharp edges, soft even light, no shadow on the background. {WORLD_DNA}
+```
+
+Reference: the Z0 rope-coil-and-buoy source.
+
+```
+A single small toy ship's anchor made of real rusty iron with a
+coral-orange rust patina, classic fisherman's anchor with two curved
+flukes, a straight shank, a crossbar stock and a ring at the top, with
+three links of rusty iron chain rising from the ring toward the top of the
+frame. It rests half upright, leaning to the left, one fluke dug in as if
+into sand, seen from the side at eye level. Photographed on a plain
+mid-grey seamless background, isolated, centred, sharp edges, soft even
+light, no shadow on the background. {WORLD_DNA}
+```
+
+For the way up, the submarine, 3:2, with the vents' plate as the reference
+(so it is the model painted there), cut out of the grey in the build:
+
+```
+The small brass toy submersible from the lower right of the reference
+image, alone and whole, exactly the same model and seen from the same
+three-quarter angle as in the reference: a clear glass cylinder body held
+by wide brass bands, a round glass dome at the front in a brass ring, a
+short brass conning tower with a flat cap on top and a little periscope
+pipe behind it, a small brass lamp on a stalk at the front, two short
+steel grabber arms with pincers under the nose, a brass tank slung under
+the hull, and a brass tail with fins and a propeller. It hovers level,
+nose toward the lower left, the whole submersible in frame with space
+around it. The glass is clean, clear and empty, with nothing inside, so
+the plain background shows through it. Photographed on a plain mid-grey
+seamless background, isolated, centred, sharp from nose to tail, soft even
+light, no shadow on the background. {WORLD_DNA}
+```
+
 ## 5. Phase D: ambient loops
 
 MiniMax H3 · 21:9 · 2K · 8 s · start image = end image = the zone plate.
