@@ -3,8 +3,8 @@
 (fetch them first with scripts/fetch-sources.sh) into ../preview/dive/media,
 and write media/manifest.json with the numbers the page needs.
 
-usage: python3 scripts/encode-media.py [images] [opening] [sub] [reef] [wreck] [video] [sequence] [wreckseq] [beam] [pack] [twilight] [vents] [surface] [snap] [snappost] [scuttle] [claw] [ride] [snap3d]
-       (no argument runs every step)
+usage: python3 scripts/encode-media.py [images] [opening] [sub] [reef] [wreck] [video] [sequence] [wreckseq] [beam] [pack] [twilight] [vents] [surface] [snap] [snappost] [snap3d] [still]
+       (no argument runs every step but still, which needs the pictures scripts/snap-still.mjs takes of the page)
 needs: ffmpeg, numpy, scipy, Pillow with AVIF support; for snap3d also npx (gltf-transform) and trimesh
 """
 import json, os, subprocess, sys
@@ -471,8 +471,8 @@ UNDER = {'z0u': ('z0-plate.png', (0.30, 0.50, 1.0, 1.0), (2400, 3200, 4096)),
 def opening():
     """The new opening: sharper crops of the marina's underwater half for the
     plunge (one continuous picture, down to the sand at the foot of the pier);
-    a pier post for the foreground of the walk to the shallows; the anchor
-    the chain ends on; and the little float that holds up Snap's line of tags."""
+    a pier post for the foreground of the way to the shallows; and the anchor
+    the chain ends on."""
     plates = man['plates']
     for key, (name, (u0, v0, u1, v1), widths) in UNDER.items():
         im = Image.open(src(name)).convert('RGB')
@@ -492,26 +492,27 @@ def opening():
     post = Image.fromarray(np.dstack([np.asarray(post), (a * 255).astype(np.uint8)]), 'RGBA')
     man['post'] = {'w': post.size[0], 'h': post.size[1], 'bytes': save_pair(post, 'post', 50, 76)}
     print('post', post.size, man['post']['bytes'])
-    # The float, with its brass ring at the bottom, and the anchor in its mound of sand.
-    fl = grey_matte('float-src.png')
-    fl = fl.resize((round(fl.size[0] * 360 / fl.size[1]), 360), Image.LANCZOS)
-    man['float'] = {'w': fl.size[0], 'h': fl.size[1], 'ring': [0.5, 0.955], 'bytes': save_pair(fl, 'float', 60, 82)}
+    # The anchor in its mound of sand.
     an = grey_matte('anchor-src.png', lum_w=0.12)
     # its own bit of chain is cut off just above the ring: the page's chain ends there
     an = an.crop((0, round(0.215 * an.size[1]), an.size[0], an.size[1]))
     an = an.resize((round(an.size[0] * 620 / an.size[1]), 620), Image.LANCZOS)
-    # ring: where the chain ends; ties: the two ends of its stock (left, right), where the float's line is made fast; ground: where it meets the sand
-    man['anchor'] = {'w': an.size[0], 'h': an.size[1], 'ring': [0.855, 0.04], 'ties': [[0.485, 0.17], [0.965, 0.35]], 'ground': 0.925, 'bytes': save_pair(an, 'anchor', 58, 80)}
-    print('float', fl.size, man['float']['bytes'], 'anchor', an.size, man['anchor']['bytes'])
+    # ring: where the chain ends; ground: where it meets the sand
+    man['anchor'] = {'w': an.size[0], 'h': an.size[1], 'ring': [0.855, 0.04], 'ground': 0.925, 'bytes': save_pair(an, 'anchor', 58, 80)}
+    print('anchor', an.size, man['anchor']['bytes'])
 
 
 def sub():
-    """The little brass submersible that carries Snap back up, shot on grey
-    (the one painted into the vents' plate, from the same angle). Brass and
-    steel are solid; its glass is a thin film, so whatever is behind shows
-    through, with the highlights and what the glass bends kept."""
+    """Snap's submarine, shot on grey: brass, with a glass bubble for a cockpit that he sits in. Brass and steel
+    are solid; the bubble is a thin film of glass (its highlights and a faint rim), so Snap, drawn behind the
+    sprite, shows through it. The source faces left; the sprite is mirrored to face right, the way the dive goes.
+    The manifest gets the bubble's circle and the points the page hangs things on."""
     rgb = np.asarray(Image.open(src('sub-src.png')).convert('RGB')).astype(np.float32)
     h, w = rgb.shape[:2]
+    # In the source, by eye: the bubble (centre x as a share of the width, y of the height, radius of the width),
+    # and in px the hatch's lid, the lamp's lens, the tips of the near pincer and the propeller's hub.
+    GUESS = (0.3228, 0.5012, 0.1622)
+    POINTS = {'hatch': (1510, 444), 'lamp': (1234, 410), 'claw': (810, 1344), 'prop': (2210, 840)}
 
     def opp(c):
         r, g, b = c[..., 0], c[..., 1], c[..., 2]
@@ -528,47 +529,86 @@ def sub():
         dist = np.sqrt((0.5 * d[..., 0]) ** 2 + d[..., 1] ** 2 + d[..., 2] ** 2)
         ground = dist < 5
     chroma = np.sqrt(d[..., 1] ** 2 + d[..., 2] ** 2)          # brass is far from grey in colour
-    # the whole submersible, glass included: everything that differs at all, closed up and filled
     rough = ndimage.binary_opening(dist > 6, structure=np.ones((3, 3)))
     lab, k = ndimage.label(rough)
     sizes = ndimage.sum(rough, lab, range(1, k + 1))
     rough = np.isin(lab, 1 + np.where(sizes > 0.01 * sizes.max())[0])
     sil = ndimage.binary_fill_holes(ndimage.binary_closing(rough, structure=np.ones((25, 25))))
     sil = ndimage.binary_erosion(sil, iterations=2)
-    # solid: brass by its colour; steel (the two arms, low and to the left of the hull) by where it is.
-    # Only small holes are filled there: the gap between the two arms stays open.
-    solid = ndimage.binary_closing(feather(chroma > 14, 1.2) > 0.5, structure=np.ones((5, 5)))
-    ys, xs = np.where(sil)
-    x0, x1, y0, y1 = xs.min(), xs.max(), ys.min(), ys.max()
-    arms = sil & (xx < x0 + 0.40 * (x1 - x0)) & (yy > y0 + 0.66 * (y1 - y0))
-    steel = ndimage.binary_closing(dist > 3.5, structure=np.ones((5, 5)))
-    holes, hk = ndimage.label(~steel)
-    hs = ndimage.sum(~steel, holes, range(1, hk + 1))
-    steel = steel | np.isin(holes, 1 + np.where(hs < 0.00012 * steel.size)[0])
-    arm = arms & steel
-    bits, bk = ndimage.label(arm)                               # and no stray specks beside them
-    bs = ndimage.sum(arm, bits, range(1, bk + 1))
-    arm = np.isin(bits, 1 + np.where(bs > 0.02 * bs.max())[0])
-    solid_a = feather(((solid | arm) & sil).astype(np.float32), 1.0)
-    # glass: a thin film, more where it catches the light or bends what is behind it; none between the arms
+
+    # The bubble's outline is too faint to close by itself: settle on the circle near the guess with the most
+    # edge along its outer arc (the part away from the brass ring that holds it).
+    lum = ndimage.gaussian_filter(rgb.mean(axis=2), 1.5)
+    gm = np.hypot(ndimage.sobel(lum, 0), ndimage.sobel(lum, 1))
+    th = np.radians(np.arange(75, 286, 1.0))
+    best = (-1.0, 0.0, 0.0, 0.0)
+    for R_ in np.arange(GUESS[2] * w - 36, GUESS[2] * w + 37, 3):
+        for cx_ in np.arange(GUESS[0] * w - 36, GUESS[0] * w + 37, 3):
+            for cy_ in np.arange(GUESS[1] * h - 36, GUESS[1] * h + 37, 3):
+                px = np.clip((cx_ + R_ * np.cos(th)).astype(int), 0, w - 1); py = np.clip((cy_ - R_ * np.sin(th)).astype(int), 0, h - 1)
+                sc = float(gm[py, px].mean())
+                if sc > best[0]:
+                    best = (sc, cx_, cy_, R_)
+    _, cx, cy, R = best
+    rr = np.hypot(xx - cx, yy - cy)
+    disc = rr < R + 1
+    # brass: by its colour, and only the pieces of any size (warm glints on the glass are not brass)
+    brass = ndimage.binary_opening(chroma > 14, structure=np.ones((5, 5)))
+    bl, bk = ndimage.label(brass)
+    bs = ndimage.sum(brass, bl, range(1, bk + 1))
+    brass = np.isin(bl, 1 + np.where(bs > 0.02 * bs.max())[0])
+    # (on the glass, only what is as wide as the ring: thin warm streaks beside it are reflections)
+    brass = ndimage.binary_dilation((brass & ~disc) | ndimage.binary_opening(brass & disc, structure=np.ones((13, 13))), iterations=2)
+    body = sil & ~disc
+    pl, pk = ndimage.label(body)                               # (what the sphere leaves outside the circle is stray highlight)
+    ps = ndimage.sum(body, pl, range(1, pk + 1))
+    body = np.isin(pl, 1 + np.where(ps > 0.02 * ps.max())[0])
+    # (and what filling the outline closed up between the arms, the tank and the bubble is still the grey ground)
+    gap = ndimage.binary_opening(body & (dist < 4.5), structure=np.ones((5, 5)))
+    gl, gk = ndimage.label(gap)
+    gs = ndimage.sum(gap, gl, range(1, gk + 1))
+    body &= ~ndimage.binary_dilation(np.isin(gl, 1 + np.where(gs > 0.0003 * gap.size)[0]), iterations=3)
+    glass = disc & ~(brass & sil)
+    sil = body | disc
+    solid_a = feather((sil & ~glass).astype(np.float32), 1.0)
+    # glass: next to nothing where it is clear, more where it catches the light, and a faint rim
     key = np.clip((dist - 5) / 22, 0, 1)
-    glass_a = np.where(arms, 0, np.clip(0.26 + 0.75 * key, 0, 0.92) * feather(sil.astype(np.float32), 1.5))
-    a = np.clip(np.maximum(solid_a, np.where(sil, glass_a, 0)), 0, 1)
+    rim = np.exp(-((rr - R * 0.985) / (R * 0.012)) ** 2)
+    glass_a = np.clip(0.05 + 0.34 * key ** 1.3 + 0.2 * rim, 0, 0.5) * feather(sil.astype(np.float32), 1.5)
+    a = np.clip(np.where(glass, np.maximum(glass_a, solid_a * (1 - feather(glass.astype(np.float32), 1.5))), solid_a), 0, 1)
     out_rgb = rgb.copy()
     e = (a > 0.02) & (a < 0.985)                                # the colour without the grey that shows through
     out_rgb[e] = np.clip((rgb[e] - (1 - a[e])[:, None] * field[e]) / a[e][:, None], 0, 255)
     im = Image.fromarray(np.dstack([out_rgb.astype(np.uint8), (a * 255).astype(np.uint8)]), 'RGBA')
-    bx0, by0, bx1, by1 = bbox(a, 0.03)
-    im = im.crop((bx0, by0, bx1, by1))
-    # the flat cap of its tower, where Snap stands: the topmost brass, about the middle of its width
-    cap = solid[by0:by1, bx0:bx1]
-    rows = np.where(cap.sum(axis=1) > 0.04 * cap.shape[1])[0]
-    top = rows.min()
-    cols = np.where(cap[top:top + max(4, cap.shape[0] // 40)].any(axis=0))[0]
-    stand = [round(float((cols.min() + cols.max()) / 2 / cap.shape[1]), 4), round(float((top + cap.shape[0] * 0.034) / cap.shape[0]), 4)]
-    im = im.resize((900, round(im.size[1] * 900 / im.size[0])), Image.LANCZOS)
-    man['sub'] = {'w': im.size[0], 'h': im.size[1], 'stand': stand, 'bytes': save_pair(im, 'sub', 56, 80)}
+    ays, axs = np.where(a > 0.03)
+    bx0, bx1, by0, by1 = int(axs.min()), int(axs.max()) + 1, int(ays.min()), int(ays.max()) + 1
+    im = im.crop((bx0, by0, bx1, by1)).transpose(Image.FLIP_LEFT_RIGHT)
+    W, H = im.size
+
+    def share(px, py):                                          # a point of the source, on the mirrored sprite
+        return [round(1 - (px - bx0) / W, 4), round((py - by0) / H, 4)]
+    meta = {k: share(*v) for k, v in POINTS.items()}
+    meta['bubble'] = [*share(cx, cy), round(float(R) / W, 4)]
+    im = im.resize((960, round(H * 960 / W)), Image.LANCZOS)
+    meta['bubble'] = [float(v) for v in meta['bubble']]
+    man['sub'] = {'w': im.size[0], 'h': im.size[1], **meta, 'bytes': save_pair(im, 'sub', 58, 82)}
     print('sub', im.size, man['sub'])
+
+
+def still():
+    """Snap on his feet and Snap in the submarine, for the page without
+    motion: the pictures scripts/snap-still.mjs takes of the page's own world
+    (.cache/snap-walk.png and .cache/snap-sub.png), each cropped to what is
+    in it."""
+    for src_name, name, key, width in (('snap-walk.png', 'snap-walk.webp', 'snapWalk', 440), ('snap-sub.png', 'snap-sub.webp', 'snapSub', 760)):
+        im = Image.open(os.path.join(ROOT, '.cache', src_name)).convert('RGBA')
+        a = np.asarray(im)[:, :, 3].astype(np.float32) / 255
+        x0, y0, x1, y1 = bbox(a, 0.02, 6)
+        im = resize_w(im.crop((x0, y0, x1, y1)), width)
+        # (WebP only: the still page shows them in plain image elements, as it does Snap on the pier)
+        im.save(out(name), quality=84, method=6)
+        man[key] = {'w': im.size[0], 'h': im.size[1], 'bytes': {'webp': os.path.getsize(out(name))}}
+        print('still', name, im.size, man[key]['bytes'])
 
 
 def wreckseq():
@@ -694,13 +734,11 @@ def snap():
         print(key, man['clips'][key])
 
 
-def snappost(only=None):
+def snappost():
     """Crop each Snap clip sideways to the area he uses, record his box in the
     first and last frame (as shares of the cropped frame), and save a still of
     the first wave frame for reduced motion."""
     for key, c in man['clips'].items():
-        if only and key not in only:
-            continue
         o = out(f'snap-{key}.mp4')
         tmp = os.path.join(ROOT, '.cache', f'{key}-frames')
         os.makedirs(tmp, exist_ok=True)
@@ -741,236 +779,6 @@ def snappost(only=None):
             bx0, by0, bx1, by1 = bbox(a, 0.05, 2)
             st = st.crop((bx0, by0, bx1, by1))
             man['snapStand'] = {'w': st.size[0], 'h': st.size[1], 'bytes': save_pair(st, 'snap-stand', 62, 84)}
-
-
-def scuttle():
-    """M04, Snap's sideways walk on the spot, for the reef. Only this clip is
-    touched, so the other clips' entries (and M02's print track) stay as they are."""
-    o = out('snap-m04.mp4')
-    subprocess.run(['python3', MATTE, src('m04-scuttle.mp4'), src('m04-scuttle-cut.mp4'), o,
-                    '--width', '960', '--start', '0'], check=True)
-    dur = float(subprocess.check_output(['ffprobe', '-v', 'error', '-show_entries', 'format=duration',
-                                         '-of', 'default=nw=1:nk=1', o]))
-    man['clips']['m04'] = {'duration': round(dur, 3)}
-    snappost(only={'m04'})
-    # His right claw through the cycle (rightmost matte column between 50 and
-    # 80 percent of the height), as shares of the cropped frame: the reef chain
-    # hangs from it.
-    c = man['clips']['m04']
-    tmp = os.path.join(ROOT, '.cache', 'm04-track')
-    os.makedirs(tmp, exist_ok=True)
-    for f in os.listdir(tmp):
-        os.remove(os.path.join(tmp, f))
-    ff('-i', o, '-vf', 'fps=12', os.path.join(tmp, '%03d.png'))
-    track = []
-    for i, fn in enumerate(sorted(os.listdir(tmp))):
-        s = np.asarray(Image.open(os.path.join(tmp, fn)).convert('L')).astype(np.float32) / 255
-        a = s[c['h']:2 * c['h']]
-        band = a[int(0.5 * c['h']):int(0.8 * c['h'])]
-        x1 = int(np.nonzero((band > 0.5).any(axis=0))[0].max())
-        rows = np.nonzero(band[:, max(0, x1 - 30):x1 + 1].max(axis=1) > 0.5)[0]
-        track.append([round(i / 12, 3), round((x1 - 14) / c['w'], 4), round(float(rows.mean() / c['h'] + 0.5), 4)])
-    c['claw'] = track
-
-
-def claw():
-    """M05, Snap's claw snap (three clicks beside his head), for his visits to
-    the cards. Only this clip is touched. Its sparkles are lost in the matte, so
-    the page draws them at the clicks."""
-    o = out('snap-m05.mp4')
-    subprocess.run(['python3', MATTE, src('m05-snap.mp4'), src('m05-snap-cut.mp4'), o,
-                    '--width', '960', '--start', '0'], check=True)
-    dur = float(subprocess.check_output(['ffprobe', '-v', 'error', '-show_entries', 'format=duration',
-                                         '-of', 'default=nw=1:nk=1', o]))
-    man['clips']['m05'] = {'duration': round(dur, 3), 'clicks': [1.5, 2.0, 2.5, 3.0]}
-    snappost(only={'m05'})
-
-
-
-# The ride clips are Kling loops from the pose-2 cell of the C03 sheet, placed
-# at RIDE_CELL_AT on a RIDE_CANVAS grey canvas with the chain extended to the
-# edges; Kling returns that canvas scaled to 1920 x 1080. All three start and
-# end on that frame, so the page can cut from one to another there.
-RIDE = {'m10': 'm10-ride', 'm11': 'm11-ride-wave', 'm12': 'm12-ride-peek'}
-RIDE_CELL_AT, RIDE_CANVAS = (203, 96), (2276, 1280)
-RIDE_W = 1440
-
-
-def ride():
-    """M10 to M12, Snap riding the chain, as stacked-alpha MP4s sharing one
-    crop. The chain hanging free above and below him is taken out of the matte
-    so the page's chain takes over there; the stretch he holds stays, fading in
-    over half a link at each end where the page's links overlap it. Records
-    where that stretch ends (its x sways a little), where his eyes are, and how
-    the frame lines up with the pose-2 sprite, so the page can swap between
-    the two without a jump."""
-    import importlib.util
-    sys.dont_write_bytecode = True               # no __pycache__ beside the design tools
-    spec = importlib.util.spec_from_file_location('snapmatte', MATTE)
-    sm = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(sm)
-    probe = json.loads(subprocess.check_output(['ffprobe', '-v', 'error', '-select_streams', 'v:0',
-        '-show_entries', 'stream=width,height,r_frame_rate', '-of', 'json', src('m10-ride.mp4')]))['streams'][0]
-    W = RIDE_W
-    H = int(round(probe['height'] * W / probe['width'] / 2)) * 2
-    k = H / RIDE_CANVAS[1]                       # canvas px to encoded px
-
-    def frames(path):
-        p = subprocess.Popen(['ffmpeg', '-v', 'error', '-i', path, '-vf', f'scale={W}:{H}:flags=lanczos',
-                              '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-'], stdout=subprocess.PIPE)
-        while True:
-            b = p.stdout.read(W * H * 3)
-            if len(b) < W * H * 3:
-                break
-            yield np.frombuffer(b, np.uint8).reshape(H, W, 3).astype(np.float32)
-        p.wait()
-
-    def colours(O):
-        r, g = O[..., 0], O[..., 1]
-        lum = O.mean(axis=2)
-        chroma = O.max(axis=2) - O.min(axis=2)
-        coral = (r - g > 90) & (r > 140)                        # his yarn
-        iron = (r - g > 12) & (r - g < 90) & (lum < 150) & (chroma > 22)
-        return lum, coral, iron
-
-    def solid(sil):
-        """Only the sizeable pieces: the remover leaves stray specks of a pixel or two."""
-        lab, n = ndimage.label(sil)
-        if not n:
-            return sil
-        sizes = ndimage.sum(sil, lab, range(1, n + 1))
-        return np.isin(lab, 1 + np.nonzero(sizes >= 0.002 * W * H)[0])
-
-    X0, X1 = int(0.30 * W), int(0.45 * W)
-    ys = np.arange(H)[:, None]
-    xs = np.arange(W)[None, :]
-
-    def chain_line(iron):
-        """The chain's centre line, from the free ends at the top and bottom edges."""
-        def cx(y0, y1):
-            c = np.nonzero(iron[y0:y1, X0:X1])[1]
-            return c.mean() + X0, c.min() + X0, c.max() + X0
-        (xt, lt, rt), (xb, lb, rb) = cx(0, 50), cx(H - 50, H)
-        return (lambda y: xt + (xb - xt) * (y - 25) / (H - 50)), max(rt - lt, rb - lb) / 2
-
-    # Pass 1: the chain, the stretch Snap holds (rows with yarn on both sides
-    # of the chain), his eyes, and the area he uses.
-    info = {}
-    for key, name in RIDE.items():
-        rows_info = []
-        for O, C in zip(frames(src(name + '.mp4')), frames(src(name + '-cut.mp4'))):
-            lum, coral, iron = colours(O)
-            line, half = chain_line(iron)
-            held = []
-            for y in range(H):
-                c = int(round(line(y)))
-                if coral[y, c - 96:c - 18].any() and coral[y, c + 18:c + 96].any():
-                    held.append(y)
-            dark = lum < 55
-            dark[:, :int(line(0)) + 60] = False
-            dark[H // 2:] = False
-            dark = ndimage.binary_fill_holes(ndimage.binary_closing(dark, iterations=2))
-            lab, n = ndimage.label(dark)
-            eyes = []
-            if n:
-                sizes = ndimage.sum(dark, lab, range(1, n + 1))
-                for j in np.argsort(-sizes)[:2]:
-                    if sizes[j] > 300:
-                        cy, cx = ndimage.center_of_mass(dark, lab, j + 1)
-                        eyes.append((cx, cy, float(np.sqrt(sizes[j] / np.pi))))
-            sil = C.max(axis=2) > 12
-            band = np.abs(xs - line(ys)) <= 40
-            sil &= ~(band & ((ys < min(held)) | (ys > max(held))))
-            sil = solid(sil)
-            rows_info.append({'line': (line(0), line(H - 1)), 'half': half, 'held': (min(held), max(held)),
-                              'eyes': sorted(eyes), 'box': bbox(sil.astype(np.float32), 0.5)})
-        info[key] = rows_info
-        print(key, len(rows_info), 'frames')
-    allf = [f for v in info.values() for f in v]
-    top = min(f['held'][0] for f in allf)
-    bottom = max(f['held'][1] for f in allf)
-    half = max(f['half'] for f in allf) + 10
-    pad = 14
-    cx0 = max(0, min(f['box'][0] for f in allf) - pad) // 2 * 2
-    cy0 = max(0, min(f['box'][1] for f in allf) - pad) // 2 * 2
-    cx1 = min(W, max(f['box'][2] for f in allf) + pad)
-    cy1 = min(H, max(f['box'][3] for f in allf) + pad)
-    cw, ch = (cx1 - cx0) // 2 * 2, (cy1 - cy0) // 2 * 2
-    pitch = 91 * k                                # a link of the painted chain (182 px per pair in the cell)
-    fade = 0.45 * pitch
-    print('held stretch', top, bottom, 'crop', cx0, cy0, cw, ch, 'band half', half)
-
-    num, den = (int(v) for v in probe['r_frame_rate'].split('/'))
-    fps = num // den
-    U = lambda x: round(float((x - cx0) / cw), 4)
-    V = lambda y: round(float((y - cy0) / ch), 4)
-    r0 = float(np.median([r for f in info['m10'] if len(f['eyes']) == 2 for _, _, r in f['eyes']]))
-
-    # Pass 2: the mattes, with the free chain cut out and the held stretch faded in at its ends.
-    man['ride'] = {'clips': {}}
-    for key, name in RIDE.items():
-        o = out(f'snap-{key}.mp4')
-        enc = subprocess.Popen(['ffmpeg', '-v', 'error', '-y', '-f', 'rawvideo', '-pix_fmt', 'rgb24',
-                                '-s', f'{cw}x{ch * 2}', '-r', probe['r_frame_rate'], '-i', '-', '-an',
-                                '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-crf', '21', '-preset', 'slow',
-                                '-movflags', '+faststart', o], stdin=subprocess.PIPE)
-        for f, O, C in zip(info[key], frames(src(name + '.mp4')), frames(src(name + '-cut.mp4'))):
-            lum, coral, iron = colours(O)
-            l0, l1 = f['line']
-            cl = l0 + (l1 - l0) * ys / (H - 1)
-            band = np.abs(xs - cl) <= half
-            sil, G = sm.silhouette(O, C, W)
-            # In the chain's column only his yarn is him: the pale rims of the
-            # links would pass for his cream belly.
-            yarn = ndimage.binary_dilation(coral, iterations=2)
-            outside = (ys < top) | (ys > bottom)
-            sil &= ~(band & outside & ~yarn)
-            notbg = (np.abs(O - G).mean(axis=2) > 28) | ((O.max(axis=2) - O.min(axis=2)) > 30)
-            grey = (np.abs(O - G).mean(axis=2) < 16) & ((O.max(axis=2) - O.min(axis=2)) < 18)
-            sil |= band & ~outside & notbg
-            sil &= ~(band & grey)                   # the gaps inside the links
-            sil = solid(sil)
-            F, a = sm.finish(O, sil, G, W)
-            ramp = np.clip((ys - top) / fade, 0, 1) * np.clip((bottom - ys) / fade, 0, 1)
-            a = a * np.where(band & ~yarn, ramp, 1.0)
-            F[a <= 0.01] = 0
-            frame = np.concatenate([F, np.repeat((a * 255)[..., None], 3, axis=2)], axis=0)
-            frame = np.concatenate([frame[cy0:cy0 + ch, cx0:cx0 + cw], frame[H + cy0:H + cy0 + ch, cx0:cx0 + cw]], axis=0)
-            enc.stdin.write(np.clip(frame, 0, 255).astype(np.uint8).tobytes())
-        enc.stdin.close()
-        enc.wait()
-        dur = float(subprocess.check_output(['ffprobe', '-v', 'error', '-show_entries', 'format=duration',
-                                             '-of', 'default=nw=1:nk=1', o]))
-        track, eyes, last = [], [], None
-        for i, f in enumerate(info[key]):
-            if i % 4:
-                continue                             # 6 a second is plenty, and they ship in the page's script
-            l0, l1 = f['line']
-            at = lambda y: l0 + (l1 - l0) * y / (H - 1)
-            track.append([round(i / fps, 3), round(U(at(top)), 3), round(U(at(bottom)), 3)])
-            # How open his eyes are: 1 wide open, less as he squints, 0 shut.
-            e = f['eyes']
-            open_ = round(min(1.0, min(r for _, _, r in e) / r0), 2) if len(e) == 2 else 0
-            if len(e) == 2:
-                last = e
-            if last:
-                eyes.append([round(i / fps, 3)] + [round(v, 3) for v in (U(last[0][0]), V(last[0][1]), U(last[1][0]), V(last[1][1]))] + [open_])
-        man['ride']['clips'][key] = {'duration': round(dur, 3), 'bytes': os.path.getsize(o), 'track': track, 'eyes': eyes}
-        print(key, round(dur, 3), os.path.getsize(o))
-
-    # How the frame lines up with the pose-2 sprite: its chain point in the
-    # crop, and the crop's height in sprite heights.
-    _, meta, (bx0, by0, bx1, by1) = chain_sprite()
-    def cell_to_crop(x, y):
-        return ((x + RIDE_CELL_AT[0]) * k - cx0, (y + RIDE_CELL_AT[1]) * k - cy0)
-    ox, oy = cell_to_crop(bx0 + meta['chainX'] * (bx1 - bx0), by0 + meta['chainTop'] * (by1 - by0))
-    man['ride'].update({'w': int(cw), 'h': int(ch), 'fps': fps,
-                        'origin': [round(float(ox / cw), 4), round(float(oy / ch), 4)],
-                        'scale': round(float(ch / ((by1 - by0) * k)), 4),
-                        'held': [V(top), V(bottom)],
-                        'eyeR': round(r0 / cw, 4)})
-    print('ride', {k2: v for k2, v in man['ride'].items() if k2 != 'clips'})
-
 
 
 def read_glb(path):
@@ -1179,7 +987,7 @@ def snap3d():
     print('snap3d', {k: v for k, v in man['snap3d'].items() if k not in ('limbs', 'eyes')}, kinds)
 
 
-steps = sys.argv[1:] or ['images', 'opening', 'sub', 'reef', 'wreck', 'twilight', 'vents', 'surface', 'video', 'sequence', 'wreckseq', 'snap', 'snappost', 'scuttle', 'claw', 'ride', 'snap3d']
+steps = sys.argv[1:] or ['images', 'opening', 'sub', 'reef', 'wreck', 'twilight', 'vents', 'surface', 'video', 'sequence', 'wreckseq', 'snap', 'snappost', 'snap3d']
 for st in steps:
     globals()[st]()
     json.dump(man, open(MAN_PATH + '.tmp', 'w'), indent=1)   # written whole or not at all

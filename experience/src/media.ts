@@ -1,7 +1,7 @@
 import manifest from '../../preview/dive/media/manifest.json';
 
 export type Box = [number, number, number, number];
-export interface Clip { w: number; h: number; duration: number; box: Box; boxEnd: Box; crop: [number, number]; print?: number[][]; claw?: number[][]; clicks?: number[] }
+export interface Clip { w: number; h: number; duration: number; box: Box; boxEnd: Box; crop: [number, number]; print?: number[][] }
 /** rect: for a crop of another plate, its box there (u0, v0, u1, v1), so the two can be laid exactly over each other. */
 export interface Plate { w: number; h: number; widths: number[]; waterline?: number; thumbhash?: string; rect?: [number, number, number, number] }
 export interface Seq { frames: number; fps: number; d: [number, number]; p: [number, number]; bytes: { d: number; p: number }; packs: { d: number[][]; p: number[][] } }
@@ -15,14 +15,17 @@ export const media = manifest as unknown as {
   seagrass: { w: number; h: number };
   kelp: { w: number; h: number };
   coral: { w: number; h: number };
-  /** A pier post, out of focus, for the foreground of the walk from under the pier to the shallows. */
+  /** A pier post, out of focus, for the foreground of the way from under the pier to the shallows. */
   post: { w: number; h: number };
-  /** The little float that holds up Snap's line of tags; ring is where the line is tied, as shares of the sprite. */
-  float: { w: number; h: number; ring: [number, number] };
-  /** The anchor the chain ends on: its ring (the chain's end), the two ends of its stock (the float's line is made fast to one until Snap takes it) and where it meets the sand, as shares of the sprite. */
-  anchor: { w: number; h: number; ring: [number, number]; ties: [[number, number], [number, number]]; ground: number };
-  /** The little brass submersible that carries Snap back up; stand is the top of its tower, where he stands, as shares of the sprite. */
-  sub: { w: number; h: number; stand: [number, number] };
+  /** The anchor the chain ends on: its ring (the chain's end) and where it meets the sand, as shares of the sprite. */
+  anchor: { w: number; h: number; ring: [number, number]; ground: number };
+  /**
+   * The submarine (it faces right). As shares of the sprite: the glass
+   * bubble he sits in (its middle, and its radius as a share of the width),
+   * the lid of its hatch, its lamp, the tips of its near pincer and the hub
+   * of its propeller.
+   */
+  sub: { w: number; h: number; bubble: [number, number, number]; hatch: [number, number]; lamp: [number, number]; claw: [number, number]; prop: [number, number] };
   /** The transitions: frames, their size on desktop (d) and phones (p), and the byte lengths of the frames in each of their packs. */
   t2: Seq; t3: Seq; t4: Seq;
   /** The tube worms of the vents, cut out. */
@@ -33,26 +36,15 @@ export const media = manifest as unknown as {
   beam: { w: number; h: number };
   /** The octopus with its letter; seal is where the wax goes on the envelope's flap, envelope its box, as shares of the sprite. */
   octopus: { w: number; h: number; seal: [number, number]; envelope: [number, number, number, number] };
-  clips: Record<'m01' | 'm02' | 'm03' | 'm04' | 'm05', Clip>;
-  /**
-   * Snap riding the chain, filmed (one crop for all three clips). origin is
-   * the pose-2 sprite's chain point in the frame and scale the frame's height
-   * in sprite heights, so the two line up; held is the stretch of chain left
-   * in the film (top and bottom, shares of the height). Per clip, track rows
-   * are [t, x at the top, x at the bottom] of that stretch and eyes rows
-   * [t, xA, yA, xB, yB, open], all shares of the frame (y down).
-   */
-  ride: {
-    w: number; h: number; fps: number; origin: [number, number]; scale: number; held: [number, number]; eyeR: number;
-    clips: Record<'m10' | 'm11' | 'm12', { duration: number; bytes: number; track: number[][]; eyes: number[][] }>;
-  };
+  /** Snap on the pier, filmed: the wave, the gust and the hop, for when the 3D model will not load. */
+  clips: Record<'m01' | 'm02' | 'm03', Clip>;
   /**
    * Snap in 3D (snap-3d.txt, base64 of n vertices' int16 positions over the
    * box lo to hi, int8 normals, uint16 uvs and rig bytes, then the triangles'
    * uint16 indices), in his rig frame: x right, y up, z toward the viewer, in
-   * his heights on the chain, from the point in his raised claw the chain
-   * runs through. box is his front view's box (x0, y0, x1, y1); limbs are
-   * the two eye stalks, the claw on the chain (clawL), the other claw and the
+   * his heights, from a point in his raised claw. box is his front view's
+   * box (x0, y0, x1, y1); limbs are the two eye stalks, the raised claw
+   * (clawL), the other claw and the
    * legs, each with the point it swings about, its direction and reach; eyes
    * are the eye balls' centres and radii and the way their beads look.
    */

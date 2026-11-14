@@ -664,16 +664,144 @@ It is cut out in the build (`sub()` in `encode-media.py`): the grey key
 again, with the brass and steel kept solid and the glass left as a thin
 film, so whatever is behind it shows through.
 
+## The submarine, all the way down and back
+
+With the walking version live in the preview, the note that came back was:
+the submarine is the good idea, the line Snap carries is hard to read, so
+put him inside the submarine for the whole dive, bring him back up to the
+marina in it, let him get out there, and let the page start over. That is
+what the page does now.
+
+- **One vehicle for the whole dive.** A brass toy submarine with a glass
+  bubble for a cockpit is moored at the pier, half under the water. The
+  gust takes the print, Snap hops off the pier and in through the top, and
+  from there he is where the submarine is: nose down along the marina's
+  picture to the sand, across to the shallows and into the kelp (the same
+  sideways crossings as before, a pier post and the forest's edge passing
+  the lens), along the reef, into the wreck and out again with the films,
+  down the drop, over the geode at the vents, and up.
+- **How he is inside it.** The submarine is one cutout: brass and steel
+  solid, the glass a thin film. Snap, the 3D model, stands on the bubble's
+  floor and is drawn between the backdrop and the cutout, so the glass, its
+  highlights and its brass ring are in front of him. He leans with the
+  submarine and takes less of the water's tint than it does, so he stays
+  red behind the glass.
+- **Its pincer does what his claw did.** It snips the fishing line in the
+  kelp, presses the wax on the octopus's letter in the cabin, and lifts
+  the print out of the geode. On the way up the print that takes on the
+  visitor's choices hangs from it.
+- **Its lamp** glows where the water is dark, and the lost fish of the
+  twilight zone swims along by it.
+- **It keeps to the water.** Pinned to a spot on screen, it flew above the
+  surface while the camera crossed the waterline, at both ends of the dive.
+  It is held under the waterline now (a soft maximum, so it does not jolt):
+  it goes under before it goes down, and at sunset it stops at the surface
+  while the camera pulls back.
+- **The URL has its own bar.** With no line to hang them on, the URL's
+  parts sit in a bar along the bottom of the view, in the URL's own order:
+  signature / crop / filters (look : finish : format) / source. A blank
+  part says where it gets picked; each takes what is already on as the dive
+  reaches its place, and a stamp when the visitor picks; sealed, the
+  signature becomes the token and the rest blur; while the explain card is
+  up the parts explain themselves one after another; on the way up each
+  lights as the print takes it on.
+- **The loop closes.** Snap leaps out onto the pier with his print, the
+  submarine rides the swell where it was moored that morning, and "Dive
+  again" fades to "The next morning…" and puts the page back at the top
+  with the visitor's URL kept. (The gust takes the print again. He does not
+  learn.)
+- **What went.** The line of tags and its float, walking, the leaps to the
+  cards, the lift offered at the vents, and with them the ride films
+  (M10 to M12), the scuttle and the claw snap (M04, M05) and the float's
+  cutout: 5 MB of media. The anchor chain stays as scenery, boat to anchor,
+  morning and sunset. The submersible painted into the vents' plate is
+  still the MCP card's agent: "the other little submarine down here".
+- **The still page** shows Snap in the submarine where it showed him
+  hugging a piece of chain. The picture is taken from the page itself
+  (`scripts/snap-still.mjs`): the dev build's world with everything but
+  Snap and the submarine hidden, read off the canvas, which is clear where
+  nothing is drawn.
+
+The prop, Nano Banana Pro, 3:2, 2K, on mid-grey (folder 05), with the
+first submarine (`88d7b42c-aef2-4477-b639-d356e60dc25d`) as the reference
+so it is the same brass, glass and steel:
+
+| Prop | Job | Notes |
+| --- | --- | --- |
+| The submarine with a bubble cockpit | `86da1a4c-5b7d-4bf0-a533-a47e1a010770` | Exactly from the side, the front half one clear, empty glass sphere, a hatch tower, a headlamp, two grabber arms, a ballast tank, tail and propeller. It came nose to the left; the build mirrors it. Alternates: `71e7360d-103f-4f73-aa82-db821bc4e329` (a bigger sphere, but with a shadow on the ground), `eaffa7ac-765f-4092-90c9-6515bd1c4787`, `50951f22-0c1d-45f6-8e2d-a0d44d5c99af` |
+
+It is cut out in the build (`sub()` in `encode-media.py`). The grey key
+alone lost the sphere, whose outline is fainter than the noise, so the
+sphere is found as a circle: a search round a guess by eye for the centre
+and radius with the strongest edge along the outer arc. Inside it only
+brass as wide as the ring is kept solid (warm glints beside the ring are
+reflections, not metal), the gap between the arms and the tank is opened,
+and the glass keeps a little of its own light, most at the rim.
+
+## The chain, the walk, and then the submarine
+
+With the submarine version in the preview, the note that came back had two
+parts. Snap should not be in the submarine from the start: he should go
+down the anchor chain and move through a few scenes on foot, as he did
+before, and only then get into the submarine, to go deeper and to come all
+the way back up. And the bar with the URL's parts, there through the whole
+dive, was not convincing: find something more interesting, or ask whether
+it is needed at all.
+
+- **Three ways of moving, each where it makes sense.** Down the anchor
+  chain from the boat to the sand under the pier. On foot from there: the
+  shallows, the kelp forest, the reef, the Clam Studio and the wreck,
+  inside and out. What he did with his own claw he does again: the fish in
+  the line, the leaps to the cards, the wax on the octopus's letter. This
+  is the walking version's code, back as it was, without the line of tags
+  he carried.
+- **The submarine waits where the sea floor ends.** It hangs over the
+  wreck's stern, a little hazed, and comes into view with the wreck. On
+  the way out of the cabin Snap leaps up to the hatch on its tower,
+  squeezes in (he grows small, the brass hides him) and shows up behind
+  the glass. The story gives the submarine an owner: the octopus, whose
+  letter he has just sealed, returns the favor.
+- **The boarding has its own stretch of scroll.** In the first build the
+  drop began a tenth of a screen after he set off, so he was still in the
+  air as the submarine left. The way out of the cabin is 20vh longer now:
+  the hull film backwards, then a pause on the wreck seen from outside
+  while he gets in, then the drop. And his leap is tied to that stretch as
+  well as to the clock: it is always at least as far along as the scroll
+  is toward the drop, so a fast scroll makes him quick, and he is in his
+  seat when the submarine goes.
+- **Out the same way.** At the pier he comes up through the hatch and
+  leaps onto the planks. The submarine waits a moment and slips back
+  under: it is not his, and the next morning starts with the anchor chain
+  again.
+- **The URL: said where it is chosen, shown where it is used.** The bar is
+  gone. Each of the five choice panels has a line at its foot that says
+  what the choice put in the URL ("Crisp is in your URL:
+  `sharpen(1.2):saturation(1.1)`"), or that it adds nothing. The URL
+  itself is put together on the way up, where the page already showed the
+  choices going onto the print one by one: each step now also prints its
+  line on a ticket under the picture, top to bottom as the URL reads, so
+  the visitor watches each part of the URL do its work. The steps run in
+  the order the server works through a URL (crop, look, finish, format,
+  seal); the format, which changes the bytes and not the look, puts a
+  label on the picture; a choice that adds nothing gets a grey line; and
+  sealed, the lines fold into the token. At the surface the whole URL is
+  on the receipt, as before.
+- **The still page** follows the story: Snap on the chain in the shallows,
+  on his feet in the kelp and the cabin, in the submarine below the wreck.
+- **What did not come back.** The line of tags and its float, the lift
+  offered at the vents, the ride films and the scuttle clips. If the 3D
+  model cannot load, the painted sprite does the chain, floats where he
+  would walk, and stands in the bubble.
+
 ## Next
 
-The still page (reduced motion, no WebGL) still shows Snap hugging a piece
-of chain in each zone. The way from the twilight zone to the vents still
-dips through an ember dark (it reads as sinking into the glow, so it was
-left). The page is about 46 screens long; trimming it is its own job.
+The way from the twilight zone to the vents still dips through an ember
+dark (it reads as sinking into the glow, so it was left). The page is
+about 47 screens long; trimming it is its own job.
 
 Still open besides: the real signed URLs (the builder needs the signing
-secret in CI), Snap's claw moving for the snip in the kelp, depth maps for
-parallax, and sound.
+secret in CI), the pincer's jaws (the cutout nudges forward to lift the
+print, but they do not move), depth maps for parallax, and sound.
 
 Optional: the six format fish could become 3D schools (about 40 Tripo
 credits a species).
@@ -817,3 +945,17 @@ the stills; phone-format takes (9:16, 1080p) would fix that.
 - A rope whose ends move with the camera must not be simulated in screen
   space: it trails behind the camera's travel. The anchor chain is laid
   out straight between its two ends each frame, with a slow sway.
+- Glass on a grey ground keys away with the ground. A clear sphere has to
+  be found by its shape (the strongest circle of edge near where it should
+  be) and given its alpha by hand: a faint film, a brighter rim.
+- A hero pinned to a spot on screen needs a rule for the water's surface.
+  While the camera crosses the waterline the picture moves and he does
+  not, so he hangs in the air. Hold him under the line while it is in
+  view, with a soft maximum so the hold eases in.
+- To get a cut-out still that matches the moving page, photograph the
+  page: hide every layer but the ones wanted, draw one frame and read the
+  canvas, which is clear where nothing was drawn. A handle on the world
+  that only the dev build sets is enough to reach the layers.
+- Name a class for what the thing is, and search before using it. The
+  URL's empty parts were given `.skip`, which is also the skip link's
+  class: they left the bar and sat fixed above it.

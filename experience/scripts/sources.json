@@ -74,14 +74,6 @@
       "job": "5a40470c-774a-4f91-adc7-c673e9bb5fce",
       "file": "hf_20261108_175741_5a40470c-774a-4f91-adc7-c673e9bb5fce.mp4"
     },
-    "m05-snap.mp4": {
-      "job": "8ed431ff-4299-4fb0-87e9-1857f1e6c1e1",
-      "file": "hf_20261108_174706_8ed431ff-4299-4fb0-87e9-1857f1e6c1e1.mp4"
-    },
-    "m05-snap-cut.mp4": {
-      "job": "618f5ee2-5316-456e-9eb8-4813fcf79294",
-      "file": "hf_20261108_175710_618f5ee2-5316-456e-9eb8-4813fcf79294.mp4"
-    },
     "z2-plate.png": {
       "job": "f7a2e07b-533c-4dce-834b-b2e4df46ad75",
       "file": "hf_20261108_164004_f7a2e07b-533c-4dce-834b-b2e4df46ad75.png"
@@ -129,38 +121,6 @@
     "cut-jellyfish-lamp.png": {
       "job": "7ed0bdd2-016d-4da7-9770-0f12258ea85b",
       "file": "hf_20261108_164632_7ed0bdd2-016d-4da7-9770-0f12258ea85b.png"
-    },
-    "m04-scuttle.mp4": {
-      "job": "d2fb25ad-ee54-4ecd-9b46-753464303db0",
-      "file": "hf_20261108_175253_d2fb25ad-ee54-4ecd-9b46-753464303db0.mp4"
-    },
-    "m04-scuttle-cut.mp4": {
-      "job": "3aaed242-b7cf-479a-be7d-74a7f4afa741",
-      "file": "hf_20261108_175742_3aaed242-b7cf-479a-be7d-74a7f4afa741.mp4"
-    },
-    "m10-ride.mp4": {
-      "job": "b809e334-2f21-4c0d-8436-b0e755a87fdb",
-      "file": "hf_20261109_014731_b809e334-2f21-4c0d-8436-b0e755a87fdb.mp4"
-    },
-    "m10-ride-cut.mp4": {
-      "job": "90995f0a-0b96-42c4-bcef-fe4038b9efc8",
-      "file": "hf_20261109_015355_90995f0a-0b96-42c4-bcef-fe4038b9efc8.mp4"
-    },
-    "m11-ride-wave.mp4": {
-      "job": "e880ece0-c8f6-4462-9a6d-2d9f09dbf23b",
-      "file": "hf_20261109_014731_e880ece0-c8f6-4462-9a6d-2d9f09dbf23b.mp4"
-    },
-    "m11-ride-wave-cut.mp4": {
-      "job": "44144d30-925e-4a9e-bd20-6828c7e1f5d0",
-      "file": "hf_20261109_015356_44144d30-925e-4a9e-bd20-6828c7e1f5d0.mp4"
-    },
-    "m12-ride-peek.mp4": {
-      "job": "4334d810-5b44-4205-9b97-82e559b06910",
-      "file": "hf_20261109_014730_4334d810-5b44-4205-9b97-82e559b06910.mp4"
-    },
-    "m12-ride-peek-cut.mp4": {
-      "job": "2700b7ce-5343-4603-a313-02edb2824b88",
-      "file": "hf_20261109_015357_2700b7ce-5343-4603-a313-02edb2824b88.mp4"
     },
     "snap-3d-tripo.glb": {
       "tripo_task": "84c2e1e5-3c0c-41db-9172-15f7aff3f7ab",
@@ -238,17 +198,13 @@
       "job": "508dee6b-b2bd-4b79-aae2-c603f6ba5c7b",
       "file": "hf_20261108_172531_508dee6b-b2bd-4b79-aae2-c603f6ba5c7b.mp4"
     },
-    "float-src.png": {
-      "job": "98c1d82f-a365-4d6c-b58a-b2830c2bf5df",
-      "file": "hf_20261113_130354_98c1d82f-a365-4d6c-b58a-b2830c2bf5df.png"
-    },
     "anchor-src.png": {
       "job": "4bfad40b-9b04-421e-bc03-084a7078d583",
       "file": "hf_20261113_130355_4bfad40b-9b04-421e-bc03-084a7078d583.png"
     },
     "sub-src.png": {
-      "job": "88d7b42c-aef2-4477-b639-d356e60dc25d",
-      "file": "hf_20261113_155133_88d7b42c-aef2-4477-b639-d356e60dc25d.png"
+      "job": "86da1a4c-5b7d-4bf0-a533-a47e1a010770",
+      "file": "hf_20261114_003657_86da1a4c-5b7d-4bf0-a533-a47e1a010770.png"
     }
   }
 }

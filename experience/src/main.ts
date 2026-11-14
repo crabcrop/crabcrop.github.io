@@ -46,6 +46,7 @@ const ui = new UI({
   onRemove: (rect) => world?.removeRegion(rect),
   onUpscale: (again) => world?.upscalePearl(again),
   onReefFocus: (i) => { if (world) scrollRef?.to(world.reefStopY(i)); },
+  onChoice: () => world?.noteChoice(),
   onSeal: (sealed) => world?.sealUrl(sealed),
   onSealLetter: () => world?.sealLetter(),
 });
@@ -60,6 +61,8 @@ async function start() {
   const canvas = document.getElementById('world') as HTMLCanvasElement;
   const w = new World(canvas, scroll, phone);
   world = w;
+  // (in development the world is within reach of the scripts that photograph the page: scripts/snap-still.mjs)
+  if (import.meta.env.DEV) (window as unknown as { __world: World }).__world = w;
   w.load().catch((e) => console.warn('dive: loading failed', e));
 
   // The cursor drives ripples, glints and the fish; a tap does the same on phones.
@@ -69,7 +72,7 @@ async function start() {
     w.mouse = [e.clientX, e.clientY];
     document.body.classList.toggle('on-snap', w.snapHit(e.clientX, e.clientY) && !(e.target as Element).closest?.('a, button, input, label, .card, .panel'));
   });
-  // Click or tap Snap on the chain and he spins round it.
+  // Click or tap Snap and he answers: a spin round the chain, a wave, a snap of his pincer, a hop.
   addEventListener('click', (e) => {
     if ((e.target as Element).closest?.('a, button, input, label, select, textarea, .card, .panel')) return;
     if (w.snapHit(e.clientX, e.clientY)) w.pokeSnap();
@@ -91,6 +94,23 @@ async function start() {
     w.resize();
   });
   addEventListener('load', () => { scroll.measure(); w.measure(); });
+
+  // "Dive again": the view fades to the next morning, the page goes back to the top behind it, and the day
+  // starts over with Snap on the pier. (Left to itself the link would rewind through every zone.)
+  const dawn = document.getElementById('dawn');
+  document.getElementById('dive-again')?.addEventListener('click', (e) => {
+    if (!dawn) return;
+    e.preventDefault();
+    e.stopPropagation();
+    if (dawn.classList.contains('on')) return;
+    dawn.classList.add('on');
+    setTimeout(() => {
+      scroll.lenis?.scrollTo(0, { immediate: true, force: true });
+      scrollTo(0, 0);
+      document.getElementById('s0-title')?.focus({ preventScroll: true });
+      setTimeout(() => dawn.classList.remove('on'), 650);
+    }, 480);
+  });
   document.addEventListener('visibilitychange', () => { if (document.hidden) w.snap.pause(); });
 
   // Step down to a lighter pixel ratio if frames run slow: 1.5, then 1.

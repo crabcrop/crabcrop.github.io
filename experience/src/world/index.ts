@@ -2,7 +2,7 @@ import { Stage, onPlate, cover, type Cover } from './stage';
 import { Backdrop, PANELS, type SourceKey, type Zone } from './backdrop';
 import { Chain, type Hold } from './chain';
 import { Snap, type SnapCtx } from './snap';
-import { Prop } from './props';
+import { Prop, Glow } from './props';
 import { Schools, type Fmt } from './fish';
 import { Bubbles } from './bubbles';
 import { Splash } from './splash';
@@ -20,7 +20,7 @@ import { media } from '../media';
 import { clamp, lerp, smooth, type Scroll } from '../scroll';
 
 interface Layout {
-  /** Horizontal focus of the plates; the kelp has its own, to keep its silk curtains clear of Snap and his line, and so do the wreck outside and its cabin. */
+  /** Horizontal focus of the plates; the kelp has its own, to keep its silk curtains clear of Snap, and so do the wreck outside and its cabin. */
   fx: number; fxKelp: number; fxWreck: number; fxCabin: number; fxVents: number;
   /** How far the cabin plate is drawn past a cover fit: less than elsewhere on wide screens, so the desk sits clear of Snap. */
   overCabin: number;
@@ -28,12 +28,8 @@ interface Layout {
   anchor: readonly [number, number]; holdY: number; chainBody: number;
   /** The story beat, as shares of the marina's scroll length. */
   gust: number; hop: number;
-  /** Snap's height walking the reef, in viewport heights. */
-  reefBody: number;
   /** The octopus in the wreck, in viewport heights. */
   octopus: number;
-  /** Where Snap lands at the vents: in front of the geode, so it glows behind him (a share of the master plate). */
-  ventsFeet: readonly [number, number];
   /**
    * The plunge pushes in on the marina until its plate is this many viewports
    * tall, down to the sand at the foot of the pier. There the chain ends: the
@@ -46,8 +42,6 @@ interface Layout {
   ring7: readonly [number, number]; sand7: number;
   /** Where Snap stands in the shallows and in the kelp forest (shares of their plates). */
   s1Feet: readonly [number, number]; s2Feet: readonly [number, number];
-  /** His line: how long (viewport heights), and its float's height (viewport heights). */
-  line: number; floatH: number;
   /**
    * Outside the wreck: where he stands across the screen (to the right of
    * the hole in the hull, so it shows) and the sand there (a share of the
@@ -55,6 +49,16 @@ interface Layout {
    * (shares of the master plate).
    */
   wreckX: number; wreckFloor: number; cabinFeet: readonly [number, number];
+  /**
+   * The submarine: its length (viewport heights); where its glass bubble
+   * sits on screen (shares of the viewport; on wide screens its tail also
+   * keeps clear of the cards) moored by the wreck, going down the drop and
+   * on the way up, and how low it may come over the geode at the vents; and
+   * where it comes up at the pier (its bubble across the sunset marina's plate).
+   */
+  sub: number;
+  at: Record<'wreck' | 'deep' | 'up', readonly [number, number]> & { vents: number };
+  moor7: number;
 }
 
 /** Where things sit, in plate coordinates (0 to 1), per layout. */
@@ -65,14 +69,12 @@ const LAYOUT: Record<'wide' | 'phone', Layout> = {
     anchor: [0.655, 0.47],                           // the chain leaves the boat's stern
     holdY: 0.56, chainBody: 0.26,                    // riding: his top hold, his height (viewport heights)
     gust: 0.35, hop: 0.64,
-    reefBody: 0.2,
     octopus: 0.13,
-    ventsFeet: [0.53, 0.93],
     under: 2.7, ring: [0.632, 0.873], sand: 0.957, anchorH: 0.26, ringX: 0.62, landDx: -1.2,
     ring7: [0.615, 0.873], sand7: 0.957,
     s1Feet: [0.6, 0.9], s2Feet: [0.56, 0.85],
-    line: 0.5, floatH: 0.085,
     wreckX: 0.83, wreckFloor: 0.9, cabinFeet: [0.47, 0.9],
+    sub: 0.41, at: { wreck: [0.86, 0.35], deep: [0.75, 0.5], up: [0.5, 0.38], vents: 0.56 }, moor7: 0.762,
   },
   phone: {
     fx: 0.5, fxKelp: 0.5, fxWreck: 0.5, fxCabin: 0.5, overCabin: 1.12, fxVents: 0.5,
@@ -80,14 +82,12 @@ const LAYOUT: Record<'wide' | 'phone', Layout> = {
     anchor: [0.2, 0.27],
     holdY: 0.66, chainBody: 0.2,
     gust: 0.62, hop: 0.8,                            // after the tall hero card has scrolled away
-    reefBody: 0.15,
     octopus: 0.1,
-    ventsFeet: [0.53, 0.93],
     under: 2.4, ring: [0.2, 0.845], sand: 0.935, anchorH: 0.24, ringX: 0.36, landDx: 0.92,
     ring7: [0.183, 0.891], sand7: 0.978,
     s1Feet: [0.4, 0.9], s2Feet: [0.44, 0.86],
-    line: 0.44, floatH: 0.075,
     wreckX: 0.3, wreckFloor: 0.9, cabinFeet: [0.61, 0.9],
+    sub: 0.3, at: { wreck: [0.675, 0.42], deep: [0.675, 0.62], up: [0.6, 0.4], vents: 0.56 }, moor7: 0.66,
   },
 };
 
@@ -98,14 +98,6 @@ const LAYOUT: Record<'wide' | 'phone', Layout> = {
  * camera TRAVEL viewport widths to the right.
  */
 const DESC = 0.5, LAND = 0.09, WALK = 0.62, TRAVEL = 1.2;
-/**
- * Where the tags hang on Snap's line, from the float (0) down to his claw
- * (1): the last one well above his claw, clear of his eyes. Once he has his
- * print the source's tag is the last on the line, and the others move up to
- * make room for it (LINE_TAGS_SRC).
- */
-const LINE_TAGS = { sig: 0.05, fmt: 0.205, look: 0.36, crop: 0.515, finish: 0.67, src: 0.7 };
-const LINE_TAGS_SRC: typeof LINE_TAGS = { sig: 0.03, fmt: 0.164, look: 0.298, crop: 0.432, finish: 0.566, src: 0.7 };
 /** The colour of the water under the sunset marina, darker and bluer than the morning's: Snap and the submarine take it on below the surface. */
 const SEA_DUSK: [number, number, number] = [0.1, 0.34, 0.42];
 
@@ -128,17 +120,23 @@ const LOST_FISH = [0.6, 0.76] as const;
 /**
  * The way out of the cabin, as shares of its scroll length: first the hull
  * film again, backwards (out through the hole, to the wreck seen from
- * outside), for OUT of it; then the drop, from its first frames, which are
+ * outside), for OUT of it; a pause on that view while Snap gets into the
+ * submarine, until DROP; then the drop, from its first frames, which are
  * that same view.
  */
-const OUT = 0.36, T4_FROM = 1;
+const OUT = 0.3, DROP = 0.42, T4_FROM = 1;
+/** How far out through the hull (0 to 1) Snap sets off for the submarine. */
+const BOARD = 0.8;
 const easeInOut = (x: number) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
+/** The larger of a and b, rounded off where they cross (over w either side). */
+const softMax = (a: number, b: number, w: number) => {
+  const d = b - a;
+  return w < 1e-3 ? Math.max(a, b) : a + (d > w ? d : d < -w ? 0 : ((d + w) * (d + w)) / (4 * w));
+};
 
 export type ZoneId = 's0' | 't1' | 's1' | 's2' | 't2' | 's3' | 's3b' | 's4' | 't3' | 's4b' | 't4' | 's5' | 's6' | 't5' | 's7';
 
 export interface WorldOut {
-  tags: Record<keyof typeof LINE_TAGS, { x: number; y: number; a: number }>;
-  tagsOn: number;
   z1: Cover | null;
   z2: Cover | null;
   s1On: number;
@@ -160,20 +158,22 @@ export interface WorldOut {
   sealOn: boolean;
   /**
    * The twilight zone: its plate on screen and the phone window of the
-   * master plate it shows, how much it is on, the lantern's light (x, y,
-   * radius px), and the lure's light running down Snap's line.
+   * master plate it shows, how much it is on, and the lantern's light (x, y,
+   * radius px).
    */
-  twi: { z5: Cover | null; win: readonly [number, number]; on: number; light: [number, number, number]; lure: { x: number; y: number; on: boolean } };
+  twi: { z5: Cover | null; win: readonly [number, number]; on: number; light: [number, number, number] };
   /** The story of the lost fish, once it has gone home with Snap. */
   fishOn: boolean;
-  /** The vents: the plate on screen, how much it is on, whether Snap has his print (the source tag shows then), and whether the submarine is offering him a lift (a little before he pushes off for the way up). */
-  vents: { z6: Cover | null; on: number; taken: boolean; offer: boolean };
+  /** The story of the submarine, for a while after Snap has got in. */
+  boardOn: boolean;
+  /** The vents: the plate on screen, how much it is on, and whether Snap has his print. */
+  vents: { z6: Cover | null; on: number; taken: boolean };
   /**
    * The way up: how much of the ascent is on and how far through it, where
-   * Snap's free claw is (the print rides beside it), how far the surface has
-   * been revealed, and when he took the finale's picture.
+   * the submarine's pincer is (the print hangs from it), how far the surface
+   * has been revealed, and when Snap took the finale's picture.
    */
-  ascent: { on: number; q: number; claw: [number, number]; reveal: number; flashAt: number };
+  ascent: { on: number; q: number; at: [number, number]; reveal: number; flashAt: number };
 }
 
 /** Zones that own a plate, for checking shared files before dropping one. */
@@ -182,24 +182,23 @@ const PLATE_ZONES = new Set<string>(['z0', 'z1', 'z2', 'z3', 'r3c', 'z4x', 'z4',
 export class World {
   readonly stage: Stage;
   private backdrop: Backdrop;
-  /** The anchor chain, from the boat's stern to the anchor on the sand. */
+  /** The anchor chain, from the boat's stern to the anchor on the sand: Snap rides it down. */
   private chain: Chain;
-  /** Snap's line: a lighter chain held up by a float, with the URL's tags on it. */
-  private line: Chain;
   private anchor: Prop;
-  private float: Prop;
   private post: Prop;
-  /** The little submarine from the vents: it carries Snap back up, and sinks away once he has leapt home (0 to 1). */
+  /** The submarine moored by the wreck: Snap gets in there and rides inside its glass bubble, down to the vents and up to the pier. */
   private sub: Prop;
+  /** Its lamp's light, where the water is dark. */
+  private beam: Glow;
+  /** Its tilt (radians, nose down positive), eased; when it last nudged forward (to pick up the print). */
+  private pitch = 0;
+  private lungeAt = -10;
+  /** Once Snap is home on the pier it sinks away (0 to 1); since when he has been home. */
   private subSunk = 0;
-  /** How far the source's tag has taken its place on the line (0 to 1). */
-  private srcOn = 0;
-  /** How far the line is Snap's (0 tied to the anchor, 1 in his claw), and how far its float leans to the side of its foot (px), with its speed. */
-  private own = 0;
-  private buoy = { x: 0, vx: 0, set: false };
-  /** How much of the line shows (it fades), and where its foot last was. */
-  private lineVis = 0;
-  private lineAt: [number, number] = [0, 0];
+  private homeAt = -1;
+  private boardedSeen = -10;
+  private boardUntil = 0;
+  private wasAboard = false;
   /** How fast Snap walks between places (px a second), from the camera's travel. */
   private walkVel = 0;
   private lastCam = NaN;
@@ -217,9 +216,10 @@ export class World {
   private debris: Debris;
   private twilight: Twilight;
   private vents: Vents;
-  /** When Snap landed at the vents (to pick up his print a moment later), and whether he has it. */
+  /** When the submarine settled over the geode (it picks up the print a moment later), whether Snap has it, and since when. */
   private ventsLanded = -1;
   private printTaken = false;
+  private takenAt = -10;
   /** The finale's picture has been taken (once per visit to the surface). */
   private flashed = false;
   /** The lantern's swing (radians, foot to the right) and its speed. */
@@ -231,7 +231,6 @@ export class World {
   private L: Layout;
   mouse: [number, number] | null = null;
   private cardsRight = 0;
-  private receiptRight = 0;
   private look: { picked: LookName; preview: LookName | null } = { picked: 'crisp', preview: null };
   private freeAsked = false;
   private kindUntil = 0;
@@ -251,11 +250,10 @@ export class World {
     this.backdrop = new Backdrop(this.stage, phone);
     this.chain = new Chain(this.stage);
     this.chain.fixed = true;
-    this.line = new Chain(this.stage, ['#8a5a3a', '#9a6238', '#a8683a', '#b5642c', '#7d4f36', '#94603c']);
     this.anchor = new Prop(this.stage, 'anchor', 4, { grade: [0.86, 0.96, 0.98], haze: 0.16 });
-    this.float = new Prop(this.stage, 'float', 4, { grade: [0.94, 1, 1], haze: 0.05 });
     this.post = new Prop(this.stage, 'post', 9, { grade: [0.72, 0.84, 0.86], haze: 0.1, water: [0.05, 0.25, 0.3] });
-    this.sub = new Prop(this.stage, 'sub', 4, { water: [0.16, 0.42, 0.56] });
+    this.sub = new Prop(this.stage, 'sub', 4.5, { water: [0.05, 0.25, 0.3] });
+    this.beam = new Glow(this.stage, 5.6);
     this.snap = new Snap(this.stage);
     this.fish = new Schools(this.stage, phone);
     this.bubbles = new Bubbles(this.stage);
@@ -268,15 +266,14 @@ export class World {
     this.debris = new Debris(this.stage, phone);
     this.twilight = new Twilight(this.stage, phone);
     this.vents = new Vents(this.stage, phone);
-    const zero = { x: -999, y: -999, a: 0 };
     this.out = {
-      tags: { sig: zero, fmt: zero, look: zero, crop: zero, finish: zero, src: zero }, tagsOn: 0, z1: null, z2: null,
+      z1: null, z2: null,
       s1On: 0, s2On: 0, depth: 0, zone: 's0', storyOn: false, kindOn: false,
       fish: { x: -999, y: -999, on: false }, reef: null, perch: null,
       z4: null, cabinOn: 0, octo: { x: -999, y: -999, s: 0, on: false, busy: false }, sealOn: false,
-      twi: { z5: null, win: [0, 1], on: 0, light: [-999, -999, 1], lure: { x: -999, y: -999, on: false } }, fishOn: false,
-      vents: { z6: null, on: 0, taken: false, offer: false },
-      ascent: { on: 0, q: 0, claw: [-999, -999], reveal: 0, flashAt: -10 },
+      twi: { z5: null, win: [0, 1], on: 0, light: [-999, -999, 1] }, fishOn: false, boardOn: false,
+      vents: { z6: null, on: 0, taken: false },
+      ascent: { on: 0, q: 0, at: [-999, -999], reveal: 0, flashAt: -10 },
     };
     this.measure();
   }
@@ -284,8 +281,6 @@ export class World {
   measure() {
     const cards = document.querySelector('.s1 .cards')?.getBoundingClientRect();
     this.cardsRight = cards ? cards.right : 0;
-    // (the receipt at the surface is wider than the cards)
-    this.receiptRight = document.getElementById('receipt')?.getBoundingClientRect().right ?? 0;
   }
 
   resize() { this.stage.resize(); this.measure(); }
@@ -297,8 +292,8 @@ export class World {
     await this.snap.load().catch(() => {});
     this.backdrop.loadLoop('z0').catch(() => {});
     await this.snap.loadRest().catch(() => {});
-    // what waits at the foot of the pier: the anchor, the float on its line, the plate's sharper underwater half
-    for (const p of [this.anchor, this.float, this.post]) p.load().catch(() => {});
+    // what waits at the foot of the pier: the anchor, a pier post, the plate's sharper underwater half
+    for (const p of [this.anchor, this.post]) p.load().catch(() => {});
     this.want('z0u', () => this.backdrop.loadPlate('z0u'));
   }
 
@@ -328,9 +323,6 @@ export class World {
     }
     if (y > sec.s2.top - 0.2 * H) this.want('t2', () => this.backdrop.loadSequence('t2'));
     const reefSoon = y > sec.t2.top - 0.5 * H;
-    if (y > sec.s1.top - H) this.want('m05', () => this.snap.loadClaw());
-    // the sideways walk (the film, if the 3D Snap could not load): he walks from the foot of the pier on
-    if (y > 0.95 * H) this.want('m04', () => this.snap.loadReef());
     if (reefSoon) this.want('coral', () => this.reef.load());
     this.resident('z0', y < sec.t1.top + sec.t1.h + 0.5 * H);
     this.resident('z0u', y < sec.t1.top + sec.t1.h + 0.5 * H);
@@ -348,6 +340,7 @@ export class World {
     this.resident('r5', walkW);
     // The wreck: outside, the cabin and its octopus, the drop, and the twilight zone it ends on.
     if (y > sec.s3b.top) this.want('t3', () => this.backdrop.loadSequence('t3'));
+    if (y > sec.s3b.top) this.want('sub', () => this.sub.load());
     if (y > sec.s4.top) this.want('octopus', () => this.octopus.load());
     if (y > sec.s3b.top + H) this.want('beam', () => this.debris.load());
     if (y > sec.s4b.top + 0.5 * H) this.want('t4', () => this.backdrop.loadSequence('t4'));
@@ -359,7 +352,6 @@ export class World {
     this.resident('z5lit', y > sec.t4.top + 0.5 * sec.t4.h && y < sec.s6.top + H);
     // The vents: the plate and its loop, the print and the tube worms.
     if (y > sec.s5.top + H) this.want('vents', () => this.vents.load());
-    if (y > sec.s6.top) this.want('sub', () => this.sub.load());
     this.resident('z6', y > sec.s6.top - 2 * H && y < sec.s7.top);
     // The surface at sunset.
     this.resident('z7', y > sec.t5.top - H);
@@ -385,6 +377,8 @@ export class World {
   upscalePearl(again = false) { this.reef.upscale(this.t, again); }
   /** The "Seal the letter" button: Snap seals the octopus's letter. */
   sealLetter() { this.sealAsked = true; }
+  /** Choices 1 to 4: the visitor picked a part of their URL, and Snap clicks his claw at it, if he is on his own. */
+  noteChoice() { if (this.snap.riding && !this.snap.visiting && !this.snap.rider.spinning) this.snap.rider.act(this.t, 'snap'); }
   /** Choice 5 was made: sealing the URL, Snap snaps his claw; readable, he waves. */
   sealUrl(sealed: boolean) { if (this.snap.riding && !this.snap.visiting) this.snap.rider.act(this.t, sealed ? 'snap' : 'wave'); }
   /** Is a screen point on Snap (for a click or tap)? */
@@ -476,27 +470,17 @@ export class World {
 
   /**
    * The twilight zone: the visitor's lantern shows the lit plate, the lost
-   * fish follows it, the lure's light runs down Snap's line while the explain
-   * card is up, a jellyfish glows past, and at the end warmth rises from below.
+   * fish follows it and then keeps the submarine company, a jellyfish glows
+   * past, and at the end warmth rises from below.
    */
-  private dusk(dt: number, t: number, o: { twiOn: number; k5: number; warm: number; cover: Cover | null; H: number; W: number }) {
+  private dusk(dt: number, t: number, o: { twiOn: number; k5: number; warm: number; cover: Cover | null; side: [number, number]; H: number; W: number }) {
     const { H, W } = o;
-    const hold = this.snap.grip ?? [W * 0.5, H * 0.5];
     if (o.k5 < -0.6) this.twilight.reset();
-    let lure = false;
-    if (o.twiOn > 0.5) {
-      const r = document.getElementById('card-explain')?.getBoundingClientRect();
-      lure = !!r && r.top < H * 0.7 && r.bottom > H * 0.3;
-    }
-    const holdArc = this.line.holdArc(0) ?? 0;
     const lost: [number, number] = o.cover ? this.spot('z5', o.cover, LOST_FISH[0], LOST_FISH[1]) : [W * 0.6, H * 0.7];
-    this.twilight.update(dt, t, {
-      vis: o.twiOn, k: o.k5, w: W, h: H, mouse: this.mouse, lost, hold, body: this.L.chainBody * H,
-      chainAt: (d) => this.line.at(d), chainLen: holdArc, lure,
-    });
+    this.twilight.update(dt, t, { vis: o.twiOn, k: o.k5, w: W, h: H, mouse: this.mouse, lost, side: o.side });
     const tw = this.twilight.out;
     if (o.cover) this.backdrop.lantern(o.cover, tw.light, o.twiOn, o.warm);
-    this.out.twi = { z5: o.cover, win: this.phone ? WRECK_PHONE.z5 : [0, 1], on: o.twiOn, light: tw.light, lure: tw.lure };
+    this.out.twi = { z5: o.cover, win: this.phone ? WRECK_PHONE.z5 : [0, 1], on: o.twiOn, light: tw.light };
     this.out.fishOn = t < tw.homeAt + 6 && o.twiOn > 0.2;
   }
 
@@ -544,7 +528,9 @@ export class World {
     const fC = (y - sec.s4b.top) / Math.max(1, sec.t4.top - sec.s4b.top);
     const p4 = clamp((y - sec.t4.top) / sec.t4.h);                // the way out of the cabin, all of it
     const out3 = clamp(p4 / OUT);                                 // back out through the hull
-    const q4 = clamp((p4 - OUT) / (1 - OUT));                     // the drop
+    const q4 = clamp((p4 - DROP) / (1 - DROP));                   // the drop
+    // (how near the drop is, from the moment he sets off for the submarine: he is in his seat before it starts, however fast the scroll)
+    const hurry = clamp((p4 - OUT * BOARD) / (DROP - 0.03 - OUT * BOARD));
     const inT3 = inWreck && y >= sec.t3.top, inT4 = inWreck && y >= sec.t4.top;
     // How far into the hull film the view is: 0 outside the wreck, 1 in the cabin (it plays backwards on the way out).
     const f3 = inT4 ? 1 - easeInOut(out3) : q3;
@@ -566,9 +552,9 @@ export class World {
     const warm = inT4 && !inVents ? smooth(0.78, 1.15, k5) : 0;
     const cabinOn = !inT3 ? 0 : !inT4 ? smooth(0.9, 1, q3) : 1 - smooth(0, 0.06, out3);
 
-    // Snap's size riding and swimming, his size in the films, and from the middle of his feet to his raised claw.
-    const chainBody = L.chainBody * H, reefBody = L.reefBody * H;
-    const [gripDx, gripDy] = this.snap.use3d ? this.snap.rider.gripFromFeet(chainBody) : [-reefBody * 0.55, 0];
+    // Snap's size riding, walking and swimming, and from the middle of his feet to his raised claw.
+    const chainBody = L.chainBody * H;
+    const [gripDx, gripDy] = this.snap.use3d ? this.snap.rider.gripFromFeet(chainBody) : [-chainBody * 0.42, 0];
     // On wide screens his raised claw keeps clear of the cards' column, wherever the plate would put him.
     const clearX = this.phone ? -1e9 : this.cardsRight + W * 0.05 - gripDx;
 
@@ -712,8 +698,9 @@ export class World {
     // Back at the surface it is the sunset marina's, coming into view as the camera pulls back.
     const wl7 = z7c ? onPlate(z7c, 0, this.backdrop.plateMeta('z7').waterline ?? 0.58)[1] : null;
     const sea = wl7 === null ? 0 : smooth(0.3, 0.6, reveal);
+    // (inside the submarine's bubble he takes on less of it: he should stay his own red behind the glass)
     if (z0c) this.snap.rider.snap3d.setWater(u.uWaterY.value, 1 - under);
-    else if (wl7 !== null && sea > 0) this.snap.rider.snap3d.setWater(wl7, sea, SEA_DUSK);
+    else if (wl7 !== null && sea > 0) this.snap.rider.snap3d.setWater(wl7, sea * (this.snap.inside ? 0.45 : 1), SEA_DUSK);
     else this.snap.rider.snap3d.setWater(null, 0);
     u.uGlint.value = inReef ? 0.55 * (1 - wW) : inWreck ? 0 : s1On;
     u.uShafts.value = inWreck ? 0 : s2On;
@@ -748,7 +735,7 @@ export class World {
     const z0 = z0c ?? c0;
     const stern = onPlate(z0, L.anchor[0], L.anchor[1]), ring = onPlate(z0, L.ring[0], L.ring[1]);
     const sandY = onPlate(z0, 0, L.sand)[1];
-    // Past the opening, where he swims (with a film that glides into a place, and through the dark), he swims here with his line.
+    // Past the opening, where he swims (with a film that glides into a place), he swims here.
     const chainX = this.phone ? W * 0.1 : Math.max(W * 0.53, this.cardsRight + W * 0.05);
     const linkLen = media.snapChain.linkLen * chainBody;
     const holdY = L.holdY * H;
@@ -765,43 +752,13 @@ export class World {
     const landHy = this.snap.use3d ? floorY + gripDy : floorY - this.snap.rider.below() * chainBody * 0.92;
     const reefHold: [number, number] = [lerp(chainX, clawX, smooth(0, 0.5, land)), lerp(holdY, landHy, land)];
 
-    // The way up: the little submarine from the vents comes up under him as the colours begin. He rides it standing on
-    // its tower, low enough that his line has room for its tags. At the top it surfaces with him, its tower just under
-    // the water, and he leaps home from there. (On wide screens he keeps clear of the receipt, which is wider than the cards.)
-    const sm = media.sub;
-    const subW = chainBody * 1.45, subH = subW * (sm.h / sm.w);
-    const bob = Math.sin(t * 1.7) * H * 0.006;
-    const surf = wl7 === null ? 0 : smooth(0.5, 0.82, reveal);
-    const rideX = this.phone ? W * 0.3 : chainX - gripDx + Math.max(0, this.receiptRight + W * 0.04 - chainX) * smooth(0.25, 0.6, reveal);
-    const rideY = (this.phone ? 0.6 : 0.59) * H - gripDy;
-    const rideFeet: [number, number] = this.snap.use3d
-      ? [rideX, lerp(rideY, clamp((wl7 ?? 0) + H * 0.05, H * 0.3, rideY), surf) + bob]
-      : [chainX + chainBody * 0.3, holdY + this.snap.rider.below() * chainBody * 0.92 + bob];
-    const rideGrip: [number, number] = this.snap.use3d ? [rideFeet[0] + gripDx, rideFeet[1] + gripDy] : [chainX, holdY];
+    // From the way out of the wreck on he is in the submarine: the sea floor ends there.
+    const aboard = inT4 && out3 >= BOARD;
 
-    // Snap at the vents: down to the floor beside the geode, where his print lies; he takes it a moment after landing.
-    // At the end he pushes off and swims up to where the submarine will catch him.
-    const vFeet: [number, number] = z6c ? this.spot('z6', z6c, L.ventsFeet[0], L.ventsFeet[1]) : [W * 0.62, H * 0.9];
-    const land6 = inVents ? smooth(0.2, 0.8, u6) : 0;
-    const vLandHy = this.snap.use3d ? vFeet[1] + gripDy : vFeet[1] - this.snap.rider.below() * chainBody * 0.92;
-    const ret6 = smooth(0, 0.35, pushOff), rise6 = smooth(0.35, 1, pushOff);
-    const ventsHold: [number, number] = ret6 > 0
-      ? [lerp(vFeet[0] + gripDx, rideGrip[0], rise6), lerp(vLandHy, rideGrip[1], rise6)]
-      : [lerp(chainX, vFeet[0] + gripDx, smooth(0, 0.5, land6)), lerp(holdY, vLandHy, land6)];
-    if (land6 >= 1 && this.ventsLanded < 0) this.ventsLanded = t;
-    // (on the way up he keeps it: if the visitor scrolls back down he arrives with his print, not at one lying in the geode again)
-    if (land6 < 1 && !inAscent) this.ventsLanded = -1;
-    const taken = this.ventsLanded > 0 && t - this.ventsLanded > 0.8;
-    if (taken && !this.printTaken) {
-      // he takes his print: stars where it lay and in his claw, and a little hop
-      this.snap.burst(this.vents.at.x, this.vents.at.y, this.vents.at.h * 1.2, 3);
-      this.snap.rider.act(t, 'hop');
-    }
-    this.printTaken = taken;
-
-    // Snap on the ground in the opening: off the chain onto the sand by the
-    // anchor, the walk to the shallows, the shallows, the walk into the kelp,
-    // the forest floor, and up off it for the glide to the reef.
+    // Snap on the ground: off the chain onto the sand by the anchor, the walk
+    // to the shallows, the shallows, the walk into the kelp, the forest floor,
+    // and up off it for the glide to the reef; the reef; by the wreck and in
+    // its cabin.
     const cam = (p1 >= 1 ? TRAVEL * W : shift1) + shift2;
     const camV = Number.isNaN(this.lastCam) || dt <= 0 ? 0 : (cam - this.lastCam) / dt;
     this.lastCam = cam;
@@ -821,39 +778,41 @@ export class World {
         feet = [lerp(at1[0], at2[0], d12), lerp(at1[1], at2[1], d12)];
       } else feet = spotOn(c2, L.s2Feet);
       const g = gripAt(feet);
-      ground = { land: landK, lift: 0, feet, body: reefBody, vel: this.walkVel, hold: [lerp(holdX, g[0], smooth(0, 0.6, landK)), lerp(holdY, g[1], landK)] };
+      ground = { land: landK, lift: 0, feet, vel: this.walkVel, hold: [lerp(holdX, g[0], smooth(0, 0.6, landK)), lerp(holdY, g[1], landK)] };
     } else if (inT2 && !inReef && !inWreck) {
       const feet = spotOn(c2, L.s2Feet), g = gripAt(feet);
       const lift = smooth(0.02, 0.24, q2);
-      ground = { land: 1, lift, feet, body: reefBody, vel: 0, hold: [lerp(g[0], chainX, lift), lerp(g[1], holdY, lift)] };
-    } else if (inReef) ground = { land, lift: 0, feet: [feetX, floorY], body: reefBody, vel: this.reef.vel, hold: reefHold };
+      ground = { land: 1, lift, feet, vel: 0, hold: [lerp(g[0], chainX, lift), lerp(g[1], holdY, lift)] };
+    } else if (inReef) ground = { land, lift: 0, feet: [feetX, floorY], vel: this.reef.vel, hold: reefHold };
     else if (inWreck && (!inT4 || out3 < 0.5)) {
       // Outside the wreck he stands on the sand, to the right of the hole in its hull. With the film he pushes off
       // and swims in through it, and inside he comes down on the cabin's floor, by the desk. On the way out he
-      // pushes off again and swims back out with the camera.
+      // pushes off again and swims back out with the camera, to the submarine.
       if (q3 < 0.5) {
         const m4x = this.backdrop.plateMeta('z4x'), c4x = cover(m4x.w, m4x.h, W, H, 1.12, L.fxWreck, 0.5);
         const feet: [number, number] = [xWreck, c4x.oy + L.wreckFloor * c4x.dh], g = gripAt(feet);
         const lift = smooth(0.0, 0.22, q3);
-        ground = { land: 1, lift, feet, body: reefBody, vel: 0, hold: [lerp(g[0], chainX, lift), lerp(g[1], holdY, lift)] };
+        // (every so often he glances up at the submarine waiting over the wreck)
+        const look: [number, number] | undefined = Math.sin(t * 0.8) > 0.6 ? [L.at.wreck[0] * W, L.at.wreck[1] * H] : undefined;
+        ground = { land: 1, lift, feet, vel: 0, hold: [lerp(g[0], chainX, lift), lerp(g[1], holdY, lift)], look };
       } else {
         const m4 = this.backdrop.plateMeta('z4'), c4 = cover(m4.w, m4.h, W, H, L.overCabin + 0.05 * smooth(0, 3, kC), L.fxCabin, 0.5);
         const at = this.spot('z4', c4, L.cabinFeet[0], L.cabinFeet[1]);
         const feet: [number, number] = [Math.max(at[0], clearX), at[1]], g = gripAt(feet);
         const landC = smooth(0.72, 0.98, q3), lift = inT4 ? smooth(0, 0.3, out3) : 0;
-        ground = lift > 0 ? { land: 1, lift, feet, body: reefBody, vel: 0, hold: [lerp(g[0], chainX, lift), lerp(g[1], holdY, lift)] }
-          : { land: landC, lift: 0, feet, body: reefBody, vel: 0, hold: [lerp(chainX, g[0], smooth(0, 0.6, landC)), lerp(holdY, g[1], landC)] };
+        ground = lift > 0 ? { land: 1, lift, feet, vel: 0, hold: [lerp(g[0], chainX, lift), lerp(g[1], holdY, lift)] }
+          : { land: landC, lift: 0, feet, vel: 0, hold: [lerp(chainX, g[0], smooth(0, 0.6, landC)), lerp(holdY, g[1], landC)] };
       }
-    } else if (inVents) ground = { land: land6, lift: ret6, feet: vFeet, body: reefBody, vel: 0, hold: ventsHold, print: taken && ret6 <= 0 };
-    // On the way up he stands on the submarine's tower once it is under him, his free claw up beside the print.
-    if (inAscent && this.snap.use3d) ground = { land: smooth(0.1, 0.18, q5), lift: 0, feet: rideFeet, body: reefBody, vel: 0, hold: rideGrip, raise: true };
+    }
+    // Where his raised claw is while he is on his own and not off on a card.
+    const rest: [number, number] = ground ? (ground.land >= 1 && ground.lift <= 0 ? gripAt(ground.feet) : ground.hold) : [holdX, holdY];
 
     // Snap's visits to the cards: when the visitor pauses beside one, he leaps onto it.
     this.idleFor = Math.abs(sc.v) < 0.4 ? this.idleFor + dt : 0;
     if (this.snap.visiting && Math.abs(sc.v) > 1.5) this.snap.endVisit(t);
     if (!this.snap.visiting) this.visitEl = null;
     const still = !ground || (ground.land >= 1 && ground.lift <= 0 && Math.abs(ground.vel) < 20);
-    if (!inReef && !inVents && still && this.snap.riding && !this.snap.visiting && !this.snap.rider.spinning && this.idleFor > 2.2 && t - this.lastVisit > 9) {
+    if (!inReef && !aboard && still && this.snap.riding && !this.snap.visiting && !this.snap.rider.spinning && this.idleFor > 2.2 && t - this.lastVisit > 9) {
       const el = this.visitTarget(H, W, this.snap.grip?.[0] ?? holdX);
       if (el) {
         const feet = (): [number, number] | null => {
@@ -869,6 +828,8 @@ export class World {
       }
     }
     this.out.perch = this.snap.perch && this.visitEl ? { el: this.visitEl, since: this.snap.perch.since } : null;
+    // In his seat, left alone for a while, he does something: a wave, a snap of his pincer, a little hop.
+    if (this.snap.aboard && this.idleFor > 7) { this.snap.poke(t); this.idleFor = -5; }
 
     // The anchor chain is there with the marina (and again at the surface): made fast at the stern, its end in the anchor's ring.
     // While Snap rides it he holds it in his raised claw, and it runs on through to the ring.
@@ -886,7 +847,7 @@ export class World {
     const holds: Hold[] = [];
     if (onChain) {
       holds.push({ i: 36, x: ride.top[0], y: ride.top[1] });
-      // the sprite and film (his fallbacks) hold it at both ends of the stretch painted into them
+      // the sprite (his fallback) holds it at both ends of the stretch painted into it
       if (ride.bottom) {
         const span = Math.round((sc2.chainBottom - sc2.chainTop) * chainBody / (linkLen * 0.72));
         holds.push({ i: 36 + Math.max(2, Math.min(8, span)), x: ride.bottom[0], y: ride.bottom[1] });
@@ -898,32 +859,93 @@ export class World {
     this.chain.mesh.position.z = onChain ? 0 : -500;
     // The anchor itself, in its mound of sand, its ring where the chain ends.
     const am = media.anchor;
-    const zoom = z0.dh / dhE;                       // how far the plunge has pushed in: the anchor and the float are of the marina's world
+    const zoom = z0.dh / dhE;                       // how far the plunge has pushed in: the anchor is of the marina's world
     const ah = L.anchorH * H * zoom, aw = ah * (am.w / am.h);
-    const ax0 = ring[0] - am.ring[0] * aw, ay0 = sandY - am.ground * ah;
     if (atSunset) {
       const h7 = L.anchorH * H * (z7c!.dh / dhE), w7 = h7 * (am.w / am.h);
       this.anchor.put(rx - am.ring[0] * w7, onPlate(z7c!, 0, L.sand7)[1] - am.ground * h7, w7, h7, anchorVis);
-    } else this.anchor.put(ax0, ay0, aw, ah, anchorVis);
+    } else this.anchor.put(ring[0] - am.ring[0] * aw, sandY - am.ground * ah, aw, ah, anchorVis);
+
+    // The submarine. It is moored by the wreck, a little way off: it comes into view with the wreck as the camera
+    // travels there from the studio, is left outside while the camera goes in through the hull, and is there again
+    // on the way out. Snap gets in, and from there it is where he is: down the drop, through the twilight zone,
+    // over the geode at the vents, and up to the pier, where he gets out and it sinks away.
+    const sm = media.sub;
+    const subW = L.sub * H, subH = subW * (sm.h / sm.w);
+    const [bu, bv, br] = sm.bubble;
+    const R = br * subW;                                          // the bubble's radius on screen
+    const seatH = R * 1.62;                                       // Snap's height inside it
+    // On wide screens its tail keeps clear of the cards.
+    const minX = this.phone ? 0 : this.cardsRight + W * 0.03 + bu * subW;
+    const spot = (q: readonly [number, number]): [number, number] => [Math.max(q[0] * W, minX), q[1] * H];
+    const mixp = (a0: [number, number], b0: [number, number], f: number): [number, number] => [lerp(a0[0], b0[0], f), lerp(a0[1], b0[1], f)];
+    // At the vents it hovers over the geode, its pincer above the print.
+    const geode: [number, number, number] = z6c ? [...this.spot('z6', z6c, VENTS.geode[0], VENTS.geode[1]), VENTS.geodeH * z6c.dh] : [W * 0.5, H * 0.8, H * 0.3];
+    const overGeode: [number, number] = [Math.max(geode[0] - (sm.claw[0] - bu) * subW, minX), Math.min(geode[1] - geode[2] * 0.4 - (sm.claw[1] - bv) * subH, H * L.at.vents)];
+    // (the wreck is still this far to the right of where the camera will frame it; and how far the camera is into the hull)
+    const far = inReef ? (wreckL - Lr) * rc.dw : 0;
+    const inHull = inWreck ? f3 : 0;
+    const moored = spot(L.at.wreck);
+    let at: [number, number] = [moored[0] + far + inHull * W * 0.6, moored[1] - inHull * H * 0.2];
+    at = mixp(at, spot(L.at.deep), inT4 && out3 >= 1 ? smooth(0, 0.45, q4) : 0);      // down the drop
+    at = mixp(at, overGeode, inT4 && q4 >= 1 ? smooth(-0.3, 0.75, u6) : 0);           // to the vents
+    at = mixp(at, spot(L.at.up), inT4 && y >= sec.t5.top ? smooth(0, 0.3, q5) : 0);   // the way up
+    // Back at the surface it comes up at the pier, and stops there: as the camera pulls back and the waterline
+    // comes down the screen, the submarine stays in the water under it (eased, so it does not jolt).
+    const surfaced = wl7 === null ? 0 : smooth(0.5, 0.82, reveal);
+    if (z7c && wl7 !== null) {
+      at = mixp(at, [onPlate(z7c, L.moor7, 0)[0], wl7 + R * 0.34], surfaced);
+      at[1] = softMax(at[1], wl7 + R * 0.34, R * 0.9 * (1 - surfaced));
+    }
+    // Once Snap is home on the pier it waits a moment, then sinks away (and is back at once if the visitor scrolls back down).
+    const isHome = this.snap.state === 'home';
+    if (!isHome) this.homeAt = -1; else if (this.homeAt < 0) this.homeAt = t;
+    this.subSunk = isHome && t - this.homeAt > 1.6 ? Math.min(1, this.subSunk + dt / 1.8) : Math.max(0, this.subSunk - dt * 6);
+    const sink = this.subSunk * this.subSunk;
+    const subOn = (inReef ? (wW > 0 ? 1 : 0) : inWreck ? 1 - smooth(0.08, 0.45, inHull) : 0) * (1 - smooth(0.45, 1, this.subSunk));
+    // Afloat it rides the swell; under water it bobs a little; it dips when Snap drops in, and nudges forward to use its pincer.
+    const afloat = surfaced * (1 - sink);
+    const bob = Math.sin(t * 1.5) * H * 0.005 + afloat * Math.sin(t * 1.1 + 1) * H * 0.004;
+    const since = t - this.snap.boarded;
+    const dip = since >= 0 && since < 1.4 ? Math.sin(since * 7) * Math.exp(-since * 3) * H * 0.016 : 0;
+    const lungeAge = t - this.lungeAt;
+    const lunge = lungeAge >= 0 && lungeAge < 0.5 ? Math.sin((Math.PI * lungeAge) / 0.5) * R * 0.24 : 0;
+    // Its nose goes down on the drop and up on the climb, follows the scroll a little once he is in, and goes down again as it sinks away.
+    const nose = (inT4 && out3 >= 1 ? Math.sin(Math.PI * q4) * 0.5 : 0)
+      + (inT4 && q4 >= 1 && !inAscent ? 0.12 * smooth(0, 0.15, k5) * (1 - smooth(0.2, 0.8, u6)) : 0)
+      - (inT4 && y >= sec.t5.top ? 0.42 * smooth(0, 0.2, q5) * (1 - smooth(0.25, 0.7, reveal)) : 0)
+      + (aboard ? clamp(sc.v * 0.003, -0.06, 0.06) : 0) + afloat * Math.sin(t * 0.9) * 0.035 + sink * 0.45;
+    this.pitch += (nose - this.pitch) * clamp(dt * 5);
+    const pitch = this.pitch;
+    const cock: [number, number] = [at[0] + lunge * Math.cos(pitch), at[1] + bob + dip + lunge * Math.sin(pitch) + sink * H * 0.45];
+    // Snap's seat: on his feet on the bubble's floor, tilting with it
+    // (a little forward of the bubble's middle, clear of the brass collar behind him).
+    const seatFeet: [number, number] = [cock[0] + Math.cos(pitch) * R * 0.14 - Math.sin(pitch) * R * 0.8, cock[1] + Math.sin(pitch) * R * 0.14 + Math.cos(pitch) * R * 0.8];
+    // The top of the hatch on its tower, where he gets in and out (as the cutout is about to be pinned).
+    const hx = (sm.hatch[0] - bu) * subW, hy = (sm.hatch[1] - bv) * subH;
+    const hatchTop: [number, number] = [cock[0] + hx * Math.cos(pitch) - hy * Math.sin(pitch), cock[1] + hx * Math.sin(pitch) + hy * Math.cos(pitch)];
 
     // Snap.
     const feet = onPlate(z0, L.feet[0], L.feet[1]);
     const body = z0.dh * L.body;
     const lean = ride && onChain ? Math.atan2(ride.top[0] - ax, ride.top[1] - ay) * 0.6 : 0;
+    const water0 = onPlate(z0, 0, this.backdrop.plateMeta('z0').waterline ?? 0.58)[1];
     this.snap.update(dt, t, {
       k, beat: { gust: L.gust * s0h, hop: L.hop * s0h, force: 0.94 * s0h, reset: 0.6 * L.gust * s0h },
-      feet: [feet[0], feet[1]], body, hold: [holdX, holdY], chainBody,
-      water: onPlate(z0, 0, this.backdrop.plateMeta('z0').waterline ?? 0.58)[1], viewW: W,
+      feet: [feet[0], feet[1]], body, hold: [holdX, holdY], chainBody, onChain: onMarina,
+      water: water0, viewW: W,
       lean: clamp(lean, -0.25, 0.25), grade,
       speed: sc.v, mouse: this.mouse, idle: this.idleFor > 1.5,
       ground,
+      seat: { feet: seatFeet, h: seatH, lean: -pitch, hatch: hatchTop, raise: inAscent && q5 > 0.16 && reveal < 0.8 },
+      aboard, hurry: inT4 ? hurry : 0,
       home: inAscent && z7c ? { on: reveal > 0.85, feet: onPlate(z7c, L.feet[0], L.feet[1]), body: z7c.dh * L.body } : undefined,
     });
-    // He caught the chain (or is back with his line after a card): it jolts, and (filmed) at the surface the water rings.
+    // He caught the chain: it jolts, and (filmed) at the surface the water rings.
     const water = u.uWaterY.value;
     if (this.snap.caught !== this.caughtSeen) {
       this.caughtSeen = this.snap.caught;
-      (onMarina ? this.chain : this.line).kick(18, 36, (Math.random() - 0.5) * 6, 7);
+      if (onMarina) this.chain.kick(18, 36, (Math.random() - 0.5) * 6, 7);
       if (!this.snap.use3d && k < s0h + 0.5 && water < H) this.splashAt(holdX, water, chainBody, t, false);
     }
     // In 3D the splash is where his leap goes through the surface.
@@ -931,108 +953,100 @@ export class World {
       this.enteredSeen = this.snap.entered.t;
       if (water < H) this.splashAt(this.snap.entered.x, water, chainBody, t, true);
     }
-    // A puff of sand where he comes down on the ground: off the chain, onto the reef, by the geode, back from a card.
+    // A puff of sand where he comes down on the ground: off the chain, onto the reef, in the cabin, back from a card.
     const down = !!this.snap.claw && !!ground;
     if ((down && !this.onSand) || this.snap.touched !== this.touchedSeen) {
       this.touchedSeen = this.snap.touched;
       const f = ground?.feet ?? [holdX, holdY];
-      for (let i = 0; i < 6; i++) this.bubbles.emit(f[0] + (Math.random() - 0.5) * reefBody, f[1], H * 0.007);
+      for (let i = 0; i < 6; i++) this.bubbles.emit(f[0] + (Math.random() - 0.5) * chainBody * 0.8, f[1], H * 0.007);
     }
     this.onSand = down;
+    // He dropped into his seat (or is back in it): bubbles round the bubble, and at the surface the water rings round the submarine.
+    if (this.snap.boarded !== this.boardedSeen) {
+      this.boardedSeen = this.snap.boarded;
+      for (let i = 0; i < 7; i++) this.bubbles.emit(cock[0] + (Math.random() - 0.5) * R * 1.6, cock[1] - R * (0.6 + Math.random() * 0.5), H * 0.007);
+      if (wl7 !== null && Math.abs(cock[1] - wl7) < R * 1.6) this.splashAt(cock[0], wl7, seatH * 1.4, t, true);
+    }
+    // The story of the submarine shows as he sets off for it, and for a while down the drop.
+    if (aboard && !this.wasAboard && !inAscent && q4 < 0.5) this.boardUntil = t + 7;
+    this.wasAboard = aboard;
+    this.out.boardOn = t < this.boardUntil && aboard && q4 < 0.6;
 
-    // His line: made fast to the anchor until he lands beside it, then in his
-    // raised claw for the rest of the dive, a float holding it up and the URL's
-    // tags along it. It is his until he is home on the pier.
-    const lm = media.float;
-    const took = y > sec.t1.top + (DESC + LAND) * sec.t1.h;
-    // While he is off on a card it waits where he stood, held up by its float.
-    const rest: [number, number] = ground ? (ground.land >= 1 && ground.lift <= 0 ? gripAt(ground.feet) : ground.hold) : [holdX, holdY];
-    const grip = this.snap.visiting ? rest : this.snap.grip;
-    this.own += ((took && grip ? 1 : 0) - this.own) * clamp(dt * 8);
-    const home = this.snap.state === 'home' || this.snap.state === 'homeLeap';
-    const at = am.ties[L.landDx < 0 ? 0 : 1];        // the end of the stock on the side he lands
-    const tie: [number, number] = [ax0 + at[0] * aw, ay0 + at[1] * ah];
-    const lz = lerp(zoom, 1, this.own);              // its size: the marina's until he takes it
-    // it fades out as he surfaces, the receipt coming up with the whole URL on it (and in again if the visitor scrolls back down), from where it last was
-    const lineOn = !home && !(inAscent && reveal > 0.55) && (this.own > 0.002 ? !!grip : !!z0c);
-    this.lineVis += ((lineOn ? 1 : 0) - this.lineVis) * clamp(dt * 7);
-    if (lineOn) this.lineAt = grip && this.own > 0.002 ? [lerp(tie[0], grip[0], this.own), lerp(tie[1], grip[1], this.own)] : tie;
-    const base = this.lineAt;
-    const fh = L.floatH * H * lz, fw = fh * (lm.w / lm.h);
-    // The float rides above the line's foot: it trails behind a little when he walks or the page scrolls fast, and bobs.
-    // Its sway is worked out from the foot (not on screen), so the camera's own travel does not drag it about.
-    const topBar = (this.phone ? 0.075 : 0.085) * H;
-    const len = Math.max(H * 0.12, Math.min(L.line * H * lz, base[1] - topBar - fh));
-    const bu = this.buoy;
-    const tx = -clamp(this.walkVel * 0.09, -H * 0.1, H * 0.1) * this.own - clamp(sc.v * 0.5, -14, 14) * this.own + Math.sin(t * 0.8) * H * 0.006
-      - (1 - this.own) * len * 0.1 * Math.sign(-L.landDx);   // waiting on the anchor, it drifts off to Snap's side of the chain
-    if (!bu.set) { bu.x = tx; bu.vx = 0; bu.set = true; }
-    const st = Math.min(dt, 1 / 30);
-    bu.vx += ((tx - bu.x) * 30 - bu.vx * 6.5) * st;
-    bu.x += bu.vx * st;
-    // the line does not stretch: the float is always its length from the foot
-    const tilt = clamp(bu.x / len, -0.6, 0.6);
-    const fx0 = base[0] + tilt * len, fy0 = base[1] - Math.sqrt(1 - tilt * tilt) * len + Math.sin(t * 1.5) * H * 0.004;
-    const lineLink = linkLen * 0.6 * lz;
-    this.line.update(dt, t, { ax: fx0, ay: fy0, len, tail: lineLink * 0.72 * 2.4, holds: [{ i: 40, x: base[0], y: base[1] }], sway: sc.v, mouse: this.mouse, visible: this.lineVis > 0.01, opacity: this.lineVis, linkLen: lineLink, slack: 0.985 });
-    this.float.grade(grade[0] * 0.94, grade[1], grade[2]);
-    this.float.put(fx0 - lm.ring[0] * fw, fy0 - lm.ring[1] * fh, fw, fh, this.lineVis);
+    // The submarine itself: its glass is drawn over Snap once he is inside. Moored it sits a little way off, hazed by
+    // the wreck's water; with him in it, it is the subject. At the surface it takes on the sunset water's colour below
+    // the waterline, as he does.
+    const away = inT4 ? 1 - smooth(BOARD, 1, out3) : 1;
+    this.sub.mesh.renderOrder = this.snap.inside ? 5.5 : 4.5;
+    this.sub.grade(grade[0], grade[1], grade[2]);
+    this.sub.haze(0.2 * away);
+    if (wl7 !== null && sea > 0) this.sub.sea(wl7, sea, SEA_DUSK, t);
+    else this.sub.sea(null, 0);
+    this.sub.pin(cock[0], cock[1], bu, bv, subW, subH, pitch, subOn);
+    const claw = this.sub.at(sm.claw[0], sm.claw[1]), prop = this.sub.at(sm.prop[0], sm.prop[1]), hatch = this.sub.at(sm.hatch[0], sm.hatch[1]);
+    // Its lamp glows where the water is dark: by the wreck, down the drop, through the twilight zone and at the vents.
+    const gloom = !inWreck ? 0.3 * wW : !inT4 ? 0.32 : inAscent ? 0.8 * (1 - smooth(0.1, 0.45, q5)) : inVents ? 0.6 : lerp(0.32, 0.9, smooth(0.2, 0.9, q4));
+    const lampAt = this.sub.at(sm.lamp[0], sm.lamp[1]);
+    this.beam.put(lampAt[0] + R * 0.3 * Math.cos(pitch), lampAt[1] + R * 0.3 * Math.sin(pitch), R * (3 + 0.12 * Math.sin(t * 9)), 0.5 * gloom * subOn);
 
-    // The submarine: up from below as the ascent's colours begin, and under him all the way. Once he has leapt home it
-    // sinks away (and is back under him at once if the visitor scrolls back down).
-    const subUp = inAscent ? smooth(0.065, 0.16, q5) : 0;
-    this.subSunk = home ? Math.min(1, this.subSunk + dt / 1.2) : Math.max(0, this.subSunk - dt * 6);
-    const sink = this.subSunk * this.subSunk;
-    // under the water at the surface, it takes on the water's colour as he does
-    this.sub.grade(grade[0] * (1 - 0.08 * sea), grade[1], grade[2]);
-    this.sub.haze(0.3 * sea, SEA_DUSK);
-    this.sub.put(rideFeet[0] - sm.stand[0] * subW, rideFeet[1] - sm.stand[1] * subH + (1 - subUp) * H * 0.95 + sink * H * 0.45, subW, subH, inAscent ? 1 - smooth(0.45, 1, this.subSunk) : 0);
+    // The vents: the submarine settles over the geode, and a moment later its pincer has the print.
+    const land6 = inVents ? smooth(0.2, 0.8, u6) : 0;
+    if (land6 >= 1 && this.ventsLanded < 0) this.ventsLanded = t;
+    // (on the way up he keeps it: if the visitor scrolls back down he arrives with his print, not at one lying in the geode again)
+    if (land6 < 1 && !inAscent) this.ventsLanded = -1;
+    const taken = this.ventsLanded > 0 && t - this.ventsLanded > 0.8;
+    if (taken && !this.printTaken) {
+      // it nudges down for it: stars where the print lay, and Snap hops in his seat
+      this.takenAt = t;
+      this.lungeAt = t;
+      this.snap.burst(this.vents.at.x, this.vents.at.y, this.vents.at.h * 1.2, 3);
+      if (this.snap.aboard) this.snap.rider.act(t, 'hop');
+    }
+    this.printTaken = taken;
+    // (as the way up begins, the page's own print takes over from the one in the pincer)
+    if (inVents && taken) {
+      // up out of the geode into the pincer, and held there by its corner
+      const g = smooth(0, 0.7, t - this.takenAt);
+      const ph = lerp(this.vents.at.h, seatH * 0.56, g), pw = ph * (media.print.w / media.print.h);
+      const px = lerp(this.vents.at.x, claw[0] + pw * 0.42, g), py = lerp(this.vents.at.y, claw[1] + ph * 0.46, g) - Math.sin(Math.PI * g) * ph * 0.35;
+      this.snap.carryPrint(px, py, ph, lerp(0.12, -0.08, g) + Math.sin(t * 1.3) * 0.03 * g, grade, 1 - smooth(0.3, 0.6, pushOff));
+    }
 
     // A pier post passes close to the camera on the walk to the shallows, where the two places meet.
     const pm = media.post;
-    const ph = H * 1.7, pw = Math.min(ph * (pm.w / pm.h) * 1.5, W * (this.phone ? 0.46 : 0.3));
-    this.post.put(seam !== null && inPlunge ? W / 2 + (seam - W / 2) * 1.22 - pw / 2 : -9999, -H * 0.3, pw, ph, seam !== null && inPlunge ? 1 : 0);
+    const ph0 = H * 1.7, pw0 = Math.min(ph0 * (pm.w / pm.h) * 1.5, W * (this.phone ? 0.46 : 0.3));
+    this.post.put(seam !== null && inPlunge ? W / 2 + (seam - W / 2) * 1.22 - pw0 / 2 : -9999, -H * 0.3, pw0, ph0, seam !== null && inPlunge ? 1 : 0);
 
-    // Bubbles: the plunge, the glide into the reef and the wreck, and Snap on fast scrolls.
-    if (((p1 > 0.01 && p1 < DESC * 0.7) || (q2 > 0.05 && q2 < 0.5 && !inWreck) || (inT3 && q3 > 0.05 && q3 < 0.6) || (inT4 && q4 > 0.05 && q4 < 0.6)) && Math.random() < 0.9) this.bubbles.emit(W * (0.2 + Math.random() * 0.6), H * (0.75 + Math.random() * 0.35), H * 0.012, 3);
+    // Bubbles: the plunge and the films; Snap on fast scrolls and fast walks; the propeller's wash when the submarine
+    // is under way, and a few from its hatch on fast scrolls.
+    const filming = (p1 > 0.01 && p1 < DESC * 0.7) || (q2 > 0.05 && q2 < 0.5 && !inWreck) || (inT3 && q3 > 0.05 && q3 < 0.6) || (inT4 && q4 > 0.05 && q4 < 0.6);
+    if (filming && Math.random() < 0.9) this.bubbles.emit(W * (0.2 + Math.random() * 0.6), H * (0.75 + Math.random() * 0.35), H * 0.012, 3);
     if (ride && !inReef && p1 > 0.15 && Math.abs(sc.v) > 6 && Math.random() < 0.6) this.bubbles.emit(ride.top[0] + chainBody * 0.3, ride.top[1], H * 0.008);
-    if (walking && Math.abs(ground?.vel ?? 0) > 400 && Math.random() < 0.25) this.bubbles.emit((ground?.feet[0] ?? 0) + (Math.random() - 0.5) * reefBody * 0.6, (ground?.feet[1] ?? 0) - reefBody * 0.1, H * 0.006);
+    if (walking && Math.abs(ground?.vel ?? 0) > 400 && Math.random() < 0.25) this.bubbles.emit((ground?.feet[0] ?? 0) + (Math.random() - 0.5) * chainBody * 0.5, (ground?.feet[1] ?? 0) - chainBody * 0.08, H * 0.006);
+    const inSeat = this.snap.aboard && afloat < 0.5;
+    const underWay = (inT4 && q4 > 0.02 && q4 < 1) || Math.abs(sc.v) > 3 || (inAscent && reveal < 0.5);
+    if (inSeat && underWay && Math.random() < 0.55) this.bubbles.emit(prop[0] - R * 0.15, prop[1] + (Math.random() - 0.5) * R * 0.4, H * 0.006);
+    if (inSeat && Math.abs(sc.v) > 6 && Math.random() < 0.3) this.bubbles.emit(hatch[0], hatch[1] - R * 0.1, H * 0.007);
+    if (sink > 0.02 && sink < 0.9 && Math.random() < 0.6) this.bubbles.emit(cock[0] + (Math.random() - 0.5) * subW * 0.6, cock[1] - R * 0.6, H * 0.008);
     this.bubbles.update(dt);
     this.splash.update(dt);
 
-    // The tags hang along his line, from the float down to his claw, and the source just below it.
-    const lineArc = this.line.holdArc(0) ?? len;
-    this.srcOn += ((inVents && taken ? 1 : 0) - this.srcOn) * clamp(dt * 5);
-    for (const [key, f] of Object.entries(LINE_TAGS) as [keyof typeof LINE_TAGS, number][]) {
-      this.out.tags[key] = this.line.at(lerp(f, LINE_TAGS_SRC[key], this.srcOn) * lineArc);
-    }
-    // The tags show once he has reached the shallows with it: on the way there the line swings about and a pier post passes in front.
-    const carried = smooth(0.6, 0.95, this.own) * (p1 < 1 ? smooth(0.8, 0.98, wk) : 1);
-    // (they show while he is on his feet, and in the twilight zone and on the way up; not while he swims through a film)
-    this.out.tagsOn = !lineOn ? 0
-      : inAscent ? 1 - smooth(0.3, 0.55, reveal)
-      : inVents ? (walking ? smooth(0.9, 1, land6) : 0)
-      : twiOn > 0 ? twiOn
-      : inWreck ? (walking && !inT4 ? 1 : 0)
-      : inReef ? (walking ? smooth(0.45, 0.7, kR) * (1 - 0.85 * (this.phone ? Math.max(...(reefOut?.near.slice(1, 5) ?? [0])) : reefOut?.near[2] ?? 0)) : 0)
-      : opening ? carried
-      : inT2 ? 1 - smooth(0.0, 0.25, q2) : 0;
+    // The format fish in the shallows: the school that is picked gathers by Snap's raised claw.
+    this.fish.update(dt, t, { vis: s1On, w: W, h: H, tag: [rest[0] + chainBody * 0.42, rest[1] - chainBody * 0.34], mouse: this.mouse, grade });
 
-    // The format fish in the shallows.
-    const tag = this.out.tags.fmt;
-    this.fish.update(dt, t, { vis: s1On, w: W, h: H, tag: [tag.x, tag.y], mouse: this.mouse, grade });
-
-    // The kelp forest: foreground stalks, and the little fish in the line.
+    // The kelp forest: foreground stalks, and the little fish caught in an old line by Snap's claw.
     // the forest's edge passes close to the camera on the walk in, where the two places meet
     this.kelp.update(t, { vis: s2On, w: W, h: H, mouse: this.mouse, edge: inJoin && seam !== null ? W / 2 + (seam - W / 2) * 1.2 : null });
     if (y < d0 && this.net.state !== 'tangled') { this.net.reset(); this.freeAsked = false; }
-    const top = rest;
     const wasTangled = this.net.state === 'tangled';
     this.net.update(dt, t, {
-      vis: inReef ? 0 : Math.max(s2On, inT2 ? 1 - smooth(0.1, 0.5, q2) : 0), hold: [top[0], top[1]], size: H * 0.034,
+      vis: inReef ? 0 : Math.max(s2On, inT2 ? 1 - smooth(0.1, 0.5, q2) : 0), hold: [rest[0], rest[1]], size: H * 0.034,
       follow: 1, auto: this.freeAsked || kS2 > 0.75,
     });
-    if (wasTangled && this.net.state !== 'tangled') this.kindUntil = t + 5;
+    if (wasTangled && this.net.state !== 'tangled') {
+      // his pincer snips the line
+      this.kindUntil = t + 5;
+      if (this.snap.riding && !this.snap.visiting) this.snap.rider.act(t, 'snap');
+    }
     this.out.fish = { x: this.net.at.x, y: this.net.at.y, on: this.net.at.on && s2On > 0.6 };
     this.out.kindOn = t < this.kindUntil && s2On > 0.2;
 
@@ -1055,13 +1069,11 @@ export class World {
 
     // (the octopus comes out once he is standing in the cabin)
     this.cabin(dt, t, { z4c, cabinOn, fC, grade, ride: walking && !this.snap.visiting, H, W });
-    this.dusk(dt, t, { twiOn, k5, warm, cover: z5c, H, W });
-    const geode: [number, number, number] = z6c ? [...this.spot('z6', z6c, VENTS.geode[0], VENTS.geode[1]), VENTS.geodeH * z6c.dh] : [W * 0.5, H * 0.8, H * 0.3];
+    // (the lost fish, found, swims along by the submarine's lamp)
+    this.dusk(dt, t, { twiOn, k5, warm, cover: z5c, side: [cock[0] + R * 1.2, cock[1] - R * 0.5], H, W });
     this.vents.update(dt, t, { vis: ventsOn, geode, taken, w: W, h: H, mouse: this.mouse, startle: this.ventsLanded > 0 && t - this.ventsLanded < 1.4 });
-    // (the offer makes way for the print, which shows beside him once he has pushed off)
-    this.out.vents = { z6: z6c, on: ventsOn, taken, offer: inVents && taken && u5 > -0.9 && pushOff < 0.25 };
-    // The way up: the print rides beside Snap's free claw; at the surface, once he is home and the receipt is up, he takes its picture.
-    const claw: [number, number] = this.snap.use3d && this.snap.riding ? this.snap.rider.snap3d.freeClaw() : [holdX + chainBody * 0.55, holdY + chainBody * 0.35];
+    this.out.vents = { z6: z6c, on: ventsOn, taken };
+    // The way up: the print hangs from the submarine's pincer; at the surface, once Snap is home and the receipt is up, he takes its picture.
     if (k7 < 0.5) this.flashed = false;
     if (!this.flashed && this.snap.state === 'home') {
       const r = document.getElementById('receipt')?.getBoundingClientRect();
@@ -1072,7 +1084,7 @@ export class World {
         this.out.ascent.flashAt = t;
       }
     }
-    this.out.ascent = { on: inT4 && y >= sec.t5.top - 0.2 * H ? clamp(Math.max(pushOff, bands)) * (1 - smooth(0.88, 0.98, q5)) : 0, q: q5, claw, reveal, flashAt: this.out.ascent.flashAt };
+    this.out.ascent = { on: inT4 && y >= sec.t5.top - 0.2 * H ? clamp(Math.max(pushOff, bands)) * (1 - smooth(0.88, 0.98, q5)) : 0, q: q5, at: claw, reveal, flashAt: this.out.ascent.flashAt };
     // A beam from the wreck lies on the way there: it passes close to the camera a little after the last coral.
     this.debris.update(t, { x: W / 2 + ((5 - Lr) * rc.dw + W * 0.2 - W / 2) * 1.35, vis: (inReef && wW > 0) || (inWreck && !inT3) ? 1 : 0, w: W, h: H, mouse: this.mouse });
     s.render();

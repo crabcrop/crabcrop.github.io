@@ -22,9 +22,8 @@ const NOUN: Record<string, string> = { jellyfish: 'glowing jellyfish', 'glowing 
 
 /**
  * The twilight zone in the DOM: CLIP tags that light up next to the
- * creatures the visitor's light finds, the meta answer they add up to, the
- * explain report for the visitor's own URL, and the tags on his line explaining
- * their segments while the lure's light runs down them.
+ * creatures the visitor's light finds, the meta answer they add up to, and
+ * the explain report for the visitor's own URL.
  */
 export class TwilightUI {
   private tagsList = document.getElementById('glow-tags')!;
@@ -37,8 +36,6 @@ export class TwilightUI {
   private req = document.getElementById('explain-req')!;
   private report = document.getElementById('explain-report')!;
   private kind = document.getElementById('kind-fish')!;
-  private chainTags = [...document.querySelectorAll<HTMLElement>('#tags .tag')];
-  private saved: string[] | null = null;
   private recipe: Recipe | null = null;
 
   constructor(private wide: boolean) {
@@ -51,17 +48,6 @@ export class TwilightUI {
     this.recipe = r;
     this.renderReport();
     this.renderJson();
-  }
-
-  private glosses(r: Recipe): string[] {
-    if (r.sealed) return ['sealed: explain will not open it', 'sealed inside the token', 'sealed inside the token', 'sealed inside the token', 'sealed inside the token'];
-    return [
-      'valid · key 1 · never expires',
-      r.fmt === 'auto' ? 'no format named: Accept picks AVIF' : `${FMT_NAME[r.fmt]} out`,
-      LOOK_GLOSS[r.look],
-      CROP_GLOSS[r.crop],
-      FINISH_GLOSS[r.finish] || 'no finish',
-    ];
   }
 
   private renderReport() {
@@ -138,23 +124,6 @@ export class TwilightUI {
     if (added) this.renderJson();
     this.altLine.classList.toggle('on', on && this.wide && this.seen.size > 0);
     this.kind.classList.toggle('on', out.fishOn);
-
-    // While the explain card is up, the tags on his line explain their segments as the lure's light passes.
-    const lure = tw.lure.on && !!this.recipe;
-    if (lure && !this.saved) {
-      this.saved = this.chainTags.map((el) => el.querySelector('span')!.textContent ?? '');
-      const g = this.glosses(this.recipe!);
-      this.chainTags.forEach((el, i) => { if (g[i] === undefined) return; el.querySelector('span')!.textContent = g[i]; el.classList.add('explaining'); });
-    } else if (!lure && this.saved) {
-      this.chainTags.forEach((el, i) => { el.querySelector('span')!.textContent = this.saved![i]; el.classList.remove('explaining', 'lit'); });
-      this.saved = null;
-    }
-    if (lure) {
-      for (const el of this.chainTags) {
-        const r = el.getBoundingClientRect();
-        el.classList.toggle('lit', Math.abs(r.top + r.height / 2 - tw.lure.y) < 60);
-      }
-    }
   }
 }
 

@@ -3,12 +3,17 @@
 Plan and art direction for the next crabcrop landing page: an
 Awwwards-style, scroll- and mouse-driven dive with Snap.
 
-Snap starts on a sunny marina, grabs the anchor chain and rides it to the
-bottom of the sea. The chain is a crabcrop URL, one link per operation.
-Each depth is a different place that shows a family of features on cards,
-and visitors build a real signed URL by making one choice per zone. At the
-bottom Snap finds the source image; the trip back up is the response, and
-the finished image is served live at the surface.
+Snap starts on a sunny marina, goes down the anchor chain and walks the
+sea floor from place to place; where it ends, beyond the shipwreck, a
+little submarine takes him to the bottom of the sea. Each depth is a
+different place that shows a family of features on cards, and visitors
+build a crabcrop URL on the way, one choice per zone. At the bottom Snap
+finds the source image; the trip back up is the response, where the URL is
+put together line by line as each part is applied to the picture, and the
+finished image is served at the surface, where he gets out on the pier he
+started from. (The plan first had him ride the anchor chain all the way
+down, with the chain as the URL; the three revision notes at the top of
+`experience-plan.md` say how that changed.)
 
 | File | What's in it |
 | --- | --- |
@@ -24,9 +29,6 @@ G): Snap, the world look, every zone background, the ambient loops and
 transitions, Snap's nine clips with their cutouts, and the card icons;
 see `production-log.md`. The live site is unchanged.
 
-The build has started: the marina, the plunge, the shallows, the kelp
-forest, the glide to the reef, the reef and the Clam Studio are in
-`experience/`, built to `preview/dive/`. See `experience/README.md`.
-
-Next step: the rest of the zones, from the kelp forest down, phase 3 in
-`experience-plan.md`.
+The whole dive is built: the source is in `experience/`, built to
+`preview/dive/`, a preview beside the live site. See
+`experience/README.md` for how it fits together and what is still open.

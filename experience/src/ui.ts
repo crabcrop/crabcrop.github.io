@@ -10,12 +10,30 @@ import type { LookName } from './world/look';
 
 type Choice = Fmt | 'auto';
 const SEGMENT: Record<string, string> = { auto: '', avif: 'format(avif)', webp: 'format(webp)', jxl: 'format(jxl)' };
+const FMT_NAME: Record<string, string> = { avif: 'AVIF', webp: 'WebP', jxl: 'JPEG XL' };
 const LOOK_SEG: Record<LookName, string> = { crisp: 'sharpen(1.2):saturation(1.1)', deep: 'duotone(0d202e,ffd88a)', vintage: 'sepia' };
 const LOOK_NAME: Record<LookName, string> = { crisp: 'Crisp', deep: 'Deep sea', vintage: 'Vintage' };
 const CROP_NAME: Record<CropShape, string> = { wide: 'Wide card', square: 'Square', whole: 'Whole picture' };
 type Finish = 'none' | 'studio' | 'cutout';
 const FINISH_SEG: Record<Finish, string> = { none: '', studio: 'studio(product,bg:brand,shadow:soft,pad:10)', cutout: 'removebg' };
 const FINISH_NAME: Record<Finish, string> = { none: 'None', studio: 'Studio', cutout: 'Cut out' };
+/**
+ * Says what a choice put in the visitor's URL, on the panel where they made
+ * it. The page's markup carries the line for the first option, so a line is
+ * only rewritten (and read out) when the choice is another one.
+ */
+function say(el: HTMLElement, html: string, pop = true) {
+  const was = el.innerHTML;
+  el.innerHTML = html;
+  if (!pop || el.innerHTML === was) return;
+  el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop');
+}
+const FORMAT_SAYS = (f: Choice) => (SEGMENT[f] ? `${FMT_NAME[f]} is in your URL: <code>${SEGMENT[f]}</code>` : 'No format in your URL: the Accept header decides.');
+const LOOK_SAYS = (l: LookName) => `${LOOK_NAME[l]} is in your URL: <code>${LOOK_SEG[l]}</code>`;
+const CROP_SAYS = (c: CropShape) => `${CROP_NAME[c]} is in your URL: <code>${CROP_SEG[c]}</code>`;
+const FINISH_SAYS = (f: Finish) => (f === 'none' ? 'No finish in your URL: the picture leaves as photographed.' : `${FINISH_NAME[f]} is in your URL: <code>${FINISH_SEG[f]}</code>`);
+const SEAL_SAYS = (sealed: boolean) => (sealed ? 'Sealed: your whole URL is one opaque token now.' : 'Readable: the recipe stays in plain sight.');
+
 const ZONES: Record<ZoneId, string> = {
   s0: 'The Marina', t1: 'The plunge', s1: 'The Shallows', s2: 'The Kelp Forest', t2: 'To the reef',
   s3: 'The Coral Reef', s3b: 'The Clam Studio', s4: 'The Shipwreck', t3: 'Into the wreck', s4b: 'The Shipwreck',
@@ -24,7 +42,6 @@ const ZONES: Record<ZoneId, string> = {
 /** Which gauge entry is current in each zone. */
 const GAUGE: Record<ZoneId, string> = { s0: 's0', t1: 's0', s1: 's1', s2: 's2', t2: 's2', s3: 's3', s3b: 's3', s4: 's4', t3: 's4', s4b: 's4', t4: 's4', s5: 's5', s6: 's6', t5: 's6', s7: 's7' };
 const DEPTH: Record<string, number> = { s0: 0, s1: -5, s2: -15, s3: -30, s3b: -30, s4: -60, s4b: -60, s5: -500, s6: -2500, s7: 0 };
-const TAG_KEYS = ['sig', 'fmt', 'look', 'crop', 'finish', 'src'] as const;
 
 const kb = (n: number) => `${Math.round(n / 1024)} KB`;
 const metres = (d: number) => (Math.abs(d) < 0.05 ? '0 m' : Math.abs(d) >= 1000 ? `−${Math.round(Math.abs(d)).toLocaleString('en-US')} m` : `−${Math.abs(d).toFixed(Math.abs(d) < 10 && d % 1 ? 1 : 0)} m`);
@@ -34,16 +51,6 @@ function whenNear(el: Element | null, fn: () => void) {
   if (!el) return;
   const io = new IntersectionObserver((es) => { if (es.some((e) => e.isIntersecting)) { io.disconnect(); fn(); } }, { rootMargin: '200% 0px' });
   io.observe(el);
-}
-
-/** A tag on Snap's line takes a value, with a little stamp. */
-function stamp(tag: HTMLElement, code: string, note: string) {
-  tag.classList.remove('blank');
-  tag.querySelector('code')!.textContent = code;
-  tag.querySelector('span')!.textContent = note;
-  tag.classList.remove('stamp');
-  void tag.offsetWidth;
-  tag.classList.add('stamp');
 }
 
 interface Hooks {
@@ -58,12 +65,14 @@ interface Hooks {
   onRemove: (rect: [number, number, number, number]) => void;
   onUpscale: (again: boolean) => void;
   onReefFocus: (station: number) => void;
+  /** Choices 1 to 4: the visitor picked a part of their URL. */
+  onChoice: () => void;
   /** Choice 5: the URL sealed or readable. */
   onSeal: (sealed: boolean) => void;
   onSealLetter: () => void;
 }
 
-/** Everything in the DOM: buttons, the gauge, cards, tags, both choices, the cargo and the curtains. */
+/** Everything in the DOM: buttons, the gauge, cards, the choices, the cargo and the curtains. */
 export class UI {
   private depthEl = document.getElementById('depth')!;
   private zoneEl = document.getElementById('zone')!;
@@ -71,17 +80,13 @@ export class UI {
   private fill = document.getElementById('gauge-fill')!;
   private story = document.getElementById('story')!;
   private kind = document.getElementById('kind')!;
-  private tagsEl = document.getElementById('tags')!;
-  private tagEls = [...document.querySelectorAll<HTMLElement>('#tags .tag')];
-  private lookTag = document.getElementById('tag-look')!;
-  private cropTag = document.getElementById('tag-crop')!;
+  private board = document.getElementById('kind-sub')!;
   private cards = [...document.querySelectorAll<HTMLElement>('.card')];
   private reefUI: ReefUI;
   private wreckUI: WreckUI;
   private twilightUI: TwilightUI;
   private ventsUI = new VentsUI();
   private surfaceUI = new SurfaceUI();
-  private sigTag = document.querySelector<HTMLElement>('#tags .tag.sig')!;
   private sealInputs = [...document.querySelectorAll<HTMLInputElement>('input[name="seal"]')];
   private cargo = document.getElementById('cargo')!;
   private hots = [...document.querySelectorAll<HTMLButtonElement>('.hot')];
@@ -91,9 +96,7 @@ export class UI {
   private lastZone = '';
   private fmt: Choice = 'auto';
   private look: LookName = 'crisp';
-  private lookShown = false;
   private crop: CropShape = 'wide';
-  private cropShown = false;
   private finish: Finish = 'none';
   private sealed = false;
   private fishHidden = true;
@@ -168,18 +171,17 @@ export class UI {
   /** Choice 1: the format. */
   private formatChoice() {
     const status = document.getElementById('choice-status')!;
-    const tag = document.getElementById('tag-format')!;
     const inputs = [...document.querySelectorAll<HTMLInputElement>('input[name="format"]')];
     this.fmt = (inputs.find((i) => i.checked)?.value as Choice) ?? 'auto';
+    say(status, FORMAT_SAYS(this.fmt), false);
     for (const input of inputs) {
       input.addEventListener('change', () => {
         const f = input.value as Choice;
-        const seg = SEGMENT[f];
         this.fmt = f;
-        stamp(tag, seg || 'auto', seg ? 'Your format' : 'The Accept header decides');
-        status.textContent = seg ? `Format set: ${seg}.` : 'No format: the Accept header decides.';
+        say(status, FORMAT_SAYS(f));
         this.url();
         this.o.onFormat(f);
+        this.o.onChoice();
       });
       const label = input.closest('label')!;
       const focus = () => this.o.onFocus(input.value === 'auto' ? null : (input.value as Fmt));
@@ -212,15 +214,15 @@ export class UI {
     const preview = (l: LookName | null) => { this.o.onLookPreview(l); show(l ?? this.look); };
     const choose = (l: LookName) => {
       this.look = l;
-      this.lookShown = true;
-      stamp(this.lookTag, LOOK_SEG[l], 'Your look');
       show(l);
-      status.textContent = `Look set: ${LOOK_NAME[l]}, ${LOOK_SEG[l]}.`;
+      say(status, LOOK_SAYS(l));
       this.silks.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.look === l)));
       this.url();
       this.o.onLook(l);
+      this.o.onChoice();
     };
     show(this.look);
+    say(status, LOOK_SAYS(this.look), false);
 
     for (const input of inputs) {
       const l = input.value as LookName;
@@ -251,16 +253,16 @@ export class UI {
     const inputs = [...document.querySelectorAll<HTMLInputElement>('input[name="crop"]')];
     this.crop = (inputs.find((i) => i.checked)?.value as CropShape) ?? 'wide';
     this.reefUI.setCrop(this.crop);
+    say(status, CROP_SAYS(this.crop), false);
     for (const input of inputs) {
       const c = input.value as CropShape;
       input.addEventListener('change', () => {
         if (!input.checked) return;
         this.crop = c;
-        this.cropShown = true;
-        stamp(this.cropTag, CROP_SEG[c], 'Your crop');
-        status.textContent = `Crop set: ${CROP_NAME[c]}, ${CROP_SEG[c]}.`;
+        say(status, CROP_SAYS(c));
         this.reefUI.setCrop(c);
         this.url();
+        this.o.onChoice();
       });
       const label = input.closest('label')!;
       label.addEventListener('pointerenter', () => this.reefUI.previewCrop(c));
@@ -273,34 +275,37 @@ export class UI {
   /** Choice 4: the finish, shown on Snap in the studio's swatches. */
   private finishChoice() {
     const status = document.getElementById('finish-status')!;
-    const tag = document.getElementById('tag-finish')!;
     whenNear(document.getElementById('s3b'), () => {
       const snapImg = `url(${asset('media/snap-stand.webp')})`;
       for (const el of document.querySelectorAll<HTMLElement>('.finish .mini')) el.style.setProperty('--snap', snapImg);
       const photo = `url(${asset('media/z0-1600.webp')})`;
       for (const el of document.querySelectorAll<HTMLElement>('.finish .mini.none, .compare-before')) el.style.setProperty('--photo', photo);
     });
-    for (const input of document.querySelectorAll<HTMLInputElement>('input[name="finish"]')) {
+    const inputs = [...document.querySelectorAll<HTMLInputElement>('input[name="finish"]')];
+    this.finish = (inputs.find((i) => i.checked)?.value as Finish) ?? 'none';
+    say(status, FINISH_SAYS(this.finish), false);
+    for (const input of inputs) {
       input.addEventListener('change', () => {
         if (!input.checked) return;
         const f = input.value as Finish;
         this.finish = f;
-        stamp(tag, FINISH_SEG[f] || 'none', f === 'none' ? 'No finish' : 'Your finish');
-        status.textContent = f === 'none' ? 'No finish: the picture leaves as photographed.' : `Finish set: ${FINISH_NAME[f]}, ${FINISH_SEG[f]}.`;
+        say(status, FINISH_SAYS(f));
         this.url();
+        this.o.onChoice();
       });
     }
   }
 
-  /** Choice 5: sealed or readable. Sealed, the signature tag on his line becomes the token and the other tags fold into it. */
+  /** Choice 5: sealed or readable. */
   private sealChoice() {
     const status = document.getElementById('seal-status')!;
     this.sealed = this.sealInputs.find((i) => i.checked)?.value === 'sealed';
+    say(status, SEAL_SAYS(this.sealed), false);
     for (const input of this.sealInputs) {
       input.addEventListener('change', () => {
         if (!input.checked) return;
         this.sealed = input.value === 'sealed';
-        status.textContent = this.sealed ? 'Sealed: the whole recipe is one opaque token now.' : 'Readable: the recipe stays in plain sight.';
+        say(status, SEAL_SAYS(this.sealed));
         this.url();
         this.o.onSeal(this.sealed);
       });
@@ -342,12 +347,6 @@ export class UI {
     this.surfaceUI.setRecipe(recipe);
     this.wreckUI.setLog(this.logEntries());
     this.wreckUI.setSealed(this.sealed);
-    const was = this.tagsEl.classList.contains('sealed');
-    this.tagsEl.classList.toggle('sealed', this.sealed);
-    if (was !== this.sealed) {
-      stamp(this.sigTag, this.sealed ? `s1.${token.slice(0, 8)}…` : '3c1f6c18…', this.sealed ? 'The whole recipe, sealed' : 'Proof the URL came from you');
-      this.sigTag.classList.toggle('seal', this.sealed);
-    }
   }
 
   private setCurrent(id: string) {
@@ -385,27 +384,7 @@ export class UI {
     this.fill.style.width = `${(docProgress * 100).toFixed(1)}%`;
     this.story.classList.toggle('on', out.storyOn);
     this.kind.classList.toggle('on', out.kindOn);
-
-    // The tags on Snap's line. Reaching the kelp, the look tag shows the look already on.
-    this.tagsEl.classList.toggle('on', out.tagsOn > 0.5);
-    if (!this.lookShown && out.s2On > 0.6) {
-      this.lookShown = true;
-      stamp(this.lookTag, LOOK_SEG[this.look], `${LOOK_NAME[this.look]} for now`);
-    }
-    if (!this.cropShown && out.reef && out.reef.near[1] > 0.6) {
-      this.cropShown = true;
-      stamp(this.cropTag, CROP_SEG[this.crop], `${CROP_NAME[this.crop]} for now`);
-    }
-    if (out.tagsOn > 0.01) {
-      TAG_KEYS.forEach((k, i) => {
-        const p = out.tags[k];
-        const el = this.tagEls[i];
-        if (!el) return;
-        // where the line leans (trailing behind Snap as he walks) the tags still hang more or less upright
-        const dangle = Math.max(-0.35, Math.min(0.35, -p.a * 0.6)) + Math.sin(t * 1.3 + i * 1.7) * 0.05;
-        el.style.setProperty('--pos', `translate(${(p.x + 9).toFixed(1)}px, ${(p.y - 11).toFixed(1)}px) rotate(${dangle.toFixed(3)}rad)`);
-      });
-    }
+    this.board.classList.toggle('on', out.boardOn);
 
     // Cards sway gently in the water.
     const H = innerHeight;
@@ -438,7 +417,7 @@ export class UI {
     this.wreckUI.update(out);
     this.twilightUI.update(out, t);
     this.ventsUI.update(out, t, this.o.wide);
-    this.surfaceUI.update(out, t, this.o.wide);
+    this.surfaceUI.update(out);
 
     // The button on the tangled fish, unless a card has scrolled over the fish or the button.
     const f = out.fish;

@@ -603,6 +603,38 @@ seamless background, isolated, centred, sharp from nose to tail, soft even
 light, no shadow on the background. {WORLD_DNA}
 ```
 
+For the deep half of the dive, the submarine Snap rides in, 3:2, with the submarine
+above as the reference (the same brass, glass and steel), cut out of the
+grey in the build. It tends to come out nose to the left whatever the
+prompt says; the build mirrors it.
+
+```
+A small handmade toy submarine made of real brass and glass, photographed
+exactly from the side, level, nose pointing to the right. The front half
+of the submarine is one large, perfectly clear glass sphere: a bubble
+cockpit as tall as the whole vehicle, held by a wide brass ring where it
+joins the hull. The glass sphere is completely empty and clean, with
+nothing inside it, no seat, no controls, no figure, so the plain
+background shows through the glass; only soft window highlights and a
+faint rim show that it is glass. Behind the bubble a short riveted brass
+hull with a small round brass hatch tower on top, a small brass headlamp
+on a short stalk above the bubble, two short steel grabber arms with
+pincers under the bubble pointing forward to the right, a brass ballast
+tank slung under the hull, and at the back a brass tail with fins and a
+small three-blade propeller. The same warm brass with patina and small
+scratches, the same clear glass and the same steel arms as the toy
+submersible in the reference image. The whole submarine in frame with
+space around it. Photographed on a plain mid-grey seamless background,
+isolated, centred, sharp from nose to tail, soft even light, no shadow on
+the background. A handmade miniature at toy scale, photographed for real:
+real brass, real glass with soft highlights, steel arms. Macro
+photography, 100 mm lens look, natural light, rich but believable color,
+fine film grain. No rocks, no sea floor, no bubbles, no water, no
+creatures, no crabs, no people, no hands, no text, no letters, no numbers,
+no logos, no watermarks, no plastic or CGI render look, no cartoon
+outlines, no flat illustration.
+```
+
 ## 5. Phase D: ambient loops
 
 MiniMax H3 · 21:9 · 2K · 8 s · start image = end image = the zone plate.
