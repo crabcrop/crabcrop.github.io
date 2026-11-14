@@ -6,12 +6,13 @@
   "description": "All the Way Down: the scroll-driven crabcrop landing page. Builds to ../preview/dive.",
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && node scripts/clean-build.mjs && vite build",
+    "build": "tsc --noEmit && node scripts/check-fonts.mjs && node scripts/clean-build.mjs && vite build",
     "preview": "vite preview",
     "fetch": "bash scripts/fetch-sources.sh",
     "media": "python3 scripts/encode-media.py && node scripts/thumbhash.mjs && rm -f ../preview/dive/media/*-tiny.png"
   },
   "dependencies": {
+    "fflate": "^0.8.3",
     "lenis": "^1.3.27",
     "three": "^0.187.0",
     "thumbhash": "^0.1.1"

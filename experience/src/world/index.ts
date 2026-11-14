@@ -17,6 +17,7 @@ import { Vents } from './vents';
 import { SPOTS } from './spots';
 import { LOOK, LOOKS, type LookName } from './look';
 import { media } from '../media';
+import { MAX_DPR, SNAP_TALL } from '../first-view';
 import { clamp, lerp, smooth, type Scroll } from '../scroll';
 
 interface Layout {
@@ -67,7 +68,7 @@ const LAYOUT: Record<'wide' | 'phone', Layout> = {
     fx: 0.62, fxKelp: 0.5, fxWreck: 0.38, fxCabin: 0.45, overCabin: 1.04, fxVents: 0.36,
     feet: [0.795, 0.345], body: 0.125,               // Snap on the right pier
     anchor: [0.655, 0.47],                           // the chain leaves the boat's stern
-    holdY: 0.56, chainBody: 0.26,                    // riding: his top hold, his height (viewport heights)
+    holdY: 0.56, chainBody: SNAP_TALL.wide,                    // riding: his top hold, his height (viewport heights)
     gust: 0.35, hop: 0.64,
     octopus: 0.13,
     under: 2.7, ring: [0.632, 0.873], sand: 0.957, anchorH: 0.26, ringX: 0.62, landDx: -1.2,
@@ -80,7 +81,7 @@ const LAYOUT: Record<'wide' | 'phone', Layout> = {
     fx: 0.5, fxKelp: 0.5, fxWreck: 0.5, fxCabin: 0.5, overCabin: 1.12, fxVents: 0.5,
     feet: [0.37, 0.236], body: 0.085,
     anchor: [0.2, 0.27],
-    holdY: 0.66, chainBody: 0.2,
+    holdY: 0.66, chainBody: SNAP_TALL.phone,
     gust: 0.62, hop: 0.8,                            // after the tall hero card has scrolled away
     octopus: 0.1,
     under: 2.4, ring: [0.2, 0.845], sand: 0.935, anchorH: 0.24, ringX: 0.36, landDx: 0.92,
@@ -246,7 +247,7 @@ export class World {
   constructor(canvas: HTMLCanvasElement, private scroll: Scroll, phone: boolean) {
     this.phone = phone;
     this.L = phone ? LAYOUT.phone : LAYOUT.wide;
-    this.stage = new Stage(canvas, 2);
+    this.stage = new Stage(canvas, MAX_DPR);
     this.backdrop = new Backdrop(this.stage, phone);
     this.chain = new Chain(this.stage);
     this.chain.fixed = true;
@@ -285,17 +286,25 @@ export class World {
 
   resize() { this.stage.resize(); this.measure(); }
 
+  /** The page is hidden: what plays stops (the loops start again with the next frame drawn). */
+  rest() { this.snap.pause(); this.backdrop.playLoops({}); }
+
   /** The marina first; everything else loads as the visitor nears it. */
   async load() {
     this.wants.add('z0');
     await this.backdrop.loadPlate('z0');
-    await this.snap.load().catch(() => {});
+    await this.snap.load(this.L.chainBody * this.stage.h * this.stage.dpr).catch(() => {});
+    // The first view is up: now the shaders of every layer further down, before the visitor gets there.
+    this.stage.warm();
     this.backdrop.loadLoop('z0').catch(() => {});
     await this.snap.loadRest().catch(() => {});
     // what waits at the foot of the pier: the anchor, a pier post, the plate's sharper underwater half
     for (const p of [this.anchor, this.post]) p.load().catch(() => {});
-    this.want('z0u', () => this.backdrop.loadPlate('z0u'));
+    this.heroUp = true;
   }
+
+  /** The first view (the marina's plate and Snap) is loaded: what the plunge needs may load now. */
+  private heroUp = false;
 
   private wants = new Set<string>();
   private want(key: string, go: () => Promise<unknown>) {
@@ -313,6 +322,12 @@ export class World {
     const shared = [...this.wants].some((w) => PLATE_ZONES.has(w) && this.backdrop.key(w as Zone) === k);
     if (!shared) this.backdrop.drop(z);
   }
+  /** A stretch of scroll (from, to) that scrubs a transition from frame first to frame last: within reach of either end, that end's frames are made ready. */
+  private soon(k: 't2' | 't3' | 't4', y: number, H: number, from: number, to: number, first: number, last: number) {
+    const reach = 0.6 * H, up = last > first ? 1 : -1;
+    if (y < from && y > from - reach) this.backdrop.prime(k, first, up);
+    else if (y > to && y < to + reach) this.backdrop.prime(k, last, up > 0 ? -1 : 1);
+  }
   private stream(y: number, H: number, Lr: number) {
     const sec = this.scroll.sec;
     const d0 = sec.s2.top - 1.45 * H;
@@ -325,7 +340,8 @@ export class World {
     const reefSoon = y > sec.t2.top - 0.5 * H;
     if (reefSoon) this.want('coral', () => this.reef.load());
     this.resident('z0', y < sec.t1.top + sec.t1.h + 0.5 * H);
-    this.resident('z0u', y < sec.t1.top + sec.t1.h + 0.5 * H);
+    // (the sharper underwater half is for the plunge: it waits for the first view, unless the visitor is already on the way down)
+    this.resident('z0u', (this.heroUp || y > 0.3 * H) && y < sec.t1.top + sec.t1.h + 0.5 * H);
     this.resident('z1', y > 0.95 * H && y < d0 + 1.6 * H);
     this.resident('z2', y > sec.s1.top + 0.4 * H && y < sec.s3.top + 0.5 * H);
     this.resident('z3', y > sec.s2.top + 0.6 * H && y < sec.s3.top + 0.5 * H);
@@ -344,6 +360,14 @@ export class World {
     if (y > sec.s4.top) this.want('octopus', () => this.octopus.load());
     if (y > sec.s3b.top + H) this.want('beam', () => this.debris.load());
     if (y > sec.s4b.top + 0.5 * H) this.want('t4', () => this.backdrop.loadSequence('t4'));
+    // A transition the scroll is about to reach has the frames it will want
+    // first decoded before it gets there: each stretch of scroll that scrubs
+    // one, with the frames it starts and ends on.
+    const t4 = sec.t4.top, n2 = media.t2.frames - 1, n3 = media.t3.frames - 1, n4 = media.t4.frames - 1;
+    this.soon('t2', y, H, sec.t2.top, sec.t2.top + sec.t2.h, 0, n2);
+    this.soon('t3', y, H, sec.t3.top, sec.t3.top + sec.t3.h, 0, n3);
+    this.soon('t3', y, H, t4, t4 + OUT * sec.t4.h, n3, 0);
+    this.soon('t4', y, H, t4 + DROP * sec.t4.h, t4 + sec.t4.h, 0, n4);
     this.resident('z4x', y > sec.s3b.top && y < sec.s4b.top + 0.5 * H);
     this.resident('z4', y > sec.s4.top && y < sec.t4.top + 0.6 * H);
     this.resident('z5', y > sec.s4b.top + H);
@@ -676,6 +700,7 @@ export class World {
       const coverOf = (z: SourceKey) => (a === z ? covers.a : b === z ? covers.b : null);
       z0c = coverOf('z0'); z1c = coverOf('z1'); z2c = coverOf('z2'); z4c = coverOf('z4'); z5c = coverOf('z5'); z6c = coverOf('z6'); z7c = coverOf('z7');
     }
+    this.backdrop.tidy();
     this.backdrop.playLoops({ z0: k < s0h + 0.2, z1: p1 > WALK - 0.05 && d12 < 1, z2: d12 > 0 && q2 < 0.1, z4: inT3 && q3 > 0.85 && y < sec.t4.top + 0.2 * H, z6: inVents, z7: inAscent && q5 > 0.8 });
 
     // Visibility of each zone's layers.

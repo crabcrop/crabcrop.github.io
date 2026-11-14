@@ -50,10 +50,20 @@ npm run fetch      # download the sources in scripts/sources.json to .cache/
 npm run media      # encode plates, loops, the three filmed transitions, Snap's clips, sprites
 ```
 
-`npm run media` needs ffmpeg and Python 3 with numpy, scipy and Pillow
+`npm run media` needs ffmpeg (with libx264, libx265 and libsvtav1: the
+loops are encoded in all three) and Python 3 with numpy, scipy and Pillow
 (built with AVIF), plus npx and trimesh for the 3D Snap. `npm run fetch` gets
 the Tripo model through the `tripo` CLI, which needs the Tripo API key. It uses `design/snap-world/tools/snap-matte.py` to turn
-Snap's clips into stacked-alpha video.
+Snap's clips into stacked-alpha video. A step can be run alone
+(`python3 scripts/encode-media.py loops`); run `node scripts/thumbhash.mjs`
+after a step that encodes plates.
+
+The fonts are cut down to the characters the page uses. If the page gains a
+character they do not have, the build stops and says so; then:
+
+```sh
+python3 scripts/subset-fonts.py           # needs fonttools and brotli; writes src/fonts/*.woff2 and chars.json
+```
 
 Two pictures are taken from the page itself, for the page without motion,
 where it cannot show Snap on the pier with his print: Snap on his feet (the
@@ -109,24 +119,68 @@ The reef is pinned for 800vh: seven viewport heights of sideways travel,
 then the studio scrolls on normally. Plates far from the camera are freed
 and load again if the visitor scrolls back.
 
-The scripts and styles are about 209 KB gzipped (25 KB for the page's own
-script; Three.js and the world load in their own chunk after the text),
-fonts 123 KB, and the hero plate 100 to 145 KB. The 3D Snap follows (0.7 MB
-of shape as base64 text and a 0.2 MB texture) with the print he holds, then
-the marina loop. Snap's three films (1.7 MB) load only if the 3D Snap
-cannot. Each later zone and transition loads as the visitor gets near it,
-and the submarine (54 KB) once they reach the Clam Studio. All the media
-together are about 41 MB, 10 MB of it the three filmed transitions (72
-frames each; the plunge is no longer a film but a push in on the marina's
-plate). Each transition's frames come
-in four packs per device, frame i in pack i % 4, so the first pack to
-arrive already scrubs the whole move and the others fill in between (and a
-transition is 8 requests, not 144).
-
 The sealed token in the chest, on the ticket and on the receipt is a
 stand-in: random-looking base64url of the right length (a 12-byte nonce,
 the recipe and a 16-byte tag), the same for the same recipe. A real one
 needs the secret, like the real signatures.
+
+## What loads, and when
+
+**The first view.** The page's HTML (12 KB gzipped), its stylesheet (11 KB)
+and its own script (28 KB) show the text. The three fonts are cut down to
+the characters the page uses (68 KB together) and asked for from the page's
+head, so they arrive with the stylesheet. The moving world starts once the
+text has had its first paint, not before: nothing shares the line or the
+processor with the text on its way to the screen. Then its first files are
+asked for together, where they used to follow one another: the world's
+script (Three.js and the world, 177 KB gzipped, in its own chunk), the
+marina's plate in the size this screen needs, and Snap's shape and texture
+(`early()` in `src/main.ts`). `src/first-view.ts` holds the numbers both
+sides go by (which plate, which texture), so what is asked for early is
+what the world then uses. After them come the print he holds, the marina's
+loop, and what the plunge needs: the anchor, a pier post, the plate's
+sharper underwater half. On a 1440 by 900 screen the first view is 1.1 MB with the
+marina's loop in AV1; on a phone 1.1 to 1.4 MB, by the loop's codec.
+
+Snap's shape is 216 KB on the wire: 21,000 vertices and 35,000 triangles
+packed for the page (`snap3d` in `scripts/encode-media.py` writes it,
+`src/world/snap3d.ts` reads it: the vertices in the order the triangles
+first use them, each column stored as the difference from the vertex
+before, normals folded onto a square, each triangle index as how far back
+it reaches), deflated, and sent as base64 text since the preview host
+serves no binary files. His texture is 1024 px (79 KB) where he is drawn no
+taller than 300 device pixels (most desktop screens that are not high
+density, and small phones), else 2048 px (186 KB). Snap's three films
+(1.7 MB) load only if the 3D Snap cannot.
+
+**Further down.** Each zone's plate, its loop and each transition load as
+the visitor gets near, the submarine (53 KB) once they reach the Clam
+Studio; plates and loops far from the camera are freed, and load again if
+the visitor scrolls back. The loops come in three codecs, the AV1 and HEVC
+encodes held to the quality of the H.264 one: for the six a wide screen
+plays, 1.7 MB in AV1, 3.7 MB in HEVC and 4.9 MB in H.264 (a phone's: 0.9,
+1.9 and 2.6 MB). The page asks the browser (`navigator.mediaCapabilities`)
+and takes the smallest it plays smoothly; on a phone, the smallest its chip
+decodes. Each transition's 72 frames come in four packs per device, frame i
+in pack i % 4, so the first pack to arrive already scrubs the whole move
+and the others fill in between (and a transition is 4 requests, not 72):
+5.3 MB for the three on a wide screen, 2.3 MB on a phone. A whole dive, top
+to bottom, is about 9.6 MB on a 1440 by 900 screen that plays AV1 (11.5 MB
+with HEVC, 12.8 MB with H.264) and 5.5 to 7.2 MB on a phone. A visitor
+whose browser asks to save data gets no loops (the plates stand still) and
+every other transition frame.
+
+**While it runs.** The shaders of every layer are built in the background
+once the first view is up (`Stage.warm`), not on the frame each layer first
+shows. A transition's frames stay compressed in memory and are decoded off
+the main thread, a few around the scrub and ahead of it (`Backdrop`, about
+ten kept for each transition), and the frames a transition starts on are
+decoded as the scroll comes near it. Loops play only while their zone is on
+screen, and stop while the page is hidden. If frames run slow the canvas
+steps down to a lighter pixel ratio.
+
+All the media together are about 43 MB on disk: the loops in three codecs,
+every picture in AVIF and WebP.
 
 ## Not built yet
 

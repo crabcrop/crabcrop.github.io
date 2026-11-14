@@ -1,4 +1,4 @@
-import { media } from './media';
+import { media, avifSupported } from './media';
 import { ReefUI, CROP_SEG, type CropShape } from './reef-ui';
 import { WreckUI, sealToken, type LogEntry } from './wreck-ui';
 import { TwilightUI, type Recipe } from './twilight-ui';
@@ -46,6 +46,8 @@ const DEPTH: Record<string, number> = { s0: 0, s1: -5, s2: -15, s3: -30, s3b: -3
 const kb = (n: number) => `${Math.round(n / 1024)} KB`;
 const metres = (d: number) => (Math.abs(d) < 0.05 ? '0 m' : Math.abs(d) >= 1000 ? `−${Math.round(Math.abs(d)).toLocaleString('en-US')} m` : `−${Math.abs(d).toFixed(Math.abs(d) < 10 && d % 1 ? 1 : 0)} m`);
 const asset = (path: string) => new URL(path, document.baseURI).href;
+/** A picture for a CSS background, AVIF where the browser has it (the world has often fetched that file already), else WebP. */
+const picture = async (name: string) => `url(${asset(`media/${name}.${(await avifSupported()) ? 'avif' : 'webp'}`)})`;
 /** Run once when an element comes within a couple of screens: CSS backgrounds don't load lazily on their own. */
 function whenNear(el: Element | null, fn: () => void) {
   if (!el) return;
@@ -141,8 +143,9 @@ export class UI {
       el.style.backgroundPosition = `${-x * scale}px 0`;
       el.style.width = `${Math.min(54, w * scale)}px`;
     }
-    whenNear(document.getElementById('choice-format'), () => {
-      for (const el of document.querySelectorAll<HTMLElement>('.school .fish:not(.none)')) el.style.backgroundImage = `url(${asset('media/fish.webp')})`;
+    whenNear(document.getElementById('choice-format'), async () => {
+      const fish = await picture('fish');
+      for (const el of document.querySelectorAll<HTMLElement>('.school .fish:not(.none)')) el.style.backgroundImage = fish;
     });
 
     // The cargo: tap or click shows what each source is.
@@ -201,8 +204,9 @@ export class UI {
     const inputs = [...document.querySelectorAll<HTMLInputElement>('input[name="look"]')];
     this.look = (inputs.find((i) => i.checked)?.value as LookName) ?? 'crisp';
 
-    whenNear(document.getElementById('choice-look'), () => {
-      for (const el of document.querySelectorAll<HTMLElement>('.swatch')) el.style.backgroundImage = `url(${asset('media/print.webp')})`;
+    whenNear(document.getElementById('choice-look'), async () => {
+      const print = await picture('print');
+      for (const el of document.querySelectorAll<HTMLElement>('.swatch')) el.style.backgroundImage = print;
     });
 
     // What the card and (without WebGL) the forest show.
@@ -275,10 +279,10 @@ export class UI {
   /** Choice 4: the finish, shown on Snap in the studio's swatches. */
   private finishChoice() {
     const status = document.getElementById('finish-status')!;
-    whenNear(document.getElementById('s3b'), () => {
-      const snapImg = `url(${asset('media/snap-stand.webp')})`;
+    whenNear(document.getElementById('s3b'), async () => {
+      const snapImg = await picture('snap-stand');
       for (const el of document.querySelectorAll<HTMLElement>('.finish .mini')) el.style.setProperty('--snap', snapImg);
-      const photo = `url(${asset('media/z0-1600.webp')})`;
+      const photo = await picture('z0-1600');
       for (const el of document.querySelectorAll<HTMLElement>('.finish .mini.none, .compare-before')) el.style.setProperty('--photo', photo);
     });
     const inputs = [...document.querySelectorAll<HTMLInputElement>('input[name="finish"]')];

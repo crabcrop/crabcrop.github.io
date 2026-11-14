@@ -28,7 +28,31 @@ export class Stage {
   constructor(canvas: HTMLCanvasElement, private maxDpr: number) {
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'high-performance' });
     this.renderer.setClearColor(0x000000, 0);
+    // (asking a shader for its error log waits for it to finish compiling: only while developing)
+    this.renderer.debug.checkShaderErrors = import.meta.env.DEV;
     this.resize();
+  }
+
+  /**
+   * Have the shaders of everything in the scene (or of one object in it)
+   * built now, in the background, and say when they are ready. Left to
+   * itself each one is built on the frame its layer first shows, which
+   * stalls that frame: tens of milliseconds, more on some machines. One
+   * layer at a time: a browser that builds them on its drawing thread
+   * after all is then held up a little at a time, not once for the lot.
+   * Where the browser cannot say when a shader is ready, each is started
+   * and given a moment.
+   */
+  async warm(object: THREE.Object3D = this.scene) {
+    const layers: THREE.Object3D[] = [];
+    object.traverse((o) => { if ((o as THREE.Mesh).material) layers.push(o); });
+    const told = this.renderer.extensions.has('KHR_parallel_shader_compile');
+    for (const o of layers) {
+      try {
+        if (told) await this.renderer.compileAsync(o, this.camera, this.scene);
+        else { this.renderer.compile(o, this.camera, this.scene); await new Promise((r) => setTimeout(r, 120)); }
+      } catch { /* it is built when it is first drawn, as before */ }
+    }
   }
 
   resize() {

@@ -19,4 +19,8 @@ for (const key of Object.keys(man.plates)) {
   man.plates[key].thumbhash = Buffer.from(hash).toString('base64');
   console.log(key, man.plates[key].thumbhash);
 }
+// The twilight zone's lit plates are revealed over its dark ones: the same placeholders.
+for (const [lit, dark] of [['z5lit', 'z5'], ['z5litp', 'z5p']]) {
+  if (man.plates[lit] && man.plates[dark]?.thumbhash) man.plates[lit].thumbhash = man.plates[dark].thumbhash;
+}
 writeFileSync(manPath, JSON.stringify(man, null, 1));

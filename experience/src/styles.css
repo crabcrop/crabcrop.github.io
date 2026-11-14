@@ -1,6 +1,6 @@
-@font-face { font-family: 'Fraunces'; src: url('./fonts/fraunces-latin-soft-normal.woff2') format('woff2'); font-weight: 100 900; font-style: normal; font-display: swap; }
-@font-face { font-family: 'Figtree'; src: url('./fonts/figtree-latin-wght-normal.woff2') format('woff2'); font-weight: 300 900; font-style: normal; font-display: swap; }
-@font-face { font-family: 'JetBrains Mono'; src: url('./fonts/jetbrains-mono-latin-wght-normal.woff2') format('woff2'); font-weight: 100 800; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Fraunces'; src: url('./fonts/fraunces.woff2') format('woff2'); font-weight: 100 900; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Figtree'; src: url('./fonts/figtree.woff2') format('woff2'); font-weight: 300 900; font-style: normal; font-display: swap; }
+@font-face { font-family: 'JetBrains Mono'; src: url('./fonts/jetbrains-mono.woff2') format('woff2'); font-weight: 100 800; font-style: normal; font-display: swap; }
 
 :root {
   /* The live site's tokens */
@@ -21,7 +21,6 @@
   --display: 'Fraunces', Georgia, 'Times New Roman', serif;
   --body: 'Figtree', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
-  --soft: 0;
   --top: 56px;
 }
 
@@ -31,7 +30,7 @@ body { margin: 0; font-family: var(--body); font-size: 18px; line-height: 1.5; c
 a { color: var(--tide-deep); text-underline-offset: 3px; }
 a:hover { color: var(--coral-deep); }
 code { font-family: var(--mono); font-size: .86em; }
-h1, h2, h3 { font-family: var(--display); font-variation-settings: 'SOFT' var(--soft); line-height: 1.02; margin: 0; letter-spacing: -0.015em; }
+h1, h2, h3 { font-family: var(--display); line-height: 1.02; margin: 0; letter-spacing: -0.015em; }
 h1 { font-size: clamp(42px, 4.9vw, 80px); font-weight: 900; }
 h2 { font-size: clamp(36px, 4.2vw, 64px); font-weight: 860; }
 h3 { font-size: 22px; font-weight: 800; letter-spacing: -0.005em; line-height: 1.15; }
@@ -210,7 +209,8 @@ main { position: relative; z-index: 1; }
 /* The way up: the print in the submarine's pincer takes on the choices one at a time, and the URL prints under it, a line for each */
 .plunge.ascent { height: 150vh; }
 .ascent-print { display: none; }
-.gl .ascent-print { display: grid; justify-items: start; gap: 8px; position: fixed; left: 0; top: 0; z-index: 3; margin: 0; pointer-events: none; opacity: 0; transition: opacity .4s; }
+/* (until the vents are near it is not laid out at all: a picture waiting unseen at the top of the view would be fetched with the first view) */
+.gl .ascent-print.armed { display: grid; justify-items: start; gap: 8px; position: fixed; left: 0; top: 0; z-index: 3; margin: 0; pointer-events: none; opacity: 0; transition: opacity .4s; }
 .gl .ascent-print.on { opacity: 1; }
 .ap-ticket { display: block; min-width: 150px; max-width: 290px; padding: 6px 10px 8px; font-family: var(--mono); color: var(--ink); background: #FFFDF7; border: 2px solid var(--ink); border-radius: 3px 3px 10px 10px; box-shadow: var(--shadow-sm); }
 .ap-title { display: block; margin-bottom: 3px; padding-bottom: 3px; border-bottom: 1.5px dashed rgba(20, 40, 50, .35); font-size: 9.5px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-2); }
@@ -260,9 +260,10 @@ main { position: relative; z-index: 1; }
 /* (over the gauge and the footer; the header stays) */
 .gl .dawn { display: grid; place-items: center; position: fixed; inset: 0; z-index: 18; background: linear-gradient(180deg, #FFE1B4 0%, #FBF0D9 46%, var(--haze) 100%); opacity: 0; visibility: hidden; pointer-events: none; transition: opacity .45s ease, visibility 0s .45s; }
 .gl .dawn.on { opacity: 1; visibility: visible; transition: opacity .45s ease; }
-.dawn p { margin: 0; font-family: var(--display); font-variation-settings: 'SOFT' var(--soft); font-size: clamp(28px, 3.4vw, 52px); font-weight: 860; letter-spacing: -0.015em; color: var(--ink); }
+.dawn p { margin: 0; font-family: var(--display); font-size: clamp(28px, 3.4vw, 52px); font-weight: 860; letter-spacing: -0.015em; color: var(--ink); }
 .s7 > .polaroid { position: absolute; right: 9vw; top: 150vh; z-index: 1; width: min(250px, 22vw); margin: 0; padding: 12px 12px 30px; background: #FFFDF7; border-radius: 3px; box-shadow: 0 18px 40px rgba(20, 40, 50, .35); transform: rotate(5deg); }
 .polaroid figcaption { margin-top: 10px; font-family: var(--display); font-style: italic; font-size: 14px; color: var(--ink-2); text-align: center; }
+.gl .polaroid:not(.armed) { display: none; }
 .gl .polaroid { position: fixed; left: 57vw; right: auto; top: 16vh; z-index: 2; pointer-events: none; opacity: 0; transform: translateY(-120vh) rotate(-14deg); }
 .gl .polaroid.drop { opacity: 1; transform: translateY(0) rotate(5deg); transition: transform 1.2s cubic-bezier(.2, 1.25, .35, 1) .25s, opacity .2s .25s; }
 .flash { display: none; }
@@ -527,6 +528,10 @@ html:not(.gl.wide) .on-narrow { display: revert; }
 .no-js .picked { display: none; }
 .choice.compact .picked { margin-top: 10px; padding: 6px 10px; font-size: 13px; }
 
+/* (a picture element that only offers its image in a smaller format: the image is laid out as if it stood alone) */
+picture.as-img { display: contents; }
+/* (its source elements too: an empty one would still count as an item of a grid, and take a gap) */
+picture.as-img > source { display: none; }
 .snap-static { display: none; }
 body.on-snap { cursor: pointer; }
 .foot { position: relative; z-index: 1; padding: 40px clamp(16px, 4vw, 48px) 56px; text-align: center; font-size: 14px; color: var(--ink-2); background: var(--cream); border-top: 2px solid var(--ink); }

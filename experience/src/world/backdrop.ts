@@ -1,7 +1,8 @@
 import * as THREE from 'three';
-import { media, url, loadPicture, loadImage, makeVideo, whenPlayable, avifSupported } from '../media';
+import { media, url, loadPicture, loadImage, makeLoop, loopCodecs, saveData, whenPlayable, avifSupported, bitmapsFlip } from '../media';
 import { cover, quad, place, imageTexture, videoTexture, type Cover, type Stage } from './stage';
 import { LOOK, LOOK_GLSL } from './look';
+import { PLATE_OVER, PLATE_SLACK } from '../first-view';
 
 const VERT = /* glsl */ `
 varying vec2 vUv;
@@ -174,7 +175,30 @@ const isSeq = (k: SourceKey): k is SeqKey => (SEQ_KEYS as string[]).includes(k);
 export type SourceKey = Zone | SeqKey;
 type PlateKey = keyof typeof media.plates;
 interface Src { tex: THREE.Texture | null; w: number; h: number }
-interface Seq { frames: (HTMLImageElement | null)[]; tex: THREE.Texture | null; shown: number; started: boolean }
+/**
+ * A transition's frames. They are kept as they arrive, still compressed
+ * (blobs), and decoded off the main thread a few at a time, around where the
+ * scrub is and ahead of where it is going (ready); the rest wait as bytes.
+ * images is the older way, every frame decoded up front in an image element,
+ * for a browser that will not decode a blob to a bitmap.
+ */
+interface Seq {
+  blobs: (Blob | null)[];
+  ready: Map<number, ImageBitmap>;
+  busy: Set<number>;
+  images: (HTMLImageElement | null)[];
+  tex: THREE.Texture | null;
+  shown: number;
+  started: boolean;
+  at: number;
+  dir: number;
+  /** When it was last drawn or made ready, and when it was last drawn, ms. */
+  used: number;
+  drawn: number;
+}
+const newSeq = (): Seq => ({ blobs: [], ready: new Map(), busy: new Set(), images: [], tex: null, shown: -1, started: false, at: 0, dir: 1, used: 0, drawn: 0 });
+/** The frames to have decoded, nearest first, in steps of the scrub's pace: where it is, then mostly ahead of it. */
+const AHEAD = [0, 1, 2, -1, 3, 4, -2, 5];
 
 /** The file behind each zone, on wide screens and on phones. The reef pans across whole plates on phones too. */
 const PLATE: Record<Zone, [PlateKey, PlateKey]> = {
@@ -206,16 +230,20 @@ export class Backdrop {
   readonly u: Record<string, THREE.IUniform>;
   private plate: Partial<Record<PlateKey, Src & { loading?: Promise<void> }>> = {};
   private loop: Partial<Record<Zone, { v: HTMLVideoElement; tex: THREE.VideoTexture; ready: boolean; fade: number }>> = {};
-  private seqs: Record<SeqKey, Seq> = {
-    t2: { frames: [], tex: null, shown: -1, started: false },
-    t3: { frames: [], tex: null, shown: -1, started: false },
-    t4: { frames: [], tex: null, shown: -1, started: false },
-  };
+  private seqs: Record<SeqKey, Seq> = { t2: newSeq(), t3: newSeq(), t4: newSeq() };
+  /** Decoded frames kept for each transition (about 4 MB each on a wide screen, 2 MB on a phone), and decodes under way at once. */
+  private readonly keep: number;
+  /** Frames are decoded to bitmaps off the main thread (not known until the browser has shown it can: see bitmapsFlip). */
+  private bitmaps = false;
+  private bitmapSeen = false;
+  private bitmapsFailed = false;
   readonly seqSize: [number, number];
   private blank: THREE.DataTexture;
 
   constructor(private stage: Stage, readonly phone: boolean) {
     this.seqSize = phone ? media.t2.p : media.t2.d;
+    this.keep = phone ? 14 : 10;
+    void bitmapsFlip();   // (asked now, so the answer is in before the first transition loads)
     this.blank = new THREE.DataTexture(new Uint8Array([207, 232, 238, 255]), 1, 1);
     this.blank.needsUpdate = true;
     const v3 = () => ({ value: new THREE.Vector3() });
@@ -241,20 +269,21 @@ export class Backdrop {
 
   key(z: Zone): PlateKey { return PLATE[z][this.phone ? 1 : 0]; }
   plateMeta(z: Zone) { return media.plates[this.key(z)]; }
-  seqReady(k: SeqKey) { return this.seqs[k].frames.some(Boolean); }
+  seqReady(k: SeqKey) { return this.seqs[k].blobs.some(Boolean); }
   has(z: Zone) { return !!this.plate[this.key(z)]?.tex; }
 
   async loadPlate(z: Zone) {
     const k = this.key(z);
+    this.goingPlates.delete(k);
     const cur = this.plate[k];
     if (cur?.tex) return;
     if (cur?.loading) return cur.loading;
     const meta = media.plates[k];
     const s = this.stage;
-    const coverW = Math.max(s.w, s.h * (meta.w / meta.h)) * s.dpr * 1.12;
+    const coverW = Math.max(s.w, s.h * (meta.w / meta.h)) * s.dpr * PLATE_OVER;
     // a crop is there to be pushed in on: its sharpest file on sharp screens, the middle one otherwise
     const w = meta.rect ? meta.widths[s.dpr > 1.3 ? meta.widths.length - 1 : meta.widths.length - 2]
-      : meta.widths.find((x) => x >= coverW * 0.85) ?? meta.widths[meta.widths.length - 1];
+      : meta.widths.find((x) => x >= coverW * PLATE_SLACK) ?? meta.widths[meta.widths.length - 1];
     const entry: Src & { loading?: Promise<void> } = { tex: null, w: meta.w, h: meta.h };
     entry.loading = loadPicture(`${k}-${w}`).then((img) => {
       if (this.plate[k] !== entry) return; // dropped while loading
@@ -266,18 +295,48 @@ export class Backdrop {
     return entry.loading;
   }
 
-  /** Free a plate's texture; it loads again if it is wanted later. */
+  /**
+   * Free a plate's texture and its loop; they load again if they are wanted
+   * later. Not while either is the picture on screen (when what comes next
+   * has not arrived, the last picture stays up): then as soon as it is not.
+   */
   drop(z: Zone) {
-    const k = this.key(z);
-    const p = this.plate[k];
-    if (!p) return;
-    p.tex?.dispose();
-    delete this.plate[k];
+    this.goingPlates.add(this.key(z));
+    this.goingLoops.add(z);
+    this.sweep();
+  }
+  private goingPlates = new Set<PlateKey>();
+  private goingLoops = new Set<Zone>();
+  private shown(tex: THREE.Texture | null | undefined) { return !!tex && Object.values(this.u).some((u) => u.value === tex); }
+  private sweep() {
+    for (const k of this.goingPlates) {
+      const p = this.plate[k];
+      if (p && this.shown(p.tex)) continue;
+      this.goingPlates.delete(k);
+      p?.tex?.dispose();
+      delete this.plate[k];
+    }
+    for (const z of this.goingLoops) {
+      const l = this.loop[z];
+      if (l && this.shown(l.tex)) continue;
+      this.goingLoops.delete(z);
+      if (!l) continue;
+      // (emptying the element lets the browser give up its decoder and what it had buffered)
+      l.v.pause();
+      l.v.removeAttribute('src');
+      l.v.load();
+      l.tex.dispose();
+      delete this.loop[z];
+    }
   }
 
+  /** A zone's loop, in the smallest codec this browser plays (none at all for a visitor saving data: the plate stands still). */
   async loadLoop(z: Zone) {
-    if (!LOOPS[z] || this.loop[z]) return;
-    const v = makeVideo(`${this.key(z)}-loop.mp4`, true);
+    this.goingLoops.delete(z);
+    if (!LOOPS[z] || this.loop[z] || saveData()) return;
+    const order = await loopCodecs(this.phone);
+    if (this.loop[z] || !this.plate[this.key(z)]) return;   // asked twice, or dropped meanwhile
+    const v = makeLoop(`${this.key(z)}-loop`, order);
     const entry = { v, tex: videoTexture(v), ready: false, fade: 0 };
     this.loop[z] = entry;
     v.load();
@@ -296,37 +355,130 @@ export class Backdrop {
     if (s.started) return;
     s.started = true;
     const n = media[k].frames;
-    s.frames = new Array(n).fill(null);
+    s.blobs = new Array(n).fill(null);
+    s.images = new Array(n).fill(null);
     if (!(await avifSupported())) return; // without AVIF the transition is a crossfade
+    this.bitmaps = !this.bitmapsFailed && (await bitmapsFlip());
     const dev = this.phone ? 'p' : 'd';
     const packs = media[k].packs[dev];
     await Promise.all(packs.map(async (lens, j) => {
+      // (a visitor saving data gets every other frame: half the bytes, the scrub a little coarser)
+      if (saveData() && j % 2) return;
       let buf: ArrayBuffer;
       try { buf = await (await fetch(url(`${k}/${dev}-pack${j}.avif`))).arrayBuffer(); } catch { return; /* its neighbours stand in */ }
       let at = 0;
       for (let m = 0; m < lens.length; m++) {
-        const frame = new Blob([buf.slice(at, at + lens[m])], { type: 'image/avif' });
+        const i = j + m * packs.length;
+        s.blobs[i] = new Blob([buf.slice(at, at + lens[m])], { type: 'image/avif' });
         at += lens[m];
-        try { s.frames[j + m * packs.length] = await loadImage(URL.createObjectURL(frame)); } catch { /* skip a frame */ }
+        if (!this.bitmaps) this.image(s, i);
       }
     }));
+  }
+
+  /** The older way: a frame decoded in an image element and kept. */
+  private image(s: Seq, i: number) {
+    const blob = s.blobs[i];
+    if (!blob || s.images[i]) return;
+    const src = URL.createObjectURL(blob);
+    loadImage(src).then((img) => { s.images[i] = img; }, () => {}).finally(() => URL.revokeObjectURL(src));
+  }
+
+  /** The frame at j, or the nearest to it that has arrived (its pack may be on its way still, or left out to save data), or -1. */
+  private arrived(s: Seq, j: number) {
+    for (const o of [0, 1, -1, 2, -2]) if (s.blobs[j + o]) return j + o;
+    return -1;
+  }
+
+  /**
+   * Decode the frame at j to a bitmap, off the main thread (it is flipped
+   * here, as a texture wants it: an upload does not flip a bitmap). A few at
+   * a time; the frame under the scrub (first) does not wait for the others.
+   */
+  private decode(s: Seq, j: number, first = false) {
+    const i = this.arrived(s, j);
+    if (i < 0 || s.ready.has(i) || s.busy.has(i) || s.busy.size >= (first ? 5 : 3)) return;
+    const blob = s.blobs[i]!;
+    s.busy.add(i);
+    createImageBitmap(blob, { imageOrientation: 'flipY', premultiplyAlpha: 'none', colorSpaceConversion: 'none' }).then((bmp) => {
+      s.busy.delete(i);
+      s.ready.set(i, bmp);
+      this.bitmapSeen = true;
+      // keep the nearest few: the farthest from the scrub goes first
+      while (s.ready.size > this.keep) {
+        let far = -1;
+        for (const j of s.ready.keys()) if (j !== s.shown && (far < 0 || Math.abs(j - s.at) > Math.abs(far - s.at))) far = j;
+        if (far < 0) break;
+        s.ready.get(far)!.close();
+        s.ready.delete(far);
+      }
+    }, () => {
+      s.busy.delete(i);
+      // one frame that will not decode is left out (its neighbours stand in); a browser that decodes none takes every
+      // frame the older way from here on
+      if (this.bitmapSeen || !this.bitmaps) return;
+      this.bitmaps = false;
+      this.bitmapsFailed = true;
+      for (const q of Object.values(this.seqs)) q.blobs.forEach((_, j) => this.image(q, j));
+    });
+  }
+
+  /**
+   * The scrub is about to reach a transition at this frame, going this way
+   * (1 up the frames, -1 down): have the frames it will want first decoded
+   * by the time it gets there.
+   */
+  prime(k: SeqKey, frame: number, dir: 1 | -1) {
+    const s = this.seqs[k], n = s.blobs.length, now = performance.now();
+    if (!this.bitmaps || !n || now - s.drawn < 250) return;   // (on screen now: the scrub itself says which frames)
+    s.used = now;
+    s.at = frame;
+    s.dir = dir;
+    for (const d of AHEAD) { const j = frame + d * dir; if (j >= 0 && j < n) this.decode(s, j); }
+  }
+
+  /**
+   * Each frame: what was dropped while it was on screen is freed once it is off it; and a transition neither drawn nor
+   * about to be for a few seconds lets go of its decoded frames (its bytes stay; the one on the texture stays).
+   */
+  tidy() {
+    this.sweep();
+    const now = performance.now();
+    for (const s of Object.values(this.seqs)) {
+      if (s.ready.size <= 1 || now - s.used < 4000) continue;
+      for (const [i, bmp] of s.ready) if (i !== s.shown) { bmp.close(); s.ready.delete(i); }
+    }
   }
 
   private source(k: SourceKey, frame: number): Src | null {
     if (isSeq(k)) {
       const s = this.seqs[k];
-      if (!s.frames.length) return null;
+      const n = s.blobs.length;
+      if (!n) return null;
       const i = Math.round(frame);
+      s.used = s.drawn = performance.now();
+      // (how many frames the scrub moved since the last draw: on a fast scroll it lands on every few)
+      let pace = 1;
+      if (i !== s.at) { pace = Math.min(6, Math.abs(i - s.at)); s.dir = i > s.at ? 1 : -1; s.at = i; }
       let best = -1;
-      for (let d = 0; d < s.frames.length; d++) {
-        if (s.frames[i - d]) { best = i - d; break; }
-        if (s.frames[i + d]) { best = i + d; break; }
+      if (this.bitmaps) {
+        for (const d of AHEAD) { const j = i + d * pace * s.dir; if (j >= 0 && j < n) this.decode(s, j, d === 0); }
+        for (const j of s.ready.keys()) if (best < 0 || Math.abs(j - i) < Math.abs(best - i)) best = j;
+        // (a frame from another part of the move, left from an earlier pass, is no stand-in while the right one is on its way)
+        if (best >= 0 && Math.abs(best - i) > 10 && s.busy.size) return null;
+      } else {
+        for (let d = 0; d < n; d++) {
+          if (s.images[i - d]) { best = i - d; break; }
+          if (s.images[i + d]) { best = i + d; break; }
+        }
       }
-      if (best < 0) return null;
+      if (best < 0) return s.tex && s.shown >= 0 ? { tex: s.tex, w: this.seqSize[0], h: this.seqSize[1] } : null;
       if (best !== s.shown) {
-        const img = s.frames[best]!;
-        if (!s.tex) s.tex = imageTexture(img);
-        else { s.tex.image = img; s.tex.needsUpdate = true; }
+        const img = this.bitmaps ? s.ready.get(best)! : s.images[best]!;
+        if (!s.tex) {
+          s.tex = imageTexture(img);
+          s.tex.flipY = !this.bitmaps;
+        } else { s.tex.image = img; s.tex.needsUpdate = true; }
         s.shown = best;
       }
       return { tex: s.tex, w: this.seqSize[0], h: this.seqSize[1] };
@@ -358,6 +510,8 @@ export class Backdrop {
     this.u.uRegionAmt.value = 0;
     this.u.uPixSize.value = 0;
     this.u.uLampsOn.value = 0;
+    // (and the pictures those effects used, so that a plate they no longer show is not held on to)
+    this.u.uStill.value = this.u.uLit.value = this.u.uC.value = this.blank;
   }
 
   /**

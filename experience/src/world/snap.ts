@@ -209,10 +209,14 @@ export class Snap {
     this.clips[k].ready = true;
   }
 
-  /** The hero: Snap in 3D with the print in his claw, or the wave clip if the model will not load. */
-  async load() {
+  /**
+   * The hero: Snap in 3D with the print in his claw, or the wave clip if the
+   * model will not load. tall is his greatest height on screen, in device
+   * pixels: it picks how fine a texture he needs.
+   */
+  async load(tall = 0) {
     const print = loadPicture('print').then((img) => { this.printU.uMap.value = imageTexture(img); }).catch(() => {});
-    if (await this.rider.snap3d.load().then(() => true, () => false)) {
+    if (await this.rider.snap3d.load(tall).then(() => true, () => false)) {
       this.use3d = true;
       await print;
       this.loaded = true;

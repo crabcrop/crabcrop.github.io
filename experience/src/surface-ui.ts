@@ -37,6 +37,7 @@ export class SurfaceUI {
   private recipe: Recipe | null = null;
   private shown = -2;
   private flashSeen = -10;
+  private armed = false;
 
   constructor() {
     // The finished picture: everything applied.
@@ -81,6 +82,12 @@ export class SurfaceUI {
 
   update(out: WorldOut) {
     const a = out.ascent;
+    // Nearly there: now the print and the polaroid are laid out (and their pictures fetched).
+    if (!this.armed && (out.vents.on > 0 || a.on > 0 || out.zone === 't5' || out.zone === 's7')) {
+      this.armed = true;
+      this.print.classList.add('armed');
+      this.polaroid.classList.add('armed');
+    }
     const on = a.on > 0.3 && !!this.recipe;
     this.print.classList.toggle('on', on);
     if (on) {

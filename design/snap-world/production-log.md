@@ -793,6 +793,130 @@ it is needed at all.
   model cannot load, the painted sprite does the chain, floats where he
   would walk, and stands in the bubble.
 
+## The performance pass
+
+The note was one line: make the page and all its assets fast. Nothing was
+to look or behave differently, so the work began with numbers and ended
+with a comparison: the published build and the new one filmed side by side,
+and every box of the page's layout measured in both.
+
+**Measured first.** A visit was scripted (load, wait at the top, scroll
+steadily to the bottom) and every request recorded. On a 1440 by 900
+screen the first view was 2.44 MB and the whole dive 16.95 MB in 67
+requests; on a phone 1.97 MB and 9.45 MB. Four fifths of a dive was two
+things: the six ambient loops (6.8 MB) and the three scrubbed transitions
+(6.9 MB). A trace of the main thread showed where frames were lost: every
+layer's shader was built on the frame it first showed (19 long tasks down
+the dive), and every transition frame was decoded on the main thread at
+the moment it was drawn (94 decodes, 13 ms each on this machine).
+
+**The loops, in three codecs.** Each loop is now one group of pictures (a
+loop is only ever played from its start) and comes as AV1, HEVC and H.264.
+The H.264 encode sets the quality; the other two are searched for the most
+compressed setting that is at least as close to the source (SSIM), so all
+three look the same. The six a wide screen plays went from 6.81 MB to
+1.74 MB in AV1, 3.66 MB in HEVC and 4.90 MB in H.264; a phone's from
+3.58 MB to 0.91, 1.93 and 2.64 MB. The page asks the browser which it
+plays smoothly, and on a phone which its chip decodes, and falls back down
+the list if a file fails after all. The H.264 encode keeps five reference
+frames: with more, the stream asks for a decoder level that older phones do
+not have, and H.264 is the one for whatever plays nothing newer.
+
+**The transitions, the same frames in fewer bytes.** The 72 frames of each
+went through the AVIF encoder again, slower and a little more compressed,
+checked at twice their size against the old ones: 6.89 MB to 5.32 MB on a
+wide screen, 3.00 MB to 2.25 MB on a phone. In the page they now stay as
+they arrive, compressed, and are decoded off the main thread a few at a
+time around where the scrub is and ahead of where it is going; about ten
+decoded frames are kept for each transition, not all 72, and the frames a
+transition starts on are decoded as the scroll comes near it.
+
+**Snap.** His shape was 735 KB of base64 text (468 KB on the wire). The
+vertices are now in the order the triangles first use them, each column
+stored as the difference from the vertex before, normals folded onto a
+square, and each triangle index as how far back it reaches; deflated, it
+is 285 KB of text, 216 KB on the wire. A script checks the new pack
+against the old: the same 21,258 vertices to within a twentieth of a pixel
+at his size on screen, the same 35,139 triangles with the same winding.
+His texture is 1024 px where he is drawn no taller than 300 device pixels
+(79 KB, not 209). The first cut put that line at 540, where the smaller
+texture has one texel for a pixel on average; side by side on a sharp
+screen he was a little soft, because on average means half of him had
+less. At 300 all but 2 percent of him has a texel or more for every pixel,
+and the two cannot be told apart.
+
+**The rest of the media.** Plates and sprites went through the AVIF
+encoder at a slower speed: 7 percent smaller at the same quality setting.
+The fonts were cut down to the characters the page uses and Fraunces's
+unused SOFT axis taken out: 123 KB to 68 KB, with a check in the build for
+a character they do not have.
+
+**What loads when.** The first view's requests used to follow one another:
+the stylesheet found the fonts, the page's script asked for the world's
+script, the world's script asked for the plate, the plate's arrival
+started Snap. Now the fonts are preloaded, and the page's script asks for
+the world's script, the plate and Snap's files together, by the same rules
+the world uses to pick its files. It asks once the text has had its first
+paint, and not before. The first version asked from the page's head, as
+early as could be, and Lighthouse's largest paint went from 3.3 s to 4.4 s:
+on a slow line everything asked for before the text is on screen is in the
+text's way, the world's script most of all. Asked for one frame later,
+the same files cost the text nothing. The plate's sharper underwater half
+waits until the first view is up; the print for the way up and the
+polaroid are not laid out (and their pictures not fetched) until the vents
+are near.
+
+**While it runs.** Every layer's shader is built in the background once
+the first view is up. Loops are freed with their plates and stop while the
+page is hidden. A visitor whose browser asks to save data gets no loops
+and every other transition frame.
+
+**One thing found on the way.** Filmed side by side, the published build's
+world ran a little behind its own text in the lower half of the page, and
+by a different amount from one run to the next. The page measured where
+its sections were as soon as its script ran, often before the fonts had
+arrived and re-flowed the text; the second measure hung on the window's
+load event, and that listener was only added once the world's script was
+in, which can be after the event. The sections are now measured again
+whenever the page's height changes. With that the new build is the same
+on every run, and matches the published one on the runs where it had
+measured in time.
+
+**Measured again.** The same scripted visit, the same tools:
+
+| | Before | After |
+| --- | --- | --- |
+| First view, 1440 by 900 | 2.44 MB | 1.12 MB |
+| Whole dive, 1440 by 900 | 16.95 MB | 9.59 MB with the loops in AV1 (11.5 MB in HEVC, 12.8 MB in H.264) |
+| Whole dive, the same screen at twice the density | 17.73 MB | 10.41 MB |
+| First view, phone | 1.97 MB | 1.40 MB with the loop in H.264, 1.06 MB in AV1 |
+| Whole dive, phone | 9.45 MB | 7.19 MB with the loops in H.264, 6.48 MB in HEVC, 5.46 MB in AV1 |
+| Lighthouse, phone: score, first paint, largest paint | 60, 2.3 s, 3.3 s | 70, 1.1 s, 1.5 s |
+| Lighthouse, desktop: score, first paint, largest paint | 70, 0.5 s, 0.7 s | 70, 0.4 s, 0.9 s |
+| Pictures decoded on the main thread in a dive | 96 | 22 |
+| Main thread blocked in a dive | 20.0 s, in 44 tasks over 50 ms | 9.6 s, in 20 |
+
+The Lighthouse runs and the trace were made on a machine with no graphics
+card, drawing in software, which stretches every script time: the numbers
+are for comparing the two builds, not for quoting. They also vary: three
+runs each, the middle one given. On desktop the largest paint is the
+heading now, in its own font from the first paint, where it used to be the
+paragraph in a fallback font before the swap: the lab counts the fonts
+against it, and the visitor sees the final type sooner. Building the
+shaders ahead of time could not be measured here at all: the software
+renderer builds each one when it is first drawn whatever is asked of it. On
+a real graphics card that work is the stall the warm-up takes away.
+
+**Checked that nothing else changed.** Every element's box in the page was
+measured in both builds, on a wide screen, on a phone and on the still
+page: none moved or changed size (one had, by 10 px, on the first try: see
+What we learned). The text layer was compared pixel by pixel: one line
+differs, the page's own readout of its marina picture's size, which now
+says 131 KB where it said 141. The two builds were filmed side by side
+down the whole dive on a wide screen and on a phone, 144 and 163 frames:
+the same picture at every position, bar the bubbles. And every re-encoded
+picture and frame was measured against its source.
+
 ## Next
 
 The way from the twilight zone to the vents still dips through an ember
@@ -959,3 +1083,46 @@ the stills; phone-format takes (9:16, 1080p) would fix that.
 - Name a class for what the thing is, and search before using it. The
   URL's empty parts were given `.skip`, which is also the skip link's
   class: they left the bar and sat fixed above it.
+- Measure a visit, not a folder. The media folder grew in the performance
+  pass (the loops come in three codecs now) while what a visitor downloads
+  fell by a quarter to a half.
+- Earlier is not always sooner. Asking for the world's files from the
+  page's head put them on the line before the text had painted, and the
+  lab's largest paint got a second later. One frame after the first paint
+  they cost the text nothing and still arrive together.
+- An average hides half. A smaller texture with one texel for a pixel on
+  average is short of texels over half the model; choose the size from the
+  worst few percent.
+- To show that nothing moved, measure every box. The two builds filmed
+  side by side looked the same; a list of every element's position and
+  size in each said one card was 10 px taller. A picture element given
+  `display: contents` leaves its empty source element behind as an item of
+  the grid it sits in, and the item takes a gap.
+- A slower encoder preset can change more than the file's size. x264's
+  veryslow uses sixteen reference frames, and at 1600 px wide that lifts
+  the stream from level 4 to level 5, which older phones' decoders do not
+  take. For the codec that is there for whatever plays nothing newer, set
+  the reference frames by hand.
+- Hold the newer codecs to the old one's quality by measurement, and
+  search for it. At the SSIM of the H.264 encode, AV1 was 36 percent of
+  its bytes and HEVC 75 percent; the setting that gets there differs loop
+  by loop.
+- Differences between neighbours only compress when neighbours are near.
+  Storing each vertex as the difference from the one before saved almost
+  nothing until the vertices were put in the order the triangles walk the
+  surface; then the shape halved.
+- An inline script placed after a stylesheet's link waits for the sheet.
+  The script that starts the first view's requests has to stand before it.
+- Decoding off the main thread trades a stall for lateness. The frame has
+  to be asked for before it is wanted: ahead of the scrub, at the scrub's
+  pace, and before the transition starts.
+- Test a browser option you depend on, once, with a picture small enough
+  to embed. A decoder that takes "flip this" and does not would have shown
+  every transition frame upside down.
+- A listener added after an await can miss its event. The re-measure on
+  the window's load event was registered once the world's script had
+  arrived, and the event had often fired by then. Observe the thing itself
+  (here the page's height) and the order stops mattering.
+- When two films of one page disagree, film each twice. The leap off the
+  pier differed between the old build and the new, and so did two runs of
+  the same build: the rig's own timing, not the page's.

@@ -9,8 +9,11 @@
 <meta name="theme-color" content="#CFE8EE">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <script>(function (d) { d.classList.replace('no-js', 'js'); if (!matchMedia('(prefers-reduced-motion: reduce)').matches) d.classList.add('gl'); })(document.documentElement)</script>
-  <script type="module" crossorigin src="./assets/index-Bmg0-Ck8.js"></script>
-  <link rel="stylesheet" crossorigin href="./assets/index-BrJ41d9t.css">
+  <link rel="preload" as="font" type="font/woff2" href="./assets/figtree-ocXHvAqc.woff2" crossorigin>
+<link rel="preload" as="font" type="font/woff2" href="./assets/fraunces-DrHsD_Qr.woff2" crossorigin>
+<link rel="preload" as="font" type="font/woff2" href="./assets/jetbrains-mono-7QFGsMkY.woff2" crossorigin>
+<script type="module" crossorigin fetchpriority="high" src="./assets/index-BEm98ejG.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-Cy07p68s.css">
 </head>
 <body>
 <a class="skip" href="https://crabcrop.org/">Skip the dive</a>
@@ -18,7 +21,7 @@
 <canvas id="world" aria-hidden="true"></canvas>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><filter id="duotone" color-interpolation-filters="sRGB"><feColorMatrix type="matrix" values="0.2126 0.7152 0.0722 0 0  0.2126 0.7152 0.0722 0 0  0.2126 0.7152 0.0722 0 0  0 0 0 1 0"/><feComponentTransfer><feFuncR type="table" tableValues="0.051 1"/><feFuncG type="table" tableValues="0.125 0.847"/><feFuncB type="table" tableValues="0.180 0.541"/></feComponentTransfer></filter></svg>
 
-<figure class="ascent-print" id="ascent-print" aria-hidden="true"><span class="ap-frame recipe-img" id="ap-frame"><img src="media/print.webp" alt="" width="360" height="282" loading="lazy"></span><figcaption class="ap-ticket"><span class="ap-title">Your URL</span><ol class="ap-lines" id="ap-lines"></ol></figcaption></figure>
+<figure class="ascent-print" id="ascent-print" aria-hidden="true"><span class="ap-frame recipe-img" id="ap-frame"><picture class="as-img"><source type="image/avif" srcset="media/print.avif"><img src="media/print.webp" alt="" width="360" height="282" loading="lazy"></picture></span><figcaption class="ap-ticket"><span class="ap-title">Your URL</span><ol class="ap-lines" id="ap-lines"></ol></figcaption></figure>
 
 <header class="top">
   <a class="logo" href="#s0"><svg width="28" height="28" viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="18" r="11" fill="#E8482F"/><circle cx="11" cy="13" r="4.5" fill="#FBF2DF"/><circle cx="24" cy="6" r="3.4" fill="#E8482F"/><circle cx="8" cy="6" r="3" fill="#E8482F"/></svg> crabcrop</a>
@@ -71,7 +74,7 @@
       <p class="hint" aria-hidden="true">Scroll to follow Snap down</p>
     </div>
     <p class="story panel" id="story">A gust lifts Snap's favorite photo print off the pier, and it sinks. He doesn't hesitate: he grabs the anchor chain and goes after it.</p>
-    <img class="snap-static stand" src="media/snap-stand.webp" alt="" width="445" height="409" loading="lazy">
+    <picture class="as-img"><source type="image/avif" srcset="media/snap-stand.avif"><img class="snap-static stand" src="media/snap-stand.webp" alt="" width="445" height="409" loading="lazy"></picture>
   </section>
 
   <section id="t1" class="plunge" aria-hidden="true"></section>
@@ -146,7 +149,7 @@
       <li><button type="button" class="hot" data-u="0.858" data-v="0.785" aria-expanded="false">Mooring buoy</button><span class="tip"><code>root:photos/cat.jpg</code> A short root reference</span></li>
     </ul>
 
-    <img class="snap-static on-chain" src="media/snap-chain.webp" alt="" width="640" height="687" loading="lazy">
+    <picture class="as-img"><source type="image/avif" srcset="media/snap-chain.avif"><img class="snap-static on-chain" src="media/snap-chain.webp" alt="" width="640" height="687" loading="lazy"></picture>
   </section>
 
 
@@ -166,7 +169,7 @@
 
     <div class="cards">
       <article class="card" id="card-filters">
-        <div class="specimen spec-look" aria-hidden="true"><img class="look-demo" src="media/print.webp" alt="" width="360" height="282" loading="lazy"><span class="look-chain" id="look-chain">filters:sharpen(1.2):saturation(1.1)</span></div>
+        <div class="specimen spec-look" aria-hidden="true"><picture class="as-img"><source type="image/avif" srcset="media/print.avif"><img class="look-demo" src="media/print.webp" alt="" width="360" height="282" loading="lazy"></picture><span class="look-chain" id="look-chain">filters:sharpen(1.2):saturation(1.1)</span></div>
         <div class="card-top">
           <picture><source type="image/avif" srcset="media/icon-drops.avif"><img class="icon" src="media/icon-drops.webp" alt="" width="56" height="56" loading="lazy"></picture>
           <h3>51 filters, one chain</h3>
@@ -190,9 +193,9 @@
 
       <article class="card" id="card-size">
         <div class="specimen spec-size" aria-hidden="true">
-          <figure><span class="frame crop"><img src="media/print.webp" alt="" width="360" height="282" loading="lazy"></span><figcaption>crop:1200x630:smart</figcaption></figure>
-          <figure><span class="frame fit"><img src="media/print.webp" alt="" width="360" height="282" loading="lazy"></span><figcaption>fit-in</figcaption></figure>
-          <figure><span class="frame pad"><img src="media/print.webp" alt="" width="360" height="282" loading="lazy"></span><figcaption>pad</figcaption></figure>
+          <figure><span class="frame crop"><picture class="as-img"><source type="image/avif" srcset="media/print.avif"><img src="media/print.webp" alt="" width="360" height="282" loading="lazy"></picture></span><figcaption>crop:1200x630:smart</figcaption></figure>
+          <figure><span class="frame fit"><picture class="as-img"><source type="image/avif" srcset="media/print.avif"><img src="media/print.webp" alt="" width="360" height="282" loading="lazy"></picture></span><figcaption>fit-in</figcaption></figure>
+          <figure><span class="frame pad"><picture class="as-img"><source type="image/avif" srcset="media/print.avif"><img src="media/print.webp" alt="" width="360" height="282" loading="lazy"></picture></span><figcaption>pad</figcaption></figure>
         </div>
         <div class="card-top">
           <picture><source type="image/avif" srcset="media/icon-crop.avif"><img class="icon" src="media/icon-crop.webp" alt="" width="56" height="56" loading="lazy"></picture>
@@ -360,7 +363,7 @@
 
     <div class="cards">
       <article class="card" id="card-studio">
-        <div class="specimen spec-studio" aria-hidden="true"><span class="studio-demo"><img src="media/snap-stand.webp" alt="" width="445" height="409" loading="lazy"></span><span class="studio-code">studio(product,bg:brand,shadow:soft,pad:10)</span></div>
+        <div class="specimen spec-studio" aria-hidden="true"><span class="studio-demo"><picture class="as-img"><source type="image/avif" srcset="media/snap-stand.avif"><img src="media/snap-stand.webp" alt="" width="445" height="409" loading="lazy"></picture></span><span class="studio-code">studio(product,bg:brand,shadow:soft,pad:10)</span></div>
         <div class="card-top">
           <picture><source type="image/avif" srcset="media/icon-lantern.avif"><img class="icon" src="media/icon-lantern.webp" alt="" width="56" height="56" loading="lazy"></picture>
           <h3>Studio mode</h3>
@@ -373,8 +376,8 @@
       <article class="card" id="card-removebg">
         <div class="specimen spec-compare">
           <div class="compare" id="compare" style="--cut: 50%">
-            <span class="compare-before" aria-hidden="true"><img src="media/snap-stand.webp" alt="" width="445" height="409" loading="lazy"></span>
-            <span class="compare-after" aria-hidden="true"><img src="media/snap-stand.webp" alt="" width="445" height="409" loading="lazy"></span>
+            <span class="compare-before" aria-hidden="true"><picture class="as-img"><source type="image/avif" srcset="media/snap-stand.avif"><img src="media/snap-stand.webp" alt="" width="445" height="409" loading="lazy"></picture></span>
+            <span class="compare-after" aria-hidden="true"><picture class="as-img"><source type="image/avif" srcset="media/snap-stand.avif"><img src="media/snap-stand.webp" alt="" width="445" height="409" loading="lazy"></picture></span>
             <span class="compare-line" aria-hidden="true"></span>
             <input class="compare-range" type="range" min="0" max="100" value="50" aria-label="Before and after background removal">
           </div>
@@ -670,7 +673,7 @@
       <h2 id="s7-title">Your image, <span class="coral">served.</span></h2>
       <p>Every choice you made on the way down is one part of this URL: the format, the look, the crop, the finish, and whether it is sealed.</p>
       <figure class="receipt">
-        <span class="receipt-img recipe-img" id="receipt-img"><img src="media/print.webp" alt="Snap's print, with your choices applied" width="360" height="282" loading="lazy"></span>
+        <span class="receipt-img recipe-img" id="receipt-img"><picture class="as-img"><source type="image/avif" srcset="media/print.avif"><img src="media/print.webp" alt="Snap's print, with your choices applied" width="360" height="282" loading="lazy"></picture></span>
         <figcaption>
           <code id="url-so-far">https://<wbr>img.example.com/<wbr>3c1f6c18…/<wbr>crop:1200x630:smart/<wbr>filters:sharpen(1.2):saturation(1.1)/<wbr>root:photos/<wbr>print.jpg</code>
           <button class="copybtn" type="button" id="copy-url">Copy</button>
@@ -690,11 +693,11 @@
       <p class="again"><a href="#s0" id="dive-again">Dive again <span aria-hidden="true">↑</span></a> Your URL comes along, so you can try other choices.</p>
     </div>
     <figure class="polaroid" id="polaroid" aria-hidden="true">
-      <span class="pol-img recipe-img" id="pol-img"><img src="media/print.webp" alt="" width="360" height="282" loading="lazy"></span>
+      <span class="pol-img recipe-img" id="pol-img"><picture class="as-img"><source type="image/avif" srcset="media/print.avif"><img src="media/print.webp" alt="" width="360" height="282" loading="lazy"></picture></span>
       <figcaption>root:photos/print.jpg</figcaption>
     </figure>
     <div class="flash" id="flash" aria-hidden="true"></div>
-    <img class="snap-static stand surface-stand" src="media/snap-stand.webp" alt="" width="445" height="409" loading="lazy">
+    <picture class="as-img"><source type="image/avif" srcset="media/snap-stand.avif"><img class="snap-static stand surface-stand" src="media/snap-stand.webp" alt="" width="445" height="409" loading="lazy"></picture>
   </section>
 </main>
 
