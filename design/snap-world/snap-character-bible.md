@@ -183,7 +183,8 @@ Use these as the reference stack for every generation, in this priority:
 | 3 | `scene-surf.jpg` | Both claws raised, water, motion energy |
 | 4 | `ai-skate-before.jpg` | Daylight detail of stitches, print and claw pads |
 | - | `crabcrop-mascot.webp` | Blink cycle (coral eyelids) |
-| - | `snap-ai.webp`, `snap-anatomy.webp`, `snap-sign.webp`, `snap-features.webp`, `snap-playground.webp`, `snap-toy.webp`, `crabcrop-mascot-magician.webp` | Props and acting |
+| - | `snap-ai.webp`, `snap-anatomy.webp`, `snap-sign.webp`, `snap-features.webp`, `snap-toy.webp`, `crabcrop-mascot-magician.webp` | Props and acting |
+| - | `snap-playground.webp` | Props and acting. No longer published (dayvson/crabcrop#474): `git show 747c316:snap-playground.webp` |
 
 Known drift in older assets; don't copy these details:
 
