@@ -6,14 +6,16 @@ const MAX_LINKS = 240;
 export interface Hold { i: number; x: number; y: number }
 
 /**
- * The anchor chain: a rope simulated with Verlet integration, drawn as iron
- * links with a coral-orange rust patina. The top end hangs from an anchor
- * point. The 3D Snap holds it at one point, in his raised claw: the links
- * run on through the claw, and the depth buffer hides them inside it. The
- * sprite and film hold it at two points (the ends of the stretch of chain
- * painted into them), and no links are drawn between those. Links are laid
- * along the rope by arc length, so when the anchor moves away the chain pays
- * out past Snap and he appears to ride it down.
+ * A chain: a rope simulated with Verlet integration, drawn as iron links
+ * with a coral-orange rust patina. Two of them are in the dive. The anchor
+ * chain hangs from the boat's stern to the anchor on the sand (fixed: its
+ * links stay put in the world, and Snap slides down it). Snap's line is a
+ * lighter chain he carries from there on, held up by a float, with the URL's
+ * tags on it. The top end is at an anchor point. The 3D Snap holds a chain
+ * at one point, in his raised claw: the links run on through the claw, and
+ * the depth buffer hides them inside it. The sprite and film hold it at two
+ * points (the ends of the stretch of chain painted into them), and no links
+ * are drawn between those.
  */
 export class Chain {
   readonly n = 72;
@@ -23,39 +25,45 @@ export class Chain {
   readonly arc = new Float32Array(this.n);
   readonly mesh: THREE.InstancedMesh;
   private dummy = new THREE.Object3D();
-  private light: THREE.DirectionalLight;
-  private amb: THREE.HemisphereLight;
+  /** One set of lights for every chain. */
+  private static lights: { amb: THREE.HemisphereLight; light: THREE.DirectionalLight } | null = null;
   private started = false;
   private holds: Hold[] = [];
   linkLen = 30;
-  /** Shifts the links along the rope; driven by the plunge so Snap rides down. */
+  /** Shifts the links along the rope. */
   slide = 0;
+  /** Fixed in the world: links are counted from the top end (not from Snap's hold), and drawn between two holds as well. */
+  fixed = false;
 
-  constructor(stage: Stage) {
+  constructor(stage: Stage, tones = ['#6b3a28', '#7d4632', '#8a4a2c', '#a2471d', '#5e3426', '#74402c']) {
     const geo = new THREE.TorusGeometry(1, 0.36, 8, 22);
-    const mat = new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.6, metalness: 0.5 });
+    // transparent, so it can be faded in and out; it still writes depth, for Snap's claw to hide the links inside it
+    const mat = new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.6, metalness: 0.5, transparent: true });
     this.mesh = new THREE.InstancedMesh(geo, mat, MAX_LINKS);
     this.mesh.frustumCulled = false;
     this.mesh.renderOrder = 4;
     this.mesh.count = 0;
     const c = new THREE.Color();
-    const tones = ['#6b3a28', '#7d4632', '#8a4a2c', '#a2471d', '#5e3426', '#74402c'];
     for (let i = 0; i < MAX_LINKS; i++) {
       c.set(tones[(i * 7 + (i >> 2)) % tones.length]);
       this.mesh.setColorAt(i, c);
     }
     stage.scene.add(this.mesh);
-    this.amb = new THREE.HemisphereLight('#fff4e0', '#3a5a60', 1.5);
-    this.light = new THREE.DirectionalLight('#fff1dd', 3.2);
-    this.light.position.set(-0.55, 0.85, 1);
-    stage.scene.add(this.amb, this.light);
+    if (!Chain.lights) {
+      const amb = new THREE.HemisphereLight('#fff4e0', '#3a5a60', 1.5);
+      const light = new THREE.DirectionalLight('#fff1dd', 3.2);
+      light.position.set(-0.55, 0.85, 1);
+      stage.scene.add(amb, light);
+      Chain.lights = { amb, light };
+    }
   }
 
   /** Light the iron for the zone: warm at the surface, teal under water. */
   setWater(t: number) {
-    this.amb.color.set('#fff4e0').lerp(new THREE.Color('#bfeff0'), t);
-    this.light.color.set('#fff1dd').lerp(new THREE.Color('#d8fbf6'), t);
-    this.light.intensity = 3.2 - 0.9 * t;
+    const { amb, light } = Chain.lights!;
+    amb.color.set('#fff4e0').lerp(new THREE.Color('#bfeff0'), t);
+    light.color.set('#fff1dd').lerp(new THREE.Color('#d8fbf6'), t);
+    light.intensity = 3.2 - 0.9 * t;
   }
 
   private init(ax: number, ay: number, len: number) {
@@ -123,8 +131,10 @@ export class Chain {
     sway: number; mouse: [number, number] | null; visible: boolean; linkLen: number;
     /** Rope length above the top hold, as a share of the straight distance: a little over 1 hangs loose, under 1 pulls taut. */
     slack?: number;
+    opacity?: number;
   }) {
     this.mesh.visible = o.visible;
+    (this.mesh.material as THREE.MeshStandardMaterial).opacity = o.opacity ?? 1;
     this.linkLen = o.linkLen;
     const grabbed = this.holds.length !== o.holds.length;
     this.holds = o.holds;
@@ -201,14 +211,21 @@ export class Chain {
       for (let i = 2; i < n; i++) unfold(i);
     }
     pin();
-    // Pulled taut (Snap towing it across the reef), the rope above his hold is
-    // a straight line with a slow sway, not a sagging simulation.
+    // Pulled taut (his line, held up by its float; the anchor chain, made fast
+    // at both ends), the rope is a straight line with a slow sway from its
+    // top to his hold, and for a chain fixed in the world on to the next hold
+    // too: its ends move with the camera, and a simulation would trail behind.
     if (h0 && (o.slack ?? 1) < 1) {
-      for (let i = 1; i < h0.i; i++) {
-        const f = i / h0.i;
-        const sway = Math.sin(t * 0.9 + f * 3) * 6 * Math.sin(Math.PI * f);
-        p[i * 2] = q[i * 2] = o.ax + (h0.x - o.ax) * f + sway;
-        p[i * 2 + 1] = q[i * 2 + 1] = o.ay + (h0.y - o.ay) * f;
+      let ia = 0, xa = o.ax, ya = o.ay;
+      for (const h of this.fixed ? o.holds : [h0]) {
+        const n1 = h.i - ia;
+        for (let i = ia + 1; i < h.i; i++) {
+          const f = (i - ia) / n1;
+          const sway = Math.sin(t * 0.9 + (i / h0.i) * 3) * 6 * Math.sin(Math.PI * f);
+          p[i * 2] = q[i * 2] = xa + (h.x - xa) * f + sway;
+          p[i * 2 + 1] = q[i * 2 + 1] = ya + (h.y - ya) * f;
+        }
+        ia = h.i; xa = h.x; ya = h.y;
       }
     }
     this.draw();
@@ -226,11 +243,12 @@ export class Chain {
     // links nearest each hold still show, half a link into that stretch, so
     // they always reach the ends of the painted chain and leave no gap.
     const [h0, h1] = this.holds;
-    const hideA = h0 && h1 ? arc[h0.i] + pitch * 0.5 : 1e9;
-    const hideB = h0 && h1 ? arc[h1.i] - pitch * 0.5 : -1e9;
+    const hideA = h0 && h1 && !this.fixed ? arc[h0.i] + pitch * 0.5 : 1e9;
+    const hideB = h0 && h1 && !this.fixed ? arc[h1.i] - pitch * 0.5 : -1e9;
     // Count links from Snap's top hold when there is one, so the links next
-    // to him stay put while the chain pays out above.
-    const origin = (h0 ? arc[h0.i] : 0) + this.slide;
+    // to him stay put while the rope above changes length; a chain fixed in
+    // the world counts from its top, and he slides along it.
+    const origin = (h0 && !this.fixed ? arc[h0.i] : 0) + this.slide;
     const first = origin - Math.floor(origin / pitch) * pitch;
     let count = 0;
     for (let s = first, k = -Math.floor(origin / pitch); s < total && count < MAX_LINKS; s += pitch, k++) {

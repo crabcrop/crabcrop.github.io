@@ -177,13 +177,12 @@ export class WreckUI {
       }
     }
     // The octopus's button, unless a card has scrolled over it.
-    // Above the octopus on wide screens, below it on phones.
+    // To the right of the octopus on wide screens, below it on phones.
     const f = out.octo;
     const lift = f.s * 0.62;
     if (!f.on) this.covered = true;
     else if (this.frame++ % 4 === 0) {
-      const by = this.o.wide ? f.y - lift - 40 : f.y + 60;
-      this.covered = this.hidden(f.x, f.y) || this.hidden(f.x, by);
+      this.covered = this.hidden(f.x, f.y) || (this.o.wide ? this.hidden(f.x + lift * 0.9 + 80, f.y) : this.hidden(f.x, f.y + 60));
     }
     this.letterBtn.classList.toggle('on', !this.covered);
     if (f.on) {

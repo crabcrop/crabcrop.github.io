@@ -17,7 +17,7 @@ type Finish = 'none' | 'studio' | 'cutout';
 const FINISH_SEG: Record<Finish, string> = { none: '', studio: 'studio(product,bg:brand,shadow:soft,pad:10)', cutout: 'removebg' };
 const FINISH_NAME: Record<Finish, string> = { none: 'None', studio: 'Studio', cutout: 'Cut out' };
 const ZONES: Record<ZoneId, string> = {
-  s0: 'The Marina', t1: 'The plunge', s1: 'The Shallows', s2: 'The Kelp Forest', t2: 'The drop-off',
+  s0: 'The Marina', t1: 'The plunge', s1: 'The Shallows', s2: 'The Kelp Forest', t2: 'To the reef',
   s3: 'The Coral Reef', s3b: 'The Clam Studio', s4: 'The Shipwreck', t3: 'Into the wreck', s4b: 'The Shipwreck',
   t4: 'The drop', s5: 'The Twilight Zone', s6: 'The Vents', t5: 'The ascent', s7: 'Back to the Surface',
 };
@@ -36,7 +36,7 @@ function whenNear(el: Element | null, fn: () => void) {
   io.observe(el);
 }
 
-/** A tag on the chain takes a value, with a little stamp. */
+/** A tag on Snap's line takes a value, with a little stamp. */
 function stamp(tag: HTMLElement, code: string, note: string) {
   tag.classList.remove('blank');
   tag.querySelector('code')!.textContent = code;
@@ -76,8 +76,6 @@ export class UI {
   private lookTag = document.getElementById('tag-look')!;
   private cropTag = document.getElementById('tag-crop')!;
   private cards = [...document.querySelectorAll<HTMLElement>('.card')];
-  /** Which zone each card hangs in; the reef's travelling cards have no thread. */
-  private cardZone = this.cards.map((c) => (c.closest('.s1') ? 's1' : c.closest('.s2') ? 's2' : c.closest('.s3b') ? 's3b' : c.closest('.s4b') ? 's4b' : c.closest('.s5') ? 's5' : c.closest('.s6') ? 's6' : 'reef'));
   private reefUI: ReefUI;
   private wreckUI: WreckUI;
   private twilightUI: TwilightUI;
@@ -85,8 +83,6 @@ export class UI {
   private surfaceUI = new SurfaceUI();
   private sigTag = document.querySelector<HTMLElement>('#tags .tag.sig')!;
   private sealInputs = [...document.querySelectorAll<HTMLInputElement>('input[name="seal"]')];
-  private threads = document.getElementById('threads') as unknown as SVGSVGElement;
-  private paths: SVGPathElement[] = [];
   private cargo = document.getElementById('cargo')!;
   private hots = [...document.querySelectorAll<HTMLButtonElement>('.hot')];
   private curtains = document.getElementById('curtains')!;
@@ -164,8 +160,6 @@ export class UI {
       this.cards.forEach((c) => io.observe(c));
       const race = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) { o.onRaceView(); race.disconnect(); } }), { threshold: 0.6 });
       race.observe(document.getElementById('choice-format')!);
-      const ns = 'http://www.w3.org/2000/svg';
-      this.paths = this.cards.map(() => { const p = document.createElementNS(ns, 'path'); this.threads.appendChild(p); return p; });
     } else {
       this.staticGauge();
     }
@@ -298,7 +292,7 @@ export class UI {
     }
   }
 
-  /** Choice 5: sealed or readable. Sealed, the signature tag on the chain becomes the token and the other tags fold into it. */
+  /** Choice 5: sealed or readable. Sealed, the signature tag on his line becomes the token and the other tags fold into it. */
   private sealChoice() {
     const status = document.getElementById('seal-status')!;
     this.sealed = this.sealInputs.find((i) => i.checked)?.value === 'sealed';
@@ -392,7 +386,7 @@ export class UI {
     this.story.classList.toggle('on', out.storyOn);
     this.kind.classList.toggle('on', out.kindOn);
 
-    // Tags on the chain. Reaching the kelp, the look tag shows the look already on.
+    // The tags on Snap's line. Reaching the kelp, the look tag shows the look already on.
     this.tagsEl.classList.toggle('on', out.tagsOn > 0.5);
     if (!this.lookShown && out.s2On > 0.6) {
       this.lookShown = true;
@@ -407,13 +401,13 @@ export class UI {
         const p = out.tags[k];
         const el = this.tagEls[i];
         if (!el) return;
-        // where the chain bends (by Snap's claw on the sea floor) the tags still hang more or less upright
-        const dangle = (k === 'src' ? 0.05 : Math.max(-0.35, Math.min(0.35, -p.a * 0.6))) + Math.sin(t * 1.3 + i * 1.7) * 0.05;
+        // where the line leans (trailing behind Snap as he walks) the tags still hang more or less upright
+        const dangle = Math.max(-0.35, Math.min(0.35, -p.a * 0.6)) + Math.sin(t * 1.3 + i * 1.7) * 0.05;
         el.style.setProperty('--pos', `translate(${(p.x + 9).toFixed(1)}px, ${(p.y - 11).toFixed(1)}px) rotate(${dangle.toFixed(3)}rad)`);
       });
     }
 
-    // Cards sway on their threads; the threads run to the chain.
+    // Cards sway gently in the water.
     const H = innerHeight;
     this.cards.forEach((c, i) => {
       const r = c.getBoundingClientRect();
@@ -423,15 +417,6 @@ export class UI {
       const bump = on >= 0 ? Math.min(1, on * 6) * 0.9 + 2.4 * Math.sin(on * 10) * Math.exp(-on * 3.5) : 0;
       const sway = Math.sin(t * 0.8 + i * 1.9) * 0.55 + Math.max(-1.5, Math.min(1.5, v * 0.04)) + bump;
       if (onScreen) c.style.transform = `rotate(${sway.toFixed(2)}deg)`;
-      const path = this.paths[i];
-      if (!path) return;
-      const z = this.cardZone[i];
-      const zoneOn = z === 's1' ? out.s1On : z === 's2' ? out.s2On : z === 's3b' && out.zone === 's3b' ? 1 : z === 's4b' ? out.cabinOn : z === 's5' ? out.twi.on : z === 's6' ? out.vents.on : 0;
-      const cx = out.chainX(r.top - 26);
-      if (!onScreen || zoneOn < 0.5 || cx === null || cx < r.right) { path.setAttribute('d', ''); return; }
-      const x0 = r.right - 22, y0 = r.top + 6, x1 = cx, y1 = r.top - 26;
-      const mx = (x0 + x1) / 2, my = Math.max(y0, y1) + 18;
-      path.setAttribute('d', `M${x0.toFixed(1)},${y0.toFixed(1)} Q${mx.toFixed(1)},${my.toFixed(1)} ${x1.toFixed(1)},${y1.toFixed(1)}`);
     });
 
     // Hotspots pinned to the plates: the cargo on the sea floor, the silk curtains in the kelp.

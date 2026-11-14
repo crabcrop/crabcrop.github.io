@@ -23,7 +23,7 @@ const NOUN: Record<string, string> = { jellyfish: 'glowing jellyfish', 'glowing 
 /**
  * The twilight zone in the DOM: CLIP tags that light up next to the
  * creatures the visitor's light finds, the meta answer they add up to, the
- * explain report for the visitor's own URL, and the chain's tags explaining
+ * explain report for the visitor's own URL, and the tags on his line explaining
  * their segments while the lure's light runs down them.
  */
 export class TwilightUI {
@@ -139,7 +139,7 @@ export class TwilightUI {
     this.altLine.classList.toggle('on', on && this.wide && this.seen.size > 0);
     this.kind.classList.toggle('on', out.fishOn);
 
-    // While the explain card is up, the chain's tags explain their segments as the lure's light passes.
+    // While the explain card is up, the tags on his line explain their segments as the lure's light passes.
     const lure = tw.lure.on && !!this.recipe;
     if (lure && !this.saved) {
       this.saved = this.chainTags.map((el) => el.querySelector('span')!.textContent ?? '');
