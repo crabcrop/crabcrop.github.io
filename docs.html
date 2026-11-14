@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.googletagmanager.com 'sha256-JOJJSXuPIsj/UiWkC5Tba1DCiOuf7Zmi212F4r+CtKs=' 'sha256-v2jBsL7qExTJQ8FhY/sXLx7GA+zc/ZQOiiR36xuqpTk='; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://images.crabcrop.org https://*.google-analytics.com https://*.googletagmanager.com; connect-src 'self' https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>crabcrop documentation: Every Operation, Endpoint, and SDK</title>
 <meta name="description" content="The full crabcrop documentation: install, signing, URL anatomy, every operation family with interactive demos, the meta and explain endpoints, purge, upload, SDKs, MCP, the CLI, and deployment recipes.">
@@ -1696,6 +1697,7 @@ docker run -p 3000:3000 -e CRABCROP_SECRET="$(openssl rand -hex 32)" crabcrop:la
     </div>
   </div>
   <p class="signoff">Built on the shore, in Rust. MIT licensed.<br>Snapped, not generated. See you at low tide. 🦀</p>
+<p class="signoff" id="privacy" style="max-width:640px;margin:12px auto 0;padding:0 20px">Privacy: this site uses Google Analytics to count visits. Google Analytics sets the cookies <code>_ga</code> and <code>_ga_56Q9ZPMWLX</code>. GitHub Pages serves the pages, and images.crabcrop.org, a crabcrop server, renders the photos. Google, GitHub Pages and images.crabcrop.org all see your IP address and browser details, as any web server does.</p>
 </footer>
 
 <script>
