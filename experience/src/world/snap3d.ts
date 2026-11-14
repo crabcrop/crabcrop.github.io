@@ -1,7 +1,8 @@
 import * as THREE from 'three';
-import { media, url, loadPicture } from '../media';
+import { media, url, loadPicture, inflate, fromBase64 } from '../media';
 import { LOOK, LOOK_GLSL } from './look';
 import type { Stage } from './stage';
+import { SNAP_SHARP } from '../first-view';
 
 /**
  * Snap in 3D: Tripo's model of the pose-2 painting with the chain edited
@@ -209,11 +210,14 @@ export class Snap3D {
   /**
    * The shape ships as base64 text (the preview host serves no binary
    * files) and the texture as its own picture, AVIF or WebP, loaded through
-   * an image element like every other picture. A failed load can be tried again.
+   * an image element like every other picture: the 1024 px one where he is
+   * drawn small enough that it shows all there is to see (tall is his
+   * greatest height on screen, in device pixels). A failed load can be
+   * tried again.
    */
-  load() {
+  load(tall = 0) {
     if (this.ready) return Promise.resolve();
-    this.loading ??= this.build().catch((e) => {
+    this.loading ??= this.build(tall).catch((e) => {
       this.loading = null;
       console.warn('dive: 3D Snap did not load', e);
       throw e;
@@ -221,30 +225,62 @@ export class Snap3D {
     return this.loading;
   }
 
-  private async build() {
+  private async build(tall: number) {
     const s = media.snap3d;
     const [text, img] = await Promise.all([
       fetch(url('snap-3d.txt')).then((r) => { if (!r.ok) throw new Error(`snap-3d: ${r.status}`); return r.text(); }),
-      loadPicture('snap-3d'),
+      loadPicture(tall > SNAP_SHARP ? 'snap-3d' : 'snap-3d-1024'),
     ]);
-    const bin = Uint8Array.from(atob(text.trim()), (ch) => ch.charCodeAt(0)).buffer;
-    const n = s.n, ni = s.tris * 3;
+    // The pack (encode-media.py writes it): every column of the vertices is a
+    // stream of differences from the vertex before, zigzag, its low bytes and
+    // then, for a wide one, its high bytes; a narrow stream wraps at 256.
+    const raw = await inflate(fromBase64(text.trim()));
+    const n = s.n, ni = s.tris * 3, top = (1 << s.bits) - 1;
     let at = 0;
-    const take = <T extends ArrayBufferView>(make: (b: ArrayBuffer, o: number) => T): T => {
-      const a = make(bin, at);
-      at += a.byteLength;
-      at += (4 - (at % 4)) % 4;
-      return a;
+    const stream = (wide: boolean) => {
+      const out = new Uint16Array(n);
+      let v = 0;
+      for (let i = 0; i < n; i++) {
+        const z = raw[at + i] | (wide ? raw[at + n + i] << 8 : 0);
+        v = (v + ((z >>> 1) ^ -(z & 1))) & (wide ? 0xffff : 0xff);
+        out[i] = v;
+      }
+      at += wide ? 2 * n : n;
+      return out;
     };
-    const qp = take((b, o) => new Int16Array(b, o, n * 3));
-    const qn = take((b, o) => new Int8Array(b, o, n * 3));
-    const qu = take((b, o) => new Uint16Array(b, o, n * 2));
-    const rig = take((b, o) => new Uint8Array(b, o, n * 3));
-    const index = take((b, o) => new Uint16Array(b, o, ni));
+    // Positions over his box.
     const pos = new Float32Array(n * 3);
-    for (let i = 0; i < n * 3; i++) {
-      const c = i % 3;
-      pos[i] = s.lo[c] + ((qp[i] + 32768) / 65535) * (s.hi[c] - s.lo[c]);
+    for (let c = 0; c < 3; c++) {
+      const q = stream(true);
+      for (let i = 0; i < n; i++) pos[i * 3 + c] = s.lo[c] + (q[i] / top) * (s.hi[c] - s.lo[c]);
+    }
+    // Normals, folded onto a square (octahedral): unfold them.
+    const qn = new Int8Array(n * 3);
+    const ox = stream(false), oy = stream(false);
+    for (let i = 0; i < n; i++) {
+      let x = (ox[i] - 127) / 127, y = (oy[i] - 127) / 127;
+      const z = 1 - Math.abs(x) - Math.abs(y), t = Math.max(-z, 0);
+      x += x >= 0 ? -t : t;
+      y += y >= 0 ? -t : t;
+      const k = 127 / Math.hypot(x, y, z);
+      qn[i * 3] = Math.round(x * k); qn[i * 3 + 1] = Math.round(y * k); qn[i * 3 + 2] = Math.round(z * k);
+    }
+    const qu = new Uint16Array(n * 2);
+    for (let c = 0; c < 2; c++) {
+      const q = stream(true);
+      for (let i = 0; i < n; i++) qu[i * 2 + c] = Math.round((q[i] / top) * 65535);
+    }
+    const rig = new Uint8Array(n * 3);
+    for (let c = 0; c < 3; c++) {
+      const q = stream(false);
+      for (let i = 0; i < n; i++) rig[i * 3 + c] = q[i];
+    }
+    // The triangles: each index is how far back it is from the next unused vertex (0 takes that one), a varint.
+    const index = new Uint16Array(ni);
+    for (let i = 0, unused = 0; i < ni; i++) {
+      let back = 0, shift = 0, b;
+      do { b = raw[at++]; back |= (b & 127) << shift; shift += 7; } while (b & 128);
+      index[i] = back ? unused - back : unused++;
     }
     // The raised claw's pincer: the small ball right of its notch, which swings shut onto the
     // big lobe about the point where the two meet.
@@ -315,6 +351,8 @@ export class Snap3D {
     mesh.frustumCulled = false;
     this.offset.add(mesh);
     this.mesh = mesh;
+    // (his shader is ready before he first shows)
+    await this.stage.warm(mesh);
 
     // The limbs' pivots and swing axes, and where each eye's centre sits along its stalk.
     const up = new THREE.Vector3(0, 1, 0), z = new THREE.Vector3(0, 0, 1);

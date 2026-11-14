@@ -3,11 +3,12 @@
 (fetch them first with scripts/fetch-sources.sh) into ../preview/dive/media,
 and write media/manifest.json with the numbers the page needs.
 
-usage: python3 scripts/encode-media.py [images] [opening] [sub] [reef] [wreck] [video] [sequence] [wreckseq] [beam] [pack] [twilight] [vents] [surface] [snap] [snappost] [snap3d] [still]
+usage: python3 scripts/encode-media.py [images] [opening] [sub] [reef] [wreck] [loops] [sequence] [wreckseq] [beam] [pack] [twilight] [vents] [surface] [snap] [snappost] [snap3d] [still]
        (no argument runs every step but still, which needs the pictures scripts/snap-still.mjs takes of the page)
 needs: ffmpeg, numpy, scipy, Pillow with AVIF support; for snap3d also npx (gltf-transform) and trimesh
 """
 import json, os, subprocess, sys
+os.environ.setdefault('SVT_LOG', '1')   # the AV1 encoder: errors only
 import numpy as np
 from PIL import Image, ImageFilter
 from scipy import ndimage
@@ -32,10 +33,13 @@ def out(name):
     return p
 
 
+AVIF_SPEED = 3   # (6 is the encoder's default: 3 takes ten times as long and gives files about 8% smaller that are slightly closer to the source)
+
+
 def save_pair(im, base, avif_q=52, webp_q=78):
     """Save an image as AVIF and WebP; returns their byte sizes."""
     sizes = {}
-    im.save(out(base + '.avif'), quality=avif_q, speed=6)
+    im.save(out(base + '.avif'), quality=avif_q, speed=AVIF_SPEED)
     im.save(out(base + '.webp'), quality=webp_q, method=6)
     for ext in ('avif', 'webp'):
         sizes[ext] = os.path.getsize(out(f'{base}.{ext}'))
@@ -176,7 +180,8 @@ def chain_sprite(width=640):
 
 
 def images():
-    plates = {}
+    # (the other steps' plates stay as they are)
+    plates = man.setdefault('plates', {})
     # Desktop plates, 21:9. Waterline as a share of plate height (Z0 only).
     for key, name in (('z0', 'z0-plate.png'), ('z1', 'z1-plate.png'), ('z2', 'z2-plate.png'), ('z3', 'z3-plate.png')):
         im = Image.open(src(name)).convert('RGB')
@@ -204,7 +209,6 @@ def images():
         print(key, files)
     plates['z0']['waterline'] = 0.58
     plates['z0p']['waterline'] = 0.33
-    man['plates'] = plates
 
     # Snap hugging the chain (pose 2), for the ride.
     spr, meta, _ = chain_sprite()
@@ -326,15 +330,9 @@ def wreck():
         resize_w(ph, 36).save(out(f'{key}p-tiny.png'))
         plates[key + 'p'] = {'w': ph.size[0], 'h': ph.size[1], 'widths': [720, 1080], 'bytes': pfiles}
         print(key, files, pfiles)
-    enc = ['-an', '-c:v', 'libx264', '-preset', 'slow', '-crf', '27', '-maxrate', '2.4M',
-           '-bufsize', '4.8M', '-pix_fmt', 'yuv420p', '-movflags', '+faststart', '-g', '48']
-    ff('-i', src('z4-loop.mp4'), '-vf', 'scale=1600:-2:flags=lanczos', *enc, out('z4-loop.mp4'))
-    ff('-i', src('z4-loop.mp4'), '-vf', f"crop=528:936:{round(PHONE['z4'][0] * 2212)}:0", *enc, out('z4p-loop.mp4'))
-    for n in ('z4-loop', 'z4p-loop'):
-        man['loops'][n] = os.path.getsize(out(n + '.mp4'))
     cutout('cut-beam.png', 'beam', 700, blur=3.5)
     octopus()
-    print('wreck done', man['loops'], man['beam'], man['octopus'])
+    print('wreck done', man['beam'], man['octopus'])
 
 
 def octopus():
@@ -362,11 +360,12 @@ def twilight():
     plates = man['plates']
     im = Image.open(src('z5-lit-plate.png')).convert('RGB')
     files = {w: save_pair(resize_w(im, w), f'z5lit-{w}') for w in (1600, 2400, 3200)}
-    plates['z5lit'] = {'w': im.size[0], 'h': im.size[1], 'widths': [1600, 2400, 3200], 'bytes': files, 'thumbhash': plates['z5']['thumbhash']}
+    # (thumbhash.mjs gives the lit plates the placeholders of the plates they are revealed over)
+    plates['z5lit'] = {'w': im.size[0], 'h': im.size[1], 'widths': [1600, 2400, 3200], 'bytes': files}
     a, b = PHONE['z5']
     ph = im.crop((round(a * im.size[0]), 0, round(b * im.size[0]), im.size[1]))
     pfiles = {w: save_pair(resize_w(ph, w), f'z5litp-{w}') for w in (720, 1080)}
-    plates['z5litp'] = {'w': ph.size[0], 'h': ph.size[1], 'widths': [720, 1080], 'bytes': pfiles, 'thumbhash': plates['z5p']['thumbhash']}
+    plates['z5litp'] = {'w': ph.size[0], 'h': ph.size[1], 'widths': [720, 1080], 'bytes': pfiles}
     jelly = Image.open(src('cut-glow-jelly.png')).convert('RGB')
     g = np.asarray(jelly).astype(np.float32)
     ys, xs = np.where(g.max(axis=2) > 40)
@@ -390,12 +389,6 @@ def vents():
     pfiles = {w: save_pair(resize_w(ph, w), f'z6p-{w}') for w in (720, 1080)}
     resize_w(ph, 36).save(out('z6p-tiny.png'))
     plates['z6p'] = {'w': ph.size[0], 'h': ph.size[1], 'widths': [720, 1080], 'bytes': pfiles}
-    enc = ['-an', '-c:v', 'libx264', '-preset', 'slow', '-crf', '27', '-maxrate', '2.4M',
-           '-bufsize', '4.8M', '-pix_fmt', 'yuv420p', '-movflags', '+faststart', '-g', '48']
-    ff('-i', src('z6-loop.mp4'), '-vf', 'scale=1600:-2:flags=lanczos', *enc, out('z6-loop.mp4'))
-    ff('-i', src('z6-loop.mp4'), '-vf', f"crop=528:936:{round(PHONE['z6'][0] * 2212)}:0", *enc, out('z6p-loop.mp4'))
-    for n in ('z6-loop', 'z6p-loop'):
-        man['loops'][n] = os.path.getsize(out(n + '.mp4'))
     cutout('cut-tube-worms.png', 'worms', 760, blur=2.2)
     print('vents', files, pfiles, man['worms'])
 
@@ -413,13 +406,7 @@ def surface():
         print(key, files)
     plates['z7']['waterline'] = 0.58
     plates['z7p']['waterline'] = 0.33
-    enc = ['-an', '-c:v', 'libx264', '-preset', 'slow', '-crf', '27', '-maxrate', '2.4M',
-           '-bufsize', '4.8M', '-pix_fmt', 'yuv420p', '-movflags', '+faststart', '-g', '48']
-    ff('-i', src('z7-loop.mp4'), '-vf', 'scale=1600:-2:flags=lanczos', *enc, out('z7-loop.mp4'))
-    ff('-i', src('z7-phone-loop.mp4'), '-vf', 'scale=720:-2:flags=lanczos', *enc, out('z7p-loop.mp4'))
-    for n in ('z7-loop', 'z7p-loop'):
-        man['loops'][n] = os.path.getsize(out(n + '.mp4'))
-    print('surface', man['loops'])
+    print('surface done')
 
 
 def grey_matte(name, lum_w=0.35, lo=7.0, hi=16.0):
@@ -624,21 +611,95 @@ def ff(*args):
     subprocess.run(['ffmpeg', '-v', 'error', '-y', *args], check=True)
 
 
-def video():
-    enc = ['-an', '-c:v', 'libx264', '-preset', 'slow', '-crf', '27', '-maxrate', '2.4M',
-           '-bufsize', '4.8M', '-pix_fmt', 'yuv420p', '-movflags', '+faststart', '-g', '48']
-    loops = {}
-    ff('-i', src('z0-loop.mp4'), '-vf', 'scale=1600:-2:flags=lanczos', *enc, out('z0-loop.mp4'))
-    ff('-i', src('z0-phone-loop.mp4'), '-vf', 'scale=720:-2:flags=lanczos', *enc, out('z0p-loop.mp4'))
-    ff('-i', src('z1-loop.mp4'), '-vf', 'scale=1600:-2:flags=lanczos', *enc, out('z1-loop.mp4'))
-    # Z1 phone: the same 62 to 86 percent window as the phone plate.
-    ff('-i', src('z1-loop.mp4'), '-vf', f"crop=528:936:{round(PHONE['z1'][0] * 2212)}:0", *enc, out('z1p-loop.mp4'))
-    ff('-i', src('z2-loop.mp4'), '-vf', 'scale=1600:-2:flags=lanczos', *enc, out('z2-loop.mp4'))
-    ff('-i', src('z2-loop.mp4'), '-vf', f"crop=528:936:{round(PHONE['z2'][0] * 2212)}:0", *enc, out('z2p-loop.mp4'))
-    for n in ('z0-loop', 'z0p-loop', 'z1-loop', 'z1p-loop', 'z2-loop', 'z2p-loop'):
-        loops[n] = os.path.getsize(out(n + '.mp4'))
-    man['loops'] = loops
-    print('loops', loops)
+# The ambient loops, each in three codecs. A browser plays the smallest one
+# it can: AV1, then HEVC (for Safari, which plays AV1 only where the chip
+# decodes it), then H.264, which everything plays. The AV1 and HEVC encodes
+# are held to the H.264 one's quality (SSIM against the scaled source), so
+# all three look the same. Each is one group of pictures: a loop is only ever
+# played from its start.
+WIDE, TALL = 'scale=1600:-2:flags=lanczos', 'scale=720:-2:flags=lanczos'
+
+
+def window(key):
+    """The phone's window of a 2212 px wide loop: the same share of it as the phone plate's."""
+    return f"crop=528:936:{round(PHONE[key][0] * 2212)}:0"
+
+
+LOOPS = {
+    'z0-loop': ('z0-loop.mp4', WIDE), 'z0p-loop': ('z0-phone-loop.mp4', TALL),
+    'z1-loop': ('z1-loop.mp4', WIDE), 'z1p-loop': ('z1-loop.mp4', window('z1')),
+    'z2-loop': ('z2-loop.mp4', WIDE), 'z2p-loop': ('z2-loop.mp4', window('z2')),
+    'z4-loop': ('z4-loop.mp4', WIDE), 'z4p-loop': ('z4-loop.mp4', window('z4')),
+    'z6-loop': ('z6-loop.mp4', WIDE), 'z6p-loop': ('z6-loop.mp4', window('z6')),
+    'z7-loop': ('z7-loop.mp4', WIDE), 'z7p-loop': ('z7-phone-loop.mp4', TALL),
+}
+LOOP_OUT = ['-an', '-pix_fmt', 'yuv420p', '-movflags', '+faststart']
+LOOP_ENC = {
+    # (five reference frames, as x264's slow preset has: with the sixteen of veryslow the stream asks for level 5,
+    # more than some older phones' decoders take, and H.264 is the one for whatever plays nothing newer)
+    'h264': lambda crf: ['-c:v', 'libx264', '-preset', 'veryslow', '-crf', str(crf), '-maxrate', '2.4M', '-bufsize', '4.8M',
+                         '-x264-params', 'keyint=250:min-keyint=250:scenecut=0:ref=5'],
+    'av1': lambda crf: ['-c:v', 'libsvtav1', '-preset', '4', '-crf', str(crf), '-g', '250', '-svtav1-params', 'tune=0:scd=0:film-grain=0'],
+    'hevc': lambda crf: ['-c:v', 'libx265', '-preset', 'slow', '-crf', str(crf), '-tag:v', 'hvc1',
+                         '-x265-params', 'keyint=250:min-keyint=250:scenecut=0:log-level=error'],
+}
+# (from the most compressed down: the first that is as good as the H.264 encode is kept)
+LOOP_CRF = {'av1': tuple(range(60, 38, -2)), 'hevc': tuple(range(32, 23, -1))}
+LOOP_FILE = {'h264': '{}.mp4', 'av1': '{}.av1.mp4', 'hevc': '{}.hevc.mp4'}
+
+
+def ssim(path, ref):
+    """Mean SSIM (all planes) of a video against a reference of the same size."""
+    r = subprocess.run(['ffmpeg', '-v', 'info', '-i', path, '-i', ref, '-lavfi', '[0:v][1:v]ssim', '-f', 'null', '-'],
+                       capture_output=True, text=True)
+    return float(r.stderr.rsplit('All:', 1)[1].split()[0])
+
+
+def loop(name):
+    source, vf = LOOPS[name]
+    tmp = os.path.join(ROOT, '.cache', 'loops')
+    os.makedirs(tmp, exist_ok=True)
+    ref = os.path.join(tmp, name + '-ref.mkv')
+    ff('-i', src(source), '-vf', vf, '-an', '-c:v', 'ffv1', '-pix_fmt', 'yuv420p', ref)
+    tries = {}
+
+    def encode(codec, crf):
+        """One encode, kept beside the reference until the loop is done: its file and its SSIM."""
+        if (codec, crf) not in tries:
+            path = os.path.join(tmp, f'{name}-{codec}-{crf}.mp4')
+            ff('-i', ref, *LOOP_ENC[codec](crf), *LOOP_OUT, path)
+            tries[codec, crf] = (path, ssim(path, ref))
+        return tries[codec, crf]
+
+    target = encode('h264', 27)[1]
+    kept, note = {'h264': 27}, {}
+    for codec, crfs in LOOP_CRF.items():
+        # Quality rises along crfs: halve down to the first one that reaches the target (the last, if none does).
+        lo, hi = 0, len(crfs) - 1
+        while lo < hi:
+            mid = (lo + hi) // 2
+            if encode(codec, crfs[mid])[1] >= target:
+                hi = mid
+            else:
+                lo = mid + 1
+        kept[codec], note[codec] = crfs[lo], (crfs[lo], round(encode(codec, crfs[lo])[1], 4))
+    sizes = {}
+    for codec, crf in kept.items():
+        dest = out(LOOP_FILE[codec].format(name))
+        os.replace(tries[codec, crf][0], dest)     # (whole or not at all: the page may be open on the folder)
+        sizes[codec] = os.path.getsize(dest)
+    for (codec, crf), (path, _) in tries.items():
+        if kept[codec] != crf:
+            os.remove(path)
+    os.remove(ref)
+    man.setdefault('loops', {})[name] = sizes
+    print('loop', name, sizes, 'h264 ssim', round(target, 4), note, flush=True)
+
+
+def loops():
+    """Every loop, from its source."""
+    for name in LOOPS:
+        loop(name)
 
 
 SEQS = {'t2': ('t2-into-reef.mp4', sum(PHONE['z2']) / 2, sum(PHONE['z3']) / 2),
@@ -665,11 +726,11 @@ def sequence(keys=('t2',)):
         for i, f in enumerate(frames):
             im = Image.open(os.path.join(tmp, f)).convert('RGB')
             d = resize_w(im, 1600)
-            d.save(out(f'{key}/d-{i:03d}.avif'), quality=48, speed=6)
+            d.save(out(f'{key}/d-{i:03d}.avif'), quality=42, speed=AVIF_SPEED)
             c = c0 + (c1 - c0) * i / max(1, len(frames) - 1)
             x0 = int(min(max(0, round(c * im.size[0] - 264)), im.size[0] - 528))
             p = im.crop((x0, 0, x0 + 528, im.size[1]))
-            p.save(out(f'{key}/p-{i:03d}.avif'), quality=50, speed=6)
+            p.save(out(f'{key}/p-{i:03d}.avif'), quality=44, speed=AVIF_SPEED)
             total['d'] += os.path.getsize(out(f'{key}/d-{i:03d}.avif'))
             total['p'] += os.path.getsize(out(f'{key}/p-{i:03d}.avif'))
         man[key] = {'frames': len(frames), 'fps': 9, 'd': [1600, 677], 'p': [528, 936], 'bytes': total}
@@ -891,24 +952,92 @@ def limbs_of(P, I, pitch=0.008, r_open=14, reach0=0.012):
 SNAP3D_VIEW = (-16.41, 45.82, 4.67)
 
 
+def walk_order(T, n):
+    """A mesh's triangles in an order that walks from each to a neighbour
+    across an edge wherever it can, each turned so that a vertex it is the
+    first to use comes last, and its vertices renumbered in the order the
+    triangles first use them: neighbours in space become neighbours in the
+    file, which is what makes the differences between them small. Returns the
+    new triangles and, for each new vertex, its old index."""
+    from collections import defaultdict
+    edge = defaultdict(list)
+    for t, (a, b, c) in enumerate(T):
+        for u, v in ((a, b), (b, c), (c, a)):
+            edge[(min(u, v), max(u, v))].append(t)
+    done, order = np.zeros(len(T), bool), []
+    for seed in range(len(T)):
+        stack = [seed]
+        while stack:
+            t = stack.pop()
+            if done[t]:
+                continue
+            done[t] = True
+            order.append(t)
+            a, b, c = T[t]
+            for u, v in ((c, a), (b, c), (a, b)):
+                stack += [o for o in edge[(min(u, v), max(u, v))] if not done[o]]
+    new, old, out = np.full(n, -1, np.int64), [], []
+    for t in order:
+        tri = [int(v) for v in T[t]]
+        fresh = [new[v] < 0 for v in tri]
+        if fresh.count(True) == 1:
+            k = fresh.index(True)
+            tri = tri[k + 1:] + tri[:k + 1]
+        for v in tri:
+            if new[v] < 0:
+                new[v] = len(old)
+                old.append(v)
+        out.append([new[v] for v in tri])
+    return np.array(out, np.int64), np.array(old, np.int64)
+
+
+def stream(a, wide):
+    """One stream of the 3D pack: a column of whole numbers as its
+    differences from the value before, zigzag (small either way is a small
+    number), the low bytes and then, for a wide one, the high bytes. A narrow
+    stream wraps at 256."""
+    d = np.diff(a.astype(np.int64), prepend=0)
+    if not wide:
+        d = (d + 128) % 256 - 128
+    z = (d << 1) ^ (d >> 63)
+    assert z.max() < (65536 if wide else 256)
+    return (z & 255).astype(np.uint8).tobytes() + ((z >> 8).astype(np.uint8).tobytes() if wide else b'')
+
+
+def octahedral(N):
+    """Unit normals folded onto a square: two numbers from -127 to 127 instead of three."""
+    N = N / np.maximum(1e-9, np.linalg.norm(N, axis=1, keepdims=True))
+    p = N[:, :2] / np.abs(N).sum(1, keepdims=True)
+    sign = np.where(p >= 0, 1.0, -1.0)
+    fold = (1 - np.abs(p[:, ::-1])) * sign
+    p = np.where(N[:, 2:3] <= 0, fold, p)
+    return np.round(p * 127).astype(np.int64)
+
+
+SNAP3D_BITS = 13   # positions and uvs: 8192 steps over his box and over the texture, an eleventh of a pixel on the largest screens
+
+
 def snap3d():
     """Snap in 3D on the chain: Tripo's model of the pose-2 painting with the
     chain edited out, seen as in the painting. Cut down for the web (about 35k
-    triangles, a 2048 px texture) and shipped as one small binary, base64
-    text since the preview host serves no binary files: quantized positions,
-    normals and uvs, each vertex's limb and how far out along it it sits, and
-    the triangles. All in his rig frame: x right, y up, z toward the viewer,
-    in his heights on the chain (the pose-2 sprite's height), from the point
-    in his raised claw the chain runs through. The manifest has the rest: the
-    limbs (two eye stalks, the claw holding the chain, the other claw, the
-    legs) with the points they swing about, and the eyes."""
-    import base64
+    triangles; a 2048 px texture, and a 1024 px one for where he is drawn
+    smaller than that shows) and shipped as one small pack, base64 text since
+    the preview host serves no binary files: positions, normals and uvs, each
+    vertex's limb and how far out along it it sits, and the triangles. All in
+    his rig frame: x right, y up, z toward the viewer, in his heights on the
+    chain (the pose-2 sprite's height), from the point in his raised claw the
+    chain runs through. The manifest has the rest: the limbs (two eye stalks,
+    the claw holding the chain, the other claw, the legs) with the points they
+    swing about, and the eyes."""
+    import base64, zlib
     tmp = os.path.join(ROOT, '.cache', 'snap-3d')
     os.makedirs(tmp, exist_ok=True)
     flat = os.path.join(tmp, 'flat.glb')
-    subprocess.run(['npx', '--yes', '@gltf-transform/cli@4', 'optimize', src('snap-3d-tripo.glb'), flat,
-                    '--compress', 'false', '--texture-compress', 'false',
-                    '--simplify-ratio', '0.018', '--simplify-error', '0.01'], check=True, capture_output=True)
+    # (the cut-down model is kept: a later version of the tool need not cut it the same way)
+    if not os.path.exists(flat):
+        subprocess.run(['npx', '--yes', '@gltf-transform/cli@4', 'optimize', src('snap-3d-tripo.glb'), flat,
+                        '--compress', 'false', '--texture-compress', 'false',
+                        '--simplify-ratio', '0.018', '--simplify-error', '0.01'], check=True, capture_output=True)
     P, N, UV, I, _ = read_glb(flat)
     image = read_glb(src('snap-3d-tripo.glb'))[4]           # the full 4096 px texture
     M = view_matrix(*SNAP3D_VIEW)
@@ -959,35 +1088,64 @@ def snap3d():
             dist = np.linalg.norm(R[ii] - c, axis=1)
             rig[ii, 2] = np.round(np.clip((r * 1.35 - dist) / (r * 0.35), 0, 1) * 255)
             eyes.append({'c': [round(float(v), 4) for v in c], 'r': round(r, 4), 'look': [round(float(v), 4) for v in bead / np.linalg.norm(bead)]})
-    # Pack: int16 positions over their box, int8 normals, uint16 uvs, the rig bytes, uint16 triangles; each part 4-byte aligned.
+    # Pack. The triangles go in walking order and the vertices in the order the
+    # triangles first use them (walk_order), so each vertex is close to the one
+    # before it; every column is then stored as a stream of differences
+    # (stream), and the whole is deflated:
+    #   positions, 13 bits over their box: x, y, z (wide);
+    #   normals, octahedral: two narrow streams;
+    #   uvs, 13 bits: u, v (wide);
+    #   the three rig bytes (narrow);
+    #   the triangles: each index as how far back it is from the next unused
+    #   vertex (0 takes that one), as varints.
     n = len(R)
     assert n < 65536
+    T, old = walk_order(I.reshape(-1, 3), n)
+    n = len(old)                                                # (a vertex no triangle uses is left behind)
+    R, N, UV, rig = R[old], N[old], UV[old], rig[old]
+    top = (1 << SNAP3D_BITS) - 1
     lo, hi = R.min(0), R.max(0)
-    qp = np.round((R - lo) / (hi - lo) * 65535 - 32768).astype(np.int16)
-    qn = np.round(np.clip(N, -1, 1) * 127).astype(np.int8)
-    qu = np.round(np.clip(UV, 0, 1) * 65535).astype(np.uint16)
+    qp = np.round((R - lo) / (hi - lo) * top).astype(np.int64)
+    qn = octahedral(N) + 127
+    qu = np.round(np.clip(UV, 0, 1) * top).astype(np.int64)
     blob = bytearray()
-    for part in (qp, qn, qu, rig, I.astype(np.uint16)):
-        blob += part.tobytes()
-        blob += b'\0' * (-len(blob) % 4)
-    b64 = base64.b64encode(bytes(blob))
+    for c in range(3):
+        blob += stream(qp[:, c], True)
+    for c in range(2):
+        blob += stream(qn[:, c], False)
+    for c in range(2):
+        blob += stream(qu[:, c], True)
+    for c in range(3):
+        blob += stream(rig[:, c], False)
+    unused = 0
+    for v in T.reshape(-1):
+        back = unused - int(v)
+        assert back >= 0
+        unused += back == 0
+        while back >= 128:
+            blob.append((back & 127) | 128)
+            back >>= 7
+        blob.append(back)
+    b64 = base64.b64encode(zlib.compress(bytes(blob), 9))
     open(out('snap-3d.txt'), 'wb').write(b64)
-    for old in ('snap-3d-glb.txt',):
-        if os.path.exists(out(old)):
-            os.remove(out(old))
+    for old_name in ('snap-3d-glb.txt',):
+        if os.path.exists(out(old_name)):
+            os.remove(out(old_name))
+    # The texture at two sizes: the page takes the small one unless he is drawn taller than about 540 px.
     tex_sizes = save_pair(tex.resize((2048, 2048), Image.LANCZOS), 'snap-3d', avif_q=60, webp_q=88)
+    small_sizes = save_pair(tex.resize((1024, 1024), Image.LANCZOS), 'snap-3d-1024', avif_q=60, webp_q=88)
     front = R[:, :2]
     man['snap3d'] = {
-        'view': list(SNAP3D_VIEW), 'n': n, 'tris': len(I) // 3,
+        'view': list(SNAP3D_VIEW), 'n': n, 'tris': len(I) // 3, 'bits': SNAP3D_BITS,
         'lo': [round(float(v), 5) for v in lo], 'hi': [round(float(v), 5) for v in hi],
         'box': [round(float(v), 4) for v in (front[:, 0].min(), front[:, 1].min(), front[:, 0].max(), front[:, 1].max())],
         'limbs': out_limbs, 'eyes': eyes,
-        'bytes': len(b64), 'textureBytes': tex_sizes,
+        'bytes': len(b64), 'textureBytes': tex_sizes, 'smallTextureBytes': small_sizes,
     }
     print('snap3d', {k: v for k, v in man['snap3d'].items() if k not in ('limbs', 'eyes')}, kinds)
 
 
-steps = sys.argv[1:] or ['images', 'opening', 'sub', 'reef', 'wreck', 'twilight', 'vents', 'surface', 'video', 'sequence', 'wreckseq', 'snap', 'snappost', 'snap3d']
+steps = sys.argv[1:] or ['images', 'opening', 'sub', 'reef', 'wreck', 'twilight', 'vents', 'surface', 'loops', 'sequence', 'wreckseq', 'snap', 'snappost', 'snap3d']
 for st in steps:
     globals()[st]()
     json.dump(man, open(MAN_PATH + '.tmp', 'w'), indent=1)   # written whole or not at all
