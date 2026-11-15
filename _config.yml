@@ -1,10 +1,12 @@
-# GitHub Pages builds this site with Jekyll. The dive's source (experience/)
-# and the design notes and tools (design/) live in the repo but are not part
-# of the site: of the dive, only its build, preview/dive/, is published, and
-# of the home preview, only the page, preview/home/. The rest keeps Jekyll's
-# own exclusions.
+# GitHub Pages builds this site with Jekyll. The dive's source (experience/),
+# the source of the dive made in code (deep/, not published yet) and the
+# design notes and tools (design/) live in the repo but are not part of the
+# site: of the dive, only its build, preview/dive/, is published, and of the
+# home preview, only the page, preview/home/. The rest keeps Jekyll's own
+# exclusions.
 exclude:
   - experience
+  - deep
   - design
   - Gemfile
   - Gemfile.lock
