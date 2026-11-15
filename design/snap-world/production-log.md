@@ -917,6 +917,130 @@ down the whole dive on a wide screen and on a phone, 144 and 163 frames:
 the same picture at every position, bar the bubbles. And every re-encoded
 picture and frame was measured against its source.
 
+## The clarity pass
+
+**The brief.** Make it easy to see what can be done in each scene, with
+crisp instructions, and make the page more premium and cohesive without
+touching its essence or its transitions. Ideas were to be shown before
+anything was built, so the first step was a page of mockups: each one the
+real page at one moment of the dive (its own markup, captured mid-scroll,
+over the world's own picture) with one proposed change applied. A second
+note followed: the Signed URLs card listed HMAC-SHA256 among the languages,
+so look for inconsistencies like it in the text and labels, and consider
+logos with names for the languages and frameworks.
+
+**What was wrong.** Sixteen things to do on the way down, announced in
+seven different ways (a caps line, a paragraph in a choice card, a small
+line under a card, dim text in a code strip, a sentence in body copy, a
+floating button, a bare ring), with more than a dozen verbs, and often far
+from the thing: the rings on the cargo showed two screens before the
+sentence that explained them. A pass over every card, option, tip and
+readout on desktop and phone, checked against the docs, then found 25 more
+label problems of the HMAC kind: chips that held two kinds of thing,
+examples that disagreed with each other (`cat.jpg` and `photo.jpg` beside
+Snap's `print.jpg`, a readable URL without its signature), a sentence the
+docs contradict (how a format is negotiated), a stale number, and code
+that broke in the middle of a word.
+
+**What was built.**
+
+- **Cues.** One look for every instruction: a verb on a sun badge, then the
+  thing. Seven verbs for the whole dive. Each scene's heading card lists
+  what the scene offers. On wide screens a cue is tied by a stitch of yarn
+  to the thing it is about; a dock at the bottom of the view holds the cue
+  for what has no single thing (scrolling, the light) and, on small
+  screens, for the reef's two things. A cue says when the visitor has done
+  it, in the URL's own words, and goes. Everything in the world that can be
+  touched wears one stitched ring, and the can has a stitched box where to
+  drag.
+- **Choice cards.** A sun strip says it is the visitor's turn and shows
+  where they are among the five. Under the options the card shows the URL
+  as far as that choice, with the part just chosen marked. It stays inside
+  the card: nothing follows the visitor down the page.
+- **Night paper.** In the twilight zone and at the vents the cards take the
+  navy of the code strips, with each zone's accent, and the header, the
+  rail and the dock turn dark with the water (below 140 m).
+- **Chrome.** The header floats (the logo and the links on their own paper,
+  the scene running to the top edge), the depth gauge is a rail with a bead
+  on it, and Snap's story notes are set as narration: the display face, a
+  lighter paper, their own label.
+- **The opening** says how the dive works in three steps.
+- **Text and labels.** The 20 clear fixes and the wording changes: one kind
+  of thing per chip, one example file, one order for the formats, the
+  signature on every readable URL, code that wraps only between its parts,
+  card titles that name a feature, the serial comma throughout. The
+  languages (TypeScript, Python, Rust, curl) and the loaders (Next.js,
+  Nuxt, Hydrogen, Astro, SvelteKit) show their marks with their names.
+
+**Where the build departs from the mockups.**
+
+- On phones the cargo stays a list of five named sources, now as one small
+  card with its cue, instead of rings on the plate: the phone's crop of the
+  shallows hides the mooring buoy, so rings could reach four of the five.
+- Snap's story notes turned out to be timed (a few seconds after each
+  event), not pinned. On phones the two that follow the scroll (the fish in
+  the line, the print in the geode) now travel with the cards, each just
+  before the card it belongs with; the three that follow something the
+  visitor did stay brief notes at the top.
+- The opening's docked cue shows on wide screens only: on a phone the card
+  fills the view and its own three steps say it.
+
+**Checked.** Every scene was captured from the built page on a wide screen
+and on a phone and read against its mockup; every card of the still page
+(reduced motion) was photographed in both sizes; the page's functional
+tests (the choices and the ticket, "Dive again", the octopus, Snap's claw,
+the whole scroll under a strict content security policy, the still page)
+were run on the new build. Cost: the page's markup grew from 11 KB to 18 KB
+compressed (the nine marks are 5 KB of that), the stylesheet by 3 KB, the
+script by 1 KB; no new pictures, fonts or requests.
+
+**Found by using it.** After that build each cue was put through what it
+asks for on the built page (move, hover, drag, click, tap), on a wide
+screen and a phone, first with the cursor parked where the scene would
+arrive; and every scene with a cue was captured again in windows from 800
+to 1920 px wide, on a tablet held upright and on a phone. Seven things
+came out of it, all fixed:
+
+- **On phones a tap had only ever flashed.** A finger lifting is also the
+  pointer leaving the page, and a handler from the first slice put the
+  cursor out when it left. So a tap on the cuttlefish blurred it for the
+  length of the touch, and a tap on a creature barely moved the light. A
+  touch now stays its moment after the finger lifts; one that turns into a
+  scroll is dropped as before.
+- **A cursor at rest counted as the visitor's doing.** Arriving at the
+  school with the cursor lying nearby put the faces cue away before it was
+  read, and the light's cue could go without ever showing. What answers the
+  cursor now asks whether it moved lately.
+- **The crop frame's cue could hardly be finished**, and it moved. It went
+  only when the frame was pulled off the turtle, which in a common window
+  means holding the cursor in a band that is mostly off the screen; and it
+  travelled with the frame, which wanders behind the cards. It hangs under
+  the frame's place on the turtle now, and goes once the cursor has moved
+  by the frame for a moment.
+- **Labels ran out of the right edge** in windows narrower than about
+  1250 px: the curtains' cue, the tangled fish's button and, at 1024 px,
+  the cargo's cue. A label now gives way along its yarn and the yarn stays
+  on the thing; the two buttons go under their thing where there is no
+  room beside it; a ring's tip opens to the left near the edge.
+- **The rail's label was wider than the rail's column** below about
+  1370 px, and at 1024 px it covered the first letter of the twilight
+  zone's heading. A long zone name wraps now.
+- **On phones the can is larger than the view**, and the box stitched round
+  it showed as one stray dashed line. The box is left out where it does not
+  fit.
+- **The two cues that change when done** (the cuttlefish, the can) drew
+  their verb badge as if it were a second verb inside a sentence: smaller
+  than every other cue's, and the tick that replaces it squashed to a
+  sliver. The rule for a second verb caught them because their words sit in
+  a span of their own.
+
+Checked again on the last build: what each cue does when the visitor does
+the thing, on a wide screen, an upright tablet and a phone; every scene
+with a cue in windows 800, 1024, 1280, 1440 and 1920 px wide (every label
+inside the view, the rail's label inside its column, 1440 px unchanged);
+the functional tests; the hosted copy. This round cost 1 KB of script and
+0.2 KB of stylesheet, compressed.
+
 ## Next
 
 The way from the twilight zone to the vents still dips through an ember
@@ -1126,3 +1250,41 @@ the stills; phone-format takes (9:16, 1080p) would fix that.
 - When two films of one page disagree, film each twice. The leap off the
   pier differed between the old build and the new, and so did two runs of
   the same build: the rig's own timing, not the page's.
+- A mockup made from the page itself cannot lie about the page. Capturing
+  the live markup at a scroll position (classes, inline styles, the picked
+  options), stripping its scripts and laying it over the world's own
+  picture gave a still that matched the real page to the pixel; every
+  proposed change was then a few lines on top, and those lines became the
+  build.
+- A rule for one element can blank another. `.specimen b` (sun yellow, for
+  the numbers in a code strip) also caught the verb badge, a `b` with a sun
+  ground: yellow on yellow. A new component that reuses an element name
+  inside an old container needs its colour said again there.
+- The stylesheet minifier dropped a standalone `translate` beside a
+  `transform` on the same element, without a word. The docked cue sat half
+  a width off centre in the built page only. Centre with the layout, and
+  look at the built page, not the dev server.
+- A hover handler on something that waits off stage fires for a resting
+  cursor. The cargo's rings wait in the top left corner until the world
+  pins them, where a cursor at rest touched one and the page took the cue
+  as seen before anyone had looked. Count a hover only while the thing is
+  showing.
+- The font check earns its keep on comments too: a box-drawing rule in a
+  CSS comment failed the build, as it should, since the check cannot tell a
+  comment from a label.
+- A finger lifting sends `pointerleave` to the document. A handler written
+  for "the mouse left the page" also runs at the end of every tap; check
+  `pointerType` there.
+- Test what a cue asks for with the cursor parked first. A cursor at rest
+  is still a cursor: anything that answers "the cursor is near" fires the
+  moment the scene arrives.
+- In stepped-time tests under software rendering, scroll events arrive
+  late: the page still shows an earlier position while the script has
+  moved on, and the scene looks frozen. After `scrollTo`, dispatch a
+  `scroll` event yourself.
+- A label that hangs from a zero-width anchor needs `width: max-content`
+  before it is allowed to wrap, or it wraps to its narrowest.
+- A tip that opens over its own ring flickers: the cursor is on the tip, so
+  the ring is no longer hovered, so the tip goes, and round again. A list
+  item pinned at a point is as wide as its ring, so "to the left of the
+  ring" is `right: calc(100% + gap)`, not `right: gap`.

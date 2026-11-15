@@ -1,3 +1,5 @@
+import { soft } from './text';
+import { beside, keepIn } from './fit';
 import type { WorldOut } from './world';
 
 const B64URL = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
@@ -61,6 +63,7 @@ export class WreckUI {
   private stamp = document.querySelector<HTMLButtonElement>('.stamp-hot')!;
   private stampTip = document.querySelector<HTMLElement>('.stamp-hot + .tip .tip-text')!;
   private letterBtn = document.getElementById('seal-letter') as HTMLButtonElement;
+  private cueSeal = document.getElementById('cue-seal')!;
   private kind = document.getElementById('kind-seal')!;
   /** The chest's lid: 1 open (the recipe readable), 0 shut (sealed); where it is heading. */
   private open = 1;
@@ -131,8 +134,9 @@ export class WreckUI {
     this.chest.classList.toggle('locked', locked);
     this.chest.setAttribute('aria-pressed', String(locked));
     this.chestLabel.textContent = locked ? 'Open the chest: the URL is sealed' : 'Close the chest to seal the URL';
-    const sealed = `s1.${this.token}/print.jpg`;
-    this.rest.textContent = settled || shut <= 0 || shut >= 1 ? (shut >= 0.5 ? sealed : this.recipe) : scramble(this.recipe, sealed, shut);
+    // (the readable URL carries its signature, as everywhere else on the page: sealed, the token takes that slot)
+    const sealed = `s1.${this.token}/print.jpg`, readable = `3c1f6c18…/${this.recipe}`;
+    this.rest.innerHTML = soft(settled || shut <= 0 || shut >= 1 ? (shut >= 0.5 ? sealed : readable) : scramble(readable, sealed, shut));
     this.rest.classList.toggle('sealed', shut >= 0.5);
   }
 
@@ -162,7 +166,9 @@ export class WreckUI {
   /** The desk's seal shows whether the URL is sealed. */
   setSealed(sealed: boolean) {
     this.stamp.setAttribute('aria-pressed', String(sealed));
-    this.stampTip.textContent = sealed ? 'Sealed. Press again to make it readable' : 'Press it to seal your URL';
+    this.stampTip.textContent = sealed ? 'Sealed. Click again to make it readable' : 'Click it to seal your URL';
+    // (the cue by the seal has done its work once the visitor has sealed a URL, here or on the card)
+    if (sealed) this.desk.classList.add('seen');
   }
 
   update(out: WorldOut) {
@@ -174,6 +180,9 @@ export class WreckUI {
       for (const b of [this.stamp]) {
         const x = z.ox + Number(b.dataset.u) * z.dw, y = z.oy + Number(b.dataset.v) * z.dh;
         b.parentElement!.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px)`;
+        // (near the right edge of a narrow window the tip opens to the left, and the cue's label gives way)
+        b.parentElement!.classList.toggle('flip', x + 30 + 264 > innerWidth - 8);
+        keepIn(this.cueSeal, x);
       }
     }
     // The octopus's button, unless a card has scrolled over it.
@@ -182,7 +191,9 @@ export class WreckUI {
     const lift = f.s * 0.62;
     if (!f.on) this.covered = true;
     else if (this.frame++ % 4 === 0) {
-      this.covered = this.hidden(f.x, f.y) || (this.o.wide ? this.hidden(f.x + lift * 0.9 + 80, f.y) : this.hidden(f.x, f.y + 60));
+      // (beside the octopus while there is room, else under it)
+      const side = this.o.wide && !beside(this.letterBtn, f.x, lift * 0.9 + 16);
+      this.covered = this.hidden(f.x, f.y) || (side ? this.hidden(f.x + lift * 0.9 + 80, f.y) : this.hidden(f.x, f.y + (this.o.wide ? lift * 0.8 + 40 : 60)));
     }
     this.letterBtn.classList.toggle('on', !this.covered);
     if (f.on) {

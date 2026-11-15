@@ -49,29 +49,44 @@ h1[tabindex="-1"]:focus { outline: none; }
 .gl #world { display: block; }
 
 /* Header */
-.top { position: fixed; top: 0; left: 0; right: 0; height: var(--top); z-index: 20; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 0 clamp(16px, 3vw, 36px); background: rgba(251, 244, 230, .82); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-bottom: 1.5px solid rgba(20, 40, 50, .08); }
-.logo { display: inline-flex; align-items: center; gap: 9px; font-family: var(--display); font-weight: 900; font-size: 22px; color: var(--ink); text-decoration: none; letter-spacing: -.01em; }
-.top-links { display: flex; gap: clamp(12px, 2vw, 26px); font-family: var(--mono); font-size: 13px; font-weight: 700; }
-.top-links a { color: var(--ink-2); text-decoration: none; }
+.top { position: fixed; top: 0; left: 0; right: 0; height: calc(var(--top) + 10px); z-index: 20; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 4px clamp(14px, 2.6vw, 34px) 0; pointer-events: none; }
+.logo { display: inline-flex; align-items: center; gap: 9px; padding: 5px 16px 5px 9px; border-radius: 999px 999px 999px 8px; font-family: var(--display); font-weight: 900; font-size: 20px; color: var(--ink); text-decoration: none; letter-spacing: -.01em; }
+.logo svg { width: 26px; height: 26px; }
+.logo, .top-links { pointer-events: auto; background: rgba(251, 244, 230, .93); border: 1.5px solid var(--ink); box-shadow: var(--shadow-sm); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); transition: background .5s, border-color .5s, color .5s; }
+.top-links { display: flex; gap: clamp(12px, 2vw, 26px); padding: 10px 20px; border-radius: 999px 999px 8px 999px; font-family: var(--mono); font-size: 13px; font-weight: 700; }
+.top-links a { color: var(--ink-2); text-decoration: none; transition: color .5s; }
 .top-links a:hover { color: var(--coral-deep); }
 .skip-inline { border-left: 1.5px solid rgba(20, 40, 50, .2); padding-left: clamp(12px, 2vw, 26px); }
 
-/* Depth gauge: depths always, zone names on hover or focus */
-.gauge { position: fixed; left: clamp(10px, 1.6vw, 24px); top: calc(var(--top) + 24px); z-index: 15; font-family: var(--mono); font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--ink); }
-.gauge-readout { margin: 0 0 10px; padding: 6px 10px; background: rgba(251, 244, 230, .9); border: 1.5px solid var(--ink); border-radius: 999px; display: inline-block; white-space: nowrap; box-shadow: var(--shadow-sm); }
-.gauge ol { list-style: none; margin: 0; padding: 8px 10px 8px 12px; display: grid; width: max-content; gap: 6px; background: rgba(251, 244, 230, .78); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); border: 1.5px solid rgba(20, 40, 50, .25); border-radius: 14px 14px 14px 4px; }
-.gauge li { position: relative; padding-left: 12px; white-space: nowrap; }
-.gauge li::before { content: ''; position: absolute; left: 0; top: .6em; width: 7px; height: 2px; background: rgba(20, 40, 50, .45); }
-.gauge a { color: var(--ink); text-decoration: none; opacity: .75; }
-.gauge a:hover, .gauge a[aria-current="true"] { opacity: 1; color: var(--coral-deep); }
+/* The depth rail: one line with a stop for each place, a bead on the one Snap is in and its name beside it; the other names on hover or focus */
+.gauge { position: fixed; left: clamp(14px, 1.9vw, 30px); top: calc(var(--top) + 34px); z-index: 15; font-family: var(--mono); font-size: 11px; font-weight: 700; letter-spacing: .13em; text-transform: uppercase; color: var(--ink); --step: 26px; }
+.gauge-readout { position: absolute; left: 30px; top: calc(var(--at, 0) * var(--step) + var(--step) / 2); z-index: 1; transform: translateY(-50%); margin: 0; padding: 7px 12px; display: grid; gap: 4px; background: rgba(251, 244, 230, .94); border: 1.5px solid var(--ink); border-radius: 16px 16px 16px 4px; box-sizing: border-box; width: max-content; max-width: calc(clamp(150px, 15vw, 230px) - clamp(14px, 1.9vw, 30px) - 36px); white-space: normal; box-shadow: var(--shadow-sm); font-size: 10px; letter-spacing: .12em; transition: top .5s var(--reveal), background .5s, border-color .5s, color .5s; }
+.gauge-readout #depth { font-size: 12.5px; font-weight: 800; letter-spacing: .06em; white-space: nowrap; }
+.gauge-readout #zone { color: var(--ink-2); transition: color .5s; }
+.gauge-readout .sep { display: none; }
+.gauge ol { position: relative; list-style: none; margin: 0; padding: 0; width: max-content; }
+.gauge ol::before { content: ''; position: absolute; left: 6px; top: calc(var(--step) / 2); bottom: calc(var(--step) / 2); width: 2px; border-radius: 2px; background: var(--ink); box-shadow: 0 0 0 1.5px rgba(251, 244, 230, .8); transition: background .5s, box-shadow .5s; }
+.gauge li { position: relative; height: var(--step); white-space: nowrap; }
+.gauge a { position: relative; display: flex; align-items: center; height: 100%; padding-left: 30px; color: var(--ink); text-decoration: none; }
+.gauge a::before { content: ''; position: absolute; left: 2px; top: 50%; width: 10px; height: 10px; margin-top: -5px; box-sizing: border-box; border-radius: 50%; background: var(--cream); border: 1.5px solid var(--ink); box-shadow: 0 0 0 1.5px rgba(251, 244, 230, .8); transition: background .3s, border-color .5s, box-shadow .5s, transform .3s var(--snap); }
+.gauge a.past::before { background: var(--ink); }
+.gauge a:hover::before, .gauge a:focus-visible::before { transform: scale(1.3); }
+.gauge a[aria-current="true"]::before { left: -2px; width: 18px; height: 18px; margin-top: -9px; background: var(--coral); border-width: 2px; box-shadow: 0 0 0 3px rgba(251, 244, 230, .9); }
 .gauge .soon { opacity: .42; }
-.gauge .name { display: inline-block; max-width: 0; overflow: hidden; vertical-align: bottom; opacity: 0; transition: max-width .3s var(--reveal), opacity .2s; }
-.gauge:hover .name, .gauge:focus-within .name { max-width: 16em; opacity: 1; }
-.gauge .d { display: inline-block; min-width: 5.6em; }
+.gauge a > span { opacity: 0; transition: opacity .2s; }
+.gauge a > .d { padding: 4px 0 4px 9px; background: rgba(251, 244, 230, .86); border-radius: 999px 0 0 999px; }
+.gauge a > .name { padding: 4px 9px 4px 0; background: rgba(251, 244, 230, .86); border-radius: 0 999px 999px 0; }
+.gauge a > .d::after { content: ' ·'; margin-right: .5em; }
+.gauge:hover a > span, .gauge:focus-within a > span { opacity: 1; }
+.gauge:hover .gauge-readout, .gauge:focus-within .gauge-readout { opacity: 0; }
+.gauge a[aria-current="true"] > span { font-weight: 800; }
+/* (without scripts the rail cannot follow the scroll: it is a plain line of places to jump to, named on hover) */
+.no-js .gauge-readout { display: none; }
+.no-js .gauge a[aria-current="true"]::before { left: 2px; width: 10px; height: 10px; margin-top: -5px; background: var(--cream); border-width: 1.5px; box-shadow: 0 0 0 1.5px rgba(251, 244, 230, .8); }
 .gauge-bar { display: none; }
 
 /* Panels and type */
-.panel { background: var(--cream); border: 2px solid var(--ink); border-radius: var(--shell); box-shadow: var(--shadow); padding: clamp(20px, 2.4vw, 32px); }
+.panel { --px: clamp(20px, 2.4vw, 32px); --py: var(--px); background: var(--cream); border: 2px solid var(--ink); border-radius: var(--shell); box-shadow: var(--shadow); padding: var(--py) var(--px); }
 .tidemark { margin: 0 0 14px; font-family: var(--mono); font-size: 12px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; color: var(--zone-ink, var(--tide)); }
 .lede { font-size: 18px; color: var(--ink-2); margin: 18px 0 0; }
 
@@ -86,8 +101,10 @@ h1[tabindex="-1"]:focus { outline: none; }
 .copybtn { font-family: var(--mono); font-weight: 800; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; background: var(--sun); color: var(--ink); border: 2px solid var(--ink); border-radius: 10px; padding: 7px 12px; cursor: pointer; transition: transform .15s var(--snap); }
 .copybtn:active { transform: scale(.95); }
 .copybtn.done { background: var(--sea-glass); }
-.hint { margin: 18px 0 0; font-family: var(--mono); font-size: 12px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-2); }
-.hint::after { content: ' ↓'; }
+/* How the dive works, in three steps, under the opening's buttons */
+.steps { list-style: none; margin: 20px 0 0; padding: 14px 0 0; display: flex; flex-wrap: wrap; gap: 8px 14px; border-top: 1.5px dashed rgba(13, 115, 114, .5); font-size: 14px; font-weight: 700; line-height: 1.2; color: var(--ink); }
+.steps li { display: inline-flex; align-items: center; gap: 7px; }
+.steps li b { display: inline-grid; place-items: center; width: 22px; height: 22px; box-sizing: border-box; border-radius: 50%; background: var(--sun); border: 1.5px solid var(--ink); font: 800 11px/1 var(--mono); }
 
 /* Zones */
 main { position: relative; z-index: 1; }
@@ -113,12 +130,16 @@ main { position: relative; z-index: 1; }
 .zone > :not(.zone-bg) { position: relative; z-index: 1; }
 
 .hero { width: min(540px, 37vw); margin-left: clamp(150px, 15vw, 230px); padding-top: clamp(28px, 4vw, 44px); position: relative; top: calc(var(--top) + 6vh); }
-.story { position: absolute !important; left: clamp(150px, 15vw, 230px); top: 128vh; width: min(420px, 40vw); font-size: 17px; }
+.story { position: absolute !important; left: clamp(150px, 15vw, 230px); top: 128vh; width: min(400px, 38vw); }
+/* (narration, not interface: the display face, a lighter paper, its own label) */
+.story.panel { --px: 18px; --py: 13px; padding: 13px 18px 15px; background: rgba(251, 244, 230, .95); border-width: 1.5px; border-radius: 18px 18px 18px 5px; box-shadow: var(--shadow-sm); font: 500 16.5px/1.42 var(--display); color: var(--ink); }
+.story.panel::before { content: "Snap's story"; display: block; margin-bottom: 6px; font: 800 10.5px/1 var(--mono); letter-spacing: .16em; text-transform: uppercase; color: var(--coral-deep); }
+.story.panel code { font-size: .82em; }
 .gl .story { opacity: 0; transform: translateY(16px); transition: opacity .6s var(--reveal), transform .6s var(--reveal); }
 .gl .story.on { opacity: 1; transform: none; }
 
 .zone-head { width: min(500px, 34vw); margin-left: clamp(150px, 15vw, 230px); }
-.zone-head p:last-child { margin: 16px 0 0; color: var(--ink-2); }
+.zone-head > p:not(.tidemark) { margin: 16px 0 0; color: var(--ink-2); }
 .s1 .zone-head { margin-top: 88vh; }
 .gl .s1 .zone-head { margin-top: 52vh; }
 .s2 .zone-head { margin-top: 95vh; }
@@ -189,7 +210,8 @@ main { position: relative; z-index: 1; }
 .gl .card.in .term-line, .gl .card.in .term-out { animation: typing 1s steps(36) forwards; animation-delay: calc(var(--i) * 1s + .3s); }
 @keyframes typing { to { clip-path: inset(0 0 0 0); } }
 .sdk-tabs { display: flex; gap: 6px; margin-bottom: 8px; }
-.sdk-tabs button { font-family: var(--mono); font-size: 11px; font-weight: 800; color: var(--sea-glass); background: transparent; border: 1.5px solid rgba(143, 227, 225, .35); border-radius: 8px; padding: 3px 9px; cursor: pointer; }
+.sdk-tabs button { display: inline-flex; align-items: center; gap: 6px; font-family: var(--mono); font-size: 11px; font-weight: 800; color: var(--sea-glass); background: transparent; border: 1.5px solid rgba(143, 227, 225, .35); border-radius: 8px; padding: 3px 9px; cursor: pointer; }
+.sdk-tabs .mark { width: 13px; height: 13px; }
 .sdk-tabs button[aria-selected="true"] { background: var(--sea-glass); color: var(--abyss); border-color: var(--sea-glass); }
 .sdk-code { margin: 0; font-family: var(--mono); font-size: 11.5px; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; color: #E8FFFC; }
 .sdk-out { margin: 8px 0 0; font-size: 11px; color: var(--sun); overflow-wrap: anywhere; }
@@ -281,13 +303,14 @@ main { position: relative; z-index: 1; }
 .gl .station[data-st="0"] > .station-body { width: min(500px, 34vw); }
 .gl .station-body > * { pointer-events: auto; }
 .reef-card p { font-size: 15.5px; }
-.reef-card .try { margin: 12px 0 0; font-family: var(--mono); font-size: 12px; font-weight: 700; color: var(--zone-ink); }
-.btn.small { padding: 8px 14px; font-size: 13.5px; margin-top: 8px; }
+.card .try { margin: 12px 0 2px; }
+.btn.small { display: flex; width: max-content; padding: 8px 14px; font-size: 13.5px; margin-top: 12px; }
 .chip.stamp { animation: chip .45s var(--snap); }
 @keyframes chip { 0% { transform: scale(1.08); background: var(--sun-soft); } 100% { transform: none; } }
 
 /* The crop choice */
-.choice.compact { padding: 16px 18px 18px; }
+.choice.compact { --px: 18px; --py: 16px; padding: 16px 18px 18px; }
+.choice.compact legend .step { margin-bottom: 12px; padding-top: 8px; padding-bottom: 7px; }
 .choice.compact legend { font-size: 21px; }
 .choice.compact .help { margin: 8px 0 12px; font-size: 14.5px; }
 .crops { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
@@ -301,7 +324,7 @@ main { position: relative; z-index: 1; }
 .shape.square { width: 26px; }
 .shape.whole { width: 50px; border-style: solid; border-color: var(--tide); background: rgba(18, 164, 160, .14); }
 .crop-opt .lab { font-weight: 850; font-size: 13.5px; line-height: 1.2; }
-.crop-opt .sub { font-family: var(--mono); font-size: 9.5px; line-height: 1.25; color: var(--ink-2); overflow-wrap: anywhere; }
+.crop-opt .sub { font-family: var(--mono); font-size: 9.5px; line-height: 1.25; color: var(--ink-2); overflow-wrap: break-word; }
 
 /* The reef's effects over the plates: the crop frame, face boxes, the box over the can */
 .reef-fx { display: none; }
@@ -362,6 +385,7 @@ main { position: relative; z-index: 1; }
 .card .docs { display: inline-block; margin-left: 10px; font-family: var(--mono); font-size: 12.5px; font-weight: 800; }
 .specimen { background: var(--abyss); color: var(--sea-glass); border-radius: 14px 14px 14px 4px; padding: 12px 14px; font-family: var(--mono); font-size: 12px; line-height: 1.5; min-height: 48px; overflow-wrap: anywhere; }
 .specimen b { color: var(--sun); font-weight: 800; }
+.spec-fmt b { white-space: nowrap; }
 .spec-sig .u { opacity: .78; }
 .on-narrow { display: none; }
 html:not(.gl.wide) .on-wide { display: none; }
@@ -404,7 +428,7 @@ html:not(.gl.wide) .on-narrow { display: revert; }
 .sealed-url { margin: 0; font-size: 12px; line-height: 1.45; overflow-wrap: anywhere; }
 .sealed-url .host { opacity: .65; }
 #sealed-rest.sealed { color: var(--sun); }
-.sealed-hint { margin: 6px 0 0; font-size: 10.5px; letter-spacing: .04em; color: rgba(143, 227, 225, .7); }
+.sealed-hint { margin: 10px 0 0; }
 
 /* The ship's log: what the picture's Content Credentials say */
 .spec-log { background: #F3E3C0 repeating-linear-gradient(180deg, transparent 0 20px, rgba(107, 78, 55, .16) 20px 21px); color: #3a2a1c; padding: 12px 14px 14px; }
@@ -444,7 +468,7 @@ html:not(.gl.wide) .on-narrow { display: revert; }
 .seal-opt .wax { width: 38px; height: 38px; border-radius: 47% 53% 50% 50% / 52% 48% 52% 48%; background: radial-gradient(circle at 50% 50%, transparent 38%, rgba(0, 0, 0, .14) 40%, transparent 47%), radial-gradient(circle at 34% 28%, #e86a5a, #b3201a 58%, #7d140f); box-shadow: 0 2px 0 rgba(20, 40, 50, .25); }
 .seal-opt:has(input:checked) .wax { animation: chip .45s var(--snap); }
 .seal-opt .lab { font-weight: 850; font-size: 15px; }
-.seal-opt .sub { font-family: var(--mono); font-size: 11px; color: var(--ink-2); overflow-wrap: anywhere; }
+.seal-opt .sub { font-family: var(--mono); font-size: 11px; color: var(--ink-2); overflow-wrap: break-word; }
 .choice .note { margin: 12px 0 0; font-size: 13.5px; color: var(--ink-2); }
 
 /* The wax seal on the captain's desk (wide screens): press it to seal the URL */
@@ -452,15 +476,22 @@ html:not(.gl.wide) .on-narrow { display: revert; }
 .gl.wide .desk { display: block; position: fixed; inset: 0; margin: 0; padding: 0; list-style: none; pointer-events: none; z-index: 4; opacity: 0; visibility: hidden; transition: opacity .4s, visibility 0s .4s; }
 .gl.wide .desk.on { opacity: 1; visibility: visible; transition: opacity .4s; }
 .gl.wide .desk li { position: absolute; left: 0; top: 0; pointer-events: auto; }
-.gl.wide .desk .hot { width: 40px; height: 40px; padding: 0; border-radius: 50%; font-size: 0; color: transparent; background: rgba(255, 216, 138, .26); border: 2px solid rgba(255, 255, 255, .9); box-shadow: 0 0 0 0 rgba(255, 216, 138, .6); animation: pulse 2.6s ease-in-out infinite; transform: translate(-50%, -50%); }
-.gl.wide .desk .hot[aria-pressed="true"] { background: rgba(214, 49, 24, .5); }
-.gl.wide .desk .hot:hover + .tip, .gl.wide .desk .hot:focus-visible + .tip { display: block; position: absolute; left: 28px; top: -14px; width: max-content; max-width: 260px; background: var(--abyss); color: var(--foam); padding: 8px 10px; border-radius: 10px; font-size: 13px; }
+.gl.wide .desk .hot { position: relative; width: 46px; height: 46px; padding: 0; box-sizing: border-box; border-radius: 50%; font-size: 0; color: transparent; background: none; border: 2.5px dashed #fff; filter: drop-shadow(0 1px 2px rgba(13, 32, 46, .5)); transform: translate(-50%, -50%); }
+.gl.wide .desk .hot[aria-pressed="true"] { border-style: solid; border-color: var(--sea-glass); }
+.gl.wide .desk .hot[aria-pressed="true"]::before { background: var(--coral); }
+.gl.wide .desk .hot[aria-pressed="true"]::after { display: none; }
+.gl.wide .desk .hot:hover + .tip, .gl.wide .desk .hot:focus-visible + .tip { display: block; position: absolute; left: 30px; top: -24px; }
 
 /* The choices */
 .choice { margin: 0; min-width: 0; }
 .choice legend { float: left; width: 100%; padding: 0; font-family: var(--display); font-size: 24px; font-weight: 850; }
-.choice legend .step { display: block; font-family: var(--mono); font-size: 11.5px; letter-spacing: .16em; text-transform: uppercase; color: var(--zone-ink, var(--tide)); font-weight: 800; margin-bottom: 4px; }
-.choice .help { clear: both; margin: 10px 0 14px; font-size: 15.5px; color: var(--ink-2); }
+.choice legend .step { display: flex; align-items: center; gap: 10px; margin: calc(-1 * var(--py)) calc(-1 * var(--px)) 16px; padding: 10px var(--px) 9px; background: var(--sun); border-bottom: 2px solid var(--ink); border-radius: 26px 26px 0 0; font: 800 11.5px/1 var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--ink); }
+.choice .step .of { opacity: .78; }
+.choice .step .dots { margin-left: auto; display: flex; gap: 7px; }
+.choice .step .dots i { width: 10px; height: 10px; box-sizing: border-box; border-radius: 50%; border: 1.5px solid var(--ink); }
+.choice .step .dots i.on { background: var(--ink); }
+.choice .step .dots i.now { background: var(--cream); box-shadow: 0 0 0 2.5px var(--sun), 0 0 0 4px var(--ink); }
+.choice .help { clear: both; margin: 8px 0 14px; font-size: 15.5px; color: var(--ink-2); }
 .schools { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 .looks { display: grid; gap: 10px; }
 .school, .look, .finish { position: relative; display: grid; grid-template-columns: 54px 1fr; grid-template-rows: auto auto; column-gap: 10px; align-items: center; padding: 10px 12px; border: 2px solid var(--ink); border-radius: 16px 16px 16px 4px; background: var(--foam); cursor: pointer; transition: transform .15s var(--snap), background .15s; }
@@ -471,7 +502,8 @@ html:not(.gl.wide) .on-narrow { display: revert; }
 .school .fish { grid-row: span 2; width: 54px; height: 32px; background-repeat: no-repeat; }
 .school .fish.none { background: none; border: 2px dashed rgba(20, 40, 50, .35); border-radius: 50%; width: 32px; justify-self: center; }
 .school .lab, .look .lab, .finish .lab { font-weight: 850; font-size: 15px; }
-.school .sub, .look .sub, .finish .sub { font-family: var(--mono); font-size: 11.5px; color: var(--ink-2); overflow-wrap: anywhere; }
+.school .sub, .look .sub, .finish .sub { font-family: var(--mono); font-size: 11.5px; color: var(--ink-2); overflow-wrap: break-word; }
+.sub.say { font-family: var(--body) !important; font-size: 12.5px !important; letter-spacing: 0; }
 .look, .finish { grid-template-columns: 58px 1fr; }
 .look .swatch { grid-row: span 2; width: 58px; height: 44px; background: linear-gradient(135deg, #2BB3B1, #FFD88A) center / contain no-repeat; }
 .race { margin: 14px 0 0; font-size: 14px; color: var(--ink-2); }
@@ -481,14 +513,20 @@ html:not(.gl.wide) .on-narrow { display: revert; }
 .hot { font-family: var(--mono); font-weight: 800; font-size: 12.5px; background: var(--cream); border: 2px solid var(--ink); border-radius: 999px; padding: 7px 12px; cursor: pointer; color: var(--ink); }
 .tip { display: none; }
 .cargo li { position: relative; }
-.cargo .open + .tip, .cargo .hot:focus-visible + .tip { display: block; position: absolute; left: 0; top: calc(100% + 8px); z-index: 5; width: max-content; max-width: 260px; background: var(--abyss); color: var(--foam); padding: 8px 10px; border-radius: 10px; font-size: 13px; }
-.tip code { display: block; color: var(--sun); margin-bottom: 2px; }
+.cargo .open + .tip, .cargo .hot:focus-visible + .tip { display: block; position: absolute; left: 0; top: calc(100% + 8px); z-index: 5; }
+.tip { width: max-content; max-width: 260px; padding: 9px 13px 10px; background: var(--cream); color: var(--ink); border: 2px solid var(--ink); border-radius: 16px 16px 16px 5px; box-shadow: var(--shadow-sm); font-size: 14px; font-weight: 600; line-height: 1.3; }
+.tip .name { display: block; margin-bottom: 5px; font: 800 10.5px/1 var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--ink-2); }
+html:not(.gl.wide) .tip .name { display: none; }
+.tip code { display: block; margin-bottom: 3px; color: var(--tide-deep); font-size: 12px; font-weight: 800; }
+.tip-text { display: block; }
 .gl.wide .cargo { position: fixed; inset: 0; margin: 0; width: auto; display: block; pointer-events: none; z-index: 4; opacity: 0; transition: opacity .4s; }
 .gl.wide .cargo.on { opacity: 1; }
 .gl.wide .cargo li { position: absolute; left: 0; top: 0; pointer-events: auto; }
-.gl.wide .cargo .hot { width: 34px; height: 34px; padding: 0; border-radius: 50%; font-size: 0; color: transparent; background: rgba(255, 216, 138, .28); border: 2px solid rgba(255, 255, 255, .9); box-shadow: 0 0 0 0 rgba(255, 216, 138, .6); animation: pulse 2.6s ease-in-out infinite; transform: translate(-50%, -50%); }
-.gl.wide .cargo .hot:hover + .tip, .gl.wide .cargo .hot:focus-visible + .tip, .gl.wide .cargo .open + .tip { display: block; position: absolute; left: 22px; top: -14px; }
-@keyframes pulse { 50% { box-shadow: 0 0 0 10px rgba(255, 216, 138, 0); } }
+.gl.wide .cargo .hot { position: relative; width: 46px; height: 46px; padding: 0; box-sizing: border-box; border-radius: 50%; font-size: 0; color: transparent; background: none; border: 2.5px dashed #fff; filter: drop-shadow(0 1px 2px rgba(13, 32, 46, .5)); transform: translate(-50%, -50%); }
+.gl.wide .cargo .hot:hover + .tip, .gl.wide .cargo .hot:focus-visible + .tip, .gl.wide .cargo .open + .tip { display: block; position: absolute; left: 30px; top: -24px; }
+/* (near the right edge a tip opens to the left of its ring) */
+.gl.wide .cargo li.flip .hot + .tip, .gl.wide .desk li.flip .hot + .tip { left: auto; right: calc(100% + 30px); border-radius: 16px 16px 5px 16px; }
+@keyframes breathe { 0% { transform: scale(.8); opacity: .9; } 70%, 100% { transform: scale(1.2); opacity: 0; } }
 
 /* Silk curtains in the kelp: hover to preview a look on the whole forest */
 .curtains { display: none; }
@@ -506,14 +544,18 @@ html:not(.gl.wide) .on-narrow { display: revert; }
 .silk[aria-pressed="true"] .pill { background: var(--sun-soft); }
 
 .free-fish, .seal-letter { display: none; }
-.gl .free-fish, .gl .seal-letter { display: block; position: fixed; left: 0; top: 0; z-index: 4; transform: var(--at, translate(-999px, -999px)) translate(-50%, 34px); font-family: var(--mono); font-weight: 800; font-size: 12px; color: var(--ink); background: var(--cream); border: 2px solid var(--ink); border-radius: 999px; padding: 7px 13px; box-shadow: var(--shadow-sm); cursor: pointer; opacity: 0; visibility: hidden; transition: opacity .3s, visibility 0s .3s, background .15s; }
+.gl .free-fish, .gl .seal-letter { display: inline-flex; position: fixed; left: 0; top: 0; z-index: 4; transform: var(--at, translate(-999px, -999px)) translate(-50%, 34px); cursor: pointer; opacity: 0; visibility: hidden; transition: opacity .3s, visibility 0s .3s, background .15s; }
 .gl .free-fish.on, .gl .seal-letter.on { opacity: 1; visibility: visible; transition: opacity .3s, background .15s; }
-.gl .free-fish::after, .gl .seal-letter::after { content: ''; position: absolute; left: 50%; bottom: 100%; width: 2px; height: 14px; margin-left: -1px; background: var(--ink); }
+.gl .free-fish::after, .gl .seal-letter::after { content: ''; position: absolute; left: 50%; bottom: 100%; height: 14px; margin-left: -1px; border-left: 2.5px dashed #fff; filter: drop-shadow(0 1px 1px rgba(13, 32, 46, .55)); }
 .gl.wide .free-fish, .gl.wide .seal-letter { transform: var(--at, translate(-999px, -999px)) translate(48px, -50%); }
-.gl.wide .free-fish::after, .gl.wide .seal-letter::after { left: auto; right: 100%; top: 50%; bottom: auto; width: 14px; height: 2px; margin: -1px 0 0; }
+.gl.wide .free-fish::after, .gl.wide .seal-letter::after { left: auto; right: 100%; top: 50%; bottom: auto; width: 14px; height: 0; margin: -1px 0 0; border-left: 0; border-top: 2.5px dashed #fff; }
 .gl .free-fish:hover, .gl .seal-letter:hover { background: var(--sun-soft); }
+/* (in a narrow window there may be no room beside the thing: then the button goes under it, as far along as the view allows) */
+.gl.wide .free-fish.under::after, .gl.wide .seal-letter.under::after { left: var(--knot, 40px); right: auto; top: auto; bottom: 100%; width: 0; height: 14px; margin: 0 0 0 -1.25px; border-top: 0; border-left: 2.5px dashed #fff; }
 /* the octopus waits by Snap's side, low in the cabin: its button sits to its right */
 .gl.wide .seal-letter { transform: var(--at, translate(-999px, -999px)) translate(calc(var(--lift, 60px) * 0.9 + 16px), -50%); }
+.gl.wide .free-fish.under { transform: var(--at, translate(-999px, -999px)) translate(calc(-1 * var(--knot, 40px)), 34px); }
+.gl.wide .seal-letter.under { transform: var(--at, translate(-999px, -999px)) translate(calc(-1 * var(--knot, 40px)), calc(var(--lift, 60px) * 0.8 + 16px)); }
 
 .s2 .kind { top: 30vh; }
 .gl .kind { position: fixed !important; top: auto; bottom: 8vh; left: auto; right: 4vw; width: min(380px, 28vw); z-index: 4; pointer-events: none; visibility: hidden; transition: opacity .6s var(--reveal), transform .6s var(--reveal), visibility 0s .6s; }
@@ -521,12 +563,19 @@ html:not(.gl.wide) .on-narrow { display: revert; }
 .gl:not(.wide) .kind { top: calc(var(--top) + 14px); bottom: auto; left: 16px; right: 16px; width: auto; font-size: 15px; }
 
 /* What a choice put in the visitor's URL, said on the panel where they made it. */
-.picked { clear: both; margin: 14px 0 0; padding: 8px 12px; font-size: 13.5px; font-weight: 600; line-height: 1.45; color: var(--ink); background: color-mix(in srgb, var(--zone-accent) 9%, white); border: 1.5px dashed color-mix(in srgb, var(--zone-accent) 60%, transparent); border-radius: 10px; }
-.picked code { font-size: 12px; font-weight: 800; color: var(--zone-ink, var(--tide-deep)); overflow-wrap: anywhere; }
-.picked.pop { animation: chip .45s var(--snap); }
+.picked { clear: both; margin: 14px 0 0; padding: 10px 13px 11px; background: var(--abyss); color: var(--sea-glass); border-radius: 12px 12px 12px 4px; font-size: 13px; line-height: 1.5; }
+.picked .lab { display: block; margin-bottom: 3px; font: 800 10.5px/1.3 var(--mono); letter-spacing: .14em; text-transform: uppercase; color: rgba(143, 227, 225, .68); }
+.picked code { display: block; font-size: 12px; font-weight: 500; line-height: 1.55; color: var(--sea-glass); overflow-wrap: anywhere; }
+.picked code .dim { opacity: .55; }
+.picked mark { padding: 1px 4px; border-radius: 4px; background: var(--sun); color: var(--ink); font-weight: 800; }
+.picked .why { display: block; margin-top: 5px; font-size: 13px; color: #CFE8EE; }
+.picked.pop mark { animation: chip .45s var(--snap); }
+/* (until the script has written the lines there is nothing to show) */
+.picked:empty { display: none; }
 /* (without scripts the choices change nothing, so nothing is claimed) */
 .no-js .picked { display: none; }
-.choice.compact .picked { margin-top: 10px; padding: 6px 10px; font-size: 13px; }
+.choice.compact .picked { margin-top: 10px; padding: 8px 11px 9px; }
+.choice.compact .picked code { font-size: 11.5px; }
 
 /* (a picture element that only offers its image in a smaller format: the image is laid out as if it stood alone) */
 picture.as-img { display: contents; }
@@ -535,6 +584,119 @@ picture.as-img > source { display: none; }
 .snap-static { display: none; }
 body.on-snap { cursor: pointer; }
 .foot { position: relative; z-index: 1; padding: 40px clamp(16px, 4vw, 48px) 56px; text-align: center; font-size: 14px; color: var(--ink-2); background: var(--cream); border-top: 2px solid var(--ink); }
+
+/* Cues: one look for every instruction. A verb on a sun badge, then the thing it is done to. */
+.cue { display: inline-flex; align-items: center; gap: 10px; box-sizing: border-box; min-height: 42px; margin: 0; padding: 6px 16px 6px 6px; background: var(--cream); color: var(--ink); border: 2px solid var(--ink); border-radius: 21px 21px 21px 6px; box-shadow: var(--shadow-sm); font: 600 15px/1.25 var(--body); letter-spacing: 0; text-transform: none; text-align: left; white-space: nowrap; }
+.cue .ask, .cue .did { display: inline-flex; align-items: center; gap: 10px; }
+.cue .did, .cue.done .ask { display: none; }
+.cue.done .did { display: inline-flex; }
+.do { flex: none; display: inline-grid; place-items: center; height: 28px; min-width: 28px; box-sizing: border-box; padding: 0 10px; background: var(--sun); color: var(--ink); border: 1.5px solid var(--ink); border-radius: 14px 14px 14px 4px; font: 800 11px/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; }
+/* (a second verb inside the sentence; not the first verb of a cue that has two states, which sits in a span too) */
+.cue span:not(.ask):not(.did) > .do { height: 24px; min-width: 0; margin: 0 3px; padding: 0 8px; font-size: 10.5px; vertical-align: 1px; }
+.cue.done .did .do { background: var(--sea-glass); padding: 0; font-size: 13px; }
+.cue .more { font-weight: 500; color: var(--ink-2); }
+.cue.big { min-height: 52px; padding: 8px 22px 8px 9px; gap: 12px; font-size: 17px; border-radius: 26px 26px 26px 7px; box-shadow: var(--shadow); }
+.cue.big .ask, .cue.big .did { gap: 12px; }
+.cue.big .do { height: 34px; min-width: 34px; padding: 0 13px; font-size: 12.5px; border-radius: 17px 17px 17px 5px; }
+.cue.flat { min-height: 0; padding: 0; background: none; border: 0; box-shadow: none; white-space: normal; align-items: flex-start; }
+.cue.flat .do { margin-top: -3px; }
+.specimen .cue.flat { font-size: 13.5px; color: var(--sea-glass); }
+.specimen .do { color: var(--ink); }
+.card .try .cue.flat { font-size: 14.5px; }
+
+/* What a scene offers, said once on its heading card, in the same cues. */
+.can { margin: 20px 0 0; padding: 16px 0 0; border-top: 1.5px dashed color-mix(in srgb, var(--zone-accent) 55%, transparent); }
+.can-h { margin: 0 0 12px; font: 800 11px/1 var(--mono); letter-spacing: .16em; text-transform: uppercase; color: var(--zone-ink, var(--tide)); }
+.can ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.can .cue.flat { font-size: 16px; }
+/* (what needs the moving world is not offered where there is none) */
+.static .gl-only, .no-js .gl-only { display: none; }
+/* (and without scripts nothing on the page answers, so nothing is offered) */
+.no-js .can { display: none; }
+
+/* A cue tied to the thing it is about by a stitch of yarn (wide screens). It sits at a point: above it, or below. */
+/* (--slide: how far the label has given way to stay in the view, set by fit.ts; the yarn stays on the thing.
+   The label is as wide as its words, whatever it hangs from, and wraps only where the open water is narrower.) */
+.tie { position: absolute; left: 0; top: 0; z-index: 2; --knot: 34px; --yarn: 24px; --gap: 0px; pointer-events: none; width: max-content; max-width: calc(100vw - clamp(150px, 15vw, 230px) - min(460px, 38vw) - 36px); white-space: normal; transform: translate(calc(-1 * var(--knot) - var(--slide, 0px)), calc(-100% - var(--yarn) - var(--gap))); transition: opacity .4s; }
+html:not(.gl.wide) .tie { display: none; }
+.tie::after { content: ''; position: absolute; left: calc(var(--knot) + var(--slide, 0px)); top: 100%; height: var(--yarn); margin-left: -1.25px; border-left: 2.5px dashed #fff; filter: drop-shadow(0 1px 1px rgba(13, 32, 46, .55)); }
+.tie.under { transform: translate(calc(-1 * var(--knot) - var(--slide, 0px)), calc(var(--yarn) + var(--gap))); }
+.tie.under::after { top: auto; bottom: 100%; }
+/* (once the visitor has done it, the cue says so for a moment and goes) */
+.tie.gone, .seen .tie { opacity: 0; transition: opacity .5s 1.6s; }
+#cue-cargo { --knot: 150px; --yarn: 22px; --gap: 25px; }
+#cue-curtains { --knot: 128px; --yarn: 36px; --gap: 24px; }
+#cue-seal { --knot: 110px; --yarn: 24px; --gap: 25px; }
+#cue-crop { --knot: 60px; --yarn: 26px; }
+#cue-faces { --knot: 96px; --yarn: 22px; }
+#cue-crop, #cue-faces { opacity: 0; }
+#cue-crop.on, #cue-faces.on { opacity: 1; }
+#cue-crop.gone, #cue-faces.gone { opacity: 0; }
+#cue-cuttle { --knot: 84px; --yarn: 22px; --gap: 25px; }
+#cue-can { --knot: 40px; --yarn: 20px; }
+
+/* The one ring for everything in the world that can be touched: stitched, with a sun centre. */
+.gl.wide .cargo .hot::before, .gl.wide .desk .hot::before { content: ''; position: absolute; left: 50%; top: 50%; width: 14px; height: 14px; margin: -7px; box-sizing: border-box; border-radius: 50%; background: var(--sun); border: 2px solid var(--ink); }
+.gl.wide .cargo .hot::after, .gl.wide .desk .hot::after { content: ''; position: absolute; inset: -11px; border-radius: 50%; border: 2px solid rgba(255, 216, 138, .7); animation: breathe 2.6s ease-in-out infinite; }
+.gl.wide .cargo .hot:hover::after, .gl.wide .cargo .hot.open::after, .gl.wide .desk .hot:hover::after { animation: none; opacity: 0; }
+.beacon { position: absolute; left: 0; top: 0; width: 0; height: 0; pointer-events: none; opacity: 0; transition: opacity .3s; }
+.beacon.on { opacity: 1; }
+.beacon::before { content: ''; position: absolute; left: -23px; top: -23px; width: 46px; height: 46px; box-sizing: border-box; border-radius: 50%; border: 2.5px dashed #fff; background: radial-gradient(circle, var(--sun) 0 5px, var(--ink) 5.5px 7px, transparent 7.5px); filter: drop-shadow(0 1px 2px rgba(13, 32, 46, .5)); }
+.beacon::after { content: ''; position: absolute; left: -34px; top: -34px; width: 68px; height: 68px; box-sizing: border-box; border-radius: 50%; border: 2px solid rgba(255, 216, 138, .7); animation: breathe 2.6s ease-in-out infinite; }
+.beacon.done::before { border-style: solid; border-color: var(--sea-glass); background: radial-gradient(circle, var(--sea-glass) 0 5px, var(--ink) 5.5px 7px, transparent 7.5px); }
+.beacon.done::after { display: none; }
+/* (where a box can be dragged: the box, stitched in) */
+.can-hint { position: absolute; left: 0; top: 0; box-sizing: border-box; border: 2.5px dashed #fff; border-radius: 10px; filter: drop-shadow(0 1px 2px rgba(13, 32, 46, .5)); pointer-events: none; opacity: 0; transition: opacity .3s; }
+.can-hint.on { opacity: .92; }
+.can-hint::after { content: ''; position: absolute; right: -9px; bottom: -9px; width: 16px; height: 16px; box-sizing: border-box; border-radius: 50%; background: var(--sun); border: 2px solid var(--ink); }
+.can-hint.done { border-color: transparent; }
+.can-hint.done::after { display: none; }
+.can-hint #cue-can { top: 0; left: 0; }
+
+/* The dock: a cue at rest at the bottom of the open water, for what has no single thing to tie it to (scrolling, the light) and for small screens. */
+.dock { display: none; }
+.gl .dock { display: flex; justify-content: center; position: fixed; z-index: 16; left: calc(clamp(150px, 15vw, 230px) + min(460px, 38vw) + 12px); right: 12px; bottom: max(26px, env(safe-area-inset-bottom, 0px)); height: 52px; margin: 0; pointer-events: none; }
+/* (each cue is out of the flow, so the one showing sits in the middle whatever its length) */
+.dock .cue { position: absolute; bottom: 0; opacity: 0; transform: translateY(10px); transition: opacity .35s, transform .35s var(--snap), background .5s, color .5s, border-color .5s; }
+.dock .cue.on { opacity: 1; transform: none; }
+
+/* Languages and frameworks: each with its mark and its name. */
+.mark { width: 17px; height: 17px; flex: none; fill: currentColor; }
+.langs { list-style: none; display: flex; flex-wrap: wrap; gap: 7px 8px; margin: 2px 0 14px; padding: 0; }
+.langs li { display: inline-flex; align-items: center; gap: 7px; padding: 5px 11px 5px 8px; background: var(--foam); color: var(--ink); border: 1.5px solid var(--ink); border-radius: 11px 11px 11px 3px; font-size: 13.5px; font-weight: 700; line-height: 1.2; }
+.card .langs + .docs { margin-left: 0; }
+.card .chip + .chip { margin-left: 4px; }
+
+/* Below the wreck the paper takes the scene's light: the navy of the code strips, the zone's own accent on it. */
+.s5 .panel, .s5 .card, .s6 .panel, .s6 .card { background: #0F2636; color: #EDF6F4; border-color: rgba(143, 227, 225, .55); box-shadow: 0 0 0 1px rgba(143, 227, 225, .07), 0 22px 60px rgba(0, 0, 0, .5); }
+.s5 h2, .s5 h3, .s6 h2, .s6 h3 { color: #F6FBFA; }
+.s5 .coral, .s6 .coral { color: #FF7F63; }
+.s5 .zone-head > p:not(.tidemark), .s5 .card > p, .s6 .zone-head > p:not(.tidemark), .s6 .card > p { color: #A8C4CF; }
+.s5 .tidemark, .s6 .tidemark, .s5 .can-h, .s6 .can-h { color: color-mix(in srgb, var(--zone-accent) 62%, white); }
+.s5 .chip, .s6 .chip { background: color-mix(in srgb, var(--zone-accent) 14%, #0F2636); color: color-mix(in srgb, var(--zone-accent) 45%, white); border-color: color-mix(in srgb, var(--zone-accent) 55%, transparent); }
+.s5 .card .docs, .s6 .card .docs { color: var(--sun-soft); }
+.s5 .card > p code, .s6 .card > p code { color: var(--sea-glass); }
+.s5 .specimen, .s6 .specimen { background: #071722; box-shadow: inset 0 0 0 1px rgba(143, 227, 225, .16); }
+.s5 .can .cue.flat, .s6 .can .cue.flat { color: #EDF6F4; }
+.s5 .cue.flat .more, .s6 .cue.flat .more { color: #A8C4CF; }
+.s5 .story.panel, .s6 .story.panel { background: rgba(15, 38, 54, .94); color: #EDF6F4; border-color: rgba(143, 227, 225, .55); box-shadow: 0 14px 40px rgba(0, 0, 0, .45); }
+.s5 .story.panel::before, .s6 .story.panel::before { color: #FF9C86; }
+.s6 .langs li { background: rgba(143, 227, 225, .09); color: #EDF6F4; border-color: rgba(143, 227, 225, .45); }
+/* and what floats over the scene turns with it */
+html[data-tone="dark"] .logo, html[data-tone="dark"] .top-links { background: rgba(15, 38, 54, .9); border-color: rgba(143, 227, 225, .55); box-shadow: 0 10px 30px rgba(0, 0, 0, .4); color: #EDF6F4; }
+html[data-tone="dark"] .top-links a { color: #C4DAE0; }
+html[data-tone="dark"] .skip-inline { border-left-color: rgba(143, 227, 225, .3); }
+html[data-tone="dark"] .gauge { color: #EDF6F4; }
+html[data-tone="dark"] .gauge ol::before { background: rgba(237, 246, 244, .6); box-shadow: none; }
+html[data-tone="dark"] .gauge a { color: #EDF6F4; }
+html[data-tone="dark"] .gauge a::before { background: #0F2636; border-color: rgba(237, 246, 244, .85); box-shadow: none; }
+html[data-tone="dark"] .gauge a.past::before { background: #EDF6F4; }
+html[data-tone="dark"] .gauge a[aria-current="true"]::before { background: var(--coral); border-color: #EDF6F4; box-shadow: 0 0 0 3px rgba(13, 32, 46, .8); }
+html[data-tone="dark"] .gauge a > .d, html[data-tone="dark"] .gauge a > .name { background: rgba(15, 38, 54, .86); }
+html[data-tone="dark"] .gauge-readout { background: rgba(15, 38, 54, .92); border-color: rgba(143, 227, 225, .6); box-shadow: 0 8px 24px rgba(0, 0, 0, .4); }
+html[data-tone="dark"] .gauge-readout #zone { color: #A8C4CF; }
+html[data-tone="dark"] .gauge-bar { background: rgba(237, 246, 244, .2); }
+html[data-tone="dark"] .dock .cue { background: #0F2636; color: #EDF6F4; border-color: rgba(143, 227, 225, .7); box-shadow: 0 12px 34px rgba(0, 0, 0, .5); }
 
 /* Static mode: no WebGL, or reduced motion. Each zone shows its still plate. */
 .static .snap-static, .no-js .snap-static { display: block; position: absolute; z-index: 1; pointer-events: none; }
@@ -611,6 +773,32 @@ body.on-snap { cursor: pointer; }
   .static .in-sub, .no-js .in-sub { width: 56vw; right: 4vw; top: 62vh; }
 }
 
+/* Phones and narrow windows: the cue system and the calmer chrome */
+@media (max-width: 760px) {
+  .top { padding: 4px 12px 0; }
+  .top-links { padding: 9px 14px; }
+  .logo { font-size: 19px; }
+  /* (the depth bar runs along the very top edge, above the floating header) */
+  .gauge { top: 0; z-index: 21; }
+  .steps { font-size: 13.5px; gap: 8px 12px; }
+  .can .cue.flat { font-size: 15px; }
+  .choice legend .step { letter-spacing: .1em; }
+  /* each school's fish sits above its name, so the code under it gets the full width and never breaks */
+  .school { grid-template-columns: 1fr; justify-items: start; row-gap: 1px; }
+  .school .fish { grid-row: auto; margin-bottom: 3px; }
+  .school .fish.none { justify-self: start; }
+  .gl .dock { left: 12px; right: 12px; bottom: max(14px, env(safe-area-inset-bottom, 0px)); height: 46px; }
+  .dock .cue.big { min-height: 46px; max-width: 100%; padding: 6px 16px 6px 7px; font-size: 15px; white-space: normal; }
+  .dock .cue.big .do { height: 30px; min-width: 30px; font-size: 11.5px; }
+  .gl:not(.wide) .kind { top: calc(var(--top) + 20px); }
+  /* (two of Snap's stories travel with the cards here, each just before its card, so neither can sit on one) */
+  .gl:not(.wide) .cards > .story { position: static !important; width: auto; margin: 0; opacity: 1; transform: none; visibility: visible; }
+}
+/* Without the pinned world the cargo is a short list of sources: one small card, not loose chips over the scene */
+html:not(.gl.wide) .cargo { align-items: center; padding: 14px 16px 16px; background: var(--linen); border: 2px solid var(--ink); border-radius: var(--shell); box-shadow: var(--shadow); }
+html:not(.gl.wide) .cargo-h { flex: 0 0 100%; }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
 }
+
