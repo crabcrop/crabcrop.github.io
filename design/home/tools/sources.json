@@ -1,0 +1,26 @@
+{
+  "base": "https://d8j0ntlcm91z4.cloudfront.net/user_3LUWrZdQQHs5RCQGXWn1K4r2h7J/",
+  "note": "Approved Higgsfield outputs used by the home preview. Job IDs match design/home/README.md. The two start stills are listed for the record: each film was made from its still, as its first and its last frame.",
+  "files": {
+    "snap-point-loop.mp4": {
+      "job": "a34aa638-9ad8-45e9-8346-e8c2d8fe3510",
+      "file": "hf_20261115_165040_a34aa638-9ad8-45e9-8346-e8c2d8fe3510.mp4"
+    },
+    "snap-cheer-loop.mp4": {
+      "job": "e388b1cb-9e14-46ce-93ae-c4a2e4c2de9c",
+      "file": "hf_20261115_165420_e388b1cb-9e14-46ce-93ae-c4a2e4c2de9c.mp4"
+    },
+    "snap-asleep.png": {
+      "job": "2db1bc5c-51ae-4208-b69e-f187144568b3",
+      "file": "hf_20261115_165045_2db1bc5c-51ae-4208-b69e-f187144568b3.png"
+    },
+    "snap-point-start.png": {
+      "job": "2ba4f2a0-eadb-4421-b694-206df7e4718b",
+      "file": "hf_20261115_164711_2ba4f2a0-eadb-4421-b694-206df7e4718b.png"
+    },
+    "snap-cheer-start.png": {
+      "job": "4d9c0586-f99f-4dae-a20c-2a990c091ad3",
+      "file": "hf_20261115_165042_4d9c0586-f99f-4dae-a20c-2a990c091ad3.png"
+    }
+  }
+}
