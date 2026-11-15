@@ -1,69 +1,61 @@
 // The ground: one valley from the pier to the vents, drawn as slices so that what is
 // behind the camera or far ahead costs nothing. Its sand and rock are shaded from the
 // detail texture at three sizes, laid on along the three axes.
-import { Mesh as ThreeMesh, Sphere, Vector3 } from 'three';
+import { Mesh as ThreeMesh, Sphere, Vector3 } from 'three/webgpu';
+import { cos, float, floor, fract, max, mix, normalize, sin, smoothstep, vec3 } from 'three/tsl';
 import { centerX, floorY, groundY, rockiness } from './layout.js';
 import { Mesh, clamp } from './math.js';
-import { material } from './shaders.js';
+import { detail, hash1, material } from './shaders.js';
 
 // What rock looks like. Shared by the ground and by every loose rock and outcrop: `p` is
-// where to read the relief (the world for the ground, the rock's own space for a rock that
-// is turned), `rocky` is 0 for sand and 1 for rock, `open` is how open to the sky it is.
-export const ROCK = /* glsl */ `
-void rockSurf(inout Surf s, vec3 p, vec3 wpos, float rocky, float open) {
-  float depth = -wpos.y;
-  float dist = length(wpos - cameraPosition);
-  vec3 n0 = s.n;
-  vec2 hA, hB, hC;
-  vec3 nA = detail(p, n0, 0.043, 5.0, hA);
-  vec3 nB = detail(p, n0, 0.19, 4.0, hB);
-  vec3 nC = detail(p, n0, 0.87, 3.0, hC);
+// where to read the relief, `w` where the point is, `rocky` 0 for sand and 1 for rock,
+// `open` how open to the sky it is.
+export function rockSurf(s, p, w, rocky, open, dist) {
+  const depth = w.y.negate();
+  const n0 = s.n;
+  const A = detail(p, n0, 0.043, 5.0), B = detail(p, n0, 0.19, 4.0), C = detail(p, n0, 0.87, 3.0);
   // (the finest relief only up close: far away it would only sparkle)
-  float near = 1.0 - smoothstep(7.0, 30.0, dist), mid = 1.0 - smoothstep(20.0, 70.0, dist);
-  float hgt = hA.x * 0.5 + hB.x * 0.35 + hC.x * 0.15;
-  float steep = 1.0 - smoothstep(0.50, 0.86, n0.y);
-  float rock = smoothstep(0.36, 0.60, max(rocky, steep) + (hA.y - 0.5) * 0.8);
+  const near = float(1).sub(smoothstep(7.0, 30.0, dist)).toVar(), mid = float(1).sub(smoothstep(20.0, 70.0, dist)).toVar();
+  const hgt = A.h.mul(0.5).add(B.h.mul(0.35)).add(C.h.mul(0.15)).toVar();
+  const steep = float(1).sub(smoothstep(0.50, 0.86, n0.y)).toVar();
+  const rock = smoothstep(0.36, 0.60, max(rocky, steep).add(A.m.sub(0.5).mul(0.8))).toVar();
 
   // sand: pale and warm, combed into ripples by the current
-  float ph = wpos.z * 2.4 + wpos.x * 0.5 + 7.0 * hA.y + 1.2 * sin(wpos.x * 0.6);
-  float rip = sin(ph) * 0.5 + 0.5;
-  vec3 sand = mix(vec3(0.60, 0.53, 0.39), vec3(0.40, 0.36, 0.27), hB.y) * (0.82 + 0.26 * rip) * (0.9 + 0.32 * (hC.x - 0.45) * near);
-  vec3 nSand = normalize(n0 + vec3(0.03, 0.0, 0.16) * cos(ph) * mid + (nC - n0) * 0.25 * near);
+  const ph = w.z.mul(2.4).add(w.x.mul(0.5)).add(A.m.mul(7.0)).add(sin(w.x.mul(0.6)).mul(1.2)).toVar();
+  const rip = sin(ph).mul(0.5).add(0.5);
+  const sand = mix(vec3(0.60, 0.53, 0.39), vec3(0.40, 0.36, 0.27), B.m).mul(rip.mul(0.26).add(0.82)).mul(C.h.sub(0.45).mul(near).mul(0.32).add(0.9));
+  const nSand = normalize(n0.add(vec3(0.03, 0.0, 0.16).mul(cos(ph)).mul(mid)).add(C.n.sub(n0).mul(0.25).mul(near)));
 
   // rock: dark, in beds, with a groove at the foot of each bed on steep faces
-  float st = wpos.y * 0.5 + hA.x * 1.7 + hA.y * 4.5;
-  float bed = hash1(floor(st) * 0.137 + 0.31);
-  vec3 rk = mix(vec3(0.115, 0.105, 0.095), vec3(0.30, 0.255, 0.20), bed * 0.75 + hB.y * 0.25);
-  rk *= 1.0 - 0.45 * steep * (1.0 - smoothstep(0.0, 0.16, fract(st)));
+  const st = w.y.mul(0.5).add(A.h.mul(1.7)).add(A.m.mul(4.5)).toVar();
+  const bed = hash1(floor(st).mul(0.137).add(0.31)).toVar();
+  const rk = mix(vec3(0.115, 0.105, 0.095), vec3(0.30, 0.255, 0.20), bed.mul(0.75).add(B.m.mul(0.25))).toVar();
+  rk.mulAssign(float(1).sub(steep.mul(0.45).mul(float(1).sub(smoothstep(0.0, 0.16, fract(st))))));
   // what grows on rock that faces up: olive in the kelp, rose and violet crust on the reef
-  float grow = smoothstep(0.2, 0.75, n0.y) * smoothstep(0.47, 0.53, hB.y * 0.45 + hC.y * 0.2 + hB.x * 0.35);
-  vec3 crust = mix(vec3(0.20, 0.25, 0.09), mix(vec3(0.46, 0.13, 0.26), vec3(0.30, 0.16, 0.46), hash1(floor(st * 3.0) * 0.071)), smoothstep(21.0, 30.0, depth));
-  float alive = smoothstep(8.0, 14.0, depth) * (1.0 - smoothstep(52.0, 72.0, depth));
-  rk = mix(rk, crust, grow * alive);
+  const grow = smoothstep(0.2, 0.75, n0.y).mul(smoothstep(0.47, 0.53, B.m.mul(0.45).add(C.m.mul(0.2)).add(B.h.mul(0.35)))).toVar();
+  const crust = mix(vec3(0.20, 0.25, 0.09), mix(vec3(0.46, 0.13, 0.26), vec3(0.30, 0.16, 0.46), hash1(floor(st.mul(3.0)).mul(0.071))), smoothstep(21.0, 30.0, depth));
+  const alive = smoothstep(8.0, 14.0, depth).mul(float(1).sub(smoothstep(52.0, 72.0, depth))).toVar();
+  rk.assign(mix(rk, crust, grow.mul(alive)));
   // the deep: black basalt
-  rk = mix(rk, vec3(0.035, 0.036, 0.042) * (0.6 + 0.8 * bed), smoothstep(64.0, 100.0, depth));
-  rk *= 0.22 + 1.3 * hgt;                                    // hollows are darker
-  vec3 nRock = normalize(n0 + (nA - n0) * 0.85 + (nB - n0) * 0.65 * (0.3 + 0.7 * mid) + (nC - n0) * 0.5 * near);
+  rk.assign(mix(rk, vec3(0.035, 0.036, 0.042).mul(bed.mul(0.8).add(0.6)), smoothstep(64.0, 100.0, depth)));
+  rk.mulAssign(hgt.mul(1.3).add(0.22));                    // hollows are darker
+  const nRock = normalize(n0.add(A.n.sub(n0).mul(0.85)).add(B.n.sub(n0).mul(0.65).mul(mid.mul(0.7).add(0.3))).add(C.n.sub(n0).mul(0.5).mul(near)));
 
   s.albedo = mix(sand, rk, rock);
-  s.n = normalize(mix(nSand, nRock, rock));
-  s.ao = open * mix(1.0, smoothstep(0.12, 0.6, hgt), rock * 0.8);
-  s.spec = mix(0.05, 0.10, rock) * near; s.gloss = mix(14.0, 30.0, rock);
-  s.fluor = 0.45 * grow * alive * rock;
+  s.n = normalize(mix(nSand, nRock, rock)).toVar();
+  s.ao = open.mul(mix(float(1), smoothstep(0.12, 0.6, hgt), rock.mul(0.8)));
+  s.spec = mix(float(0.05), float(0.10), rock).mul(near);
+  s.gloss = mix(float(14.0), float(30.0), rock);
+  s.fluor = grow.mul(alive).mul(rock).mul(0.45);
 }
-`;
 
 // Loose rock: all rock, darker toward its foot.
 export function rockMaterial() {
-  return material({ frag: ROCK, surf: /* glsl */ `rockSurf(s, vW, vW, 1.0, 0.5 + 0.5 * smoothstep(-0.6, 0.5, s.n.y));` });
+  return material({ instanced: true, surface: (s, f) => rockSurf(s, f.w, f.w, float(1.0), smoothstep(-0.6, 0.5, f.n.y).mul(0.5).add(0.5), f.dist) });
 }
 
 export function terrainMaterial() {
-  return material({
-    aux: true,
-    frag: ROCK,
-    surf: /* glsl */ `rockSurf(s, vW, vW, vAux.x, vAux.y);`,
-  });
+  return material({ aux: true, surface: (s, f) => rockSurf(s, f.w, f.w, f.aux.x, f.aux.y, f.dist) });
 }
 
 // How rocky the ground is at a place: the zone's own share, and all rock up the walls.

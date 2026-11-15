@@ -5,10 +5,11 @@
 // grid cell the surface passes through, joined across every grid edge it cuts. The ground
 // is blended into each one, so a formation flares into the sea floor and has no seam.
 // And loose boulders, scattered along the valley. All of it is built once, at load.
-import { InstancedMesh, Matrix4, Mesh as ThreeMesh, Quaternion, Vector3 } from 'three';
+import { Mesh as ThreeMesh, Quaternion, Vector3 } from 'three/webgpu';
 import { centerX, floorY, groundY, halfWidth, offTrack } from './layout.js';
 import { Mesh, TAU, blob, clamp, fbm3, lerp, makeRng, noise3, smooth } from './math.js';
 import { rockyAt } from './terrain.js';
+import { instanced, place } from './world.js';
 
 // ---- distances -------------------------------------------------------------------------
 
@@ -282,7 +283,7 @@ export function buildRocks(add, mat, looseMat, q) {
   const rng = makeRng(9001);
   const stone = (res, seed) => { const m = new Mesh(false); blob(m, 0, 0, 0, (x, y, z) => 1 + 0.26 * fbm3(x * 1.3 + seed, y * 1.3, z * 1.3, 3) + 0.1 * noise3(x * 4, y * 4 + seed, z * 4), res); return m.build(); };
   const small = stone(4, 3.1), big = stone(7, 8.4);
-  const mat4 = new Matrix4(), pos = new Vector3(), quat = new Quaternion(), scl = new Vector3(), axis = new Vector3();
+  const pos = new Vector3(), quat = new Quaternion(), scl = new Vector3(), axis = new Vector3();
   for (let z1 = 58; z1 > -440; z1 -= 62) {
     for (const [geo, count, lo, hi] of [[small, Math.round(64 * q.amount), 0.22, 0.85], [big, Math.round(11 * q.amount), 1.0, 2.6]]) {
       const list = [];
@@ -295,13 +296,13 @@ export function buildRocks(add, mat, looseMat, q) {
         list.push(x, groundY(x, z) - s * 0.3, z, s);
       }
       if (!list.length) continue;
-      const mesh = new InstancedMesh(geo, looseMat, list.length / 4);
+      const places = [];
       for (let i = 0; i < list.length; i += 4) {
         const s = list[i + 3];
         quat.setFromAxisAngle(axis.set(rng.bell(), 1, rng.bell()).normalize(), rng() * TAU);
-        mat4.compose(pos.set(list[i], list[i + 1], list[i + 2]), quat, scl.set(s * rng.range(0.9, 1.3), s * rng.range(0.6, 0.9), s * rng.range(0.9, 1.2)));
-        mesh.setMatrixAt(i / 4, mat4);
+        place(places, pos.set(list[i], list[i + 1], list[i + 2]), quat, scl.set(s * rng.range(0.9, 1.3), s * rng.range(0.6, 0.9), s * rng.range(0.9, 1.2)));
       }
+      const mesh = new ThreeMesh(instanced(geo, places), looseMat);
       mesh.matrixAutoUpdate = false;
       add(mesh, 100);
     }

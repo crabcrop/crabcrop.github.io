@@ -1,7 +1,7 @@
 // Only a probe, not part of the dive: does three.js's WebGPU renderer draw in this
 // sandbox, and on which backend? A lit sea floor, a hundred instanced stalks moved by a
 // compute pass, a TSL-shaded fog. Sets window.__done = { backend, ms } when drawn.
-import { Mesh, PerspectiveCamera, PlaneGeometry, Scene, CylinderGeometry, WebGPURenderer, MeshStandardNodeMaterial, DirectionalLight, HemisphereLight, Color } from 'three/webgpu';
+import { Mesh, PerspectiveCamera, PlaneGeometry, Scene, CylinderGeometry, WebGPURenderer, MeshStandardNodeMaterial, DirectionalLight, HemisphereLight, Color, RenderTarget } from 'three/webgpu';
 import { Fn, instancedArray, instanceIndex, positionLocal, vec3, float, sin, time, mix, color, positionWorld, cameraPosition, length, exp, uniform, hash } from 'three/tsl';
 
 const forceWebGL = new URLSearchParams(location.search).has('webgl');
@@ -45,9 +45,24 @@ scene.add(stalks);
 (async () => {
   const t0 = performance.now();
   await renderer.init();
-  await renderer.computeAsync(step);
-  await renderer.renderAsync(scene, cam);
+  renderer.compute(step);
   const backend = renderer.backend.isWebGPUBackend ? 'WebGPU' : 'WebGL 2';
+  if (new URLSearchParams(location.search).has('offscreen')) {
+    // draw into a render target, read it back, and show it on a 2D canvas
+    const w = innerWidth, h = innerHeight, rt = new RenderTarget(w, h);
+    renderer.setRenderTarget(rt);
+    renderer.render(scene, cam);
+    const px = await renderer.readRenderTargetPixelsAsync(rt, 0, 0, w, h);
+    const c = document.createElement('canvas'); c.width = w; c.height = h;
+    c.style.cssText = 'position:fixed;inset:0;width:100%;height:100%';
+    const img = new ImageData(w, h);
+    for (let y = 0; y < h; y++) img.data.set(px.subarray((h - 1 - y) * w * 4, (h - y) * w * 4), y * w * 4);
+    c.getContext('2d').putImageData(img, 0, 0);
+    document.body.appendChild(c);
+    window.__done = { backend, ms: Math.round(performance.now() - t0), offscreen: true, sample: Array.from(px.subarray((h >> 1) * w * 4, (h >> 1) * w * 4 + 4)) };
+    return;
+  }
+  renderer.render(scene, cam);
   console.log('backend ' + backend);
   window.__done = { backend, ms: Math.round(performance.now() - t0) };
 })();

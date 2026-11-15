@@ -1,6 +1,6 @@
 // Numbers and shapes: a seeded random source, noise for building the world, and a mesh
 // builder that packs many simple shapes into one geometry. Nothing here runs per frame.
-import { BufferAttribute, BufferGeometry } from 'three';
+import { BufferAttribute, BufferGeometry } from 'three/webgpu';
 
 export const clamp = (x, a, b) => (x < a ? a : x > b ? b : x);
 export const lerp = (a, b, t) => a + (b - a) * t;

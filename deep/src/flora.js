@@ -11,99 +11,103 @@
 //
 // The reef is made of a dozen shapes grown here from tubes, lathes and blobs, each drawn
 // many times over with its own place, size and colour.
-import { BufferAttribute, BufferGeometry, InstancedBufferAttribute, InstancedBufferGeometry, InstancedMesh, Matrix4, Mesh as ThreeMesh, Quaternion, Sphere, Vector3 } from 'three';
+import { BufferAttribute, InstancedBufferAttribute, InstancedBufferGeometry, Mesh as ThreeMesh, Quaternion, Sphere, Vector3 } from 'three/webgpu';
+import {
+  abs, attribute, cameraPosition, cos, cross, dot, float, fract, length, max, mix, normalize, pow, select, sin, smoothstep, step,
+  varyingProperty, vec2, vec3, vec4,
+} from 'three/tsl';
 import { centerX, groundY, halfWidth, offTrack } from './layout.js';
 import { Mesh, TAU, blob, clamp, fbm2, lathe, makeRng, noise2, noise3, tube } from './math.js';
 import { perches } from './rocks.js';
-import { material } from './shaders.js';
+import { G, detail, material, shadow1, sunAt } from './shaders.js';
+import { instanced, place } from './world.js';
 
 // ---- blades ----------------------------------------------------------------------------
 
-const BLADE_VERT = /* glsl */ `
-attribute vec4 ia;   // the plant: x, y, z of its foot, and its height
-attribute vec4 ib;   // the blade: how far up the stalk (0..1), which way it faces, its length, its width
-attribute vec4 ic;   // its seed, its droop, its kind (0 kelp, 1 grass), the plant's seed
 // Where the stalk is at a height: it leans with the water, more the higher, and is never quite straight.
-vec3 stemAt(vec3 base, float hh, float seed) {
-  float ph = uTime * 0.5 + base.x * 0.13 + base.z * 0.09 + seed * 6.28;
-  float a = 0.03 * pow(hh, 1.25);
-  vec2 sway = a * vec2(sin(ph) + 0.35 * sin(ph * 1.9 + 1.3), 0.7 * cos(ph * 0.83 + 0.6));
-  vec2 bend = vec2(sin(hh * 0.31 + seed * 40.0), cos(hh * 0.23 + seed * 23.0)) * 0.4 * smoothstep(0.0, 4.0, hh);
-  return base + vec3(sway.x + bend.x, hh, sway.y + bend.y);
-}
-`;
+// (written out where it is used: a function of its own would not see the time in the vertex stage)
+const stemAt = (base, hh, seed) => {
+  const ph = G.time.mul(0.5).add(base.x.mul(0.13)).add(base.z.mul(0.09)).add(seed.mul(6.28)).toVar();
+  const a = pow(hh, 1.25).mul(0.03);
+  const sway = vec2(sin(ph).add(sin(ph.mul(1.9).add(1.3)).mul(0.35)), cos(ph.mul(0.83).add(0.6)).mul(0.7)).mul(a);
+  const bend = vec2(sin(hh.mul(0.31).add(seed.mul(40.0))), cos(hh.mul(0.23).add(seed.mul(23.0)))).mul(smoothstep(0.0, 4.0, hh).mul(0.4));
+  return base.add(vec3(sway.x.add(bend.x), hh, sway.y.add(bend.y)));
+};
+
+// ia: the plant (x, y, z of its foot, and its height); ib: the blade (how far up the stalk
+// 0..1, which way it faces, its length, its width); ic: its seed, its droop, its kind (0
+// kelp, 1 grass), the plant's seed.
+const ia = attribute('ia', 'vec4'), ib = attribute('ib', 'vec4'), ic = attribute('ic', 'vec4');
+
 const bladeMat = () => material({
   twoSided: true,
-  vert: BLADE_VERT,
-  vertMain: /* glsl */ `
-  float t = position.y, u = position.x, seed = ic.x, kind = ic.z;
-  vec3 S = stemAt(ia.xyz, ib.x * ia.w, ic.w);
-  #ifdef SHADOW_PASS
-  float far = 0.0;
-  #else
-  float far = smoothstep(28.0, 62.0, distance(S, cameraPosition));
-  #endif
-  vec3 D = vec3(cos(ib.y), 0.0, sin(ib.y)), U = vec3(0.0, 1.0, 0.0), W0 = vec3(-D.z, 0.0, D.x);
-  // kelp goes out and up from its float and then over; grass stands and leans
-  vec3 c1 = mix(D * 0.42 + U * 0.5, D * 0.06 + U * 0.5, kind);
-  vec3 c2 = mix(D * 0.95 + U * (0.42 - ic.y), D * (0.2 + ic.y * 0.5) + U * 0.95, kind);
-  float ph = uTime * (1.0 + 0.5 * seed) + seed * 30.0 + S.x * 0.2 + S.z * 0.13;
-  c2 += vec3(0.17, 0.0, 0.11) * sin(ph * 0.6) + U * 0.07 * sin(ph);
-  vec3 Q = (2.0 * (1.0 - t) * t * c1 + t * t * c2) * ib.z;
-  vec3 T = normalize(2.0 * (1.0 - 2.0 * t) * c1 + 2.0 * t * c2);
-  vec3 N0 = normalize(cross(W0, T));
-  float tw = (seed - 0.5) * 2.4 * t + 0.35 * sin(ph + t * 4.0);
-  vec3 W = W0 * cos(tw) + N0 * sin(tw), Nn = N0 * cos(tw) - W0 * sin(tw);
-  float wd = ib.w * mix(pow(sin(3.14159 * pow(t, 0.7)), 0.6), 1.0 - t * t * 0.9, kind) * (1.0 + 1.3 * far);
-  float rp = t * 16.0 + seed * 50.0, edge = abs(u) * (1.0 - kind);
-  P = S + Q + W * (u * wd) + Nn * (sin(rp) * 0.16 * ib.w * edge - (1.0 - abs(u)) * 0.12 * ib.w);
-  N = normalize(Nn + W * u * 0.4 - T * cos(rp) * 0.5 * edge);
-  vAux = vec4(t, u, seed, kind + ib.x * 0.5);
-  `,
-  vertEnd: /* glsl */ `
-  // far away, most blades are not drawn at all
-  if (fract(seed * 7.13) > 1.0 - 0.72 * far) gl_Position = vec4(2.0, 2.0, 2.0, 1.0);
-  `,
-  surf: /* glsl */ `
-  float t = vAux.x, u = vAux.y, kind = step(0.75, vAux.w), up = (vAux.w - kind) * 2.0;
-  vec3 col = mix(mix(vec3(0.15, 0.14, 0.04), vec3(0.35, 0.33, 0.07), fract(vAux.z * 3.7) * (0.5 + 0.5 * up)), vec3(0.13, 0.32, 0.09), kind);
-  col *= (0.72 + 0.28 * smoothstep(0.0, 0.35, abs(u))) * (0.85 + 0.3 * t);
-  float sh = shadow1(vW + uSunDir * 0.3);
-  // a leaf seen from its shaded side shows the light that came through it: gold
-  float back = smoothstep(0.15, -0.45, dot(s.n, uSunDir));
-  s.albedo = mix(col, mix(vec3(0.46, 0.40, 0.07), vec3(0.30, 0.46, 0.10), kind), back * 0.8);
-  s.trans = 0.9; s.spec = 0.2; s.gloss = 36.0; s.shade = sh; s.fluor = 0.12;
-  s.ao = mix(0.45 + 0.55 * up, 0.5 + 0.5 * t, kind);
-  // and looking toward the sun through it, it glows
-  vec3 vv = normalize(vW - cameraPosition);
-  s.emis = sunAt(vW.y) * sh * pow(max(dot(vv, uSunDir), 0.0), 5.0) * vec3(0.40, 0.35, 0.06) * 0.55;
-  `,
+  vertex: (v) => {
+    const t = v.P.y.toVar(), u = v.P.x.toVar(), seed = ic.x, kind = ic.z;
+    const S = stemAt(ia.xyz, ib.x.mul(ia.w), ic.w).toVar();
+    // far blades are fewer and wider (never in the shadow map, where the camera is the sun)
+    const far = v.shadow ? float(0.0) : smoothstep(28.0, 62.0, length(S.sub(cameraPosition))).toVar();
+    const D = vec3(cos(ib.y), 0.0, sin(ib.y)).toVar(), U = vec3(0.0, 1.0, 0.0), W0 = vec3(D.z.negate(), 0.0, D.x).toVar();
+    // kelp goes out and up from its float and then over; grass stands and leans
+    const c1 = mix(D.mul(0.42).add(U.mul(0.5)), D.mul(0.06).add(U.mul(0.5)), kind).toVar();
+    const c2 = mix(D.mul(0.95).add(U.mul(float(0.42).sub(ic.y))), D.mul(ic.y.mul(0.5).add(0.2)).add(U.mul(0.95)), kind).toVar();
+    const ph = G.time.mul(seed.mul(0.5).add(1.0)).add(seed.mul(30.0)).add(S.x.mul(0.2)).add(S.z.mul(0.13)).toVar();
+    c2.addAssign(vec3(0.17, 0.0, 0.11).mul(sin(ph.mul(0.6))).add(U.mul(sin(ph).mul(0.07))));
+    const omt = float(1.0).sub(t);
+    const Q = c1.mul(omt.mul(t).mul(2.0)).add(c2.mul(t.mul(t))).mul(ib.z);
+    const T = normalize(c1.mul(omt.sub(t).mul(2.0)).add(c2.mul(t.mul(2.0)))).toVar();
+    const N0 = normalize(cross(W0, T)).toVar();
+    const tw = seed.sub(0.5).mul(2.4).mul(t).add(sin(ph.add(t.mul(4.0))).mul(0.35)).toVar();
+    const W = W0.mul(cos(tw)).add(N0.mul(sin(tw))).toVar(), Nn = N0.mul(cos(tw)).sub(W0.mul(sin(tw))).toVar();
+    const wd = ib.w.mul(mix(pow(sin(pow(t, 0.7).mul(3.14159)), 0.6), float(1.0).sub(t.mul(t).mul(0.9)), kind)).mul(far.mul(1.3).add(1.0));
+    const rp = t.mul(16.0).add(seed.mul(50.0)).toVar(), edge = abs(u).mul(float(1.0).sub(kind)).toVar();
+    const P = S.add(Q).add(W.mul(u.mul(wd))).add(Nn.mul(sin(rp).mul(0.16).mul(ib.w).mul(edge).sub(float(1.0).sub(abs(u)).mul(0.12).mul(ib.w))));
+    // far away, most blades are not drawn at all: they fold to a point
+    v.P.assign(select(fract(seed.mul(7.13)).greaterThan(float(1.0).sub(far.mul(0.72))), S, P));
+    v.N.assign(normalize(Nn.add(W.mul(u).mul(0.4)).sub(T.mul(cos(rp)).mul(0.5).mul(edge))));
+    v.aux.assign(vec4(t, u, seed, kind.add(ib.x.mul(0.5))));
+  },
+  surface: (s, f) => {
+    const t = f.aux.x, u = f.aux.y, kind = step(0.75, f.aux.w).toVar(), up = f.aux.w.sub(kind).mul(2.0).toVar();
+    const col = mix(mix(vec3(0.15, 0.14, 0.04), vec3(0.35, 0.33, 0.07), fract(f.aux.z.mul(3.7)).mul(up.mul(0.5).add(0.5))), vec3(0.13, 0.32, 0.09), kind)
+      .mul(smoothstep(0.0, 0.35, abs(u)).mul(0.28).add(0.72)).mul(t.mul(0.3).add(0.85));
+    const sh = shadow1(f.w.add(G.sunDir.mul(0.3))).toVar();
+    // a leaf seen from its shaded side shows the light that came through it: gold
+    const back = float(1.0).sub(smoothstep(-0.45, 0.15, dot(s.n, G.sunDir)));
+    s.albedo = mix(col, mix(vec3(0.46, 0.40, 0.07), vec3(0.30, 0.46, 0.10), kind), back.mul(0.8));
+    s.trans = float(0.9); s.spec = float(0.2); s.gloss = float(36.0); s.shade = sh; s.fluor = float(0.12);
+    s.ao = mix(up.mul(0.55).add(0.45), t.mul(0.5).add(0.5), kind);
+    // and looking toward the sun through it, it glows
+    const vv = normalize(f.w.sub(cameraPosition));
+    s.emis = sunAt(f.w.y).mul(sh).mul(pow(max(dot(vv, G.sunDir), 0.0), 5.0)).mul(vec3(0.40, 0.35, 0.06).mul(0.55));
+  },
 });
 const stalkMat = () => material({
-  vert: BLADE_VERT,
-  vertMain: /* glsl */ `
-  vec3 C = stemAt(ia.xyz, position.y * ia.w, ic.w);
-  P = C + vec3(position.x, 0.0, position.z) * 0.05 * (1.0 - 0.5 * position.y);
-  N = vec3(position.x, 0.0, position.z);
-  `,
-  surf: /* glsl */ `
-  s.albedo = vec3(0.19, 0.16, 0.05); s.spec = 0.14; s.gloss = 30.0; s.shade = shadow1(vW + uSunDir * 0.2); s.trans = 0.3;
-  `,
+  vertex: (v) => {
+    const p0 = v.P.toVar();
+    const C = stemAt(ia.xyz, p0.y.mul(ia.w), ic.w);
+    v.N.assign(vec3(p0.x, 0.0, p0.z));
+    v.P.assign(C.add(vec3(p0.x, 0.0, p0.z).mul(float(1.0).sub(p0.y.mul(0.5)).mul(0.05))));
+  },
+  surface: (s, f) => {
+    s.albedo = vec3(0.19, 0.16, 0.05); s.spec = float(0.14); s.gloss = float(30.0); s.shade = shadow1(f.w.add(G.sunDir.mul(0.2))); s.trans = float(0.3);
+  },
 });
 
+// (the shapes below are bent in the vertex step, which makes its own normals; this one only stands in)
+const up = (n) => { const a = new Float32Array(n * 3); for (let i = 1; i < a.length; i += 3) a[i] = 1; return new BufferAttribute(a, 3); };
 // A strip of three columns: u is -1, 0, 1 across, t goes 0..1 up. The shader does the rest.
 function strip(rows) {
   const pos = [], uv = [], idx = [];
   for (let r = 0; r <= rows; r++) for (let c = -1; c <= 1; c++) { pos.push(c, r / rows, 0); uv.push(c * 0.5 + 0.5, r / rows); }
   for (let r = 0; r < rows; r++) for (let c = 0; c < 2; c++) { const a = r * 3 + c; idx.push(a, a + 1, a + 3, a + 1, a + 4, a + 3); }
-  return { position: new BufferAttribute(new Float32Array(pos), 3), uv: new BufferAttribute(new Float32Array(uv), 2), index: new BufferAttribute(new Uint16Array(idx), 1) };
+  return { position: new BufferAttribute(new Float32Array(pos), 3), normal: up(pos.length / 3), uv: new BufferAttribute(new Float32Array(uv), 2), index: new BufferAttribute(new Uint16Array(idx), 1) };
 }
 // A stalk: a five-sided tube, y from 0 to 1.
 function stalk(rows) {
   const pos = [], idx = [];
   for (let r = 0; r <= rows; r++) for (let c = 0; c < 5; c++) { const a = (c / 5) * TAU; pos.push(Math.cos(a), r / rows, Math.sin(a)); }
   for (let r = 0; r < rows; r++) for (let c = 0; c < 5; c++) { const a = r * 5 + c, b = r * 5 + (c + 1) % 5; idx.push(a, a + 5, b, b, a + 5, b + 5); }
-  return { position: new BufferAttribute(new Float32Array(pos), 3), index: new BufferAttribute(new Uint16Array(idx), 1) };
+  return { position: new BufferAttribute(new Float32Array(pos), 3), normal: up(pos.length / 3), index: new BufferAttribute(new Uint16Array(idx), 1) };
 }
 // Gather instances by cell and make one mesh a cell.
 function cells(add, shape, mat, list, size, range) {
@@ -125,6 +129,7 @@ function cells(add, shape, mat, list, size, range) {
     const geo = new InstancedBufferGeometry();
     geo.setIndex(shape.index);
     geo.setAttribute('position', shape.position);
+    geo.setAttribute('normal', shape.normal);
     if (shape.uv) geo.setAttribute('uv', shape.uv);
     geo.setAttribute('ia', new InstancedBufferAttribute(ia, 4));
     geo.setAttribute('ib', new InstancedBufferAttribute(ib, 4));
@@ -287,25 +292,26 @@ const SHAPES = {
   },
 };
 
+const tint = attribute('tint', 'vec4');
+const vTint = varyingProperty('vec4', 'v_tint');
 const reefMat = () => material({
-  aux: true,
-  vert: /* glsl */ `attribute vec4 tint; varying vec4 vTint;`,
-  vertMain: /* glsl */ `
-  vTint = tint;
-  // what is soft gives with the water, more toward its ends
-  float ph = uTime * 0.9 + tint.w * 40.0;
-  P.xz += aux.x * vec2(sin(ph) + 0.4 * sin(ph * 2.3), 0.6 * cos(ph * 0.8));
-  `,
-  frag: /* glsl */ `varying vec4 vTint;`,
-  surf: /* glsl */ `
-  vec2 hm;
-  float near = 1.0 - smoothstep(6.0, 24.0, length(vW - cameraPosition));
-  vec3 nn = detail(vW, s.n, mix(2.9, 1.3, step(0.5, vAux.y)), 3.0, hm);
-  s.n = normalize(mix(s.n, nn, near * 0.8));
-  vec3 base = vAux.y > 1.5 ? vec3(0.78, 0.07, 0.05) : vTint.rgb;        // (a plume is always red)
-  s.albedo = base * (0.5 + 0.75 * vAux.w) * mix(1.0, 0.6 + 0.8 * hm.x, near);
-  s.ao = vAux.z; s.fluor = 0.7; s.spec = 0.05; s.gloss = 18.0; s.trans = vAux.x > 0.0 ? 0.35 : 0.0;
-  `,
+  aux: true, instanced: true,
+  vertex: (v) => {
+    vTint.assign(tint);
+    // what is soft gives with the water, more toward its ends
+    const ph = G.time.mul(0.9).add(tint.w.mul(40.0)).toVar();
+    const k = v.aux.x.mul(length(attribute('i0', 'vec4').xyz));
+    v.P.assign(v.P.add(vec3(sin(ph).add(sin(ph.mul(2.3)).mul(0.4)), 0.0, cos(ph.mul(0.8)).mul(0.6)).mul(k)));
+  },
+  surface: (s, f) => {
+    const near = float(1.0).sub(smoothstep(6.0, 24.0, f.dist)).toVar();
+    const D = detail(f.w, s.n, mix(float(2.9), float(1.3), step(0.5, f.aux.y)), 3.0);
+    s.n = normalize(mix(s.n, D.n, near.mul(0.8))).toVar();
+    const base = select(f.aux.y.greaterThan(1.5), vec3(0.78, 0.07, 0.05), vTint.rgb);        // (a plume is always red)
+    s.albedo = base.mul(f.aux.w.mul(0.75).add(0.5)).mul(mix(float(1.0), D.h.mul(0.8).add(0.6), near));
+    s.ao = f.aux.z; s.fluor = float(0.7); s.spec = float(0.05); s.gloss = float(18.0);
+    s.trans = select(f.aux.x.greaterThan(0.0), float(0.35), float(0.0));
+  },
 });
 
 // The colours corals come in.
@@ -330,7 +336,7 @@ const PLANTING = [
 
 function buildReef(add, q) {
   const rng = makeRng(31337), mat = reefMat();
-  const m4 = new Matrix4(), pos = new Vector3(), quat = new Quaternion(), yaw = new Quaternion(), scl = new Vector3(), up = new Vector3(0, 1, 0), nrm = new Vector3();
+  const pos = new Vector3(), quat = new Quaternion(), yaw = new Quaternion(), scl = new Vector3(), up = new Vector3(0, 1, 0), nrm = new Vector3();
   let planted = 0;
   for (const [name, count, zA, zB, where, s0, s1, colours, variants] of PLANTING) {
     // the formations' own places in this stretch
@@ -367,20 +373,15 @@ function buildReef(add, q) {
         }
         const cnt = list.length / 12;
         if (!cnt) continue;
-        // (its own geometry, sharing the shape's buffers, to carry its own colours)
-        const own = new BufferGeometry(), tint = new Float32Array(cnt * 4);
-        own.setIndex(geo.index);
-        for (const k of ['position', 'normal', 'uv', 'aux']) own.setAttribute(k, geo.getAttribute(k));
-        own.setAttribute('tint', new InstancedBufferAttribute(tint, 4));
-        const mesh = new InstancedMesh(own, mat, cnt);
+        const places = [], tints = new Float32Array(cnt * 4);
         for (let i = 0; i < cnt; i++) {
           const o = i * 12;
           quat.setFromUnitVectors(up, nrm.set(list[o + 4], list[o + 5], list[o + 6]));
           quat.multiply(yaw.setFromAxisAngle(up, list[o + 7]));
-          m4.compose(pos.set(list[o], list[o + 1], list[o + 2]), quat, scl.setScalar(list[o + 3]));
-          mesh.setMatrixAt(i, m4);
-          tint.set(list.slice(o + 8, o + 12), i * 4);
+          place(places, pos.set(list[o], list[o + 1], list[o + 2]), quat, scl.setScalar(list[o + 3]));
+          for (let k = 0; k < 4; k++) tints[i * 4 + k] = list[o + 8 + k];
         }
+        const mesh = new ThreeMesh(instanced(geo, places, { tint: [4, tints] }), mat);
         mesh.matrixAutoUpdate = false;
         add(mesh, 70);
         planted += cnt;

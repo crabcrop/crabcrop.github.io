@@ -1,13 +1,14 @@
 // The water itself: what is behind everything (open water in every direction), and the
 // surface seen from underneath, with the bright window straight overhead through which
 // the sky and the sun show, and all around it the mirror that shows the water below.
-import { BackSide, DoubleSide, Mesh, PlaneGeometry, SphereGeometry } from 'three';
-import { material } from './shaders.js';
+import { BackSide, DoubleSide, Mesh, PlaneGeometry, SphereGeometry } from 'three/webgpu';
+import { cameraPosition, clamp, dot, float, length, max, mix, normalize, pow, reflect, refract, smoothstep, sqrt, texture, vec3 } from 'three/tsl';
+import { G, inWater, material, scatter, scatterFrom } from './shaders.js';
 
 export function buildSea(scene) {
   const back = new Mesh(new SphereGeometry(400, 24, 16), material({
-    raw: true, side: BackSide, depthWrite: false, depthTest: false,
-    surf: /* glsl */ `gl_FragColor = vec4(scatter(normalize(vW - cameraPosition), 300.0), 1.0);`,
+    side: BackSide, depthWrite: false, depthTest: false,
+    raw: (f) => scatter(normalize(f.w.sub(cameraPosition)), float(300.0)),
   }));
   back.renderOrder = -10;
   back.frustumCulled = false;
@@ -15,34 +16,40 @@ export function buildSea(scene) {
 
   // One flat sheet at y = 0. All of its shape is in the slope read from the water texture.
   const surface = new Mesh(new PlaneGeometry(1600, 1600, 1, 1).rotateX(-Math.PI / 2), material({
-    raw: true, side: DoubleSide,
-    surf: /* glsl */ `
-    vec3 toP = vW - cameraPosition;
-    float d = length(toP);
-    vec3 v = toP / d;
-    // (small waves fade with distance: far away they would only shimmer)
-    float fl = 1.0 - smoothstep(60.0, 260.0, d);
-    vec2 sl = ((texture2D(tWater, vW.xz / 13.0).ba - 0.5) + (texture2D(tWater, vW.zx / 4.7 + 0.2).ba - 0.5) * 0.7 + (texture2D(tWater, vW.xz / 37.0 + 0.6).ba - 0.5) * 0.8) * 2.0 * fl;
-    vec3 n = normalize(vec3(-sl.x * 0.8, -1.0, -sl.y * 0.8));          // facing down, at us
-    float ci = clamp(dot(v, -n), 0.0, 1.0);
-    float k = 1.0 - 1.769 * (1.0 - ci * ci);                           // below zero, light cannot leave the water
-    float win = smoothstep(0.0, 0.22, k);
-    vec3 rr = refract(v, n, 1.333);
-    float sd = max(dot(rr, uSunDir), 0.0);
-    float fres = pow(1.0 - sqrt(max(k, 0.0)), 5.0);
-    // the window: the sky, brighter and darker with the slope of each wave, and the sun's glitter
-    vec3 sky = (vec3(0.30, 0.78, 1.0) * 1.3 * clamp(1.0 + 3.8 * (sl.x * 0.6 - sl.y * 0.8), 0.25, 3.0) + vec3(1.0, 0.95, 0.85) * (pow(sd, 24.0) * 0.8 + (pow(sd, 120.0) * 2.4 + pow(sd, 700.0) * 9.0) * (0.25 + 2.2 * texture2D(tWater, vW.xz / 2.9 + 0.13).r))) * (1.0 - fres) * uLight.x;
-    // the mirror: the water below, along the reflected ray
-    vec3 refl = scatterFrom(0.0, 1.0, reflect(v, n), 300.0) * 1.15;
-    gl_FragColor = vec4(inWater(mix(refl, sky, win), vW), 1.0);
-    `,
+    side: DoubleSide,
+    raw: (f) => {
+      const toP = f.w.sub(cameraPosition);
+      const d = length(toP);
+      const v = toP.div(d).toVar();
+      // (small waves fade with distance: far away they would only shimmer)
+      const fl = float(1).sub(smoothstep(60.0, 260.0, d));
+      const sl = texture(G.waterTex, f.w.xz.div(13.0)).ba.sub(0.5)
+        .add(texture(G.waterTex, f.w.zx.div(4.7).add(0.2)).ba.sub(0.5).mul(0.7))
+        .add(texture(G.waterTex, f.w.xz.div(37.0).add(0.6)).ba.sub(0.5).mul(0.8)).mul(fl.mul(2.0)).toVar();
+      const n = normalize(vec3(sl.x.mul(-0.8), -1.0, sl.y.mul(-0.8))).toVar();        // facing down, at us
+      const ci = clamp(dot(v, n.negate()), 0.0, 1.0);
+      const k = float(1).sub(float(1.769).mul(float(1).sub(ci.mul(ci)))).toVar();      // below zero, light cannot leave the water
+      const win = smoothstep(0.0, 0.22, k);
+      const sd = max(dot(refract(v, n, 1.333), G.sunDir), 0.0).toVar();
+      const fres = pow(float(1).sub(sqrt(max(k, 0.0))), 5.0);
+      const glit = texture(G.waterTex, f.w.xz.div(2.9).add(0.13)).r.mul(2.2).add(0.25);
+      // the window: the sky, brighter and darker with the slope of each wave, and the sun's glitter
+      const sky = vec3(0.30, 0.78, 1.0).mul(1.3).mul(clamp(sl.x.mul(0.6).sub(sl.y.mul(0.8)).mul(3.8).add(1.0), 0.25, 3.0))
+        .add(vec3(1.0, 0.95, 0.85).mul(pow(sd, 24.0).mul(0.8).add(pow(sd, 120.0).mul(2.4).add(pow(sd, 700.0).mul(9.0)).mul(glit))))
+        .mul(fres.oneMinus()).mul(G.light.x);
+      // the mirror: the water below, along the reflected ray
+      const refl = scatterFrom(float(0.0), float(1.0), reflect(v, n), float(300.0)).mul(1.15);
+      return inWater(mix(refl, sky, win), f.w);
+    },
   }));
   surface.frustumCulled = false;
   scene.add(surface);
   return {
     follow(cam) {
       back.position.copy(cam.position);
+      back.updateMatrixWorld();
       surface.position.set(cam.position.x, 0, cam.position.z);
+      surface.updateMatrixWorld();
     },
   };
 }
