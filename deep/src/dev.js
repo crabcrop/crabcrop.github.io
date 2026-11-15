@@ -38,7 +38,7 @@ export function installDev({ S, engine, scene, camera, place, draw }) {
   const api = {
     ready: true, level: engine.level, backend: engine.webgpu ? 'WebGPU' : 'WebGL 2',
     async shot(p, time = 20, yaw = 0, pitch = 0) {
-      S.p = S.pTo = p; S.time = time; G.time.value = time;
+      S.p = S.pTo = p; S.time = time; G.time.value = time; S.dt = 0;
       S.lookX = S.lookXTo = yaw; S.lookY = S.lookYTo = pitch;
       place(p);
       if (params.has('capture')) await capture();

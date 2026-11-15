@@ -195,7 +195,7 @@ export const shadeLit = Fn(([albedo, n, spec, gloss, trans, fluor, emis, ao, sh,
   const toL0 = G.lampPos.sub(w);
   const dl = length(toL0);
   const toL = toL0.div(dl).toVar();
-  const cone = smoothstep(G.lampCol.w, mix(G.lampCol.w, 1.0, 0.45), dot(toL.negate(), G.lampDir));
+  const cone = smoothstep(G.lampCol.w, mix(G.lampCol.w, 1.0, 0.75), dot(toL.negate(), G.lampDir));
   const lamp = G.lampCol.rgb.mul(cone).mul(exp(SIG.mul(dl).negate())).div(dl.mul(dl).mul(0.012).add(1.0)).toVar();
   const nl = max(dot(n, toL).add(0.25).div(1.25), 0.0);
   col.addAssign(albedo.mul(lamp).mul(nl.add(trans.mul(0.5))).mul(ao.mul(0.5).add(0.5)).mul(fluor.add(1.0)));

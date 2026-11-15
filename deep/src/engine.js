@@ -30,10 +30,10 @@ export const LEVELS = {
 };
 
 export class Engine {
-  constructor(canvas, level, forceWebGL = false) {
+  constructor(canvas, level, forceWebGL = false, opts = {}) {
     this.level = level;
     this.q = LEVELS[level];
-    this.renderer = new WebGPURenderer({ canvas, antialias: false, alpha: false, depth: false, stencil: false, powerPreference: 'high-performance', forceWebGL });
+    this.renderer = new WebGPURenderer({ canvas, antialias: false, alpha: false, depth: false, stencil: false, powerPreference: 'high-performance', forceWebGL, trackTimestamp: !!opts.timestamps });
     this.renderer.outputColorSpace = LinearSRGBColorSpace;   // the final pass writes sRGB itself
     this.renderer.toneMapping = NoToneMapping;
     this.renderer.setClearColor(0x000000, 1);
@@ -292,8 +292,12 @@ function shaftPass(u, STEPS) {
       sun.addAssign(T.mul(exp(KD.mul(optDepth(w.y).div(G.sunDir.y)).negate())).mul(shadow1(w).mul(beam.mul(6.0).add(0.014))));
       const toL0 = G.lampPos.sub(w);
       const dl = length(toL0);
-      const cone = smoothstep(G.lampCol.w, mix(G.lampCol.w, 1.0, 0.45), dot(toL0.div(dl).negate(), G.lampDir));
-      const here = G.lampCol.rgb.mul(cone).mul(exp(SIG.mul(dl).negate())).div(dl.mul(dl).mul(0.012).add(1.0)).mul(0.045).toVar();
+      const toL = toL0.div(dl).toVar();
+      const cone = smoothstep(G.lampCol.w, mix(G.lampCol.w, 1.0, 0.75), dot(toL.negate(), G.lampDir));
+      // water scatters mostly forward: a beam seen from its side or coming toward the eye
+      // glows, one going away is faint (Henyey-Greenstein, g = 0.6)
+      const phase = float(0.64).div(pow(float(1.36).sub(dot(toL, dir).mul(1.2)), 1.5));
+      const here = G.lampCol.rgb.mul(cone).mul(exp(SIG.mul(dl).negate())).div(dl.mul(dl).mul(0.012).add(1.0)).mul(phase).mul(0.02).toVar();
       for (let g = 0; g < 4; g++) {
         const gp = G.glowPos.element(g);
         const f = max(float(1.0).sub(length(gp.xyz.sub(w)).div(gp.w)), 0.0);

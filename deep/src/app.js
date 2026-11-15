@@ -4,7 +4,8 @@
 // startDive({ parts }) is the whole of it. Each part is a function (ctx) => part, called
 // once the ground, rocks and plants stand; ctx is { add, scene, engine, q, camera, rng }.
 // A part may return { update(t, dt, p) }, called every frame before drawing (t: seconds
-// since the dive began, p: where the camera is on its path).
+// since the dive began, p: where the camera is on its path), and { loading }, a promise
+// for what it still fetches (the dive does not wait for it; dev stills do).
 import { Euler, PerspectiveCamera, Scene } from 'three/webgpu';
 import { Engine, pickLevel } from './engine.js';
 import { buildFlora } from './flora.js';
@@ -14,6 +15,7 @@ import { buildRocks } from './rocks.js';
 import { buildSea } from './sea.js';
 import { G } from './shaders.js';
 import { buildTerrain, rockMaterial } from './terrain.js';
+import { createPace } from './pace.js';
 import { cull, makeWorld } from './world.js';
 
 export async function startDive({ parts = [] } = {}) {
@@ -21,7 +23,7 @@ const canvas = document.getElementById('world');
 const params = new URLSearchParams(location.search);
 const level = pickLevel();
 if (DEV && params.has('dbg')) G.debug = 1;
-const engine = new Engine(canvas, level, params.has('webgl'));
+const engine = new Engine(canvas, level, params.has('webgl'), { timestamps: params.has('bench') });
 const scene = new Scene();
 const add = makeWorld(scene);
 const camera = new PerspectiveCamera(58, 1, 0.12, 460);
@@ -64,7 +66,7 @@ function place(p) {
   cull(camera);
   for (let i = 0; i < live.length; i++) live[i].update(S.time, S.dt, p);
 }
-const live = [];
+const live = [], waits = [];
 
 function draw() {
   engine.render(scene, camera, S.water[6], S.fade);
@@ -73,6 +75,8 @@ function draw() {
 function frame(now) {
   if (!S.running) return;
   requestAnimationFrame(frame);
+  pace.frame(now - S.last);
+  if (statsBox && (now - statsAt) > 500) { statsAt = now; statsBox.textContent = pace.stats(); }
   const dt = Math.min((now - S.last) / 1000, 0.1);
   S.last = now;
   S.dt = dt;
@@ -88,6 +92,17 @@ function frame(now) {
 }
 
 const pause = () => new Promise((r) => setTimeout(r, 0));
+const pace = createPace(engine, () => resize());
+// the H key: a line of frame statistics
+let statsBox = null, statsAt = 0;
+addEventListener('keydown', (e) => {
+  if (e.key !== 'h' && e.key !== 'H') return;
+  if (e.target && /input|textarea|select/i.test(e.target.tagName)) return;
+  if (statsBox) { statsBox.remove(); statsBox = null; return; }
+  statsBox = document.createElement('div');
+  statsBox.style.cssText = 'position:fixed;left:8px;bottom:8px;z-index:40;font:11px/1.4 ui-monospace,Menlo,monospace;color:#eef2ec;background:rgba(4,18,26,.7);padding:4px 8px;border-radius:6px;pointer-events:none';
+  document.body.appendChild(statsBox);
+});
 
 async function boot() {
   await engine.init();
@@ -108,6 +123,7 @@ async function boot() {
     const t1 = performance.now();
     const part = make({ add, scene, engine, q: engine.q, camera });
     if (part && part.update) live.push(part);
+    if (part && part.loading) waits.push(part.loading.catch(() => {}));
     if (DEV) console.log((make.name || 'part') + ' ' + Math.round(performance.now() - t1) + ' ms');
     await pause();
   }
@@ -124,8 +140,13 @@ async function boot() {
   }, { passive: true });
   place(0);
   if (DEV) {
+    await Promise.all(waits);
     const { installDev } = await import('./dev.js');
     if (installDev({ S, engine, scene, camera, place, draw, resize })) return;
+  }
+  if (params.has('bench')) {
+    const { runBench, showReport } = await import('./bench.js');
+    showReport(await runBench({ S, engine, place, draw, resize }));
   }
   S.running = true;
   S.last = performance.now();

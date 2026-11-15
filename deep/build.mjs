@@ -15,7 +15,7 @@
 // model, sound or font file exists. GLSL sits in the source as template strings tagged
 // /* glsl */; their comments and spare whitespace are stripped here.
 import { build } from 'esbuild';
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { copyFileSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { gzipSync } from 'node:zlib';
@@ -73,5 +73,14 @@ if (!template.includes('<!--SCRIPT-->')) throw new Error('template.html has no <
 const html = template.replace('<!--SCRIPT-->', () => `<script>${js}</script>`);
 mkdirSync(outDir, { recursive: true });
 writeFileSync(outFile, html);
+// Snap's model and its texture: the only files besides the page (media/), copied beside it.
+let media = 0;
+for (const f of readdirSync(join(here, 'media'))) {
+  const from = join(here, 'media', f), to = join(outDir, f);
+  let same = false;
+  try { same = statSync(to).size === statSync(from).size && statSync(to).mtimeMs >= statSync(from).mtimeMs; } catch (e) { /* not there yet */ }
+  if (!same) copyFileSync(from, to);
+  media += statSync(from).size;
+}
 const kb = (n) => (n / 1024).toFixed(1) + ' KB';
-console.log(`${basename(outFile)}: ${kb(Buffer.byteLength(html))} (${kb(gzipSync(html).length)} gzipped), of which script ${kb(Buffer.byteLength(js))}`);
+console.log(`${basename(outFile)}: ${kb(Buffer.byteLength(html))} (${kb(gzipSync(html).length)} gzipped), of which script ${kb(Buffer.byteLength(js))}; Snap's files beside it: ${kb(media)} in all`);
