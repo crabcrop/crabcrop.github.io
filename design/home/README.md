@@ -1,0 +1,267 @@
+# The home preview
+
+A candidate for the next crabcrop home page, published as a preview at
+`https://crabcrop.org/preview/home/`, beside the live site and the dive.
+It carries `noindex`, nothing links to it, and the live `index.html` and
+`docs.html` are untouched.
+
+It came out of three directions tried side by side (a white photo studio,
+a crochet-pattern leaflet, and this one, the address bar); this is the one
+that was picked. Where the dive tells the story of a request as a journey,
+this page is the plain one: easy to read, dark and tool-like, with a
+working image URL as its centrepiece.
+
+## What is on the page
+
+| Section | What it shows |
+| --- | --- |
+| Opening | The live site's headline, "Blazing fast, on-demand images.", with the two figures that back it. Snap stands on the right end of the address bar and points down at the URL. Three groups of choices (size, look, format) rewrite the URL, and a picture answers |
+| Speed (`#speed`) | The published benchmark: two headline figures, a chart of repeat requests a second, the table of first requests by operation against Thumbor and imgproxy, and how it was measured |
+| Three parts (`#parts`) | The grammar: signature, operations, source |
+| What it does (`#features`) | Twelve tiles, with the site's own example photos |
+| Sign (`#sign`) | The four signing snippets, the SDKs, the framework loaders, the MCP server |
+| Ship it (`#ship`) | Platforms, CDNs, the limits the server sets itself, and the cache note with Snap asleep |
+| Coming from (`#from`) | The migration guides |
+| Install (`#install`) | The install command, with Snap standing on it, the first three steps, and the other routes |
+
+Colour has one job on the page: wherever a URL appears, coral is the
+signature, sun is the operations and sea glass is the source. Nothing else
+uses those three. In the benchmark chart crabcrop's bar is the crab's red
+and the others are grey.
+
+## The files
+
+| Where | What |
+| --- | --- |
+| `preview/home/index.html` | The page: markup and styles. Written by hand, no build step |
+| `preview/home/home.js` | Its script: the URL builder, copy buttons, the signing tabs, and when Snap moves |
+| `preview/home/fonts/` | The three faces, cut down, each with its licence |
+| `preview/home/media/` | The page's own pictures and films: Snap (two films with their first frames, and the sleeper) and eight embroidered patches |
+| `/scene-camera.jpg`, `/ai-*.jpg`, `/ai-skate-removebg.webp`, `/studio-*.webp` | The site's example photos, used from the root where the live page already has them |
+| `design/home/tools/make-media.py` | Makes everything in `media/` |
+| `design/home/tools/sources.json` | The generated originals `make-media.py` starts from |
+| `design/home/tools/subset-fonts.py` | Cuts the fonts |
+| `design/home/fonts-full/` | The full font files it cuts from (Fontsource 5.3.0, Latin) |
+
+## Changing it
+
+Edit `preview/home/index.html` and `preview/home/home.js` directly, then
+run the two checks that need no crabcrop checkout:
+
+```sh
+node .github/site-checks/assets.mjs    # every picture is used, every file the page names exists
+node .github/site-checks/scripts.mjs   # the page's Content-Security-Policy holds
+```
+
+- **No inline script.** The page carries a Content-Security-Policy like
+  the main pages': scripts from this site only, no hashes to keep in
+  step. A `<script>` block in the page would be blocked, and the check
+  says so. Styles may be inline.
+- **Pictures.** A picture under `preview/home/` has to be referenced by
+  the page, like the site's own. The dive is the exception to that rule,
+  not this page.
+- **Fonts.** The fonts hold ASCII, Latin-1, the dashes, quotes, ellipsis
+  and arrows. A character outside that (the script lists what the page
+  has beyond it) needs `python3 design/home/tools/subset-fonts.py` run
+  again. Bricolage Grotesque keeps its optical-size axis: the browser
+  sets it from the font size, which is what gives the headline its
+  tighter cut.
+- **The headline** is sized so its long line, "on-demand images.", stays
+  on one line beside Snap: about 8.7 em wide at large sizes and 9 em at
+  small ones. A longer headline needs the `font-size` clamps on `h1`
+  worked out again.
+
+## Keeping it true
+
+The site's checks cover `index.html` and `docs.html`, not this page. What
+it says has to be kept in step by hand:
+
+| On the page | Comes from | When it changes |
+| --- | --- | --- |
+| The four signing snippets | Copies of the four panes on `index.html`, which the checks run against the SDKs | Copy them again when those change |
+| `v0.12.0` in the footer, and the two `docker pull` tags | The release the live pages name | At each release |
+| The benchmark figures | `benchmark/results/2026-11-06.md` in `dayvson/crabcrop`: crabcrop 0.9.9, Thumbor 7.8.0, imgproxy 3.31.4 | When a newer run is published there |
+| Formats, filters, limits, error codes, recipes, guides | `index.html` and `docs.html` as of 0.12.0 | When those pages change |
+| The signatures in the address bar | Real ones, for all 48 states: HMAC-SHA256 with the sample secret `demo-secret` over `<operations>/root:photos/print.jpg`, in `home.js` | When a choice is added or renamed |
+
+The benchmark figures, as they are on the page:
+
+| Figure | In the results file |
+| --- | --- |
+| 0.2 ms, a repeat request (0.2 to 0.3 across six operations) | Warm latency, crabcrop p50 |
+| 22.6 ms, a first request | Cold latency, resize 800w JPEG, crabcrop p50 |
+| 1,918, 61.5 and 24.4 repeat requests a second | Warm throughput, resize, 25 requests at 8 workers |
+| 16.9 ms and 38.8 ms a repeat (the chart's notes) | Warm latency, resize, imgproxy and Thumbor p50 |
+| The table of six operations | Cold latency, p50 of each system |
+
+The table shows the rows where imgproxy answers a first request sooner
+(resize, crop, WebP): they are in the published results, so they are on
+the page. The run measured 0.9.9. Work on the crop and JPEG paths has
+landed in the server since and is not in a release or a published run
+yet, so those rows are due a refresh.
+
+A new signature, in Python:
+
+```python
+import hashlib, hmac
+hmac.new(b"demo-secret", b"crop:1200x630:smart/root:photos/print.jpg", hashlib.sha256).hexdigest()
+```
+
+The picture under the address bar is drawn in the browser from a sample
+photo (a CSS crop and filter), and the page says so. It is not a render
+by a server.
+
+## Snap on this page
+
+Snap was photographed for this page in low light, on black, and two of
+the three pictures are short films.
+
+| Where | File | What he does |
+| --- | --- | --- |
+| On the address bar | `snap-point` | Points down at the URL. The film: he taps twice, looks up, blinks, nods, and points again |
+| On the install command | `snap-cheer` | Both claws up. The film: he bounces and claps |
+| In the cache note | `snap-asleep.webp` | Asleep. A slow CSS swell from the feet up is his breathing |
+
+**He moves when there is a reason to.** Each film ends on the frame it
+began with, so it plays once and he is at rest again. The first plays
+shortly after the page opens, every few seconds while he is in view, and
+whenever a choice changes the URL. The second plays the first time he
+comes into view and when the install command is copied. A tap on him
+plays his film too. With reduced motion he stays still: the films are
+never started, and the sleeper does not breathe.
+
+**How he sits in the page.** A film has no transparency, so he is filmed
+on black and blended with `mix-blend-mode: lighten`: the page shows
+wherever the film is darker than the page. Three things keep that from
+ever showing as a box:
+
+- each film is laid over a ground two shades under the colour it sits on
+  (`make-media.py` does it), so if a browser will not blend a video, what
+  shows is a rectangle a shade darker than the page, not a black one;
+- the film's edges are feathered with a mask, for the same case;
+- nothing between him and the ground he sits on may form a stacking
+  context (no `z-index`, `transform`, `opacity` or `filter` on an
+  ancestor inside the section), or the blend has nothing to blend with.
+  The section sets its own background for that reason.
+
+He stands just behind the top edge of the bar: the bar is above him in
+the stack, so the film never has to blend with it.
+
+Each film is published twice, AV1 first and H.264 for what plays nothing
+newer, at 12 frames a second: the generator draws each pose twice, so the
+second of every pair is dropped. Its first frame is the poster, which is
+also what shows if a film cannot load.
+
+### The generations
+
+Higgsfield project `03b58f25-49d0-4a18-bcf3-77a8b41d7dc1`, folder
+"10 Home page" (`db56c395-4e82-4551-a27c-c43b2256363e`). The stills are
+Nano Banana Pro, 16:9, 2K, two takes each, with the `snap` Element and
+the C01 master reference (`d65f12f3`); the second and third also took the
+first approved still as a reference for the light. The films are Kling
+4.0, image to video, 1080p, 5 s, with the still as both the first and the
+last frame.
+
+| Asset | Job | Status | Notes |
+| --- | --- | --- | --- |
+| Pointing, still | `2ba4f2a0-eadb-4421-b694-206df7e4718b` | Approved | Clean black to the edges. Alternate: `5e96ff4b-4b49-4dcc-8d29-89a433df8827`, backdrop less clean and the claw curled |
+| Cheering, still | `4d9c0586-f99f-4dae-a20c-2a990c091ad3` | Approved | Heart pads clear. Alternate: `3d020bc5-9576-48ee-a5e2-262c337ead03`, a faint floor reflection reaches the bottom edge |
+| Asleep, still | `2db1bc5c-51ae-4208-b69e-f187144568b3` | Approved | Closed eyes as stitched arcs, so he reads as asleep when small. Alternate: `e01060f3-cf34-4ddb-845d-1c55cad5ceea`, lids as plain balls |
+| Pointing, film | `a34aa638-9ad8-45e9-8346-e8c2d8fe3510` | Approved, first take | Last frame against first: 0.6 on a 0 to 255 scale. Backdrop stays black |
+| Cheering, film | `e388b1cb-9e14-46ce-93ae-c4a2e4c2de9c` | Approved, first take | Same. He rises to within 20 px of the top of the frame at the peak of a bounce |
+
+The scene lines of the prompts. Each still prompt goes on with the
+`SNAP_DNA` and `SNAP_AVOID` blocks of
+`design/snap-world/snap-character-bible.md`; each film prompt names him
+in words, since Kling 4.0 takes no Element in image to video.
+
+- **Pointing, still.** "`<<<snap>>>` stands on a dark stage, seen from
+  the front and turned a little toward the left of the picture. He leans
+  forward slightly and looks down toward the lower left corner of the
+  frame, and the claw on the left of the picture reaches down and
+  forward, pointing at something on the ground just in front of him to
+  the left, its peach heart pad showing. His other claw rests at his
+  side. Wide shot with a lot of empty space: his full body is about 55
+  percent of the frame height and stands a little to the right of the
+  center, with empty black space to the lower left where he points.
+  Low-key studio product photograph on a black velvet backdrop. The
+  background is solid pure black (#000000) from edge to edge: no visible
+  floor, no horizon line, no reflection, no ground shadow, no haze, no
+  smoke, no dust, no light beams, no gradient, no vignette glow. One
+  large soft warm key light from the upper left shows the crochet texture
+  of his coral yarn in rich, true color; a thin, gentle cool teal rim
+  light traces his right edge; the shadows are deep but his whole
+  silhouette stays readable against the black. Locked-off camera at his
+  eye level. Both eyestalks clearly visible; the eyes never sit on the
+  body."
+- **Cheering, still.** The same backdrop and camera lines, with "stands
+  facing the camera and cheers: both claws raised high above his head in
+  celebration, the peach heart pads facing the camera, both eyestalks
+  stretched up, looking straight at the camera, joyful", 62 percent of
+  the frame height, centered, a "neutral-white key light" with "no orange
+  cast", and "no confetti" added to the avoid list.
+- **Asleep, still.** The same again, with "is fast asleep: he sits low
+  and relaxed, facing the camera, both claws folded against his cream
+  belly. Both coral crochet eyelids are fully closed over his eyes, so
+  the black eyes are hidden and only the closed coral lids show on the
+  two eyestalks; the eyestalks lean gently outward; his small gold smile
+  still shows", 50 percent of the frame height, the eyes left out of the
+  description of him, and "no pillow, no blanket, no letters Z" added.
+- **Pointing, film.** "Snap, the crocheted crab toy, stands against a
+  solid pure black background. He looks down to the lower left and taps
+  the air twice with the claw he is pointing with, a small clear tapping
+  gesture toward the lower left, as if tapping on something just below
+  him. Then he lifts his eyes to the camera, blinks once (his coral
+  eyelids slide down over the eyes and back up), gives one small nod, and
+  looks back down to the lower left, returning to exactly the starting
+  pose. The camera is fixed on a tripod and never moves or zooms; only
+  Snap moves. Seamless loop: the last frame matches the first frame."
+  Then a short description of him, and: "Single continuous shot, no cuts,
+  no scene changes. Physical, weighty motion like a real crocheted toy
+  brought to life. Stable exposure and color. Keep the handmade crochet
+  yarn, the pure black background and the exact low-key lighting of the
+  start frame: the background stays completely black, with no floor, no
+  haze, no smoke, no dust, no light rays and no reflections appearing.
+  Both eyestalks stay visible, six legs and two claws at all times. No
+  new objects appear, nothing morphs into something else, no text."
+- **Cheering, film.** The same frame of lines, with "stands against a
+  solid pure black background with both claws raised. He cheers: he
+  bounces on the spot two times, and on each bounce he waves both raised
+  claws happily, opening and closing them like clapping; then he blinks
+  once and settles back into exactly the starting pose with both claws
+  raised", and "His full body with the raised claws always stays in
+  frame."
+
+What this round taught:
+
+- **Black works as a backdrop.** Asked for in that many words, Nano
+  Banana Pro gives a true black to the edges in most takes, and Kling
+  keeps it black through a film. That is what makes the blend possible
+  with no cutout step.
+- **Low light pulls the wool toward orange.** The first still came out
+  10 degrees of hue off his studio coral with a warm key light, and 5 to
+  9 off even when a neutral light was asked for. `make-media.py` measures
+  the wool and turns it back, so the three pictures and the two films
+  land on the same coral.
+- **The same still at both ends loops.** With the start frame as the end
+  frame, both films came back on their first take with a seam smaller
+  than the step between two ordinary frames.
+- **Kling draws on twos.** Every pose is held for two frames of the 24,
+  so a film is 12 a second already. Dropping the second of each pair
+  halves the film and suits a crocheted toy: it reads as stop motion.
+- **A blink is a pair of plain wool balls.** Kling closes his eyes by
+  covering them. For a few frames in motion it reads as a blink; it is
+  why the sleeper is a still, not a film.
+
+## Before it could be the home page
+
+- It has no analytics. The live pages load Google Analytics and carry a
+  privacy note; the scripts check requires the two to go together.
+- It has no Open Graph or Twitter tags and no canonical link, and it
+  carries `noindex`.
+- The benchmark figures are from 0.9.9; see above.
+- It has been checked in Chromium at phone, tablet and desktop sizes. It
+  has not been seen in Safari or on a real phone, which is where the
+  blend of a film into the page matters most.
+- The picture under the address bar could be real renders from
+  `images.crabcrop.org` instead of a crop drawn in the browser.

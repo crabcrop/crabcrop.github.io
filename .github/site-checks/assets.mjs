@@ -1,20 +1,24 @@
 // Check that the site publishes no image its pages do not use, no
-// preview but the dive and no notes, and that its pages use no local
-// file the site does not have.
+// preview but the dive and the home preview and no notes, and that its
+// pages use no local file the site does not have.
 //
 // GitHub Pages serves every tracked file that Jekyll does not exclude,
 // so an image that index.html and docs.html never load is dead weight
 // anyone can fetch. The check fails when
 //   - a published image is referenced by no page,
 //   - a page references a local file that Pages does not publish,
-//   - a file under preview/ is published outside preview/dive/,
+//   - a file under preview/ is published outside preview/dive/ and
+//     preview/home/,
 //   - or a Markdown file is published.
 //
-// preview/dive/ is the one preview the site publishes on purpose: the
+// The site publishes two previews on purpose. preview/dive/ is the
 // "All the Way Down" dive, built from experience/. Its own scripts load
-// its media, so its images need no page reference. Its index.html is
-// scanned like a page, so the site files it uses count as used and must
-// exist.
+// its media, so its images need no page reference. preview/home/ is a
+// candidate for the next home page, written by hand (its notes are in
+// design/home/). It is plain HTML, so its images are held to the same
+// rule as the site's: each one has to be referenced. The index.html of
+// each preview is scanned like a page, so the site files it uses count
+// as used and must exist.
 //
 // Published means tracked (git ls-files) and not left out by Jekyll:
 // no path segment starts with ".", "_", "#" or ends with "~", and no
@@ -43,8 +47,10 @@ import { fileURLToPath } from "node:url";
 
 const SITE = resolve(process.argv[2] || join(dirname(fileURLToPath(import.meta.url)), "..", ".."));
 const PAGES = ["index.html", "docs.html"];
-// The one preview the site publishes. Nothing else may sit under preview/.
-const PREVIEW = "preview/dive/";
+// The previews the site publishes. Nothing else may sit under preview/.
+// The dive's scripts load its media, so its images need no reference.
+const DIVE = "preview/dive/";
+const PREVIEWS = [DIVE, "preview/home/"];
 const ORIGIN = "https://crabcrop.org/";
 const SITE_HOSTS = new Set(["crabcrop.org", "www.crabcrop.org"]);
 const IMAGE_SERVER = "images.crabcrop.org";
@@ -82,7 +88,7 @@ const published = new Set(
       !EXCLUDE.some((e) => f === e || f.startsWith(`${e}/`)),
   ),
 );
-const pages = PAGES.concat(published.has(`${PREVIEW}index.html`) ? [`${PREVIEW}index.html`] : []);
+const pages = PAGES.concat(PREVIEWS.map((p) => `${p}index.html`).filter((p) => published.has(p)));
 
 const ENTITIES = { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", nbsp: "\u00a0" };
 function unescape(s) {
@@ -240,15 +246,15 @@ for (const [path, r] of missing) {
 }
 
 const used = new Set(refs.map((r) => r.path).filter(Boolean));
-const images = [...published].filter((f) => IMAGE.test(f) && !f.startsWith(PREVIEW)).sort();
+const images = [...published].filter((f) => IMAGE.test(f) && !f.startsWith(DIVE)).sort();
 const unused = images.filter((f) => !used.has(f));
 for (const f of unused) {
   const bytes = existsSync(join(SITE, f)) ? statSync(join(SITE, f)).size : 0;
   problems.push(`${f} (${bytes.toLocaleString("en-US")} B) is published but no page references it`);
 }
 
-const strays = [...published].filter((f) => f.startsWith("preview/") && !f.startsWith(PREVIEW)).sort();
-for (const f of strays) problems.push(`${f} is published, but ${PREVIEW} is the only preview the site serves`);
+const strays = [...published].filter((f) => f.startsWith("preview/") && !PREVIEWS.some((p) => f.startsWith(p))).sort();
+for (const f of strays) problems.push(`${f} is published, but the site serves no preview besides ${PREVIEWS.join(" and ")}`);
 const notes = [...published].filter((f) => /\.(?:md|markdown)$/i.test(f)).sort();
 for (const f of notes) problems.push(`${f} is a notes file that Pages publishes`);
 
@@ -265,7 +271,9 @@ if (problems.length) {
   process.exit(1);
 }
 const local = new Set(refs.filter((r) => r.path !== null).map((r) => r.path));
-const dive = [...published].filter((f) => f.startsWith(PREVIEW)).length;
-console.log(`ok   all ${images.length} published images outside ${PREVIEW} are referenced by ${pages.join(", ")}`);
+const count = (p) => [...published].filter((f) => f.startsWith(p)).length;
+console.log(`ok   all ${images.length} published images outside ${DIVE} are referenced by ${pages.join(", ")}`);
 console.log(`ok   all ${local.size} local files the pages reference are published`);
-console.log(`ok   ${PREVIEW} (${dive} files) is the only preview published, and no notes file is published`);
+console.log(
+  `ok   ${PREVIEWS.map((p) => `${p} (${count(p)} files)`).join(" and ")} are the only previews published, and no notes file is published`,
+);

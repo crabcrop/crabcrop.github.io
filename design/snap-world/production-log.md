@@ -304,6 +304,7 @@ Everything approved lives in the project **crabcrop · All the Way Down**
 | 07 Transitions | `f1602e59-ea3e-4b28-b048-449f596d34a4` | The four camera moves between zones |
 | 08 Snap clips | `e0c57cb5-0fee-400f-b9ee-81346f46851e` | Snap's start stills and clips, on grey and cut out |
 | 09 Icons | `06d37f39-279f-4705-9301-ffc111e6e7e6` | Card icon patches |
+| 10 Home page | `db56c395-4e82-4551-a27c-c43b2256363e` | Snap in low light on black, for the home preview: three stills, two films. Logged in `design/home/README.md` |
 | 99 Rejected | `2c5eef11-ab80-4def-a266-d1cbf1d0b640` | Kept for the record |
 
 Pass the folder ID as `folder_id` on new generations so they land in the
@@ -320,7 +321,8 @@ right place. Background removal takes no folder: attach its results with
 | F and G: 8 start stills, 10 clip takes, 9 cutouts, 2 icon sheets | 164 |
 | Ride loops: 4 takes, 3 cutouts | 65 |
 | 3D Snap: the chain-free edit (2 images) | 4 |
-| **Total** | **867** |
+| Home preview: 6 stills, 2 films | 44.5 |
+| **Total** | **911.5** |
 
 Failed jobs were refunded.
 

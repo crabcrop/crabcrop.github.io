@@ -32,3 +32,6 @@ see `production-log.md`. The live site is unchanged.
 The whole dive is built: the source is in `experience/`, built to
 `preview/dive/`, a preview beside the live site. See
 `experience/README.md` for how it fits together and what is still open.
+
+A second preview, a plain home page with the same Snap, is at
+`preview/home/`; its notes are in `design/home/README.md`.
