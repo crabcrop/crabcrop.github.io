@@ -1,7 +1,10 @@
+import { soft } from './text';
 import type { WorldOut } from './world';
 import type { Recipe } from './twilight-ui';
 
 type Lang = 'ts' | 'py' | 'rs';
+/** How each library is installed: the card's chip shows the line for the open tab. */
+const INSTALL: Record<Lang, string> = { ts: 'npm install @crabcrop/url', py: 'pip install crabcrop_url', rs: 'cargo add crabcrop-url' };
 const SOURCE = 'root:photos/print.jpg';
 const CROP_SIZE = { wide: '1200 × 630', square: '760 × 760', whole: '945 × 630' };
 const FMT = { auto: 'AVIF', avif: 'AVIF', webp: 'WebP', jxl: 'JPEG XL' };
@@ -18,6 +21,7 @@ export class VentsUI {
   private tabs = [...document.querySelectorAll<HTMLButtonElement>('.sdk-tabs [role="tab"]')];
   private code = document.getElementById('sdk-code')!;
   private out = document.getElementById('sdk-out')!;
+  private install = document.getElementById('sdk-install')!;
   private mcp = document.getElementById('mcp-log')!;
   private bubble = document.getElementById('sub-bubble')!;
   private card = document.getElementById('card-mcp')!;
@@ -66,8 +70,9 @@ export class VentsUI {
       py: `# crabcrop_url\nurl = build_url(base, secret,\n    "${ops}",\n    "${SOURCE}")`,
       rs: `// crabcrop-url\nlet url = build_url(base, Some(secret),\n    "${ops}",\n    "${SOURCE}", None)?;`,
     }[this.lang];
-    this.code.textContent = call;
-    this.out.textContent = `→ https://img.example.com/3c1f6c18…/${this.recipe.rest}  (the same from all three)`;
+    this.code.innerHTML = soft(call);
+    this.out.innerHTML = soft(`→ https://img.example.com/3c1f6c18…/${this.recipe.rest}`) + '  (the same from all three)';
+    this.install.textContent = INSTALL[this.lang];
   }
 
   private renderMcp() {
@@ -78,7 +83,7 @@ export class VentsUI {
       ['agent', 'explain_url', 'is it right?'],
       ['crabcrop', '', `valid · key 1 · ${CROP_SIZE[r.crop]} · ${FMT[r.fmt]}`],
       ['agent', 'fetch_meta', 'what does it show?'],
-      ['crabcrop', '', `${CROP_SIZE[r.crop]} · ${FMT[r.fmt].toLowerCase().replace('jpeg xl', 'jxl')} · a sun over two hills, stitched`],
+      ['crabcrop', '', `${CROP_SIZE[r.crop]} · ${FMT[r.fmt]} · a sun over two hills, stitched`],
     ];
     this.mcp.replaceChildren(...rows.map(([who, tool, what], i) => {
       const li = document.createElement('li');
@@ -91,7 +96,7 @@ export class VentsUI {
       if (tool) { const c = document.createElement('code'); c.textContent = tool; li.append(c); }
       const t = document.createElement('span');
       t.className = 'what';
-      t.textContent = what;
+      t.innerHTML = soft(what);
       li.append(t);
       return li;
     }));

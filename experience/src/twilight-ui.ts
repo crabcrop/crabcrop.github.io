@@ -1,3 +1,4 @@
+import { soft } from './text';
 import type { WorldOut } from './world';
 
 /** The visitor's choices, as the twilight zone's demos need them. */
@@ -12,7 +13,7 @@ export interface Recipe {
   token: string;
 }
 
-const CROP_GLOSS = { wide: 'a 1200×630 window, moved to the subject', square: 'a 760×760 window, moved to the subject', whole: 'fit inside 1200×630, nothing cut' };
+const CROP_GLOSS = { wide: 'a 1200 × 630 window, moved to the subject', square: 'a 760 × 760 window, moved to the subject', whole: 'fit inside 1200 × 630, nothing cut' };
 const CROP_SIZE = { wide: [1200, 630], square: [760, 760], whole: [945, 630] };
 const LOOK_GLOSS = { crisp: 'sharpen 1.2, then saturation 1.1', deep: 'duotone, from deep blue to sand', vintage: 'sepia' };
 const FINISH_GLOSS = { none: '', studio: 'the product cut out onto a brand backdrop with a soft shadow, padded', cutout: 'the background removed' };
@@ -34,6 +35,8 @@ export class TwilightUI {
   private altLine = document.getElementById('alt-line')!;
   private altText = document.getElementById('alt-text')!;
   private req = document.getElementById('explain-req')!;
+  /** The visitor's own light has found a creature: the dock's cue has done its work. */
+  shone = false;
   private report = document.getElementById('explain-report')!;
   private kind = document.getElementById('kind-fish')!;
   private recipe: Recipe | null = null;
@@ -55,10 +58,10 @@ export class TwilightUI {
     if (!r) return;
     const rows: [string, string][] = [];
     if (r.sealed) {
-      this.req.textContent = `GET /explain/s1.${r.token.slice(0, 10)}…/print.jpg`;
+      this.req.innerHTML = soft(`GET /explain/s1.${r.token.slice(0, 10)}…/print.jpg`);
       rows.push(['403', 'explain refuses sealed URLs rather than decrypt them.'], ['to debug', 'unseal it locally, then explain the plain form.']);
     } else {
-      this.req.textContent = `GET /explain/3c1f6c18…/${r.rest}`;
+      this.req.innerHTML = soft(`GET /explain/3c1f6c18…/${r.rest}`);
       const [w, h] = CROP_SIZE[r.crop];
       rows.push(
         ['signature', 'valid · key 1 · never expires'],
@@ -101,7 +104,8 @@ export class TwilightUI {
     return `${list[0].toUpperCase()}${list.slice(1)} in the dark of the deep sea.`;
   }
 
-  update(out: WorldOut, t: number) {
+  /** byVisitor: the light is where the visitor put it (their cursor, or a tap), not on its own slow sweep. */
+  update(out: WorldOut, t: number, byVisitor = false) {
     const tw = out.twi;
     const on = tw.on > 0.6 && !!tw.z5;
     this.tagsList.classList.toggle('on', on);
@@ -114,6 +118,7 @@ export class TwilightUI {
         li.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px)`;
         const lit = Math.hypot(x - lx, y - ly) < lr * 0.8 && u > 0.02 && u < 0.98;
         if (lit) {
+          if (byVisitor) this.shone = true;
           this.found.set(li, t);
           if (!this.seen.has(li.dataset.k!)) { this.seen.add(li.dataset.k!); added = true; }
         }

@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite';
 import { fileURLToPath } from 'node:url';
 import sirv from 'sirv';
+import { readFileSync } from 'node:fs';
 
 // Code builds into ../preview/dive next to the media the encode scripts
 // write there; the build never empties that folder.
@@ -22,6 +23,21 @@ export default defineConfig({
       name: 'serve-media',
       configureServer(server) {
         server.middlewares.use('/media', sirv(media, { dev: true }));
+      },
+    },
+    {
+      // The formats card quotes the real sizes of this page's own marina. The
+      // script writes them in from the manifest once it runs; the page's
+      // markup carries them too (for the moment before, and for a visitor
+      // without scripts), and those are written here, from the same manifest,
+      // so they cannot go stale when the pictures are encoded again.
+      name: 'marina-sizes',
+      transformIndexHtml(html) {
+        const { avif, webp } = JSON.parse(readFileSync(`${media}/manifest.json`, 'utf8')).plates.z0.bytes['3200'];
+        const kb = (n: number) => `${Math.round(n / 1024)} KB`;
+        const was = /<b>AVIF \d+ KB<\/b> · <b>WebP \d+ KB<\/b>/;
+        if (!was.test(html)) throw new Error('marina-sizes: the formats card was not found');
+        return html.replace(was, `<b>AVIF ${kb(avif)}</b> · <b>WebP ${kb(webp)}</b>`);
       },
     },
     {

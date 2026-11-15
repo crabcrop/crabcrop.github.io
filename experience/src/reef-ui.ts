@@ -26,6 +26,20 @@ export class ReefUI {
   private dragRect = document.getElementById('drag-rect')!;
   private chip = document.getElementById('remove-chip')!;
   private fx = document.getElementById('reef-fx')!;
+  /** The cues tied to the reef's things, the ring on the cuttlefish and the box stitched round the can. */
+  private cueCrop = document.getElementById('cue-crop')!;
+  private cueFaces = document.getElementById('cue-faces')!;
+  private ring = document.getElementById('ring-cuttle')!;
+  private cueCuttle = document.getElementById('cue-cuttle')!;
+  private hint = document.getElementById('can-hint')!;
+  private cueCan = document.getElementById('cue-can')!;
+  /** What the visitor has done already: moved the frame, found the faces, blurred the cuttlefish (and when), erased the can (and when). */
+  private drove = false;
+  private found = false;
+  private blurAt = -1;
+  private goneAt = -1;
+  /** What the dock should ask for on a small screen, where nothing is tied to the things: the cuttlefish or the can, and whether it is done. */
+  asks: { k: string; done: boolean } | null = null;
   private crop: CropShape = 'wide';
   private preview: CropShape | null = null;
   private rect: Rect = { x: -999, y: -999, w: 10, h: 10 };
@@ -118,6 +132,7 @@ export class ReefUI {
     const v = out.reef;
     this.view = v;
     this.fx.classList.toggle('on', !!v);
+    if (!v) this.asks = null;
     const W = innerWidth, H = innerHeight;
     // Stations: between two stops the one behind slides out to the left as the
     // next slides in from the right, keeping pace with the reef on long trips.
@@ -158,6 +173,7 @@ export class ReefUI {
       if (mouse && overStage && this.o.wide) {
         const d = Math.hypot(mouse[0] - tc[0], mouse[1] - tc[1]);
         snapped = d < Math.max(fw, fh) * 0.75;
+        if (!snapped && v.near[1] > 0.8) this.drove = true;
         target = snapped ? snap : hunt(mouse[0], mouse[1]);
       } else {
         // No cursor: wander for a moment, then find it again.
@@ -174,6 +190,7 @@ export class ReefUI {
     this.frameEl.classList.toggle('whole', shape === 'whole');
     this.frameEl.classList.toggle('snapped', snapped);
     this.labelEl.textContent = CROP_SEG[shape] + (shape === 'whole' ? ' · nothing cut' : snapped ? ' · subject found' : '');
+    this.cueCrop.classList.toggle('gone', this.drove);
 
     // Station 2: stitched boxes on the fish faces near the cursor (all of them, one by one, on arrival or on touch screens).
     const [fw, fh] = SPOTS.face;
@@ -185,6 +202,7 @@ export class ReefUI {
       const intro = since >= 0 && (since < 3 || !mouse || !this.o.wide) ? (since > i * 0.18 ? 1 : 0) : 0;
       const near = mouse ? 1 - Math.min(1, Math.max(0, (Math.hypot(mouse[0] - x, mouse[1] - yy) - H * 0.18) / (H * 0.12))) : 0;
       const a = Math.max(intro, near) * on2;
+      if (near > 0.6 && on2 > 0.8) this.found = true;
       b.style.transform = `translate(${(x - w / 2).toFixed(1)}px, ${(yy - h / 2).toFixed(1)}px)`;
       b.style.width = `${w.toFixed(1)}px`;
       b.style.height = `${h.toFixed(1)}px`;
@@ -192,9 +210,37 @@ export class ReefUI {
       b.classList.toggle('on', a > 0.5);
     });
 
-    // Station 4: the drag layer is live while the can is in view.
+    // (the cue hangs over the school until the cursor has found a face)
+    const top = Math.min(...SPOTS.faces.map((f) => f[1])) - fh / 2, mid = SPOTS.faces.reduce((n, f) => n + f[0], 0) / SPOTS.faces.length;
+    Object.assign(this.cueFaces.style, { left: `${sx(mid).toFixed(1)}px`, top: `${sy(top).toFixed(1)}px` });
+    this.cueFaces.classList.toggle('on', on2 > 0.8);
+    this.cueFaces.classList.toggle('gone', this.found);
+
+    // Station 3: a ring on the cuttlefish, and its cue, until the visitor has blurred it (the cue says so, then goes).
+    const [cu, cv] = SPOTS.cuttle.c, [, crv] = SPOTS.cuttle.r;
+    const on3 = v.near[3] > 0.8;
+    if (on3 && mouse && this.blurAt < 0 && Math.hypot(mouse[0] - sx(cu), mouse[1] - sy(cv)) < v.dh * 0.2) this.blurAt = t;
+    const blurred = this.blurAt >= 0;
+    Object.assign(this.ring.style, { left: `${sx(cu).toFixed(1)}px`, top: `${sy(cv - crv * 0.66).toFixed(1)}px` });
+    this.ring.classList.toggle('on', on3 && !(blurred && t - this.blurAt > 2.6));
+    this.ring.classList.toggle('done', blurred);
+    this.cueCuttle.classList.toggle('done', blurred);
+
+    // Station 4: the drag layer is live while the can is in view, and a stitched box shows where to drag.
+    if (v.removed && !this.removed) this.goneAt = t;
     this.removed = v.removed;
     const live = v.near[4] > 0.8;
+    const [hu0, hv0, hu1, hv1] = SPOTS.can;
+    const pad = 0.03 * v.dh;
+    Object.assign(this.hint.style, { transform: `translate(${(sx(hu0) - pad).toFixed(1)}px, ${(sy(hv0) - pad).toFixed(1)}px)`, width: `${((hu1 - hu0) * v.dw + 2 * pad).toFixed(1)}px`, height: `${((hv1 - hv0) * v.dh + 2 * pad).toFixed(1)}px` });
+    this.hint.classList.toggle('on', live && !this.start && !(this.removed && t - this.goneAt > 2.6));
+    this.hint.classList.toggle('done', this.removed);
+    this.cueCan.classList.toggle('done', this.removed);
+
+    // (small screens: the same two cues, at rest in the dock)
+    this.asks = live && !(this.removed && t - this.goneAt > 2.6) ? { k: 'can', done: this.removed }
+      : on3 && !(blurred && t - this.blurAt > 2.6) ? { k: 'cuttle', done: blurred } : null;
+
     this.drag.classList.toggle('live', live);
     this.drag.classList.toggle('done', this.removed);
     if (!this.removed && v.near[4] < 0.3) this.chip.textContent = 'filters:remove_region(40,120,300,200)';

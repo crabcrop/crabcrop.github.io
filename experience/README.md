@@ -95,7 +95,8 @@ python3 scripts/encode-media.py still     # crop and encode them
 | The vents | Snap's print glowing in the geode until the submarine settles over it and its pincer lifts it out; tube worms in the foreground that pull their plumes in when the cursor comes close; heat shimmer round the cursor (in the plate's shader) | `src/world/vents.ts` |
 | The way up | The submarine lifts off with the print in its pincer and the express ascent begins (bands of each zone's colour with speed streaks, the depth counting down). At the top a look up at the surface from below and the pull back to the marina at sunset: the submarine comes up at the pier and stays in the water under the waterline as it comes down the screen; Snap leaps out onto the pier with his print and takes a picture of the receipt; the submarine slips back under, and the anchor chain is back at the boat. "Dive again" fades to the next morning and puts the page back at the top, the visitor's URL kept | `src/world/backdrop.ts`, `src/world/snap.ts`, `src/world/index.ts`, `src/main.ts` |
 | Looks | One grade shared by every shader: Crisp, Deep sea or Vintage, previewed on the whole kelp forest | `src/world/look.ts` |
-| Interface | Real HTML: header, depth gauge, cards, the cargo, the silk curtains, and five choices. Each choice's panel says, in a line at its foot, what the choice put in the URL (or that it adds nothing: no format named, no finish) | `index.html`, `src/ui.ts`, `src/styles.css` |
+| Interface | Real HTML: a floating header, the depth rail (one line with a stop for each place, a bead on the one Snap is in), cards, the cargo, the silk curtains, and five choices. A choice card has a sun strip that says it is the visitor's turn and where they are among the five, and under its options the URL as far as that choice, with the part just chosen marked (or a word that the choice adds nothing: no format named, no finish). Below the wreck the cards, the header, the rail and the dock turn dark with the water | `index.html`, `src/ui.ts`, `src/styles.css` |
+| Cues | One look for every instruction: a verb on a sun badge, then the thing. On a scene's heading card, a short list of what the scene offers ("Here you can"). On wide screens, a cue tied by a stitch of yarn to the thing it is about: the cargo, the curtains, the tangled fish, the crop frame, the school, the cuttlefish, the can (with a stitched box where to drag), the wax seal, the octopus's letter. At the bottom of the view, a dock for what has no single thing (scrolling, the light) and, on small screens, for the reef's two things. A cue says when the visitor has done it, then goes. Everything in the world that can be touched wears the same stitched ring | `index.html`, `src/styles.css`, `src/ui.ts`, `src/reef-ui.ts` |
 | Reef interface | Station cards that slide in with each stop, the magnetic crop frame, face boxes, dragging a box over the can, the before and after slider | `src/reef-ui.ts` |
 | Wreck interface | The chest in the Sealed URLs card (shut the lid and your recipe scrambles into an `s1.` token as long as a real one would be), the ship's log of your picture's Content Credentials written from your choices, the loader's ledger of refused private addresses, the wax seal on the desk for Choice 5, the octopus's button | `src/wreck-ui.ts` |
 | Twilight interface | CLIP tags that light up next to the creatures the light finds, the meta answer and alt text they add up to, the message in the bottle read line by line with boxes and scores, and the explain report for the visitor's own URL (refused if it is sealed) | `src/twilight-ui.ts` |
@@ -108,9 +109,35 @@ page is a static article: each zone shows its still plate behind its text,
 with Snap on the pier at both ends, on the chain in the shallows, on his
 feet in the kelp and the cabin, and in the submarine below the wreck; the
 look choice grades the kelp's still plate with a CSS filter. The reef
-becomes one block per station, each over its own plate. The choice panels
-say what each choice put in the URL there too (without JavaScript, where
-the choices change nothing, they say nothing).
+becomes one block per station, each over its own plate. The choice cards
+show the URL so far there too (without JavaScript, where the choices change
+nothing, they show nothing), and "Here you can" lists only what works
+without the moving world.
+
+### The words on the page
+
+- **Instructions** are cues: verb first (Scroll, Pick, Hover, Click, Drag,
+  Move; Tap on touch screens), then the thing by the name a visitor would
+  use, then the result only when it needs saying. Eight words or fewer
+  after the verb.
+- **Yellow means it is the visitor's to touch**: the verb badges, the rings,
+  the strip on a choice card, the option picked, the Copy buttons.
+- **A chip holds one kind of thing**: a part of a URL, a header, a command.
+  Two kinds get two chips. What is not code (a choice that adds nothing) is
+  set as plain words.
+- **Examples agree**: the source is always Snap's `root:photos/print.jpg`,
+  a readable URL always carries its signature, and what a card quotes
+  follows the visitor's own choices where it can.
+- **Code wraps between its parts**, after a slash, a colon or a comma
+  (`soft()` in `src/text.ts`, and `<wbr>` in the markup), never inside a
+  word.
+- **Languages and frameworks** show their marks with their names. The marks
+  are from [Simple Icons](https://simpleicons.org) (CC0 1.0), inline in the
+  page as one sprite; each is a trademark of its project, used to say
+  "works with". Hydrogen has no mark there and carries Shopify's.
+- The sizes on the formats card are the real sizes of this page's marina:
+  the script reads them from the media manifest, and the build writes the
+  same numbers into the markup (`marina-sizes` in `vite.config.ts`).
 
 Add `?slowmo=20` to the URL to play Snap and the world twenty times slower
 while tuning an animation (videos keep their own pace).

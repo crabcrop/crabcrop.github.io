@@ -1,3 +1,4 @@
+import { soft } from './text';
 import type { WorldOut } from './world';
 
 const B64URL = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
@@ -131,8 +132,9 @@ export class WreckUI {
     this.chest.classList.toggle('locked', locked);
     this.chest.setAttribute('aria-pressed', String(locked));
     this.chestLabel.textContent = locked ? 'Open the chest: the URL is sealed' : 'Close the chest to seal the URL';
-    const sealed = `s1.${this.token}/print.jpg`;
-    this.rest.textContent = settled || shut <= 0 || shut >= 1 ? (shut >= 0.5 ? sealed : this.recipe) : scramble(this.recipe, sealed, shut);
+    // (the readable URL carries its signature, as everywhere else on the page: sealed, the token takes that slot)
+    const sealed = `s1.${this.token}/print.jpg`, readable = `3c1f6c18…/${this.recipe}`;
+    this.rest.innerHTML = soft(settled || shut <= 0 || shut >= 1 ? (shut >= 0.5 ? sealed : readable) : scramble(readable, sealed, shut));
     this.rest.classList.toggle('sealed', shut >= 0.5);
   }
 
@@ -162,7 +164,9 @@ export class WreckUI {
   /** The desk's seal shows whether the URL is sealed. */
   setSealed(sealed: boolean) {
     this.stamp.setAttribute('aria-pressed', String(sealed));
-    this.stampTip.textContent = sealed ? 'Sealed. Press again to make it readable' : 'Press it to seal your URL';
+    this.stampTip.textContent = sealed ? 'Sealed. Click again to make it readable' : 'Click it to seal your URL';
+    // (the cue by the seal has done its work once the visitor has sealed a URL, here or on the card)
+    if (sealed) this.desk.classList.add('seen');
   }
 
   update(out: WorldOut) {
