@@ -72,6 +72,11 @@ export function buildSub(q) {
   // (lathe stands the profile along y: turn it to lie along z)
   lieAlongZ(m, k);
   tag(k, 0);
+  // the bulkhead behind the glass, dark, closing the hull's front
+  k = m.count;
+  lathe(m, 0, 0, 0, [[0.0, -0.13], [0.2, -0.125], [0.41, -0.1]], S(28));
+  lieAlongZ(m, k);
+  tag(k, 2);
   // the coral collar where the glass sits, and a coral band toward the back
   k = m.count;
   lathe(m, 0, 0, 0, [[0.42, -0.16], [0.47, -0.12], [0.47, -0.04], [0.42, 0.0]], S(32));

@@ -29,14 +29,25 @@ export function buildCast(ctx) {
   const loading = snap.load(Math.max(innerWidth, innerHeight) * (devicePixelRatio || 1) < 1400).catch((e) => console.warn('dive: Snap did not load: ' + e.message));
   const st = {
     pos: new Vector3(), last: new Vector3(), subPos: new Vector3(), placed: false,
-    aimX: 0, aimY: 0, idle: 0, lastP: -1, wave: 0,
+    aimX: 0, aimY: 0, idle: 0, lastP: -1, wave: 0, poked: -1e9, t: 0,
   };
+  const ndc = new Vector3();
   const slot = (o, out) => out.copy(camera.position).addScaledVector(F, o[0]).addScaledVector(R, o[1]).addScaledVector(U, o[2]);
 
   const cast = {
     snap, sub, loading,
     // the pointer steers the lamp: x and y from -1 to 1
     aim(x, y) { st.aimX = x; st.aimY = y; },
+    // a tap or click at (x, y) in -1..1 (y up): if it is on Snap, he reacts. Returns whether it was.
+    poke(x, y) {
+      if (!snap.ready) return false;
+      ndc.copy(snap.group.position).project(camera);
+      const d = camera.position.distanceTo(snap.group.position);
+      const r = (snap.height * 0.75) / (d * Math.tan((camera.fov * Math.PI) / 360));
+      if (ndc.z > 1 || Math.hypot((x - ndc.x) * camera.aspect, y - ndc.y) > r) return false;
+      st.poked = st.t;
+      return true;
+    },
     update(t, dt, p) {
       const e = camera.matrixWorld.elements;
       R.set(e[0], e[1], e[2]); U.set(e[4], e[5], e[6]); F.set(-e[8], -e[9], -e[10]);
@@ -88,8 +99,14 @@ export function buildCast(ctx) {
       st.lastP = p;
       const waveNow = (st.idle > 3 && st.idle < 5.5) || p > 7.85 ? 1 : 0;
       st.wave += (waveNow - st.wave) * Math.min(1, dt * 4);
+      // poked: a start, a snap of the pincer, and a wave of the free claw
+      st.t = t;
+      const since = t - st.poked, pk = since >= 0 && since < 1.6 ? since / 1.6 : 0;
+      snap.life.surprise = pk ? Math.max(0, 1 - pk * 3) : 0;
+      snap.life.snap = pk ? Math.min(1, pk * 1.6) : 0;
+      snap.life.wave = pk ? Math.sin(pk * Math.PI) : 0;
       snap.life.hello = st.wave;
-      snap.life.squint = st.wave * 0.8;
+      snap.life.squint = Math.max(st.wave * 0.8, pk > 0.4 ? Math.sin((pk - 0.4) / 0.6 * Math.PI) : 0);
       // he turns to face the visitor, his body a little toward where he goes
       C.copy(camera.position).sub(st.pos);
       C.y *= 0.3; C.normalize();

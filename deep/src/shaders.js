@@ -104,7 +104,9 @@ export const skyAt = Fn(([w, n]) => {
 // light coming down at each point of the ray, times what the water lets through from
 // there: it has a closed form because both fall off exponentially.)
 export const scatterFrom = Fn(([od, slope, rd, d]) => {
-  const a0 = SIG.sub(KD.mul(slope.mul(rd.y)));
+  // (below the ledge depth counts for more; a ray that climbs or falls steeply through it
+  // crosses more water than its length, so its own extinction stretches the same way)
+  const a0 = SIG.mul(slope.sub(1.0).mul(abs(rd.y)).add(1.0)).sub(KD.mul(slope.mul(rd.y)));
   const a = max(abs(a0), vec3(1e-4)).mul(sign(sign(a0).add(0.5))).toVar();
   const I = float(1).sub(exp(clamp(a.negate().mul(d), vec3(-40), vec3(7)))).div(a);
   const mu = max(dot(rd, G.sunDir), 0.0);

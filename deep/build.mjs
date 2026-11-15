@@ -18,6 +18,7 @@ import { build } from 'esbuild';
 import { copyFileSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createHash } from 'node:crypto';
 import { gzipSync } from 'node:zlib';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -61,7 +62,7 @@ const result = await build({
   format: 'iife',
   target: 'es2022',
   minify: !readable,
-  legalComments: 'none',
+  legalComments: 'eof',          // (three.js's licence notice stays in the page)
   write: false,
   define: { DEV: String(dev) },
   plugins: [glsl],
@@ -70,7 +71,16 @@ const result = await build({
 const js = result.outputFiles[0].text.replace(/<\/script/gi, '<\\/script');
 const template = readFileSync(arg('template') ? resolve(arg('template')) : join(here, 'template.html'), 'utf8');
 if (!template.includes('<!--SCRIPT-->')) throw new Error('template.html has no <!--SCRIPT--> marker');
-const html = template.replace('<!--SCRIPT-->', () => `<script>${js}</script>`);
+// The page's one script goes in by hash: a Content-Security-Policy, as the first tag after
+// <meta charset>, that allows that script and nothing else to run, Snap's files to be
+// fetched from the page's own folder, and no plugins, base changes or form posts.
+const hash = createHash('sha256').update(js).digest('base64');
+const csp = `<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-${hash}'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">`;
+if (/http-equiv="Content-Security-Policy"/i.test(template)) throw new Error('template.html has its own CSP: the build writes it');
+let html = template.replace('<!--SCRIPT-->', () => `<script>${js}</script>`);
+const charset = html.match(/<meta charset="utf-8">\n?/i);
+if (!charset) throw new Error('template.html has no <meta charset="utf-8">');
+html = html.replace(charset[0], (m) => `${m.trimEnd()}\n${csp}\n`);
 mkdirSync(outDir, { recursive: true });
 writeFileSync(outFile, html);
 // Snap's model and its texture: the only files besides the page (media/), copied beside it.

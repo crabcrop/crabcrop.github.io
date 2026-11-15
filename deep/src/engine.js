@@ -42,6 +42,7 @@ export class Engine {
     this.width = 1; this.height = 1;
     this.targets = null;
     this.capture = null;       // dev only: when set, the last pass draws here instead of the screen
+    this.lookAt = -1e9; this.lookK = 0;   // the chosen look washes over the scene for a moment
     this.calls = 0; this.tris = 0;
   }
 
@@ -108,6 +109,9 @@ export class Engine {
     this.targets = { scene, shaft, shaft2, down, up, all: [scene, shaft, shaft2, ...down, ...up] };
   }
 
+  // Wash the scene in a look for a moment: 1 crisp, 2 deep sea, 3 vintage.
+  pulseLook(k) { this.lookK = k; this.lookAt = G.time.value; }
+
   drawQuad(mat, target) {
     this.quad.material = mat;
     this.renderer.setRenderTarget(target);
@@ -166,6 +170,8 @@ export class Engine {
 
     u.fScene.value = t.scene.texture; u.fShaft.value = t.shaft2.texture; u.fBloom.value = src.texture;
     u.exposure.value = exposure; u.fade.value = fade;
+    const since = G.time.value - this.lookAt, w = since >= 0 && since < 3 ? (since < 0.25 ? since / 0.25 : 1 - (since - 0.25) / 2.75) : 0;
+    u.look.value.set(this.lookK, w * w * (3 - 2 * w), 0, 0);
     this.drawQuad(this.finalMat, this.capture);
   }
 }
