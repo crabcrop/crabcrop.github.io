@@ -323,9 +323,9 @@ const BONE = [[0.82, 0.80, 0.74]];
 // What is planted: shape, how many (on high), where (z from, z to), on the ground or on
 // the formations or both, size from and to, colours, variants of the shape.
 const PLANTING = [
-  ['staghorn', 150, -122, -192, 'both', 0.7, 1.9, CORAL, 3], ['table', 62, -124, -190, 'both', 0.7, 2.0, CORAL, 2], ['mound', 80, -120, -194, 'ground', 0.6, 1.8, CORAL, 2],
-  ['cauliflower', 90, -120, -194, 'both', 0.5, 1.3, CORAL, 2], ['sponge', 80, -118, -196, 'both', 0.6, 1.5, SPONGE, 3], ['fan', 60, -126, -196, 'rock', 0.9, 2.2, FAN, 2],
-  ['whips', 46, -128, -200, 'both', 0.8, 1.7, FAN, 2], ['anemone', 74, -118, -192, 'both', 0.6, 1.3, CORAL, 2],
+  ['staghorn', 280, -122, -192, 'both', 0.7, 1.9, CORAL, 3], ['table', 90, -124, -190, 'both', 0.7, 2.0, CORAL, 2], ['mound', 170, -120, -194, 'ground', 0.6, 1.8, CORAL, 3],
+  ['cauliflower', 190, -120, -194, 'both', 0.5, 1.3, CORAL, 3], ['sponge', 150, -118, -196, 'both', 0.6, 1.5, SPONGE, 3], ['fan', 90, -126, -196, 'rock', 0.9, 2.2, FAN, 2],
+  ['whips', 90, -128, -200, 'both', 0.8, 1.7, FAN, 2], ['anemone', 140, -118, -192, 'both', 0.6, 1.3, CORAL, 2],
   // the shallows and the kelp have a little of it too
   ['mound', 22, -20, -118, 'ground', 0.4, 1.0, CORAL, 1], ['anemone', 30, -24, -118, 'rock', 0.5, 1.0, CORAL, 1], ['sponge', 26, -60, -118, 'rock', 0.6, 1.2, SPONGE, 1],
   // the ledge and the wreck: fans, whips and sponges, sparser
@@ -360,7 +360,8 @@ function buildReef(add, q) {
           } else {
             z = z0 + (z1 - z0) * rng();
             const w = halfWidth(z);
-            x = centerX(z) + rng.range(-1, 1) * (w + 5);
+            // most along the camera's way, a few metres to either side, where it sees them close
+            x = rng() < 0.7 ? centerX(z) + rng.sign() * (2.5 + Math.abs(rng.bell()) * 11) : centerX(z) + rng.range(-1, 1) * (w + 5);
             y = groundY(x, z);
             if (name === 'worm' && noise2(x * 0.2, z * 0.2) < 0.05) continue;       // in colonies
             nrm.set(groundY(x - 0.4, z) - groundY(x + 0.4, z), 1.6, groundY(x, z - 0.4) - groundY(x, z + 0.4)).normalize();

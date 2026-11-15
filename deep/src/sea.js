@@ -34,7 +34,7 @@ export function buildSea(scene) {
       const fres = pow(float(1).sub(sqrt(max(k, 0.0))), 5.0);
       const glit = texture(G.waterTex, f.w.xz.div(2.9).add(0.13)).r.mul(2.2).add(0.25);
       // the window: the sky, brighter and darker with the slope of each wave, and the sun's glitter
-      const sky = vec3(0.30, 0.78, 1.0).mul(1.3).mul(clamp(sl.x.mul(0.6).sub(sl.y.mul(0.8)).mul(3.8).add(1.0), 0.25, 3.0))
+      const sky = vec3(0.30, 0.78, 1.0).mul(1.05).mul(clamp(sl.x.mul(0.6).sub(sl.y.mul(0.8)).mul(2.4).add(1.0), 0.4, 2.1))
         .add(vec3(1.0, 0.95, 0.85).mul(pow(sd, 24.0).mul(0.8).add(pow(sd, 120.0).mul(2.4).add(pow(sd, 700.0).mul(9.0)).mul(glit))))
         .mul(fres.oneMinus()).mul(G.light.x);
       // the mirror: the water below, along the reflected ray
