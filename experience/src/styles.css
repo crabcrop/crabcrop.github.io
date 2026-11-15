@@ -60,8 +60,8 @@ h1[tabindex="-1"]:focus { outline: none; }
 
 /* The depth rail: one line with a stop for each place, a bead on the one Snap is in and its name beside it; the other names on hover or focus */
 .gauge { position: fixed; left: clamp(14px, 1.9vw, 30px); top: calc(var(--top) + 34px); z-index: 15; font-family: var(--mono); font-size: 11px; font-weight: 700; letter-spacing: .13em; text-transform: uppercase; color: var(--ink); --step: 26px; }
-.gauge-readout { position: absolute; left: 30px; top: calc(var(--at, 0) * var(--step) + var(--step) / 2); z-index: 1; transform: translateY(-50%); margin: 0; padding: 7px 12px; display: grid; gap: 4px; background: rgba(251, 244, 230, .94); border: 1.5px solid var(--ink); border-radius: 16px 16px 16px 4px; white-space: nowrap; box-shadow: var(--shadow-sm); font-size: 10px; letter-spacing: .12em; transition: top .5s var(--reveal), background .5s, border-color .5s, color .5s; }
-.gauge-readout #depth { font-size: 12.5px; font-weight: 800; letter-spacing: .06em; }
+.gauge-readout { position: absolute; left: 30px; top: calc(var(--at, 0) * var(--step) + var(--step) / 2); z-index: 1; transform: translateY(-50%); margin: 0; padding: 7px 12px; display: grid; gap: 4px; background: rgba(251, 244, 230, .94); border: 1.5px solid var(--ink); border-radius: 16px 16px 16px 4px; box-sizing: border-box; width: max-content; max-width: calc(clamp(150px, 15vw, 230px) - clamp(14px, 1.9vw, 30px) - 36px); white-space: normal; box-shadow: var(--shadow-sm); font-size: 10px; letter-spacing: .12em; transition: top .5s var(--reveal), background .5s, border-color .5s, color .5s; }
+.gauge-readout #depth { font-size: 12.5px; font-weight: 800; letter-spacing: .06em; white-space: nowrap; }
 .gauge-readout #zone { color: var(--ink-2); transition: color .5s; }
 .gauge-readout .sep { display: none; }
 .gauge ol { position: relative; list-style: none; margin: 0; padding: 0; width: max-content; }
@@ -524,6 +524,8 @@ html:not(.gl.wide) .tip .name { display: none; }
 .gl.wide .cargo li { position: absolute; left: 0; top: 0; pointer-events: auto; }
 .gl.wide .cargo .hot { position: relative; width: 46px; height: 46px; padding: 0; box-sizing: border-box; border-radius: 50%; font-size: 0; color: transparent; background: none; border: 2.5px dashed #fff; filter: drop-shadow(0 1px 2px rgba(13, 32, 46, .5)); transform: translate(-50%, -50%); }
 .gl.wide .cargo .hot:hover + .tip, .gl.wide .cargo .hot:focus-visible + .tip, .gl.wide .cargo .open + .tip { display: block; position: absolute; left: 30px; top: -24px; }
+/* (near the right edge a tip opens to the left of its ring) */
+.gl.wide .cargo li.flip .hot + .tip, .gl.wide .desk li.flip .hot + .tip { left: auto; right: calc(100% + 30px); border-radius: 16px 16px 5px 16px; }
 @keyframes breathe { 0% { transform: scale(.8); opacity: .9; } 70%, 100% { transform: scale(1.2); opacity: 0; } }
 
 /* Silk curtains in the kelp: hover to preview a look on the whole forest */
@@ -548,8 +550,12 @@ html:not(.gl.wide) .tip .name { display: none; }
 .gl.wide .free-fish, .gl.wide .seal-letter { transform: var(--at, translate(-999px, -999px)) translate(48px, -50%); }
 .gl.wide .free-fish::after, .gl.wide .seal-letter::after { left: auto; right: 100%; top: 50%; bottom: auto; width: 14px; height: 0; margin: -1px 0 0; border-left: 0; border-top: 2.5px dashed #fff; }
 .gl .free-fish:hover, .gl .seal-letter:hover { background: var(--sun-soft); }
+/* (in a narrow window there may be no room beside the thing: then the button goes under it, as far along as the view allows) */
+.gl.wide .free-fish.under::after, .gl.wide .seal-letter.under::after { left: var(--knot, 40px); right: auto; top: auto; bottom: 100%; width: 0; height: 14px; margin: 0 0 0 -1.25px; border-top: 0; border-left: 2.5px dashed #fff; }
 /* the octopus waits by Snap's side, low in the cabin: its button sits to its right */
 .gl.wide .seal-letter { transform: var(--at, translate(-999px, -999px)) translate(calc(var(--lift, 60px) * 0.9 + 16px), -50%); }
+.gl.wide .free-fish.under { transform: var(--at, translate(-999px, -999px)) translate(calc(-1 * var(--knot, 40px)), 34px); }
+.gl.wide .seal-letter.under { transform: var(--at, translate(-999px, -999px)) translate(calc(-1 * var(--knot, 40px)), calc(var(--lift, 60px) * 0.8 + 16px)); }
 
 .s2 .kind { top: 30vh; }
 .gl .kind { position: fixed !important; top: auto; bottom: 8vh; left: auto; right: 4vw; width: min(380px, 28vw); z-index: 4; pointer-events: none; visibility: hidden; transition: opacity .6s var(--reveal), transform .6s var(--reveal), visibility 0s .6s; }
@@ -585,8 +591,8 @@ body.on-snap { cursor: pointer; }
 .cue .did, .cue.done .ask { display: none; }
 .cue.done .did { display: inline-flex; }
 .do { flex: none; display: inline-grid; place-items: center; height: 28px; min-width: 28px; box-sizing: border-box; padding: 0 10px; background: var(--sun); color: var(--ink); border: 1.5px solid var(--ink); border-radius: 14px 14px 14px 4px; font: 800 11px/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; }
-/* (a second verb inside the sentence) */
-.cue span > .do { height: 24px; min-width: 0; margin: 0 3px; padding: 0 8px; font-size: 10.5px; vertical-align: 1px; }
+/* (a second verb inside the sentence; not the first verb of a cue that has two states, which sits in a span too) */
+.cue span:not(.ask):not(.did) > .do { height: 24px; min-width: 0; margin: 0 3px; padding: 0 8px; font-size: 10.5px; vertical-align: 1px; }
 .cue.done .did .do { background: var(--sea-glass); padding: 0; font-size: 13px; }
 .cue .more { font-weight: 500; color: var(--ink-2); }
 .cue.big { min-height: 52px; padding: 8px 22px 8px 9px; gap: 12px; font-size: 17px; border-radius: 26px 26px 26px 7px; box-shadow: var(--shadow); }
@@ -609,22 +615,23 @@ body.on-snap { cursor: pointer; }
 .no-js .can { display: none; }
 
 /* A cue tied to the thing it is about by a stitch of yarn (wide screens). It sits at a point: above it, or below. */
-.tie { position: absolute; left: 0; top: 0; z-index: 2; --knot: 34px; --yarn: 24px; --gap: 0px; pointer-events: none; transform: translate(calc(-1 * var(--knot)), calc(-100% - var(--yarn) - var(--gap))); transition: opacity .4s; }
+/* (--slide: how far the label has given way to stay in the view, set by fit.ts; the yarn stays on the thing.
+   The label is as wide as its words, whatever it hangs from, and wraps only where the open water is narrower.) */
+.tie { position: absolute; left: 0; top: 0; z-index: 2; --knot: 34px; --yarn: 24px; --gap: 0px; pointer-events: none; width: max-content; max-width: calc(100vw - clamp(150px, 15vw, 230px) - min(460px, 38vw) - 36px); white-space: normal; transform: translate(calc(-1 * var(--knot) - var(--slide, 0px)), calc(-100% - var(--yarn) - var(--gap))); transition: opacity .4s; }
 html:not(.gl.wide) .tie { display: none; }
-.tie::after { content: ''; position: absolute; left: var(--knot); top: 100%; height: var(--yarn); margin-left: -1.25px; border-left: 2.5px dashed #fff; filter: drop-shadow(0 1px 1px rgba(13, 32, 46, .55)); }
-.tie.under { transform: translate(calc(-1 * var(--knot)), calc(var(--yarn) + var(--gap))); }
+.tie::after { content: ''; position: absolute; left: calc(var(--knot) + var(--slide, 0px)); top: 100%; height: var(--yarn); margin-left: -1.25px; border-left: 2.5px dashed #fff; filter: drop-shadow(0 1px 1px rgba(13, 32, 46, .55)); }
+.tie.under { transform: translate(calc(-1 * var(--knot) - var(--slide, 0px)), calc(var(--yarn) + var(--gap))); }
 .tie.under::after { top: auto; bottom: 100%; }
 /* (once the visitor has done it, the cue says so for a moment and goes) */
 .tie.gone, .seen .tie { opacity: 0; transition: opacity .5s 1.6s; }
 #cue-cargo { --knot: 150px; --yarn: 22px; --gap: 25px; }
 #cue-curtains { --knot: 128px; --yarn: 36px; --gap: 24px; }
 #cue-seal { --knot: 110px; --yarn: 24px; --gap: 25px; }
-#cue-crop { left: 16%; top: 100%; --knot: 60px; --yarn: 26px; transform: translate(0, var(--yarn)); }
-#cue-crop::after { top: auto; bottom: 100%; }
-.crop-frame.whole #cue-crop { display: none; }
-#cue-faces { --knot: 96px; --yarn: 22px; opacity: 0; }
-#cue-faces.on { opacity: 1; }
-#cue-faces.gone { opacity: 0; }
+#cue-crop { --knot: 60px; --yarn: 26px; }
+#cue-faces { --knot: 96px; --yarn: 22px; }
+#cue-crop, #cue-faces { opacity: 0; }
+#cue-crop.on, #cue-faces.on { opacity: 1; }
+#cue-crop.gone, #cue-faces.gone { opacity: 0; }
 #cue-cuttle { --knot: 84px; --yarn: 22px; --gap: 25px; }
 #cue-can { --knot: 40px; --yarn: 20px; }
 

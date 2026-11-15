@@ -127,12 +127,19 @@ async function start() {
     if ((e.target as Element).closest?.('a, button, input, label, select, textarea, .card, .panel')) return;
     if (w.snapHit(e.clientX, e.clientY)) w.pokeSnap();
   });
-  document.addEventListener('pointerleave', () => { w.mouse = null; });
+  // (a finger lifting is also the pointer leaving the page, and that must not put a tap out: a tap stays a moment)
+  document.addEventListener('pointerleave', (e) => { if (e.pointerType !== 'touch') w.mouse = null; });
   addEventListener('pointerdown', (e) => {
     if (e.pointerType !== 'touch') return;
     w.mouse = [e.clientX, e.clientY];
     clearTimeout(tapTimer);
     tapTimer = window.setTimeout(() => { w.mouse = null; }, 1400);
+  });
+  // A touch that turns into a scroll was never a tap.
+  addEventListener('pointercancel', (e) => {
+    if (e.pointerType !== 'touch') return;
+    clearTimeout(tapTimer);
+    w.mouse = null;
   });
 
   // Phones resize as the address bar moves; only react to real changes.

@@ -104,7 +104,7 @@ export class TwilightUI {
     return `${list[0].toUpperCase()}${list.slice(1)} in the dark of the deep sea.`;
   }
 
-  /** byVisitor: the light is where the visitor put it (their cursor, or a tap), not on its own slow sweep. */
+  /** byVisitor: the light is where the visitor has just put it (a cursor they moved, or a tap), not on its own slow sweep or lying where the cursor was left. */
   update(out: WorldOut, t: number, byVisitor = false) {
     const tw = out.twi;
     const on = tw.on > 0.6 && !!tw.z5;

@@ -1,4 +1,5 @@
 import { soft } from './text';
+import { beside, keepIn } from './fit';
 import type { WorldOut } from './world';
 
 const B64URL = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
@@ -62,6 +63,7 @@ export class WreckUI {
   private stamp = document.querySelector<HTMLButtonElement>('.stamp-hot')!;
   private stampTip = document.querySelector<HTMLElement>('.stamp-hot + .tip .tip-text')!;
   private letterBtn = document.getElementById('seal-letter') as HTMLButtonElement;
+  private cueSeal = document.getElementById('cue-seal')!;
   private kind = document.getElementById('kind-seal')!;
   /** The chest's lid: 1 open (the recipe readable), 0 shut (sealed); where it is heading. */
   private open = 1;
@@ -178,6 +180,9 @@ export class WreckUI {
       for (const b of [this.stamp]) {
         const x = z.ox + Number(b.dataset.u) * z.dw, y = z.oy + Number(b.dataset.v) * z.dh;
         b.parentElement!.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px)`;
+        // (near the right edge of a narrow window the tip opens to the left, and the cue's label gives way)
+        b.parentElement!.classList.toggle('flip', x + 30 + 264 > innerWidth - 8);
+        keepIn(this.cueSeal, x);
       }
     }
     // The octopus's button, unless a card has scrolled over it.
@@ -186,7 +191,9 @@ export class WreckUI {
     const lift = f.s * 0.62;
     if (!f.on) this.covered = true;
     else if (this.frame++ % 4 === 0) {
-      this.covered = this.hidden(f.x, f.y) || (this.o.wide ? this.hidden(f.x + lift * 0.9 + 80, f.y) : this.hidden(f.x, f.y + 60));
+      // (beside the octopus while there is room, else under it)
+      const side = this.o.wide && !beside(this.letterBtn, f.x, lift * 0.9 + 16);
+      this.covered = this.hidden(f.x, f.y) || (side ? this.hidden(f.x + lift * 0.9 + 80, f.y) : this.hidden(f.x, f.y + (this.o.wide ? lift * 0.8 + 40 : 60)));
     }
     this.letterBtn.classList.toggle('on', !this.covered);
     if (f.on) {

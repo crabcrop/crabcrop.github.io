@@ -8,6 +8,7 @@ import type { WorldOut, ZoneId } from './world';
 import type { Fmt } from './world/fish';
 import type { LookName } from './world/look';
 import { soft } from './text';
+import { beside, keepIn, remeasure } from './fit';
 
 type Choice = Fmt | 'auto';
 const SEGMENT: Record<string, string> = { auto: '', avif: 'format(avif)', webp: 'format(webp)', jxl: 'format(jxl)' };
@@ -85,6 +86,11 @@ export class UI {
   private curtains = document.getElementById('curtains')!;
   private silks = [...document.querySelectorAll<HTMLButtonElement>('.silk')];
   private freeBtn = document.getElementById('free-fish') as HTMLButtonElement;
+  /** The cues tied to the cargo and to the curtains. */
+  private cueCargo = document.getElementById('cue-cargo')!;
+  private cueCurtains = document.getElementById('cue-curtains')!;
+  /** How wide each cargo ring's tip is (by its list item), measured once the fonts are in. */
+  private tipW = new Map<HTMLElement, number>();
   private gauge = document.querySelector<HTMLElement>('.gauge')!;
   private dock = new Map([...document.querySelectorAll<HTMLElement>('#dock .cue')].map((el) => [el.dataset.k!, el]));
   private docked = '';
@@ -92,6 +98,9 @@ export class UI {
   private tone = '';
   /** When the twilight's cue first went into the dock. */
   private lightAt = -1;
+  /** Where the cursor was a frame ago, and when it last moved. */
+  private cursor: [number, number] | null = null;
+  private movedAt = -10;
   private lastZone = '';
   private fmt: Choice = 'auto';
   private look: LookName = 'crisp';
@@ -158,6 +167,10 @@ export class UI {
         h.setAttribute('aria-expanded', String(open));
       });
     }
+
+    // The cues' labels are measured once; the fonts arriving and the window changing are when to measure again.
+    document.fonts?.ready.then(() => { remeasure(); if (o.wide) this.measureTips(); });
+    addEventListener('resize', () => remeasure());
 
     // Snap snips the fishing line when asked.
     this.freeBtn.addEventListener('click', () => { o.onFreeFish(); this.freeBtn.classList.remove('on'); });
@@ -456,22 +469,33 @@ export class UI {
 
     // Hotspots pinned to the plates: the cargo on the sea floor, the silk curtains in the kelp.
     if (this.o.wide) {
-      const pin = (list: HTMLElement[], z: WorldOut['z1']) => {
+      const W = innerWidth;
+      const pin = (list: HTMLElement[], z: WorldOut['z1'], cue: HTMLElement) => {
         if (!z) return;
         for (const b of list) {
+          const li = b.parentElement!;
+          if (li.parentElement !== cue.parentElement!.parentElement) continue;
           const x = z.ox + Number(b.dataset.u) * z.dw, y = z.oy + Number(b.dataset.v) * z.dh;
-          b.parentElement!.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px)`;
+          li.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px)`;
+          // (near the right edge of a narrow window a ring's tip opens to the left, and the cue's label gives way)
+          li.classList.toggle('flip', x + 30 + (this.tipW.get(li) ?? 200) > W - 8);
+          if (cue.parentElement === li) keepIn(cue, x);
         }
       };
       this.cargo.classList.toggle('on', !!out.z1 && out.s1On > 0.6);
-      pin(this.hots, out.z1);
+      pin(this.hots, out.z1, this.cueCargo);
       this.curtains.classList.toggle('on', !!out.z2 && out.s2On > 0.6);
-      pin(this.silks, out.z2);
+      pin(this.silks, out.z2, this.cueCurtains);
     }
 
-    this.reefUI.update(out, t, dt, mouse);
+    // A cursor lying where it was left is not the visitor doing anything: what answers the cursor asks whether it
+    // moved lately (a tap counts as a move).
+    if (mouse && (!this.cursor || mouse[0] !== this.cursor[0] || mouse[1] !== this.cursor[1])) this.movedAt = t;
+    this.cursor = mouse;
+    const moving = !!mouse && t - this.movedAt < 2.5;
+    this.reefUI.update(out, t, dt, mouse, moving);
     this.wreckUI.update(out);
-    this.twilightUI.update(out, t, !!mouse);
+    this.twilightUI.update(out, t, moving);
 
     // The dock: scrolling at the top of the page, the light in the twilight zone, and on small screens what the
     // reef's two things ask for (on wide screens those cues are tied to the things themselves).
@@ -491,11 +515,24 @@ export class UI {
     const f = out.fish;
     if (!f.on) this.fishHidden = true;
     else if (this.frame++ % 4 === 0) {
-      const bx = this.o.wide ? f.x + 110 : f.x, by = this.o.wide ? f.y : f.y + 52;
+      // (beside the fish on wide screens while there is room, else under it, as on small screens)
+      const side = this.o.wide && !beside(this.freeBtn, f.x, 48);
+      const bx = side ? f.x + 110 : f.x, by = side ? f.y : f.y + 52;
       this.fishHidden = this.covered(f.x, f.y) || this.covered(bx, by);
     }
     this.freeBtn.classList.toggle('on', !this.fishHidden);
     if (f.on) this.freeBtn.style.setProperty('--at', `translate(${f.x.toFixed(1)}px, ${f.y.toFixed(1)}px)`);
+  }
+
+  /** A tip is not laid out until its ring is hovered, so each is shown unseen for a moment and measured. */
+  private measureTips() {
+    for (const h of this.hots) {
+      const tip = h.nextElementSibling as HTMLElement | null;
+      if (!tip?.classList.contains('tip') || !this.cargo.contains(h)) continue;
+      tip.style.cssText = 'display: block; visibility: hidden; position: absolute;';
+      this.tipW.set(h.parentElement!, tip.offsetWidth);
+      tip.style.cssText = '';
+    }
   }
 
   private covered(x: number, y: number) {

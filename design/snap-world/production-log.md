@@ -994,6 +994,53 @@ were run on the new build. Cost: the page's markup grew from 11 KB to 18 KB
 compressed (the nine marks are 5 KB of that), the stylesheet by 3 KB, the
 script by 1 KB; no new pictures, fonts or requests.
 
+**Found by using it.** After that build each cue was put through what it
+asks for on the built page (move, hover, drag, click, tap), on a wide
+screen and a phone, first with the cursor parked where the scene would
+arrive; and every scene with a cue was captured again in windows from 800
+to 1920 px wide, on a tablet held upright and on a phone. Seven things
+came out of it, all fixed:
+
+- **On phones a tap had only ever flashed.** A finger lifting is also the
+  pointer leaving the page, and a handler from the first slice put the
+  cursor out when it left. So a tap on the cuttlefish blurred it for the
+  length of the touch, and a tap on a creature barely moved the light. A
+  touch now stays its moment after the finger lifts; one that turns into a
+  scroll is dropped as before.
+- **A cursor at rest counted as the visitor's doing.** Arriving at the
+  school with the cursor lying nearby put the faces cue away before it was
+  read, and the light's cue could go without ever showing. What answers the
+  cursor now asks whether it moved lately.
+- **The crop frame's cue could hardly be finished**, and it moved. It went
+  only when the frame was pulled off the turtle, which in a common window
+  means holding the cursor in a band that is mostly off the screen; and it
+  travelled with the frame, which wanders behind the cards. It hangs under
+  the frame's place on the turtle now, and goes once the cursor has moved
+  by the frame for a moment.
+- **Labels ran out of the right edge** in windows narrower than about
+  1250 px: the curtains' cue, the tangled fish's button and, at 1024 px,
+  the cargo's cue. A label now gives way along its yarn and the yarn stays
+  on the thing; the two buttons go under their thing where there is no
+  room beside it; a ring's tip opens to the left near the edge.
+- **The rail's label was wider than the rail's column** below about
+  1370 px, and at 1024 px it covered the first letter of the twilight
+  zone's heading. A long zone name wraps now.
+- **On phones the can is larger than the view**, and the box stitched round
+  it showed as one stray dashed line. The box is left out where it does not
+  fit.
+- **The two cues that change when done** (the cuttlefish, the can) drew
+  their verb badge as if it were a second verb inside a sentence: smaller
+  than every other cue's, and the tick that replaces it squashed to a
+  sliver. The rule for a second verb caught them because their words sit in
+  a span of their own.
+
+Checked again on the last build: what each cue does when the visitor does
+the thing, on a wide screen, an upright tablet and a phone; every scene
+with a cue in windows 800, 1024, 1280, 1440 and 1920 px wide (every label
+inside the view, the rail's label inside its column, 1440 px unchanged);
+the functional tests; the hosted copy. This round cost 1 KB of script and
+0.2 KB of stylesheet, compressed.
+
 ## Next
 
 The way from the twilight zone to the vents still dips through an ember
@@ -1225,3 +1272,19 @@ the stills; phone-format takes (9:16, 1080p) would fix that.
 - The font check earns its keep on comments too: a box-drawing rule in a
   CSS comment failed the build, as it should, since the check cannot tell a
   comment from a label.
+- A finger lifting sends `pointerleave` to the document. A handler written
+  for "the mouse left the page" also runs at the end of every tap; check
+  `pointerType` there.
+- Test what a cue asks for with the cursor parked first. A cursor at rest
+  is still a cursor: anything that answers "the cursor is near" fires the
+  moment the scene arrives.
+- In stepped-time tests under software rendering, scroll events arrive
+  late: the page still shows an earlier position while the script has
+  moved on, and the scene looks frozen. After `scrollTo`, dispatch a
+  `scroll` event yourself.
+- A label that hangs from a zero-width anchor needs `width: max-content`
+  before it is allowed to wrap, or it wraps to its narrowest.
+- A tip that opens over its own ring flickers: the cursor is on the tip, so
+  the ring is no longer hovered, so the tip goes, and round again. A list
+  item pinned at a point is as wide as its ring, so "to the left of the
+  ring" is `right: calc(100% + gap)`, not `right: gap`.
