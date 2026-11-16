@@ -104,6 +104,7 @@ export function buildCast(ctx) {
   const cast = {
     snap, sub, loading,
     chainAt: null,                 // set when the chain exists: chainAt(s, out) writes x, y, z and its direction
+    geodeAt: null,                 // the geode's position (a Vector3), if the set has one: the submarine parks by it
     // things worth a look on the way: { from, to, at } (p range, a Vector3); he glances at
     // one while the camera passes it, and back at the visitor between glances
     sights: [],
@@ -140,7 +141,16 @@ export function buildCast(ctx) {
       B.copy(A).addScaledVector(F, 6).addScaledVector(R, 2.2).addScaledVector(UP, 2.4);
       A.lerp(B, 1 - come);
       A.y += Math.sin(t * 0.9) * 0.06;
-      A.y = Math.max(A.y, groundY(A.x, A.z) + 0.95);        // (never in the ground)
+      // at the geode (when the set gives it) it settles on the sand beside it, to its right,
+      // nose toward it, as if to reach in for the print
+      const park = cast.geodeAt ? geode : 0;
+      if (park > 0) {
+        const g = cast.geodeAt;
+        B.copy(g).addScaledVector(R, o === SLOT.wide ? 2.6 : 1.7).addScaledVector(F, o === SLOT.wide ? 0.4 : 0.9);
+        B.y = groundY(B.x, B.z) + 0.85 + (o === SLOT.wide ? 0 : 1.1);
+        A.lerp(B, park);
+      }
+      A.y = Math.max(A.y, groundY(A.x, A.z) + 0.85);        // (never in the ground)
       A.y = Math.min(A.y, -1.0);                             // (nor through the surface: it would be cut by it)
       follow(st.subPos, A, 3);
       sub.group.visible = come > 0.001;
@@ -149,6 +159,7 @@ export function buildCast(ctx) {
       // its nose points across the view, a little toward the visitor, so the bubble shows;
       // level, with a little pitch where the dive goes up or down
       C.copy(R).multiplyScalar(-0.85).addScaledVector(F, -0.5);
+      if (park > 0) { M.copy(cast.geodeAt).sub(st.subPos); M.y = 0; M.normalize(); C.lerp(M, park); }
       C.y = 0; C.normalize();
       sub.group.quaternion.setFromUnitVectors(Z, C.negate());
       qa.setFromAxisAngle(R, clamp(F.y, -0.6, 0.6) * 0.35 + Math.sin(t * 0.7) * 0.03);

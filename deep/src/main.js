@@ -87,6 +87,7 @@ export function start() {
     cast = buildCast(ctx);
     // Snap holds the set's own chain, and looks at the clam, the octopus and the geode as he passes
     if (sets.chainAt) cast.chainAt = sets.chainAt;
+    if (sets.geode) cast.geodeAt = sets.geode.position;
     if (sets.clam) cast.sights.push({ from: 3.6, to: 4.05, at: sets.clam.position });
     if (fauna.octopus) cast.sights.push({ from: 4.42, to: 4.7, at: fauna.octopus });
     cast.sights.push({ from: 4.72, to: 4.95, at: cast.sub.group.position });     // (the submarine, as it comes for him)
