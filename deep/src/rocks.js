@@ -6,7 +6,7 @@
 // is blended into each one, so a formation flares into the sea floor and has no seam.
 // And loose boulders, scattered along the valley. All of it is built once, at load.
 import { Mesh as ThreeMesh, Quaternion, Vector3 } from 'three/webgpu';
-import { centerX, floorY, groundY, halfWidth, offTrack } from './layout.js';
+import { centerX, cleared, floorY, groundY, halfWidth, offTrack } from './layout.js';
 import { Mesh, TAU, blob, clamp, fbm3, lerp, makeRng, noise3, smooth } from './math.js';
 import { rockyAt } from './terrain.js';
 import { instanced, place } from './world.js';
@@ -276,7 +276,7 @@ export function buildRocks(add, mat, looseMat, q) {
         if (z < -266 && z > -300) continue;              // none on the cliff
         const s = lo + (hi - lo) * rng() * rng();
         const x = centerX(z) + rng.sign() * halfWidth(z) * rng.range(0.35, 1.7);
-        if (offTrack(x, z) < 2.2 + s * 2) continue;
+        if (offTrack(x, z) < 2.2 + s * 2 || cleared(x, z)) continue;
         list.push(x, groundY(x, z) - s * 0.3, z, s);
       }
       if (!list.length) continue;

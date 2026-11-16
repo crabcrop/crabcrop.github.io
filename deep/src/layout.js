@@ -80,15 +80,19 @@ export const ZONES = [
 const P = (p, z, off, y, up, yaw, pitch) => ({ p, z, off, y, up, yaw, pitch });
 const STOPS = [
   // the marina from the waterline, half above and half below; then under, beneath the pier
-  P(0.0, 18, 0, 0.0, false, 0, -3), P(0.28, 15, 0, 0.0, false, -2, -4), P(0.55, 9, 0.4, -1.6, false, -3, 2), P(1.0, -8, -0.6, -3.7, false, 3, 2),
+  P(0.0, 18, 0, 0.0, false, 0, -3), P(0.28, 15, 0, 0.0, false, -2, -4), P(0.55, 9, -0.6, -1.6, false, -3, 2), P(1.0, -8, -0.6, -3.7, false, 3, 2),
   // the shallows: down the chain to the anchor, then over the sand
   P(1.3, -18, -1.2, 2.6, true, 6, -8), P(1.65, -31, 1.0, 2.1, true, -5, -5), P(2.0, -48, 0, 2.4, true, 0, -2),
   // the kelp forest
   P(2.3, -64, 2.5, 3.0, true, -8, 4), P(2.6, -82, -2.0, 3.6, true, 7, 9), P(2.85, -98, 2.0, 3.4, true, -5, 3), P(3.0, -112, 0, 3.0, true, 0, -6),
   // the reef, and the giant clam at its far end
   P(3.3, -130, -3.0, 2.8, true, 9, -7), P(3.6, -148, 3.5, 2.5, true, -9, -5), P(3.82, -164, -1.5, 2.6, true, 6, -4), P(4.0, -182, 1.0, 3.4, true, -3, -9),
-  // the wreck on its ledge
-  P(4.25, -204, 4.0, 5.0, true, -10, -12), P(4.55, -224, 7.0, 4.4, true, -24, -6), P(4.8, -244, 8.0, 3.6, true, -34, -3), P(5.0, -264, 2.0, 4.2, true, -4, -14),
+  // the wreck on its ledge: over its stern, then alongside, and a look into the captain's
+  // cabin through the hole in its side while the visitor makes the last choice (Snap swims
+  // in ahead of the camera); out again, past the bow, to the edge
+  P(4.25, -204, 4.0, 5.0, true, -10, -12), P(4.4, -228, 7.0, -53.4, false, -62, -5),
+  P(4.52, -234.5, 3.5, -54.4, false, -86, -3), P(4.6, -234.8, 3.25, -54.4, false, -88, -2),
+  P(4.7, -237, 5.9, -54.2, false, -70, -3), P(4.82, -244, 8.0, 3.6, true, -34, -3), P(5.0, -264, 2.0, 4.2, true, -4, -14),
   // off the edge and down the wall, into the dark
   P(5.2, -284, 0, -66, false, 18, -24), P(5.45, -293, 1.0, -98, false, 38, -14), P(5.7, -295, 1.0, -134, false, 46, -8), P(5.9, -294, 0, -168, false, 30, -14), P(6.0, -297, 0, -193, false, 8, -16),
   // the vents, and the geode at the end
@@ -116,6 +120,9 @@ export function pathAt(p, out) {
   out[0] = f(a.x, b.x, a0.x, b1.x);
   out[1] = f(a.wy, b.wy, a0.wy, b1.wy);
   out[2] = f(a.z, b.z, a0.z, b1.z);
+  // (at the start the camera sits on the waterline until it goes under: the curve would lift
+  // it a few centimetres, and from above the water the view's lower half is lost)
+  if (p < 0.3 && out[1] > 0) out[1] = 0;
   out[3] = f(a.yaw, b.yaw, a0.yaw, b1.yaw);
   out[4] = f(a.pitch, b.pitch, a0.pitch, b1.pitch);
   return out;
@@ -137,6 +144,11 @@ export function offTrack(x, z, y) {
   }
   return Math.sqrt(best);
 }
+
+// Where the set pieces stand (sets.js), kept clear of plants: [x, z, radius]. The clam, the
+// wreck (two circles along its length), the geode's halves and the helmet, the anchor.
+export const CLEARINGS = [[5.9, -178.0, 3.4], [3.9, -236.5, 5.0], [4.7, -248.5, 5.0], [-4.4, -388.9, 2.4], [-1.95, -389.3, 2.0], [-1.1, -390.5, 1.4], [4.35, -24.5, 1.6]];
+export const cleared = (x, z) => CLEARINGS.some(([cx, cz, r]) => (x - cx) * (x - cx) + (z - cz) * (z - cz) < r * r);
 
 // ---- the water -------------------------------------------------------------------------
 

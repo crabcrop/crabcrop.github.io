@@ -16,7 +16,7 @@ import {
   abs, attribute, cameraPosition, cos, cross, dot, float, floor, fract, length, max, mix, normalize, pow, select, sin, smoothstep, step,
   varyingProperty, vec2, vec3, vec4,
 } from 'three/tsl';
-import { centerX, groundY, halfWidth, offTrack } from './layout.js';
+import { centerX, cleared, groundY, halfWidth, offTrack } from './layout.js';
 import { Mesh, TAU, blob, clamp, fbm2, lathe, makeRng, noise2, noise3, tube } from './math.js';
 import { perches } from './rocks.js';
 import { G, detail, material, shadow1, sunAt, yarn } from './shaders.js';
@@ -203,6 +203,7 @@ function buildGrass(add, q) {
   for (let n = 0, tries = 0; n < count && tries < count * 8; tries++) {
     const z = 20 - rng() * 82;
     const x = centerX(z) + rng.range(-1, 1) * (halfWidth(z) + 3);
+    if (cleared(x, z)) continue;
     // meadows with sand between
     const m = fbm2(x * 0.09 + 11, z * 0.09, 3);
     if (m < 0.02 + 0.25 * rng() || (z < -50 && rng() < (-50 - z) / 12)) continue;
@@ -422,6 +423,7 @@ function buildReef(add, q) {
           }
           const s = s0 + (s1 - s0) * rng() * rng();
           if (offTrack(x, z, y + s * 0.5) < 1.6 + s) continue;
+          if (cleared(x, z)) continue;
           const c = colours[(rng() * colours.length) | 0], k = rng.range(0.75, 1.15);
           list.push(x, y, z, s, nrm.x, nrm.y, nrm.z, rng() * TAU);
           list.push(c[0] * k, c[1] * k, c[2] * k, rng());

@@ -66,6 +66,7 @@ function onFrame(p, dt) {
   if (print && printDirty && cast && cast.snap.ready) {
     print.draw(ui.choices, dive ? dive.S.time : 0);
     if (printNode) printNode.value = print.texture;
+    cast.showPrint(print.texture, print.aspect);
     printDirty = false;
   }
   if (print && !printDirty && !printRead && p > 7.3) {
@@ -86,11 +87,13 @@ if (new URLSearchParams(location.search).has('e2e')) window.__pTo = () => ui.pTo
 export function start() {
   if (ui.mode === 'page') return;
   // the set pieces first (the cast holds on to their chain), then the creatures, then the cast
-  const parts = [(ctx) => (sets = buildSets(ctx)), buildFauna, (ctx) => {
+  let fauna = null;
+  const parts = [(ctx) => (sets = buildSets(ctx)), (ctx) => (fauna = buildFauna({ ...ctx, wreck: sets.wreck })), (ctx) => {
     cast = buildCast(ctx);
-    // Snap holds the set's own chain, and looks at the clam and the geode as he passes
+    // Snap holds the set's own chain, and looks at the clam, the octopus and the geode as he passes
     if (sets.chainAt) cast.chainAt = sets.chainAt;
     if (sets.clam) cast.sights.push({ from: 3.6, to: 4.05, at: sets.clam.position });
+    if (fauna.octopus) cast.sights.push({ from: 4.42, to: 4.78, at: fauna.octopus });
     if (sets.geode) cast.sights.push({ from: 6.7, to: 7.05, at: sets.geode.position });
     return cast;
   }];
@@ -98,7 +101,7 @@ export function start() {
     .then((d) => {
       dive = d;
       print = createPrint(d.engine, cast.snap);
-      cast.loading.then(() => { print.draw(ui.choices, 0); printDirty = false; hangPrint(d.scene); });
+      cast.loading.then(() => { print.draw(ui.choices, 0); printDirty = false; hangPrint(d.scene); cast.showPrint(print.texture, print.aspect); });
       // the pointer steers the lamp; a tap on Snap, and he reacts
       const canvas = document.getElementById('world');
       addEventListener('pointermove', (e) => { if (e.target === canvas) cast.aim((e.clientX / innerWidth) * 2 - 1, -((e.clientY / innerHeight) * 2 - 1)); }, { passive: true });

@@ -535,11 +535,12 @@ function shellSeam(lp, aa) {
     d1 = min(d1, d);
   }
   const rim = length(vec2(lp.x.div(0.42), lp.z.div(0.34))).toVar();
-  const inner = float(1.0).sub(smoothstep(0.014, aa.add(0.016), d2.sub(d1))).mul(step(rim, 0.8));
-  const ring = float(1.0).sub(smoothstep(0.012, aa.add(0.014), abs(rim.sub(0.8)).mul(0.38)));
+  const inner = float(1.0).sub(smoothstep(0.012, aa.add(0.014), d2.sub(d1))).mul(step(rim, 0.8));
+  const ring = float(1.0).sub(smoothstep(0.03, fwidth(rim).add(0.034), abs(rim.sub(0.8))));
   const k = atan(lp.z.div(0.34), lp.x.div(0.42)).mul(22.0 / TAU);
   const cut = float(1.0).sub(smoothstep(0.06, fwidth(k).add(0.07), abs(fract(k).sub(0.5)).oneMinus().sub(0.5))).mul(step(0.8, rim));
-  return max(max(inner, ring), cut).mul(smoothstep(0.0, 0.03, lp.y));
+  // (thin lines: seen from far, where a pixel would be wider than they are, they fade into the shell)
+  return max(max(inner, ring), cut).mul(smoothstep(0.0, 0.03, lp.y)).mul(float(1.0).sub(smoothstep(0.012, 0.03, aa)));
 }
 
 function turtleMaterial() {
@@ -571,7 +572,7 @@ function turtleMaterial() {
       const n0 = s.n, F = normalize(vA), Up = normalize(vB), R = cross(F, Up);
       const shell = one(part, 0), eye = one(part, 4);
       // the reef's turtle is brown with cream seams; the one at the end, coral with teal skin
-      const shellCol = mix(vec3(0.55, 0.3, 0.2), vec3(0.9, 0.34, 0.16), look), seamCol = mix(vec3(0.9, 0.8, 0.62), vec3(0.98, 0.8, 0.55), look);
+      const shellCol = mix(vec3(0.55, 0.3, 0.2), vec3(0.72, 0.25, 0.1), look), seamCol = mix(vec3(0.9, 0.8, 0.62), vec3(0.98, 0.8, 0.55), look);
       const skinCol = mix(vec3(0.86, 0.76, 0.58), vec3(0.22, 0.62, 0.6), look), bellyCol = mix(vec3(0.93, 0.83, 0.55), vec3(0.98, 0.82, 0.5), look);
       const under = shell.mul(float(1.0).sub(smoothstep(-0.02, 0.01, lp.y)));
       const spots = smoothstep(0.35, 0.65, sin(lp.x.mul(53.0).add(lp.z.mul(17.0))).mul(sin(lp.z.mul(47.0).sub(lp.x.mul(13.0))))).mul(float(1.0).sub(shell)).mul(float(1.0).sub(eye));
@@ -1126,7 +1127,7 @@ function jellySpots(rng, n, nUp) {
 // ---- the part ----------------------------------------------------------------------------------
 
 export function buildFauna(ctx) {
-  const { add, scene, engine, q, camera } = ctx;
+  const { add, scene, engine, q, camera, wreck = null } = ctx;
   const t0 = performance.now();
   const amt = q.amount, lod = amt >= 1 ? 2 : amt >= 0.5 ? 1 : 0;
   const rng = makeRng(20261116);
@@ -1145,7 +1146,7 @@ export function buildFauna(ctx) {
   // the creatures placed each frame: each one copy, in its slot, with a sphere round where it can be
   const slot = (n, look, seed) => ({ cS: new Float32Array([n, seed, look, 0]) });
   const turtleGeo = turtleShape(lod), turtleMat = turtleMaterial(), octGeo = octopusShape(lod), octMat = octopusMaterial();
-  const reefMid = [-5, floorY(-156) + 4.2, -156], endAt = [-3, -2, -403];
+  const reefMid = [-5, floorY(-156) + 4.2, -156], endAt = [-3, -2.6, -403];
   add(solid(copies(turtleGeo, 1, slot(0, 0, 0.3), new Sphere(new Vector3(...reefMid), 30)), turtleMat), 110);
   add(solid(copies(turtleGeo, 1, slot(1, 1, 0.7), new Sphere(new Vector3(...endAt), 14)), turtleMat), 90);
   add(solid(copies(octGeo, 1, slot(2, 0, 0.1), new Sphere(new Vector3(...inView(4.72, 3.7, -1.2, 0)), 26)), octMat), 80);
@@ -1291,6 +1292,17 @@ export function buildFauna(ctx) {
   // ---- each frame: the creatures in their slots
   const F = new Vector3(), Upv = new Vector3(), R = new Vector3(), Y = new Vector3(0, 1, 0), P = new Vector3(), Q = new Vector3(), W = new Vector3();
   const octopus = new Vector3();          // where the octopus with the letter is (for Snap to look at)
+  // In the wreck's cabin (when the set gives it): over the desk, the letter in its arms, while
+  // the visitor looks in; then out through the hole, and up and away toward the stern.
+  let DESK = null, HOLE = null, GONE = null;
+  if (wreck) {
+    const out = wreck.cabinFacing, bow = new Vector3(out.z, 0, -out.x).normalize();
+    // at the desk's end nearer the bow, out from under the lantern, a little toward the hole
+    DESK = wreck.envelope.clone().addScaledVector(bow, 0.62).addScaledVector(out, 0.3).add(new Vector3(0, 0.22, 0));
+    HOLE = wreck.cabin.clone().addScaledVector(out, 4.2).add(new Vector3(0, 0.2, 0));
+    GONE = HOLE.clone().add(new Vector3(0, 3.2, 0)).addScaledVector(new Vector3(-out.z, 0, out.x).normalize(), 3.5);
+    if (GONE.z < HOLE.z) GONE.addScaledVector(new Vector3(-out.z, 0, out.x).normalize(), -7);   // (toward the stern, +z)
+  }
   const setSlot = (n, pos, fwd, up, size, phase, look) => {
     const a = POSE.array;
     a[n * 3].set(pos.x, pos.y, pos.z, size);
@@ -1330,14 +1342,21 @@ export function buildFauna(ctx) {
       dust.visible = camera.position.y < -45;
       snow.visible = camera.position.y < 0.5;
       reefTurtle(t); endTurtle(t); endOctopus(t); angler(t);
-      // the octopus at the wreck keeps to the left of the view from p 4.45 to 5, a few metres
-      // ahead, bobbing and turned to the camera; at the edge of the drop-off it swims up and away
-      const pv = Math.min(Math.max(p, 4.45), 5.0), away = smooth(4.85, 5.0, pv);
-      aheadTo(P, pv, 3.8, -1.2 - 2.3 * away, -0.8 + 2.3 * away);
+      // the octopus with the letter: in the cabin when there is one (see DESK), else to the
+      // left of the view from p 4.45 to 5, a few metres ahead; bobbing and turned to the camera
+      let size = 1.5;
+      if (DESK) {
+        const out = smooth(4.62, 4.74, p), away = smooth(4.74, 4.98, p);
+        P.copy(DESK).lerp(HOLE, out).lerp(GONE, away);
+        size = 0.95 + 0.4 * out;
+      } else {
+        const pv = Math.min(Math.max(p, 4.45), 5.0), away = smooth(4.85, 5.0, pv);
+        aheadTo(P, pv, 3.8 + 1.5 * away, -1.2 - 3.6 * away, -0.8 + 1.0 * away);
+      }
       P.y += 0.08 * Math.sin(t * 0.8);
       F.set(camera.position.x - P.x, (camera.position.y - P.y) * 0.3, camera.position.z - P.z).normalize();
       frame(F, 0.05 * Math.sin(t * 0.6));
-      setSlot(2, P, F, Upv, 1.5, 0.1, 0);
+      setSlot(2, P, F, Upv, size, 0.1, 0);
       octopus.copy(P).addScaledVector(Upv, 0.6);
     },
     octopus,

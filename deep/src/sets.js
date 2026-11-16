@@ -13,12 +13,14 @@
 //                   brass diving helmet
 //   the geode       split open, glowing (glow slot 3): where the print lies
 //
-// buildSets(ctx) returns { update(t, dt, p), chainAt(s, out), clam, geode }:
+// buildSets(ctx) returns { update(t, dt, p), chainAt(s, out), clam, geode, wreck }:
 //   chainAt(s, out)  s is 0 at the boat's bow roller and 1 at the anchor's ring; writes the point
 //                    on the chain (out[0..2]) and its unit direction toward the anchor (out[3..5]),
 //                    as the chain hangs at this frame (after update(t)).
 //   clam             { position, normal }: where an object sits in the open clam, and the way the
 //                    clam opens (unit vector out of its mouth).
+//   wreck            { lantern, envelope, cabin, cabinFacing }: the lantern, the desk's top, the
+//                    cabin's middle, and the way out through the hole in its side.
 //   geode            { position, normal, size }: the spot in the geode's hollow where the picture
 //                    goes, the way it faces (toward the camera at p = 7), and the widest picture
 //                    (metres) that fits there, square or wide.
@@ -680,9 +682,10 @@ function buildLighthouse(ctx, x, z, deep) {
     },
   }), 200);
   // the island
-  const isl = new Mesh(true), cy = deep ? -9 : -5;
+  const isl = new Mesh(true), cy = deep ? -4 : -5;
   blob(isl, x, cy, z, (dx, dy, dz) => (dy > 0 ? 7.0 : 7.6) * (1 + 0.18 * noise3(dx * 2.2 + 4, dy * 2.2, dz * 2.2) + 0.08 * noise3(dx * 6, dy * 6, dz * 6 + 2)), 16);
-  for (let v = 0; v < isl.count; v++) { const yy = isl.p[v * 3 + 1] - cy; isl.p[v * 3 + 1] = cy + (yy > 0 ? yy * (deep ? 1.25 : 0.9) : yy * 1.3); }
+  // (where there is no sea floor below, the rock runs on down into the deep as a column)
+  for (let v = 0; v < isl.count; v++) { const yy = isl.p[v * 3 + 1] - cy; isl.p[v * 3 + 1] = cy + (yy > 0 ? yy * (deep ? 0.95 : 0.9) : yy * (deep ? 5.5 : 1.3)); }
   isl.normals(0, isl.count, 0, null);
   addMesh(ctx, sphereOf(isl.build(), 1), material({
     aux: true, fade: [175, 200],
