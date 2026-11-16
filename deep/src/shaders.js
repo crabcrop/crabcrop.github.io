@@ -41,6 +41,11 @@ export const G = {
   amb: uniform(new Color(0.22, 0.6, 0.8)),                        // the colour of the light from above
   opt: uniform(new Vector4(0, 1, 60, 3.2)),                       // optical depth at the camera, its slope there, the knee, the slope below it
   light: uniform(new Vector4(1, 1, 1, 1)),                        // scales: sun, sky, caustics, shafts
+  // above the water: the evening sun, low over the sea ahead, and the sky's own light
+  skySunDir: uniform(new Vector3(0.12, 0.1, -1).normalize()),
+  skySunCol: uniform(new Color(2.1, 1.35, 0.85)),
+  skyLow: uniform(new Color(1.0, 0.66, 0.48)),                     // the sky at the horizon
+  skyHigh: uniform(new Color(0.42, 0.52, 0.86)),                   // and overhead
   shadowMat: uniform(new Matrix4()),
   shadowTexel: uniform(new Vector2(1 / 4096, 1 / 2048)),
   lampPos: uniform(new Vector3(0, -1000, 0)),
@@ -56,8 +61,10 @@ export const G = {
   debug: 0,            // 1: show only shadow times caustics (dev.html?dbg)
 };
 
-export const SIG = vec3(0.060, 0.0245, 0.0200);   // what a metre of water takes from a line of sight
-export const KD = vec3(0.058, 0.0250, 0.0175);    // what a metre of depth takes from the light coming down
+// (clear, bright water, as in the pictures of the dive: colours carry; the deep still goes
+// black because below the ledge depth counts for more)
+export const SIG = vec3(0.034, 0.0150, 0.0125);   // what a metre of water takes from a line of sight
+export const KD = vec3(0.026, 0.0118, 0.0088);    // what a metre of depth takes from the light coming down
 
 // ---- noise, for the textures drawn at load ---------------------------------------------
 
@@ -116,11 +123,30 @@ export const scatterFrom = Fn(([od, slope, rd, d]) => {
 });
 // The same, from the eye.
 export const scatter = Fn(([rd, d]) => scatterFrom(G.opt.x, G.opt.y, rd, d));
-// A colour seen through the water between it and the eye.
+// The evening sky in a direction: peach at the horizon, blue overhead, the sun's glow.
+export const skyColor = Fn(([rd]) => {
+  const up = max(rd.y, 0.0);
+  const base = mix(G.skyLow, G.skyHigh, pow(up, 0.55));
+  const sd = max(dot(rd, G.skySunDir), 0.0);
+  return base.add(G.skySunCol.mul(pow(sd, 6.0).mul(0.35).add(pow(sd, 64.0).mul(1.2)).add(pow(sd, 900.0).mul(14.0))));
+});
+// A colour seen from the eye: through the water for the part of the way that is under the
+// surface, through the evening air for the part above it. (The eye sits at the waterline
+// at the start and the end of the dive, so one line of sight can be in either.)
 export const inWater = Fn(([col, w]) => {
   const v = w.sub(cameraPosition);
   const d = length(v);
-  return col.mul(exp(SIG.mul(d).negate())).add(scatter(v.div(d), d));
+  const rd = v.div(d).toVar();
+  const cy = cameraPosition.y, wy = w.y;
+  const den = cy.sub(wy);
+  const cross = clamp(cy.div(select(abs(den).lessThan(1e-4), float(1e-4), den)), 0.0, 1.0);
+  // how much of the way is under water
+  const under = select(cy.lessThan(0.0), select(wy.lessThan(0.0), float(1.0), cross), select(wy.lessThan(0.0), float(1.0).sub(cross), float(0.0))).toVar();
+  const dw = d.mul(under);
+  const fromEye = cy.lessThan(0.0);
+  const wet = col.mul(exp(SIG.mul(dw).negate())).add(scatterFrom(select(fromEye, G.opt.x, float(0.0)), select(fromEye, G.opt.y, float(1.0)), rd, dw));
+  // the air: a light haze toward the horizon's colour, far off
+  return mix(wet, skyColor(rd), float(1.0).sub(exp(d.mul(float(1.0).sub(under)).mul(-0.0025))));
 });
 // Where a point's sunlight came through the surface.
 export const sunFoot = Fn(([w]) => w.xz.sub(G.sunDir.xz.mul(w.y.div(G.sunDir.y))));
@@ -225,16 +251,19 @@ export const shadeLit = Fn(([albedo, n, spec, gloss, trans, fluor, emis, ao, sh,
   const toEye = cameraPosition.sub(w);
   const dist = length(toEye);
   const v = toEye.div(dist);
-  const E = sunAt(w.y).mul(sh).toVar();
-  const ndl = dot(n, G.sunDir).toVar();
-  const ca = mix(float(0.33), caustic(w, dist).mul(G.light.z).add(G.light.z.oneMinus().mul(0.33)), smoothstep(-0.1, 0.4, ndl)).toVar();
+  // above the water: the evening sun and sky, no shadow map, no caustics
+  const air = smoothstep(-0.02, 0.06, w.y).toVar();
+  const sunL = normalize(mix(G.sunDir, G.skySunDir, air)).toVar();
+  const E = mix(sunAt(w.y).mul(sh), G.skySunCol.mul(0.8), air).toVar();
+  const ndl = dot(n, sunL).toVar();
+  const ca = mix(mix(float(0.33), caustic(w, dist).mul(G.light.z).add(G.light.z.oneMinus().mul(0.33)), smoothstep(-0.1, 0.4, ndl)), float(0.33), air).toVar();
   const direct = E.mul(ca.mul(2.6).add(0.10)).mul(max(ndl, 0.0).add(trans.mul(max(ndl.negate(), 0.0).mul(0.85).add(0.15))));
-  const amb = skyAt(w, n).mul(ao).add(trans.mul(skyAt(w, n.negate())).mul(ao).mul(0.5));
+  const amb = mix(skyAt(w, n), mix(G.skyLow, G.skyHigh, n.y.mul(0.5).add(0.5)).mul(0.55), air).mul(ao).add(trans.mul(skyAt(w, n.negate())).mul(ao).mul(0.5));
   const light = direct.add(amb).toVar();
   const col = albedo.mul(light).toVar();
   // warm colours answer the blue-green light they stand in, so they stay warm under water
   col.addAssign(albedo.mul(fluor).mul(dot(light, vec3(0.1, 0.5, 0.5))));
-  const h = normalize(v.add(G.sunDir));
+  const h = normalize(v.add(sunL));
   col.addAssign(E.mul(ca.add(0.25)).mul(spec).mul(pow(max(dot(n, h), 0.0), gloss)).mul(max(ndl, 0.0)).mul(1.6));
   // the lamp: a cone of light the visitor steers, in the dark
   const toL0 = G.lampPos.sub(w);

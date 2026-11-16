@@ -20,33 +20,33 @@ export function rockSurf(s, p, w, rocky, open, dist) {
   const steep = float(1).sub(smoothstep(0.50, 0.86, n0.y)).toVar();
   const rock = smoothstep(0.36, 0.60, max(rocky, steep).add(A.m.sub(0.5).mul(0.8))).toVar();
 
-  // sand: pale and warm, combed into ripples by the current
+  // sand: bright and clean in the sunlit zones (cream on the reef), a little darker among the
+  // kelp and on the wreck's ledge, black on the vents' plain; combed into soft ripples
   const ph = w.z.mul(2.4).add(w.x.mul(0.5)).add(A.m.mul(7.0)).add(sin(w.x.mul(0.6)).mul(1.2)).toVar();
   const rip = sin(ph).mul(0.5).add(0.5);
-  const sand = mix(vec3(0.60, 0.53, 0.39), vec3(0.40, 0.36, 0.27), B.m).mul(rip.mul(0.26).add(0.82)).mul(C.h.sub(0.45).mul(near).mul(0.32).add(0.9));
-  const nSand = normalize(n0.add(vec3(0.03, 0.0, 0.16).mul(cos(ph)).mul(mid)).add(C.n.sub(n0).mul(0.25).mul(near)));
+  const kelp = smoothstep(-48.0, -60.0, w.z).mul(float(1).sub(smoothstep(-118.0, -128.0, w.z)));
+  const cream = mix(vec3(0.92, 0.86, 0.72), vec3(0.80, 0.74, 0.60), B.m);
+  const shade = mix(vec3(0.66, 0.62, 0.48), vec3(0.56, 0.52, 0.40), B.m);
+  const black = mix(vec3(0.07, 0.065, 0.075), vec3(0.12, 0.11, 0.11), B.m);
+  const sand = mix(mix(cream, shade, max(kelp, smoothstep(40.0, 52.0, depth))), black, smoothstep(120.0, 185.0, depth))
+    .mul(rip.mul(0.16).add(0.88)).mul(C.h.sub(0.45).mul(near).mul(0.25).add(0.94));
+  const nSand = normalize(n0.add(vec3(0.03, 0.0, 0.16).mul(cos(ph)).mul(mid)).add(C.n.sub(n0).mul(0.2).mul(near)));
 
-  // rock: dark, in beds, with a groove at the foot of each bed on steep faces
+  // rock, where the floor is steep (the drop-off): smooth and dark, black in the deep
   const st = w.y.mul(0.5).add(A.h.mul(1.7)).add(A.m.mul(4.5)).toVar();
   const bed = hash1(floor(st).mul(0.137).add(0.31)).toVar();
-  const rk = mix(vec3(0.115, 0.105, 0.095), vec3(0.30, 0.255, 0.20), bed.mul(0.75).add(B.m.mul(0.25))).toVar();
-  rk.mulAssign(float(1).sub(steep.mul(0.45).mul(float(1).sub(smoothstep(0.0, 0.16, fract(st))))));
-  // what grows on rock that faces up: olive in the kelp, rose and violet crust on the reef
-  const grow = smoothstep(0.2, 0.75, n0.y).mul(smoothstep(0.47, 0.53, B.m.mul(0.45).add(C.m.mul(0.2)).add(B.h.mul(0.35)))).toVar();
-  const crust = mix(vec3(0.20, 0.25, 0.09), mix(vec3(0.46, 0.13, 0.26), vec3(0.30, 0.16, 0.46), hash1(floor(st.mul(3.0)).mul(0.071))), smoothstep(21.0, 30.0, depth));
-  const alive = smoothstep(8.0, 14.0, depth).mul(float(1).sub(smoothstep(52.0, 72.0, depth))).toVar();
-  rk.assign(mix(rk, crust, grow.mul(alive)));
-  // the deep: black basalt
-  rk.assign(mix(rk, vec3(0.035, 0.036, 0.042).mul(bed.mul(0.8).add(0.6)), smoothstep(64.0, 100.0, depth)));
-  rk.mulAssign(hgt.mul(1.3).add(0.22));                    // hollows are darker
-  const nRock = normalize(n0.add(A.n.sub(n0).mul(0.85)).add(B.n.sub(n0).mul(0.65).mul(mid.mul(0.7).add(0.3))).add(C.n.sub(n0).mul(0.5).mul(near)));
+  const rk = mix(vec3(0.20, 0.19, 0.18), vec3(0.34, 0.31, 0.27), bed.mul(0.75).add(B.m.mul(0.25))).toVar();
+  rk.assign(mix(rk, vec3(0.045, 0.045, 0.05).mul(bed.mul(0.8).add(0.6)), smoothstep(64.0, 100.0, depth)));
+  rk.mulAssign(hgt.mul(1.1).add(0.4));
+  const grow = float(0.0), alive = float(0.0);
+  const nRock = normalize(n0.add(A.n.sub(n0).mul(0.6)).add(B.n.sub(n0).mul(0.45).mul(mid.mul(0.7).add(0.3))).add(C.n.sub(n0).mul(0.3).mul(near)));
 
   s.albedo = mix(sand, rk, rock);
   s.n = normalize(mix(nSand, nRock, rock)).toVar();
   s.ao = open.mul(mix(float(1), smoothstep(0.12, 0.6, hgt), rock.mul(0.8)));
-  s.spec = mix(float(0.05), float(0.10), rock).mul(near);
+  s.spec = mix(float(0.04), float(0.08), rock).mul(near);
   s.gloss = mix(float(14.0), float(30.0), rock);
-  s.fluor = grow.mul(alive).mul(rock).mul(0.45);
+  s.fluor = grow.mul(alive);
 }
 
 // Loose rock: all rock, darker toward its foot.

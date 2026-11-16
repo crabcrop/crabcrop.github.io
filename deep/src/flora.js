@@ -13,13 +13,13 @@
 // many times over with its own place, size and colour.
 import { BufferAttribute, InstancedBufferAttribute, InstancedBufferGeometry, Mesh as ThreeMesh, Quaternion, Sphere, Vector3 } from 'three/webgpu';
 import {
-  abs, attribute, cameraPosition, cos, cross, dot, float, fract, length, max, mix, normalize, pow, select, sin, smoothstep, step,
+  abs, attribute, cameraPosition, cos, cross, dot, float, floor, fract, length, max, mix, normalize, pow, select, sin, smoothstep, step,
   varyingProperty, vec2, vec3, vec4,
 } from 'three/tsl';
 import { centerX, groundY, halfWidth, offTrack } from './layout.js';
 import { Mesh, TAU, blob, clamp, fbm2, lathe, makeRng, noise2, noise3, tube } from './math.js';
 import { perches } from './rocks.js';
-import { G, detail, material, shadow1, sunAt } from './shaders.js';
+import { G, detail, material, shadow1, sunAt, yarn } from './shaders.js';
 import { instanced, place } from './world.js';
 
 // ---- blades ----------------------------------------------------------------------------
@@ -64,21 +64,22 @@ const bladeMat = (fade) => material({
     // far away, most blades are not drawn at all: they fold to a point
     v.P.assign(select(fract(seed.mul(7.13)).greaterThan(float(1.0).sub(far.mul(0.72))), S, P));
     v.N.assign(normalize(Nn.add(W.mul(u).mul(0.4)).sub(T.mul(cos(rp)).mul(0.5).mul(edge))));
-    v.aux.assign(vec4(t, u, seed, kind.add(ib.x.mul(0.5))));
+    v.aux.assign(vec4(t, u, floor(ic.w.mul(4.0)).add(seed.mul(0.99)), kind.add(ib.x.mul(0.5))));
   },
   surface: (s, f) => {
-    const t = f.aux.x, u = f.aux.y, kind = step(0.75, f.aux.w).toVar(), up = f.aux.w.sub(kind).mul(2.0).toVar();
-    const col = mix(mix(vec3(0.15, 0.14, 0.04), vec3(0.35, 0.33, 0.07), fract(f.aux.z.mul(3.7)).mul(up.mul(0.5).add(0.5))), vec3(0.13, 0.32, 0.09), kind)
-      .mul(smoothstep(0.0, 0.35, abs(u)).mul(0.28).add(0.72)).mul(t.mul(0.3).add(0.85));
+    const t = f.aux.x, kind = step(0.75, f.aux.w).toVar(), up = f.aux.w.sub(kind).mul(2.0).toVar();
+    // crochet kelp in the colours of the pictures: amber, olive, plum and green, one per
+    // plant; the sea grass in two greens
+    const k = floor(f.aux.z);
+    const kc = select(k.lessThan(0.5), vec3(0.86, 0.56, 0.16), select(k.lessThan(1.5), vec3(0.62, 0.64, 0.18), select(k.lessThan(2.5), vec3(0.58, 0.25, 0.48), vec3(0.28, 0.60, 0.30))));
+    const gc = mix(vec3(0.30, 0.66, 0.32), vec3(0.48, 0.72, 0.28), fract(f.aux.z.mul(7.3)));
+    s.ao = mix(up.mul(0.45).add(0.55), t.mul(0.5).add(0.5), kind);
+    yarn(s, f, { color: mix(kc, gc, kind).mul(t.mul(0.2).add(0.88)), p: f.w, scale: 26, k: 1.1 });
     const sh = shadow1(f.w.add(G.sunDir.mul(0.3))).toVar();
-    // a leaf seen from its shaded side shows the light that came through it: gold
-    const back = float(1.0).sub(smoothstep(-0.45, 0.15, dot(s.n, G.sunDir)));
-    s.albedo = mix(col, mix(vec3(0.46, 0.40, 0.07), vec3(0.30, 0.46, 0.10), kind), back.mul(0.8));
-    s.trans = float(0.9); s.spec = float(0.2); s.gloss = float(36.0); s.shade = sh; s.fluor = float(0.12);
-    s.ao = mix(up.mul(0.55).add(0.45), t.mul(0.5).add(0.5), kind);
-    // and looking toward the sun through it, it glows
+    s.shade = sh; s.trans = float(0.55);
+    // looking toward the sun through it, the yarn glows
     const vv = normalize(f.w.sub(cameraPosition));
-    s.emis = sunAt(f.w.y).mul(sh).mul(pow(max(dot(vv, G.sunDir), 0.0), 5.0)).mul(vec3(0.40, 0.35, 0.06).mul(0.55));
+    s.emis = s.emis.add(sunAt(f.w.y).mul(sh).mul(pow(max(dot(vv, G.sunDir), 0.0), 5.0)).mul(s.albedo).mul(0.35));
   },
 });
 const stalkMat = () => material({
@@ -90,7 +91,23 @@ const stalkMat = () => material({
     v.P.assign(C.add(vec3(p0.x, 0.0, p0.z).mul(float(1.0).sub(p0.y.mul(0.5)).mul(0.05))));
   },
   surface: (s, f) => {
-    s.albedo = vec3(0.19, 0.16, 0.05); s.spec = float(0.14); s.gloss = float(30.0); s.shade = shadow1(f.w.add(G.sunDir.mul(0.2))); s.trans = float(0.3);
+    yarn(s, f, { color: vec3(0.50, 0.40, 0.16), p: f.w, scale: 40 });
+    s.shade = shadow1(f.w.add(G.sunDir.mul(0.2)));
+  },
+});
+
+// The kelp's floats: round yarn balls where blades meet the stalk.
+const ballMat = () => material({
+  fade: [46, 58],
+  vertex: (v) => {
+    const S = stemAt(ia.xyz, ib.x.mul(ia.w), ic.w);
+    const D = vec3(cos(ib.y), 0.0, sin(ib.y));
+    v.P.assign(S.add(D.mul(0.1)).add(v.P.mul(ic.x.mul(0.05).add(0.07))));
+    v.aux.assign(vec4(ic.x, 0.0, 0.0, 0.0));
+  },
+  surface: (s, f) => {
+    // gold, or olive
+    yarn(s, f, { color: mix(vec3(0.96, 0.70, 0.22), vec3(0.72, 0.68, 0.20), step(0.5, fract(f.aux.x.mul(9.7)))), scale: 7 });
   },
 });
 
@@ -166,6 +183,13 @@ function buildKelp(add, q) {
     n++;
   }
   cells(add, strip(q.amount >= 1 ? 6 : q.amount >= 0.5 ? 5 : 4), bladeMat([62, 76]), blades, 14, 78);
+  // a float on every third blade below the top
+  const balls = [];
+  for (let i = 0; i < blades.length; i += 12 * 7) if (blades[i + 4] < 0.9) for (let k = 0; k < 12; k++) balls.push(blades[i + k]);
+  const bm = new Mesh(false);
+  blob(bm, 0, 0, 0, () => 1, q.amount >= 1 ? 3 : 2);
+  const bg = bm.build();
+  cells(add, { position: bg.getAttribute('position'), normal: bg.getAttribute('normal'), uv: bg.getAttribute('uv'), index: bg.index }, ballMat(), balls, 14, 60);
   cells(add, stalk(14), stalkMat(), stalks, 28, 78);
   return { plants: stalks.length / 12, blades: blades.length / 12 };
 }
@@ -216,16 +240,22 @@ const SHAPES = {
     grow(0, -0.08, 0, 0, 1, 0, 0.3, 0.085, 0);
     return finish(m, (x, y, z, s, depth, ny, o) => { o[0] = 0; o[1] = 0; o[2] = 0.4 + 0.6 * clamp(y / 0.6, 0, 1); o[3] = clamp((depth + s) / 4, 0, 1); });
   },
-  // a table: a wide thin plate on a stem
+  // a ruffle: a cup of hyperbolic crochet that flares into a frilled, wavy edge
   table(rng) {
-    const m = new Mesh(true), a = rng() * TAU;
-    lathe(m, 0, 0, 0, [[0.16, -0.1], [0.11, 0.2], [0.16, 0.36], [0.6, 0.47], [1.0, 0.5], [1.04, 0.54], [0.8, 0.57], [0.3, 0.55], [0, 0.55]], 22, (ang, t) => 1 + (t > 0.3 ? 0.09 * Math.sin(ang * 5 + a) + 0.05 * Math.sin(ang * 11 - a) : 0));
-    return finish(m, (x, y, z, t, _, ny, o) => { o[0] = 0; o[1] = 0; o[2] = ny < 0 ? 0.35 : 0.6 + 0.4 * clamp(Math.hypot(x, z), 0, 1); o[3] = clamp(Math.hypot(x, z), 0, 1); });
+    const m = new Mesh(true), a = rng() * TAU, waves = 7 + Math.floor(rng() * 6), tall = rng.range(0.35, 0.6);
+    m.grid(72, 12, (s, t, o) => {
+      const ang = s * TAU, fr = Math.pow(t, 2.0);
+      const r = (0.06 + 0.7 * Math.pow(t, 1.25)) * (1 + 0.1 * fr * Math.cos(ang * waves * 2 + a));
+      o[0] = Math.cos(ang) * r; o[1] = 0.02 + tall * t + 0.17 * fr * Math.sin(ang * waves + a); o[2] = Math.sin(ang) * r;
+      o[3] = t;
+    }, true, true);
+    return finish(m, (x, y, z, t, _, ny, o) => { o[0] = 0; o[1] = 0; o[2] = 0.45 + 0.55 * t; o[3] = t; });
   },
   // a mound, lumpy like a brain
+  // a brain coral: a dome of coiled cord, its grooves winding over it
   mound(rng) {
     const m = new Mesh(true), s = rng() * 9;
-    blob(m, 0, 0.3, 0, (x, y, z) => (0.55 + 0.1 * noise3(x * 2.2 + s, y * 2.2, z * 2.2) + 0.03 * noise3(x * 7 + s, y * 7, z * 7)) * (y < 0 ? 0.75 : 1), 7);
+    blob(m, 0, 0.3, 0, (x, y, z) => (0.55 + 0.06 * noise3(x * 2.2 + s, y * 2.2, z * 2.2) + 0.035 * (1 - 2 * Math.abs(Math.sin(noise3(x * 3 + s, y * 3, z * 3) * 9 + x * 3)))) * (y < 0 ? 0.75 : 1), 14);
     return finish(m, (x, y, z, _, __, ny, o) => { o[0] = 0; o[1] = 1; o[2] = 0.45 + 0.55 * clamp(y / 0.5, 0, 1); o[3] = 0.5 + 0.4 * clamp(y, 0, 1); });
   },
   // knobs on knobs
@@ -296,7 +326,7 @@ const SHAPES = {
 const tint = attribute('tint', 'vec4');
 const vTint = varyingProperty('vec4', 'v_tint');
 const reefMat = () => material({
-  aux: true, instanced: true, fade: [55, 68],
+  aux: true, instanced: true, fade: [55, 68], twoSided: true,
   vertex: (v) => {
     vTint.assign(tint);
     // what is soft gives with the water, more toward its ends
@@ -305,20 +335,17 @@ const reefMat = () => material({
     v.P.assign(v.P.add(vec3(sin(ph).add(sin(ph.mul(2.3)).mul(0.4)), 0.0, cos(ph.mul(0.8)).mul(0.6)).mul(k)));
   },
   surface: (s, f) => {
-    const near = float(1.0).sub(smoothstep(6.0, 24.0, f.dist)).toVar();
-    const D = detail(f.w, s.n, mix(float(2.9), float(1.3), step(0.5, f.aux.y)), 3.0);
-    s.n = normalize(mix(s.n, D.n, near.mul(0.8))).toVar();
-    const base = select(f.aux.y.greaterThan(1.5), vec3(0.78, 0.07, 0.05), vTint.rgb);        // (a plume is always red)
-    s.albedo = base.mul(f.aux.w.mul(0.75).add(0.5)).mul(mix(float(1.0), D.h.mul(0.8).add(0.6), near));
-    s.ao = f.aux.z; s.fluor = float(0.7); s.spec = float(0.05); s.gloss = float(18.0);
-    s.trans = select(f.aux.x.greaterThan(0.0), float(0.35), float(0.0));
+    const base = select(f.aux.y.greaterThan(1.5), vec3(0.92, 0.12, 0.10), vTint.rgb);        // (a plume is always red)
+    s.ao = f.aux.z;
+    yarn(s, f, { color: base.mul(f.aux.w.mul(0.3).add(0.8)), scale: 18 });
+    s.trans = select(f.aux.x.greaterThan(0.0), float(0.35), float(0.18));
   },
 });
 
 // The colours corals come in.
-const CORAL = [[0.86, 0.36, 0.30], [0.84, 0.52, 0.16], [0.58, 0.27, 0.68], [0.24, 0.56, 0.46], [0.86, 0.76, 0.26], [0.78, 0.2, 0.38], [0.86, 0.80, 0.70], [0.3, 0.42, 0.78]];
-const SPONGE = [[0.88, 0.70, 0.14], [0.58, 0.26, 0.70], [0.86, 0.34, 0.14], [0.2, 0.5, 0.74]];
-const FAN = [[0.6, 0.22, 0.7], [0.82, 0.24, 0.2], [0.86, 0.58, 0.16]];
+const CORAL = [[0.96, 0.38, 0.55], [0.98, 0.45, 0.33], [0.98, 0.56, 0.16], [0.64, 0.32, 0.84], [0.88, 0.16, 0.24], [0.98, 0.84, 0.26], [0.16, 0.66, 0.62], [0.78, 0.56, 0.92]];
+const SPONGE = [[0.98, 0.76, 0.20], [0.64, 0.30, 0.82], [0.96, 0.42, 0.18], [0.22, 0.62, 0.86]];
+const FAN = [[0.72, 0.30, 0.86], [0.94, 0.30, 0.32], [0.98, 0.64, 0.22]];
 const BONE = [[0.82, 0.80, 0.74]];
 
 // What is planted: shape, how many (on high), where (z from, z to), on the ground or on

@@ -2,9 +2,9 @@
 // the eight zones, and how the water looks at each depth. Everything else is placed by
 // asking this file. y is up and the surface is y = 0; the dive heads down the -z axis.
 //
-// The world is one valley that steps down in terraces (pier, shallows, kelp, reef, the
-// wreck's ledge), falls away in a cliff, and ends on the plain where the vents are. Rock
-// rises on both sides of the valley all the way, so there is never an edge to see.
+// The world is an open sea floor that steps down in terraces (pier, shallows, kelp, reef,
+// the wreck's ledge), falls away in a drop-off, and ends on the black plain where the vents
+// are: bright open water on every side, as in the pictures of the dive this rebuilds.
 import { clamp, fbm2, lerp, noise2, ridge3, smooth } from './math.js';
 
 // ---- the ground ------------------------------------------------------------------------
@@ -17,9 +17,10 @@ const FLOOR = [
   [-277, -199.0], [-292, -205.0], [-330, -207.5], [-400, -208.5], [-430, -205.0], [-470, -150.0],
 ];
 // Half the width of the valley floor, and how high its walls go, along z: [z, half width, wall].
+// (the third column is how high the low dunes at the sides rise)
 const VALLEY = [
-  [60, 16, 3], [10, 15, 5], [-30, 17, 6], [-60, 15, 10], [-110, 16, 15], [-150, 19, 17], [-200, 15, 22],
-  [-250, 19, 22], [-272, 22, 16], [-300, 24, 38], [-360, 21, 44], [-420, 18, 50], [-470, 14, 50],
+  [60, 16, 0.8], [10, 15, 1.0], [-30, 17, 1.2], [-60, 15, 1.4], [-110, 16, 1.4], [-150, 19, 1.0], [-200, 15, 1.2],
+  [-250, 19, 1.4], [-272, 22, 1.0], [-300, 24, 1.6], [-360, 21, 1.8], [-420, 18, 1.8], [-470, 14, 1.6],
 ];
 function table(rows, z, col) {
   if (z >= rows[0][0]) return rows[0][col];
@@ -37,22 +38,22 @@ export const floorY = (z) => table(FLOOR, z, 1);
 export const halfWidth = (z) => table(VALLEY, z, 1);
 // How rocky the ground is at z, 0 (sand) to 1 (bare rock): sand in the shallows and among
 // the kelp, more rock on the reef and the ledge, all rock on the cliff and at the vents.
-export const rockiness = (z) => (z > -50 ? 0.12 : z > -118 ? 0.3 : z > -190 ? 0.5 : z > -262 ? 0.62 : 1);
+export const rockiness = (z) => (z > -262 ? 0.04 : 0.3);
 
 // The height of the ground at (x, z).
 export function groundY(x, z) {
   const base = floorY(z), w = halfWidth(z), wall = table(VALLEY, z, 2);
   const off = Math.abs(x - centerX(z));
-  // the walls: nothing on the floor, then a steep rise that rolls off into a rim
+  // the sides: the floor rolls into low dunes and goes on, open, into the blue
   const out = Math.max(off - w, 0);
-  const rise = wall * (1 - Math.exp(-out * 0.16)) + out * 0.22;
+  const rise = wall * (1 - Math.exp(-out * 0.16)) + out * 0.025;
   // a shallow bowl across the floor, so it is not a flat street
   const bowl = 0.9 * smooth(0.25 * w, w, off);
   const rock = rockiness(z);
   const rough = Math.min(1, rock + smooth(0, 6, out));
-  const big = fbm2(x * 0.035 + 3.1, z * 0.035, 4) * (1.4 + 3.6 * rough);
-  const mid = (ridge3(x * 0.11, z * 0.11, 1.7, 3) - 0.45) * 2.6 * rough;
-  const dunes = Math.sin(z * 0.19 + x * 0.05 + 2.0 * noise2(x * 0.05, z * 0.05)) * 0.22 * (1 - rough);
+  const big = fbm2(x * 0.035 + 3.1, z * 0.035, 4) * (1.0 + 1.6 * rough);
+  const mid = (ridge3(x * 0.11, z * 0.11, 1.7, 3) - 0.45) * 1.2 * rough;
+  const dunes = Math.sin(z * 0.19 + x * 0.05 + 2.0 * noise2(x * 0.05, z * 0.05)) * 0.28 * (1 - rough);
   return base + rise + bowl + big + mid + dunes;
 }
 
@@ -78,8 +79,8 @@ export const ZONES = [
 // pitch (positive up).
 const P = (p, z, off, y, up, yaw, pitch) => ({ p, z, off, y, up, yaw, pitch });
 const STOPS = [
-  // the pier, from below
-  P(0.0, 12, 0, -2.3, false, 0, 16), P(0.5, 3, 0.6, -2.8, false, -4, 12), P(1.0, -8, -0.6, -3.7, false, 3, 2),
+  // the marina from the waterline, half above and half below; then under, beneath the pier
+  P(0.0, 18, 0, 0.0, false, 0, -3), P(0.28, 15, 0, 0.0, false, -2, -4), P(0.55, 9, 0.4, -1.6, false, -3, 2), P(1.0, -8, -0.6, -3.7, false, 3, 2),
   // the shallows: down the chain to the anchor, then over the sand
   P(1.3, -18, -1.2, 2.6, true, 6, -8), P(1.65, -31, 1.0, 2.1, true, -5, -5), P(2.0, -48, 0, 2.4, true, 0, -2),
   // the kelp forest
@@ -93,7 +94,7 @@ const STOPS = [
   // the vents, and the geode at the end
   P(6.25, -314, -2.0, 4.6, true, 8, -8), P(6.5, -338, -4.0, 4.0, true, 12, -5), P(6.75, -362, 3.0, 3.6, true, -10, -4), P(7.0, -383, 0.5, 3.2, true, -2, -8),
   // straight up, and the surface again
-  P(7.15, -387, 0.5, -172, false, 0, 34), P(7.35, -388, 0.5, -96, false, 0, 52), P(7.55, -388, 0.5, -30, false, 0, 44), P(7.72, -390, 0.5, -6.5, false, 0, 30), P(8.0, -394, 0.5, -3.1, false, 0, 22),
+  P(7.15, -387, 0.5, -172, false, 0, 34), P(7.35, -388, 0.5, -96, false, 0, 52), P(7.55, -388, 0.5, -30, false, 0, 44), P(7.75, -390, 0.5, -5.5, false, 0, 24), P(8.0, -396, 0.5, 0.0, false, 0, -3),
 ];
 for (const s of STOPS) {
   s.x = centerX(s.z) + s.off;

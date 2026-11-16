@@ -2,13 +2,17 @@
 // surface seen from underneath, with the bright window straight overhead through which
 // the sky and the sun show, and all around it the mirror that shows the water below.
 import { BackSide, DoubleSide, Mesh, PlaneGeometry, SphereGeometry } from 'three/webgpu';
-import { cameraPosition, clamp, dot, float, length, max, mix, normalize, pow, reflect, refract, smoothstep, sqrt, texture, vec3 } from 'three/tsl';
-import { G, inWater, material, scatter, scatterFrom } from './shaders.js';
+import { cameraPosition, clamp, dot, float, length, max, mix, normalize, pow, reflect, refract, select, smoothstep, sqrt, texture, vec3 } from 'three/tsl';
+import { G, inWater, material, scatter, scatterFrom, skyColor } from './shaders.js';
 
 export function buildSea(scene) {
   const back = new Mesh(new SphereGeometry(400, 24, 16), material({
     side: BackSide, depthWrite: false, depthTest: false,
-    raw: (f) => scatter(normalize(f.w.sub(cameraPosition)), float(300.0)),
+    // open water all round; from the waterline, the evening sky above it
+    raw: (f) => {
+      const rd = normalize(f.w.sub(cameraPosition)).toVar();
+      return select(cameraPosition.y.greaterThan(-0.05).and(rd.y.greaterThan(0.0)), skyColor(rd), scatter(rd, float(300.0)));
+    },
   }));
   back.renderOrder = -10;
   back.frustumCulled = false;

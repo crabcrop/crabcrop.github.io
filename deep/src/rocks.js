@@ -248,18 +248,8 @@ function pillows(z, off, length, seed) {
 // distance from the valley's centre line (negative is left as the camera goes).
 export const SPIRE = { x: centerX(-306) + 17, z: -306, bottom: -209, top: -74, radius: 6.5 };
 const FORMATIONS = [
-  // the shallows
-  [outcrop, 0.4, -27, 10.5, 6, 1.5, 11], [outcrop, 0.4, -38, -11, 7, 2.1, 12], [outcrop, 0.4, -50, 9.5, 6, 1.8, 13],
-  // among the kelp
-  [pinnacle, 0.5, -64, -9.5, 6.5, 2.2, 21], [pinnacle, 0.5, -73, 10.5, 9, 2.6, 22], [pinnacle, 0.5, -86, -11, 11, 3.0, 23],
-  [pinnacle, 0.5, -95, 9.5, 8, 2.4, 24], [pinnacle, 0.5, -106, -9, 10, 2.8, 25], [pinnacle, 0.5, -115, 11, 7, 2.5, 26],
-  // the reef
-  [bommie, 0.42, -127, 8, 4.2, 3.0, 31], [bommie, 0.42, -135, -8.5, 5.0, 3.4, 32], [bommie, 0.42, -144, -9, 4.4, 2.8, 33],
-  [bommie, 0.42, -150, 10.5, 5.6, 3.6, 34], [arch, 0.5, -158, -8.5, 7.5, 9.5, 1.7, 35], [bommie, 0.42, -170, 9, 4.8, 3.2, 36],
-  [bommie, 0.42, -176, -9, 5.4, 3.3, 37], [outcrop, 0.42, -189, 1.0, 6.5, 2.2, 38],
-  // the ledge and its wreck
-  [outcrop, 0.5, -214, 13, 9, 3.2, 41], [pinnacle, 0.55, -238, -19, 9, 3.4, 42], [outcrop, 0.5, -258, -12, 9, 3.5, 43], [outcrop, 0.5, -262, 13, 8, 3.0, 44],
-  // the plain: chimneys and pillow lava
+  // only the vents' own rock: the chimneys and the pillow lava around them (the sunlit sea
+  // floor of the dive is open sand)
   [pillows, 0.45, -316, 10, 12, 51], [pillows, 0.45, -326, -11, 12, 52], [chimney, 0.36, -331, 6.5, 9, 1.5, 53], [chimney, 0.36, -334, 9, 6, 1.2, 54],
   [chimney, 0.36, -346, -7.5, 12, 1.8, 55], [chimney, 0.36, -349, -10, 7, 1.3, 56], [pillows, 0.45, -352, 11, 14, 57], [chimney, 0.36, -359, 8, 8.5, 1.5, 58],
   [chimney, 0.36, -372, -6.5, 11, 1.7, 59], [chimney, 0.36, -375, -9.5, 6.5, 1.2, 60], [pillows, 0.45, -380, 9.5, 12, 61], [pillows, 0.45, -396, -4, 10, 62],
@@ -272,20 +262,13 @@ export function buildRocks(add, mat, looseMat, q) {
     mesh.matrixAutoUpdate = false;
     add(mesh, 160);
   }
-  {
-    const [rock, box] = spire(SPIRE.x, SPIRE.z, SPIRE.bottom, SPIRE.top, SPIRE.radius, 71);
-    const mesh = new ThreeMesh(carve(rock, box, q.amount >= 1 ? 1.0 : 1.3), mat);
-    mesh.matrixAutoUpdate = false;
-    add(mesh, 160);
-  }
-
   // boulders: two sizes of the same lumpy stone, in stretches of the valley
   const rng = makeRng(9001);
   const stone = (res, seed) => { const m = new Mesh(false); blob(m, 0, 0, 0, (x, y, z) => 1 + 0.26 * fbm3(x * 1.3 + seed, y * 1.3, z * 1.3, 3) + 0.1 * noise3(x * 4, y * 4 + seed, z * 4), res); return m.build(); };
   const small = stone(4, 3.1), big = stone(7, 8.4);
   const pos = new Vector3(), quat = new Quaternion(), scl = new Vector3(), axis = new Vector3();
   for (let z1 = 58; z1 > -440; z1 -= 62) {
-    for (const [geo, count, lo, hi] of [[small, Math.round(64 * q.amount), 0.22, 0.85], [big, Math.round(11 * q.amount), 1.0, 2.6]]) {
+    for (const [geo, count, lo, hi] of [[small, Math.round(26 * q.amount), 0.18, 0.6], [big, Math.round(3 * q.amount), 0.6, 1.2]]) {
       const list = [];
       for (let tries = 0; tries < count * 6 && list.length < count; tries++) {
         const z = z1 - rng() * 62;
