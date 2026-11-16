@@ -7,12 +7,9 @@ import { centerX, floorY, groundY, rockiness } from './layout.js';
 import { Mesh, clamp as clampJ } from './math.js';
 import { detail, hash1, hash3, material } from './shaders.js';
 
-// What rock looks like. Shared by the ground and by every loose rock and outcrop: `p` is
-// where to read the relief, `w` where the point is, `rocky` 0 for sand and 1 for rock,
-// `open` how open to the sky it is.
-// round grains in a cell pattern `per` to the metre (`seed` picks the pattern): x is how much
+// Round grains in a cell pattern `per` to the metre (`seed` picks the pattern): x is how much
 // of the point a grain covers (soft-edged at the pixel's size, and gone before a grain would be
-// smaller than a pixel), y the grain's own random number
+// smaller than a pixel), y the grain's own random number.
 function grains(w, per, seed) {
   const q = w.xz.mul(per).toVar();
   const c = floor(q), r = hash3(ivec3(int(c.x), int(c.y), int(seed))).toVar();
@@ -22,6 +19,10 @@ function grains(w, per, seed) {
   return vec2(on, r);
 }
 
+// What rock looks like. Shared by the ground and by every loose rock and outcrop: `p` is
+// where to read the relief, `w` where the point is, `rocky` 0 for sand and 1 for rock,
+// `open` how open to the sky it is; `foot` (for a loose rock) how far up the rock a point is,
+// for the vents' teal crust at its foot.
 export function rockSurf(s, p, w, rocky, open, dist, foot = null) {
   const depth = w.y.negate();
   const n0 = s.n;

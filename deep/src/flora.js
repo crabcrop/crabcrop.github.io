@@ -129,7 +129,8 @@ const kelpBladeMat = () => material({
       B.addAssign(capsulePush(B, C, ax, L2, sideOf(A, C, ax, L2), 1.35, 0.95).mul(step(-900.0, G.snapAt.y)));
     }
     const N0 = normalize(cross(W0, T)).toVar();
-    const tw = seed.sub(0.5).mul(2.2).mul(t).add(sin(ph.add(t.mul(2.4))).mul(0.25).mul(calm)).toVar();
+    // (a ribbon turns a little along its length, but mostly shows its face)
+    const tw = seed.sub(0.5).mul(1.0).mul(t).add(sin(ph.add(t.mul(2.4))).mul(0.2).mul(calm)).toVar();
     const W = W0.mul(cos(tw)).add(N0.mul(sin(tw))).toVar(), Nn = N0.mul(cos(tw)).sub(W0.mul(sin(tw))).toVar();
     // a narrow stem at the float, then a long ribbon of even width with a rounded end; its
     // edges ruffled, a little cupped
@@ -167,7 +168,7 @@ const kelpBladeMat = () => material({
     const toward = pow(max(dot(vv, G.sunDir), 0.0), 2.0);
     const below = smoothstep(-0.2, 0.55, vv.y);
     const back = toward.mul(0.75).add(below.mul(0.6)).add(0.1).mul(float(1).sub(rim.mul(0.35)));
-    s.emis = s.emis.add(sunAt(f.w.y).mul(sh.mul(0.85).add(0.15)).mul(back).mul(s.albedo).mul(s.albedo.mul(0.6).add(0.4)).mul(0.95));
+    s.emis = s.emis.add(sunAt(f.w.y).mul(sh.mul(0.85).add(0.15)).mul(back).mul(s.albedo).mul(s.albedo.mul(0.6).add(0.4)).mul(1.15));
     const graze = pow(float(1.0).sub(abs(dot(s.n, vv))), 3.0);
     s.emis = s.emis.add(G.amb.mul(0.16).mul(graze).mul(s.albedo));
   },
@@ -432,16 +433,6 @@ const netMat = (foot, ps) => material({
   },
 });
 
-// A place beside the camera's way at p: `side` metres to its right (negative: left) and
-// `ahead` metres on along it.
-function beside(p, side, ahead, out) {
-  const o = [0, 0, 0, 0, 0], o2 = [0, 0, 0, 0, 0];
-  pathAt(p, o); pathAt(p + 0.01, o2);
-  const dx = o2[0] - o[0], dz = o2[2] - o[2], l = Math.hypot(dx, dz) || 1;
-  out[0] = o[0] - (dz / l) * side + (dx / l) * ahead; out[1] = o[2] + (dx / l) * side + (dz / l) * ahead;
-  return out;
-}
-
 function buildKelp(add, q) {
   const rng = makeRng(4242);
   const lvl = q.amount >= 1 ? 1 : q.amount >= 0.5 ? 0.72 : 0.5;
@@ -469,7 +460,7 @@ function buildKelp(add, q) {
       // (a blade hangs no lower than a little above the sand)
       let droop = top ? rng.range(-0.3, 0.05) : rng.range(0.55, 1.0);
       if (!top) droop = Math.min(droop, ((h * H - 0.5) / len + 0.3) / 1.25);
-      blades.push(x, g, z, H, h, ang, len, rng.range(0.3, 0.44), rng(), droop, col, ps);
+      blades.push(x, g, z, H, h, ang, len, rng.range(0.34, 0.5), rng(), droop, col, ps);
     }
   };
   for (let n = 0, tries = 0; n < plants && tries < plants * 60; tries++) {
