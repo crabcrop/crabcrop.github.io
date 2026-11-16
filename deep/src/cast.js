@@ -26,7 +26,9 @@ const DRIFT = [[1.45, 2.05, 0.25, 0.25, -0.3], [2.1, 2.95, -0.15, -0.1, 0.2], [3
 // the submarine's place in the deep, beat by beat (wide screens): small, dropping past the
 // cliff; close among the jellies; back, so the anglerfish can come close; small and high
 // among the chimneys. [from p, to p, forward, right, up] added to its place.
-const SUB_DRIFT = [[5.08, 5.35, 2.2, 0.7, -0.45], [5.4, 5.6, 0.5, 0.0, 0.15], [5.6, 5.76, 1.7, 0.6, 0.65], [6.12, 6.82, 1.7, 0.3, 0.95]];
+// (consecutive beats overlap by their easing, so it moves from one place to the next without
+// dropping back to its usual place in between; fauna.js times the anglerfish by these)
+export const SUB_DRIFT = [[5.08, 5.38, 2.2, 0.7, -0.45], [5.32, 5.63, 0.5, 0.0, 0.15], [5.57, 5.79, 1.7, 0.6, 0.65], [6.12, 6.82, 1.7, 0.3, 0.95]];
 const subDriftAt = (p, out) => {
   out[0] = out[1] = out[2] = 0;
   for (let i = 0; i < SUB_DRIFT.length; i++) {

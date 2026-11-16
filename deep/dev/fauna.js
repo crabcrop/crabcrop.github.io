@@ -2,9 +2,9 @@
 // other parts set (the visitor's lamp, as src/cast.js aims it, and two vent glows) so the
 // dark zones can be judged.
 //   ?lineup   one of each fish, side on, a few metres in front of the camera at p 1.6 (time 20)
-//   ?cast     the turtles, the octopus (at a desk, and swimming), the anglerfish and a gull,
-//             side by side in front of the camera at p 1.6; &castyaw=deg turns them,
-//             &castroll=rad rolls them toward the camera
+//   ?cast     the turtles, the octopus (at a desk, and swimming), the anglerfish, a gull, the
+//             bottle with a message, a sea sheep and a tube worm, side by side in front of the
+//             camera at p 1.6; &castyaw=deg turns them, &castroll=rad rolls them toward the camera
 import { startDive } from '../src/app.js';
 import { buildFauna, faunaParts } from '../src/fauna.js';
 import { G } from '../src/shaders.js';
@@ -45,9 +45,11 @@ function lineup({ add }) {
     add(fishMesh(fishShape(FISH[shape], 2), fish, mat), 60);
   });
 }
-// ?cast: the turtles, the octopus at a desk and swimming, the anglerfish and a gull, side by side
+// ?cast: the turtles, the octopus at a desk and swimming, the anglerfish, a gull, the bottle, a
+// sea sheep and a tube worm, side by side
 function castLineup({ add }) {
-  const { turtleShape, turtleMaterial, octopusShape, octopusMaterial, anglerShape, anglerMaterial, lureGlowMaterial, gullShape, gullMaterial, copies, cards, solid, POSE } = faunaParts;
+  const { turtleShape, turtleMaterial, octopusShape, octopusMaterial, anglerShape, anglerMaterial, lureGlowMaterial, gullShape, gullMaterial, copies, cards, solid, POSE,
+    bottleShape, bottleInsideMaterial, bottleGlassMaterial, sheepShape, sheepMaterial, wormShape, wormMaterial } = faunaParts;
   const sph = new Sphere(new Vector3(1.2, -5, -32), 12), at = (n, look, seed) => ({ cS: new Float32Array([n, seed, look, 0]) });
   add(solid(copies(turtleShape(2), 1, at(0, 0, 0.3), sph), turtleMaterial()), 60);
   add(solid(copies(turtleShape(2), 1, at(1, 1, 0.7), sph), turtleMaterial()), 60);
@@ -56,6 +58,12 @@ function castLineup({ add }) {
   add(solid(copies(anglerShape(2), 1, at(4, 0, 0.5), sph), anglerMaterial()), 60);
   add(solid(cards(1, at(4, 0, 0.5), sph), lureGlowMaterial()), 60);
   add(solid(copies(gullShape(2), 1, { gA: new Float32Array([1.4, -3.9, -32.4, 0.0001]), gB: new Float32Array([0.0001, 1.5708, 0.9, 0.3]) }, sph), gullMaterial()), 60);
+  const bottle = bottleShape(2);
+  add(solid(copies(bottle.inside, 1, at(5, 0, 0.8), sph), bottleInsideMaterial()), 60);
+  add(solid(copies(bottle.glass, 1, at(5, 0, 0.8), sph), bottleGlassMaterial()), 60);
+  // (a sea sheep facing the camera, and a tube worm beside it)
+  add(solid(copies(sheepShape(2), 1, { hA: new Float32Array([3.2, -6.0, -32.6, 1.6]), hB: new Float32Array([Math.PI / 2 - 0.3, 0, 0.4, 0]) }, sph), sheepMaterial()), 60);
+  add(solid(copies(wormShape(2), 1, { wA: new Float32Array([3.9, -6.3, -32.8, 1.0]), wB: new Float32Array([0.02, 0.02, 0.3, 0.48]) }, sph), wormMaterial()), 60);
   const yaw = (params.get('castyaw') || 0) * Math.PI / 180, roll = Number(params.get('castroll') || 0);
   return {
     update() {
@@ -69,6 +77,8 @@ function castLineup({ add }) {
       // the octopus at a desk: its letter half a metre in front of it, a little below
       put(2, 2.0, -5.95, -32.4, 0.8, 0, [1, 0.62 / 0.8, 0.18 / 0.8, 0]); put(3, 2.4, -4.6, -33.6, 0.6, 0);
       put(4, -1.85, -5.35, -32.2, 0.8, 0);
+      // (the bottle, its neck up and to the right)
+      a[5 * 4].set(-0.6, -6.0, -32.0, 1.2); a[5 * 4 + 1].set(0.6, 0.8, 0, 0.8); a[5 * 4 + 2].set(-0.8, 0.6, 0, 0); a[5 * 4 + 3].set(0, 0, 0, 0);
     },
   };
 }

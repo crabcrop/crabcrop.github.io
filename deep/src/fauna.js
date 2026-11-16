@@ -1,9 +1,9 @@
 // The creatures, crocheted, and what drifts in the water: schools of little stitched fish in
 // the marina, the shallows, the kelp and on the reef; a sea turtle gliding over the reef; the
 // pink octopus at its desk in the wreck's cabin, holding the letter; glowing jellies, a
-// siphonophore and an anglerfish in the twilight; tube worms and sea sheep at the vents; gulls
-// over the marina; the turtle and the octopus again below the surface at the end; specks and
-// bubbles everywhere.
+// siphonophore, an anglerfish and a bottle with a message in the twilight; tube worms and sea
+// sheep at the vents; fish overhead on the way back up; gulls over the marina; the turtle and
+// the octopus again below the surface at the end; specks and bubbles everywhere.
 //
 // Nothing is simulated. Each creature is a closed-form function of the time and of its own
 // handful of numbers, worked out in its vertex shader. A school of fish swims round a wide
@@ -15,9 +15,9 @@
 // that at the moments the visitor stops at, nothing crowds the cast, the page's header or
 // the words.
 //
-// A few creatures belong to a moment of the dive: the turtle over the reef, the siphonophore
-// and the anglerfish in the twilight, the octopus in the cabin, the turtle and the octopus at
-// the end. While the visitor is at that moment each keeps its place in the view (it swims
+// A few creatures belong to a moment of the dive: the turtle over the reef, the siphonophore,
+// the anglerfish and the bottle in the twilight, the octopus in the cabin, the turtle and the
+// octopus at the end. While the visitor is at that moment each keeps its place in the view (it swims
 // along), and before and after it stays where it was in the water; their parts move in their
 // shaders: flippers beat, tentacles curl, wings flap.
 //
@@ -26,6 +26,7 @@
 // amigurumi is worked. Small things are kept from sparkling: a fish too small on screen
 // dissolves into the water behind it, and a speck is never drawn narrower than about a
 // pixel: below that it is drawn that wide and dimmer, so it carries the same light.
+import { SUB_DRIFT } from './cast.js';
 import {
   BufferAttribute, InstancedBufferAttribute, InstancedBufferGeometry, InstancedInterleavedBuffer, InterleavedBufferAttribute, Mesh as ThreeMesh, Sphere, Vector3, Vector4,
 } from 'three/webgpu';
@@ -34,12 +35,15 @@ import {
   pow, sign, sin, smoothstep, sqrt, step, texture, uniform, uniformArray, varyingProperty, vec2, vec3, vec4, select,
 } from 'three/tsl';
 import { TRACK, centerX, groundY, offTrack, pathAt } from './layout.js';
-import { Mesh, TAU, blob, clamp as clampN, lerp, makeRng, smooth, tube } from './math.js';
-import { G, SIG, material, scatter, skyAt, sunAt, sunFoot, yarn } from './shaders.js';
+import { Mesh, TAU, blob, clamp as clampN, lerp, makeRng, noise3, smooth, tube } from './math.js';
+import { G, SIG, material, scatter, skyAt, sunAt, sunFoot, vNrm, yarn } from './shaders.js';
+import { rockSurf } from './terrain.js';
 
 // Set every frame: how many metres one pixel spans one metre from the eye, and the eye's
 // right and up, for what is drawn as a card that faces it.
-const U = { pix: uniform(0.002), right: uniform(new Vector3(1, 0, 0)), up: uniform(new Vector3(0, 1, 0)) };
+// And a soft fill on the fish from the eye's side, for the way back up, where they are seen
+// from below against the bright surface (as a diorama is lit for its picture).
+const U = { pix: uniform(0.002), right: uniform(new Vector3(1, 0, 0)), up: uniform(new Vector3(0, 1, 0)), fill: uniform(0) };
 const UP = vec3(0.0, 1.0, 0.0);
 const one = (x, k) => float(1.0).sub(step(0.5, abs(x.sub(k))));      // 1 where x is k
 // Colours are written as they look in the pictures (sRGB) and turned into the linear values the
@@ -67,6 +71,7 @@ function knit(s, f, o) {
 // A glass bead (the eyes): black, glossy, smooth.
 function bead(s, nSmooth, k) {
   s.albedo = mix(s.albedo, vec3(0.012, 0.012, 0.016), k);
+  s.emis = s.emis.mul(float(1.0).sub(k));
   s.n = normalize(mix(s.n, nSmooth, k));
   s.spec = mix(s.spec, float(1.2), k); s.gloss = mix(s.gloss, float(80.0), k);
   s.trans = mix(s.trans, float(0.0), k); s.fluor = mix(s.fluor, float(0.0), k);
@@ -227,9 +232,9 @@ const camHolder = () => ({ x: 0, y: 0, z: 0, F: [0, 0, 0], R: [0, 0, 0], U: [0, 
 const _cA = camHolder(), _cB = camHolder();
 // The camera at p as its path has it (without the visitor's nudge): where it is, its line of
 // sight F, its right R, its up U (with its pitch) and its level forward L.
-function camAt(p, c = camHolder()) {
+function camAt(p, c = camHolder(), turn = 0) {
   pathAt(p, _o);
-  const yaw = _o[3] * DEG, pitch = _o[4] * DEG, sy = Math.sin(yaw), cy = Math.cos(yaw), sp = Math.sin(pitch), cp = Math.cos(pitch);
+  const yaw = (_o[3] + turn) * DEG, pitch = _o[4] * DEG, sy = Math.sin(yaw), cy = Math.cos(yaw), sp = Math.sin(pitch), cp = Math.cos(pitch);
   c.x = _o[0]; c.y = _o[1]; c.z = _o[2];
   c.F[0] = sy * cp; c.F[1] = sp; c.F[2] = -cy * cp;
   c.R[0] = cy; c.R[1] = 0; c.R[2] = sy;
@@ -256,20 +261,38 @@ function project(c, x, y, z, scr, out) {
 // The two shapes of screen the dive is laid out for: a wide one, with the words on its left
 // third, and a phone's, with the words at the bottom; where the page's header ends on each.
 const SCREENS = { wide: { tanV: Math.tan(29 * DEG), aspect: 16 / 9, top: 0.8, kind: 'wide' }, tall: { tanV: Math.tan(37 * DEG), aspect: 390 / 844, top: 0.72, kind: 'tall' } };
-// Where the cast holds the submarine and Snap in the view (cast.js SLOT): forward, right, up.
+// Where the cast holds the submarine and Snap in the view (cast.js SLOT): forward, right, up;
+// and, on a wide screen, how the submarine's place moves from beat to beat in the deep
+// (cast.js SUB_DRIFT: [from p, to p, forward, right, up] added, eased in and out), and aside
+// at the geode. (These copy cast.js: they are only used to choose, once, where creatures live
+// so that they are clear of the cast at the moments the visitor stops at; what moves keeps
+// clear of the cast where it really is, G.subAt and G.snapAt, in its shader.)
 const SUB_SLOT = { wide: [4.3, 1.3, -0.35], tall: [4.7, 0.0, 0.7] }, SNAP_SLOT = { wide: [2.8, 1.05, -0.28], tall: [3.3, 0.0, 0.55] };
+
 const SUB_FROM = 4.92, SNAP_IN = 5.06;
+function subSlot(p, kind, out = [0, 0, 0]) {
+  const s = SUB_SLOT[kind], geode = smooth(6.8, 6.87, p) * (1 - smooth(7.04, 7.1, p));
+  out[0] = s[0]; out[1] = s[1]; out[2] = s[2];
+  if (kind === 'wide') {
+    for (const d of SUB_DRIFT) { const k = smooth(d[0], d[0] + 0.06, p) * (1 - smooth(d[1] - 0.06, d[1], p)); out[0] += d[2] * k; out[1] += d[3] * k; out[2] += d[4] * k; }
+    out[1] += 0.75 * geode; out[2] += 0.1 * geode;
+  } else { out[0] += 0.5 * geode; out[2] += 1.05 * geode; }
+  return out;
+}
+const _slot = [0, 0, 0];
 // Snap's middle at p on a screen, as the cast places him (near enough: on the anchor chain he
 // is a little off it), and the submarine's, from when it has come.
 function snapAt(p, kind, out) {
   const c = camAt(p, _cB), s = SNAP_SLOT[kind], k = smooth(4.49, 4.55, p) * (1 - smooth(4.63, 4.69, p));
-  inViewAt(out, c, p >= SNAP_IN ? SUB_SLOT[kind][0] : s[0] * (1 - 0.32 * k), p >= SNAP_IN ? SUB_SLOT[kind][1] : s[1], p >= SNAP_IN ? SUB_SLOT[kind][2] : s[2]);
+  if (p >= SNAP_IN) subSlot(p, kind, _slot); else { _slot[0] = s[0] * (1 - 0.32 * k); _slot[1] = s[1]; _slot[2] = s[2]; }
+  inViewAt(out, c, _slot[0], _slot[1], _slot[2]);
   if (p < 0.2) out[1] = lerp(0, out[1], smooth(0.075, 0.2, p));
   return out;
 }
 // (it never touches the ground, nor rises within a metre of the surface)
 const subAt = (p, kind, out) => {
-  inViewAt(out, camAt(p, _cB), ...SUB_SLOT[kind]);
+  subSlot(p, kind, _slot);
+  inViewAt(out, camAt(p, _cB), _slot[0], _slot[1], _slot[2]);
   out[1] = Math.min(Math.max(out[1], groundY(out[0], out[2]) + 0.95), -1.0);
   return out;
 };
@@ -277,29 +300,51 @@ const subAt = (p, kind, out) => {
 // The moments a creature belongs to, and where it is in the view then. Each writes into o:
 // c its middle, f the way it faces (level unless said), and for the siphonophore d its
 // length's direction and len its length. A screen is (tanV, aspect).
-const SIPHON = [5.22, 5.86], ANGLER = [5.46, 5.84], REEF_TURTLE = [3.2, 3.68], ENDING = [7.84, 8.0];
+const SIPHON = [5.15, 5.86], ANGLER = [5.57, 5.79], BOTTLE = [5.36, 5.8], REEF_TURTLE = [3.2, 3.68], ENDING = [7.84, 8.0];
 const dirOf = (o, x, y, z) => { const l = Math.hypot(x, y, z) || 1; o[0] = x / l; o[1] = y / l; o[2] = z / l; return o; };
-// The siphonophore: it comes down from above the view to meet the visitor at the drop-off,
-// goes down with them through the twilight, across the top of the view, drifting from right
-// to left (rising a little to the right), and stays behind when they go on down. It is big and far,
-// behind the jellies (k: how much bigger than the eight metres away it was drawn for).
+// The siphonophore: it rises out of the dark below to meet the visitor as they go over the
+// drop-off, goes down with them through the twilight, across the top of the view, drifting
+// from right to left (rising a little to the right), and stays behind when they go on down.
+// It is big and far, behind the jellies (k: how much bigger than the eight metres away it was
+// drawn for). Above the drop-off it is not there at all (show: 0), so the sunlit water never
+// has it.
 function siphonAt(p, tanV, aspect, o) {
   const pc = clampN(p, SIPHON[0], SIPHON[1]), u = (pc - SIPHON[0]) / (SIPHON[1] - SIPHON[0]), wide = aspect >= 1, c = camAt(pc, _cA);
   const d = wide ? 17 - 1.5 * u : 15.5 - 1.2 * u;
-  onScreen(o.c, c, d, wide ? 0.16 - 0.2 * u : 0.0, wide ? 0.52 : 0.47, tanV, aspect);
-  if (p < SIPHON[0]) o.c[1] += Math.min(SIPHON[0] - p, 0.4) * 90;
-  dirOf(o.d, c.R[0], 0.2, c.R[2]);
+  onScreen(o.c, c, d, wide ? 0.1 - 0.2 * u : 0.0, wide ? 0.42 : 0.4, tanV, aspect);
+  if (p < SIPHON[0]) o.c[1] -= Math.min(SIPHON[0] - p, 0.2) * 50;
+  o.show = smooth(5.02, 5.1, p);
+  dirOf(o.d, c.R[0], 0.12, c.R[2]);
   dirOf(o.f, c.L[0], 0, c.L[2]);
   o.k = d / 8.5;
   o.len = (wide ? 12 : 9) * o.k;
   return o;
 }
-// The anglerfish: in the right of the view, below the siphonophore and clear of the
-// submarine, in profile, heading left; it drifts slowly toward the middle.
+// The anglerfish: the twilight's close-up. While the visitor is at it, it is near and large
+// (with its fins about a third of the view's height), side on, heading left, lit by nothing
+// but its lure: on a wide screen low in the right two-thirds, in front of the submarine and to
+// its left (the submarine keeps back then: cast.js); on a phone, under the submarine. Before,
+// it is in the dark below, where the camera sinks to it; after, it stays as the camera goes on.
+// (On a wide screen it comes up into its place as the submarine draws back, and swims off down
+// and to the left as it comes forward again: SUB_DRIFT's third beat.)
 function anglerAt(p, tanV, aspect, o) {
   const pc = clampN(p, ANGLER[0], ANGLER[1]), u = (pc - ANGLER[0]) / (ANGLER[1] - ANGLER[0]), wide = aspect >= 1, c = camAt(pc, _cA);
-  onScreen(o.c, c, 5.6, wide ? 0.6 - 0.08 * u : 0.32 - 0.12 * u, wide ? 0.26 : -0.42, tanV, aspect);
-  dirOf(o.f, -c.R[0] - 0.22 * c.L[0], 0, -c.R[2] - 0.22 * c.L[2]);
+  onScreen(o.c, c, wide ? 3.1 : 3.6, wide ? 0.05 - 0.06 * u : 0.24 - 0.08 * u, wide ? -0.46 : -0.26, tanV, aspect);
+  if (wide) {
+    const d = SUB_DRIFT[2], back = smooth(d[0], d[0] + 0.06, pc) * (1 - smooth(d[1] - 0.06, d[1], pc)), off = smooth(0.5, 0.8, u);
+    o.c[0] -= c.R[0] * 2.2 * off * (1 - back); o.c[2] -= c.R[2] * 2.2 * off * (1 - back);
+    o.c[1] -= 2.6 * (1 - back);
+  }
+  dirOf(o.f, -c.R[0] - 0.16 * c.L[0], 0, -c.R[2] - 0.16 * c.L[2]);
+  o.size = wide ? 1.65 : 1.45;
+  return o;
+}
+// The bottle with a message: small, drifting down through the twilight with the visitor,
+// tumbling slowly; up and to the left of the angler, clear of the submarine and of the words.
+function bottleAt(p, tanV, aspect, o) {
+  const pc = clampN(p, BOTTLE[0], BOTTLE[1]), u = (pc - BOTTLE[0]) / (BOTTLE[1] - BOTTLE[0]), wide = aspect >= 1, c = camAt(pc, _cA);
+  onScreen(o.c, c, wide ? 5.2 : 4.6, wide ? -0.13 + 0.04 * u : -0.5 + 0.04 * u, wide ? 0.2 - 0.06 * u : -0.5 - 0.04 * u, tanV, aspect);
+  dirOf(o.f, 0.62 * c.R[0] + 0.72 * c.U[0] + 0.3 * c.L[0], 0.72 * c.U[1], 0.62 * c.R[2] + 0.72 * c.U[2] + 0.3 * c.L[2]);
   return o;
 }
 // The turtle over the reef: high in the right of the view, heading left and a little toward
@@ -313,7 +358,8 @@ function reefTurtleAt(p, tanV, aspect, o) {
 // The end: under the waterline, the turtle and the octopus swim to the right across the
 // view, side on, a little toward the visitor; the octopus lower and further right.
 function endingAt(p, tanV, aspect, turtle, octo) {
-  const c = camAt(clampN(p, ENDING[0], ENDING[1]), _cA), wide = aspect >= 1;
+  // (on a phone the view turns a little left at the end, so the pier is in it: app.js)
+  const pc = clampN(p, ENDING[0], ENDING[1]), wide = aspect >= 1, c = camAt(pc, _cA, wide ? 0 : -13 * smooth(7.84, 7.95, pc));
   // (`d` ahead, at nx across the screen, at a depth below the submarine, which stays a metre down)
   const put = (o, d, nx, y) => { inViewAt(o.c, c, 0, nx * d * tanV * aspect, 0); o.c[0] += c.L[0] * d; o.c[1] = y; o.c[2] += c.L[2] * d; };
   put(turtle, wide ? 5.6 : 6.2, wide ? -0.24 : -0.42, wide ? -2.35 : -3.3);
@@ -510,6 +556,8 @@ function fishMaterial() {
       const ring = eyeRing(f.obj, vEye.x, vEye.y, vEye.z, vEye.w).mul(body);
       s.albedo = mix(s.albedo, lin(0.97, 0.95, 0.9).mul(st.h.mul(0.25).add(0.75)), ring);
       bead(s, n0, eye);
+      const vv0 = normalize(cameraPosition.sub(f.w));
+      s.emis = s.emis.add(s.albedo.mul(vec3(0.5, 0.75, 0.8)).mul(max(dot(s.n, vv0), 0.0).mul(0.6).add(0.4)).mul(U.fill));
       // dissolving: what would be seen through the fish is the water beyond it
       const vv = normalize(f.w.sub(cameraPosition));
       const beyond = scatter(vv, float(300.0)).sub(scatter(vv, f.dist)).mul(exp(SIG.mul(f.dist)));
@@ -533,6 +581,8 @@ const KINDS = {
   striped: [['long', 2, 'teal', 'cream', 'teal'], ['long', 2, 'cream', 'teal', 'teal']],
   puffer: [['puffer', 3, 'orange', 'sand', 'sand']],
   kelp: [['round', 1, 'orange', 'yellow', 'yellow'], ['long', 2, 'yellow', 'orange', 'orange'], ['round', 3, 'coral', 'cream', 'yellow']],
+  // (seen from below on the way up: pale bellies)
+  ascent: [['round', 3, 'blue', 'cream', 'yellow'], ['round', 3, 'teal', 'cream', 'coral'], ['long', 3, 'coral', 'cream', 'yellow'], ['round', 3, 'yellow', 'cream', 'orange']],
 };
 
 // The schools, each where the camera looks at p: `ahead` and `side` (metres, along its level
@@ -551,7 +601,7 @@ function groups() {
     S('marina', 0.8, 6.5, 3.4, -0.9, 6, 'pastel', r, -0.2, 0.12, -38, small),
     // the shallows: over the sand, against the bright water
     S('shallows', 1.36, 7, -2.8, 0.6, 7, 'pastel', r, 0.2, 0.15, 42, small),
-    S('shallows', 1.5, 7, 3.6, 0.9, 6, 'pastel', r, -0.3, 0.15, -40, small),
+    S('shallows', 1.5, 10.5, 5.8, -0.9, 6, 'pastel', r, -0.3, 0.15, -40, small),
     S('shallows', 1.64, 7, -2.8, 0.5, 7, 'pastel', r, 0.6, 0.15, 41, small),
     S('shallows', 1.78, 7, 3.6, 1.0, 6, 'pastel', r, -0.6, 0.15, -39, small),
     S('shallows', 1.92, 7, -2.8, 0.6, 7, 'pastel', r, 0.1, 0.15, 43, small),
@@ -563,11 +613,14 @@ function groups() {
     // the reef: yellow ones, teal ones, striped ones, a puffer
     S('reef', 3.34, 7, -2.8, 0.6, 5, 'reefY', r, 0.2, 0.15, 34, [0.42, 0.52], 1.5),
     S('reef', 3.46, 6.5, -2.8, 0.2, 4, 'reefT', r, -0.6, 0.15, -32, small, 1.7),
-    S('reef', 3.6, 7, 3.4, -0.6, 5, 'reefY', r, 0.9, 0.15, 33, [0.42, 0.52], 1.5),
+    S('reef', 3.6, 11, -6.0, -0.2, 5, 'reefY', r, 0.9, 0.15, 33, [0.42, 0.52], 1.5),
     S('reef', 3.7, 5.5, -2.4, 0.1, 1, 'puffer', [0.9, 0.7], 0.0, 0.12, -30, [0.55, 0.55], 1.2),
     S('reef2', 3.8, 6.5, -2.8, 0.4, 4, 'striped', r, 0.4, 0.15, 35, [0.44, 0.52], 1.5),
     S('reef2', 3.9, 7, 3.4, -0.4, 5, 'reefY', r, -0.2, 0.15, -33, [0.42, 0.52], 1.5),
     S('reef2', 4.0, 7, -2.6, 0.3, 4, 'reefT', r, 0.3, 0.15, 32, small, 1.7),
+    // the way back up: overhead as the light comes back, to the left of the submarine
+    S('surface', 7.4, 5.0, -2.6, 6.2, 6, 'ascent', [1.6, 1.3], 0.3, 0.12, 40, small),
+    S('surface', 7.47, 6.0, 1.0, 9.5, 5, 'ascent', [1.6, 1.3], -0.4, 0.12, -38, small),
     // the end: just below the surface again, clear of the turtle, the octopus and the submarine
     S('surface', 7.95, 8.0, -3.0, -2.2, 6, 'pastel', r, 0.0, 0.1, 40, small),
     S('surface', 7.95, 8.5, 2.2, -3.6, 5, 'pastel', [1.6, 1.2], 0.5, 0.1, -38, small),
@@ -601,7 +654,11 @@ function populate(rng, amt, avoid) {
     const n = g.n === 1 ? 1 : Math.max(3, Math.round(g.n * Math.sqrt(amt)));
     const Lm = (g.size[0] + g.size[1]) / 2, form = formation(n, Lm, rng);
     const Rl = Math.max(g.r[0], g.r[1]);
-    // the loop's points, round a middle at `at`
+    // the loop's points, round a middle at `at`; none of it may come near the camera's way or
+    // the cast, go into the ground, or (while the visitor is at the school's moment) swim under
+    // the page's header or its depth label
+    const views = [];
+    for (const pv of [g.p - 0.015, g.p + 0.015]) for (const scr of [SCREENS.wide, SCREENS.tall]) views.push([camAt(pv), scr]);
     const clearOf = (at) => {
       let worst = 1e9;
       for (let k = 0; k < 16; k++) {
@@ -610,16 +667,26 @@ function populate(rng, amt, avoid) {
         worst = Math.min(worst, nearTrack(g.p, 1.2, x, y, z) - form.rad - 1.0, avoid(g.p, x, y, z) - form.rad - g.h);
         if (worst < 0) return worst;
         worst = Math.min(worst, y - form.rad - groundY(x, z) - 0.3);
+        for (const [c, scr] of views) if (onUI(c, scr, x, y, z, form.rad + g.h + Lm * 0.5)) return -100;
       }
       return worst;
     };
-    // step it aside (further out from the middle, and lower) until all of its loop is clear
-    let at = inView(g.p, g.ahead, g.side, g.up), k = 0;
-    for (; k < 40 && clearOf(at) < 0; k++) {
+    // if it is not clear where it was meant to be, step it aside (further out from the middle,
+    // and lower) until all of its loop is clear; at each step, lower again if that is what it takes
+    // to come out from under the header or the depth label
+    let at = inView(g.p, g.ahead, g.side, g.up), k = 0, best = clearOf(at);
+    search: for (; k < 40 && best < 0; k++) {
       const out = 1 + 0.06 * (k + 1), down = (k % 2) * 0.1 * (k + 1) * 0.5;
-      at = inView(g.p, g.ahead + 0.08 * k, g.side * out, g.up - down);
-      const gy = groundY(at[0], at[2]) + form.rad + 0.4;
-      if (at[1] < gy) at[1] = gy;
+      for (const lower of [0, 0.7, 1.4, 2.1, 2.8]) {
+        const a = inView(g.p, g.ahead + 0.08 * k, g.side * out, g.up - down - lower);
+        a[1] = Math.max(a[1], groundY(a[0], a[2]) + form.rad + 0.4);
+        // (if nowhere is quite clear, where it comes nearest; lower only to come out from under
+        // the header or the label)
+        const cl = clearOf(a);
+        if (cl > best + 0.05 * Math.sign(best) || cl >= 0) { at = a; best = cl; }
+        if (cl >= 0) break search;
+        if (cl > -100) break;
+      }
     }
     where.push({ p: g.p, at, steps: k, clear: clearOf(at), rad: form.rad });
     const w = TAU / g.period, phase = rng() * TAU;
@@ -661,8 +728,8 @@ function fishMesh(geo, fish, mat) {
 // way it heads and its own phase; which way is up and its colouring; and how it holds itself:
 // for the octopus, sitting at the desk (1) or swimming (0), and where the letter is, in its
 // own frame). The turtle over the reef, the turtle at the end, the octopus at the wreck, the
-// octopus at the end, the anglerfish.
-const SLOTS = 5;
+// octopus at the end, the anglerfish, the bottle with a message.
+const SLOTS = 6;
 const POSE = uniformArray(Array.from({ length: SLOTS * 4 }, () => new Vector4(0, -1000, 0, 0)), 'vec4');
 const cS = attribute('cS', 'vec4');             // per copy: its slot, its seed, its colouring
 const vA = varyingProperty('vec3', 'v_ca'), vB = varyingProperty('vec3', 'v_cb'), vP = varyingProperty('vec3', 'v_cp'), vK = varyingProperty('vec4', 'v_ck');
@@ -846,12 +913,17 @@ function octopusMaterial() {
       vA.assign(select(isT, toWorld(pl, rg.S), pl.F));
       vB.assign(select(isT, toWorld(pl, T), pl.Up));
       vP.assign(select(isT, vec3(cos(phi).mul(0.06), s.mul(0.46), sin(phi).mul(-0.06)).add(k.mul(1.3)), lp).mul(pl.size));
+      vK.assign(vec4(pl0.look, 0.0, 0.0, 0.0));
     },
     surface: (s, f) => {
       const part = f.aux.w, lp = f.obj, n0 = s.n;
       const A = normalize(vA), B = normalize(vB);
-      const eye = one(part, 4);
-      knit(s, f, { color: lin(0.84, 0.54, 0.66), scale: 30, p: vP, frame: [A, B, cross(A, B)], k: 1.4 });
+      const eye = one(part, 4), look = vK.x;
+      // (the same pink as in the cabin, where the lantern's warm light is on it; in the open
+      // water at the end its yarn is a little warmer and answers the blue-green light more, so
+      // it stays pink there too, not lilac)
+      knit(s, f, { color: mix(lin(0.84, 0.54, 0.66), lin(0.94, 0.5, 0.6), look), scale: 30, p: vP, frame: [A, B, cross(A, B)], k: 1.4 });
+      s.fluor = mix(s.fluor, float(1.25), look);
       // the smile: a short dark arc of stitches under the eyes
       const aa = fwidth(lp.y).add(fwidth(lp.z)).add(1e-4);
       const smile = float(1.0).sub(smoothstep(0.009, aa.add(0.009), abs(lp.y.sub(lp.z.mul(lp.z).mul(3.2).add(0.315))))).mul(step(abs(lp.z), 0.058)).mul(step(0.15, lp.x)).mul(one(part, 0));
@@ -862,48 +934,82 @@ function octopusMaterial() {
   });
 }
 
-// The anglerfish: a round dark body, a wide mouth of white teeth, bead eyes, dark violet fins
-// and tail, and the lure on its stalk, glowing: it is what lights the fish, from in front and
-// round its edge. aux.w: 0 body, 1 fins, 3 stalk, 4 eyes, 6 the lure.
-const LURE = [0.5, 0.26, 0];
+// The anglerfish (z5lit): a round fish of lilac-blue crochet, its rows worked round from the
+// nose; a big bead eye; a wide friendly grin, a pale rolled lip with a little underbite and
+// one small tooth at each corner; purple ruffled fins (a rosette at each side, a crest along
+// the back, a round tail, a small one under the belly); and on a stalk from its forehead a big
+// teal lure, glowing: the only light on it. Half a metre round before it is sized; x forward,
+// y up, its right side +z. aux.w: 0 body, 1 fins, 2 lip, 3 stalk, 4 eyes, 5 teeth, 6 the lure.
+const LURE = [0.55, 0.12, 0], A_EYE = [0.15, 0.09, 0.168, 0.04];
+// The body's radius in a direction (x, y, z of unit length).
+const aBody = (x, y, z) => 1 / Math.hypot(x / (x > 0 ? 0.27 : 0.25), y / (y > 0 ? 0.25 : 0.24), z / 0.23);
+// The grin: where the lip runs round the front of the face, as a direction from the middle at
+// angle a round it (0 the nose, +-A_GRIN the corners); the corners turn up.
+const A_GRIN = 1.2;
+const grinDir = (a) => { const u = a / A_GRIN, y = -0.3 + 0.13 * u * u, l = Math.hypot(Math.cos(a), y, Math.sin(a)); return [Math.cos(a) / l, y / l, Math.sin(a) / l]; };
+// A ruffled fin: a puffed disc (or part of one) whose edge waves in and out of its plane.
+// c its middle, U and V its plane, N out of it; a0..a1 the part of the circle, r(a) the
+// radius that way, `waves` how many ruffles round it, `amp` how deep.
+function ruffle(m, c, U, V, N, a0, a1, r, waves, amp, th, part, cols, rows) {
+  pillow(m, cols, rows, N, part, (s, t, o) => {
+    const a = lerp(a0, a1, s), rr = r(a) * t, ca = Math.cos(a), sa = Math.sin(a);
+    const wv = amp * t * t * Math.sin(a * waves);
+    for (let k = 0; k < 3; k++) o[k] = c[k] + (U[k] * ca + V[k] * sa) * rr + N[k] * wv;
+    o[3] = th * (1 - t * t * 0.8);
+  });
+}
 function anglerShape(lod) {
-  const m = new Mesh(true), res = [6, 8, 10][lod];
-  blob(m, 0, 0, 0, (dx, dy, dz) => 1 / Math.hypot(dx / (dx > 0 ? 0.3 : 0.26), dy / (dy > 0 ? 0.25 : 0.23), dz / 0.22), res, (dx, dy, dz, o) => { o[3] = 0; });
+  const m = new Mesh(true), res = [7, 9, 11][lod], rf = lod ? 1 : 0;
+  blob(m, 0, 0, 0, aBody, res, (dx, dy, dz, o) => { o[0] = dx; o[1] = dy; o[2] = dz; o[3] = 0; });
   for (const side of [1, -1]) {
-    ball(m, 0.17, 0.115, side * 0.16, 0.05, 0.05, 0.05, 3, 4);
-    pillow(m, 4, 3, [0, 0.3, side], 1, (s, t, o) => {
-      const w = 0.17 * Math.sqrt(Math.max(1 - Math.pow(t - 0.1, 2), 0));
-      o[0] = -0.04 - 0.14 * t; o[1] = -0.04 + (s - 0.5) * w + 0.03 * t; o[2] = side * (0.17 + 0.1 * t);
-      o[3] = 0.018 * Math.sqrt(Math.max(4 * s * (1 - s), 0)) * (1 - t * t * 0.8);
-    });
+    const [ex, ey, ez, er] = A_EYE;
+    ball(m, ex, ey, side * ez, er, er, er, 3 + rf, 4);
+    // the rosette at the side, behind the corner of the grin: a round ruffled fin standing out
+    // from the body, facing out and back
+    const d = [-0.1, -0.2, side], l = Math.hypot(...d), rb = aBody(d[0] / l, d[1] / l, d[2] / l) + 0.055;
+    const c = [d[0] / l * rb, d[1] / l * rb, d[2] / l * rb], N = [-0.5, 0, side * 0.87], nl = Math.hypot(...N);
+    ruffle(m, c, [0.87 / nl, 0, 0.5 * side / nl], [0, 1, 0], [N[0] / nl, 0, N[2] / nl], 0, TAU, (a) => 0.1 + 0.01 * Math.sin(a * 2 + 1), 9, 0.016, 0.02, 1, 18 + 4 * rf, 4);
   }
-  // the tail: a fan behind
-  pillow(m, 5, 3, [0, 0, 1], 1, (s, t, o) => {
-    const v = s * 2 - 1;
-    o[0] = -0.22 - 0.2 * t; o[1] = v * (0.05 + 0.15 * Math.pow(t, 0.7)); o[2] = 0;
-    o[3] = 0.022 * Math.sqrt(Math.max(1 - v * v, 0)) * (1 - t * t * 0.8);
+  // the crest along the back, behind the stalk: three ruffled scallops
+  pillow(m, 10 + 6 * rf, 3, [0, 0, 1], 1, (s, t, o) => {
+    const x = lerp(0.04, -0.22, s), y0 = 0.25 * Math.sqrt(Math.max(1 - (x / 0.25) ** 2, 0)) * 0.94;
+    const h = (0.06 + 0.035 * Math.abs(Math.sin(s * Math.PI * 3))) * Math.sin(Math.PI * Math.min(s * 1.15 + 0.06, 1)) ** 0.6;
+    o[0] = x - t * h * 0.35; o[1] = y0 + t * h; o[2] = 0.012 * t * t * Math.sin(s * 19);
+    o[3] = 0.016 * (1 - t * t * 0.8);
   });
-  // a low ragged fin along the back, behind the stalk
-  pillow(m, 4, 2, [0, 0, 1], 1, (s, t, o) => {
-    o[0] = lerp(-0.02, -0.2, s) - t * 0.03; o[1] = 0.2 - 0.06 * s + t * 0.07 * Math.sin(Math.PI * s); o[2] = 0;
-    o[3] = 0.014 * Math.sqrt(Math.max(4 * s * (1 - s), 0)) * (1 - t * t);
-  });
+  // the tail: a round fan, its edge in scallops
+  ruffle(m, [-0.235, 0.0, 0], [-1, 0, 0], [0, 1, 0], [0, 0, 1], -1.25, 1.25, (a) => 0.17 + 0.012 * Math.cos(a * 7), 7, 0.02, 0.02, 1, 12 + 4 * rf, 3);
+  // a small fin under the belly
+  ruffle(m, [0.02, -0.225, 0], [-0.6, -0.8, 0], [0.8, -0.6, 0], [0, 0, 1], -0.9, 0.9, () => 0.07, 5, 0.008, 0.012, 1, 6, 2);
+  // the lip: a rolled cord round the front of the face, and a little tooth at each corner
   {
-    // the stalk: a smooth arc from the forehead, up, over and down to the lure
     const pts = [];
-    for (let i = 0; i <= 10; i++) {
-      const u = i / 10, a = 0.15 + u * 2.55;
-      pts.push([0.31 - Math.cos(a) * 0.19, 0.24 + Math.sin(a) * 0.18 - u * 0.02, 0, 0.018 - 0.008 * u]);
+    for (let i = 0; i <= 16; i++) {
+      const a = lerp(-A_GRIN, A_GRIN, i / 16), [x, y, z] = grinDir(a), r = aBody(x, y, z) * 1.01;
+      pts.push([x * r, y * r, z * r, 0.022 * (1 - 0.4 * Math.abs(a / A_GRIN) ** 3)]);
     }
-    pts[10][0] = LURE[0]; pts[10][1] = LURE[1] + 0.045;
+    tube(m, pts, 5, [0, 0, 2]);
+    for (const side of [1, -1]) {
+      const [x, y, z] = grinDir(side * A_GRIN * 0.86), r = aBody(x, y, z) * 1.02;
+      tube(m, [[x * r, y * r + 0.004, z * r, 0.011], [x * r + 0.004, y * r + 0.03, z * r * 1.02, 0.002]], 4, [0, 0, 5]);
+    }
+  }
+  // the stalk: from the forehead up, over and down to the lure, thinning
+  {
+    const pts = [], B = [[0.07, 0.232], [0.12, 0.52], [0.52, 0.52], [LURE[0], LURE[1] + 0.076]];
+    for (let i = 0; i <= 14; i++) {
+      const u = i / 14, a = (1 - u) ** 3, b = 3 * u * (1 - u) ** 2, c = 3 * u * u * (1 - u), d = u ** 3;
+      pts.push([a * B[0][0] + b * B[1][0] + c * B[2][0] + d * B[3][0], a * B[0][1] + b * B[1][1] + c * B[2][1] + d * B[3][1], 0, 0.021 - 0.01 * u]);
+    }
     tube(m, pts, 5, [0, 0, 3]);
   }
-  ball(m, LURE[0], LURE[1], LURE[2], 0.048, 0.048, 0.048, 3, 6);
+  // the lure: a bulb a little longer than wide
+  ball(m, LURE[0], LURE[1], LURE[2], 0.06, 0.072, 0.06, 4 + rf, 6);
   return m.build();
 }
 // (the lure sways on its stalk: the same turn in both materials)
-const lureSway = (t, phase) => sin(t.mul(0.9).add(phase)).mul(0.14);
-const STALK = vec3(0.13, 0.24, 0.0);
+const lureSway = (t, phase) => sin(t.mul(0.9).add(phase)).mul(0.12);
+const STALK = vec3(0.07, 0.232, 0.0);
 const LURE_COL = lin(0.55, 1.0, 0.92);
 // (and nothing glowing is drawn beyond about 44 m: it fades out before it is switched off)
 const far = (d, a, b) => float(1.0).sub(smoothstep(a, b, d));
@@ -913,43 +1019,56 @@ function anglerMaterial() {
     vertex: (v) => {
       const t = G.time, lp = v.P.toVar(), ln = v.N.toVar(), part = v.aux.w;
       const pl0 = placed(vec3(0.0), vec3(1.0, 0.0, 0.0));
-      const w = t.mul(TAU * 0.6).add(pl0.phase);
-      // the tail wags, the fins flutter, the lure sways on its stalk
-      const at = sin(w).mul(0.3).mul(float(1.0).sub(smoothstep(-0.3, -0.2, lp.x)).mul(one(part, 1)));
+      const w = t.mul(TAU * 0.5).add(pl0.phase);
+      const fin = one(part, 1);
+      // the tail wags; the rosettes fan slowly; the crest ripples; the lure sways on its stalk
+      const at = sin(w).mul(0.28).mul(float(1.0).sub(smoothstep(-0.25, -0.2, lp.x))).mul(fin);
       const q0 = turn(lp, vec3(-0.22, 0.0, 0.0), 'y', at), n0 = turnN(ln, 'y', at);
-      const af = sin(w.mul(1.3)).mul(0.3).mul(one(part, 1).mul(step(0.12, abs(lp.z)))).mul(sign(lp.z));
-      const q1 = turn(q0, vec3(0.0, 0.0, lp.z.mul(0.9)), 'x', af), n1 = turnN(n0, 'x', af);
+      const ros = fin.mul(step(0.15, abs(lp.z))).mul(step(lp.y, 0.1));
+      const af = sin(w.mul(1.4).add(1.0)).mul(0.35).mul(ros).mul(sign(lp.z));
+      const q1 = turn(q0, vec3(-0.1, 0.0, lp.z.mul(0.85)), 'y', af), n1 = turnN(n0, 'y', af);
       const sway = lureSway(t, pl0.phase), al = sway.mul(one(part, 3).add(one(part, 6)));
       const pl = placed(turn(q1, STALK, 'z', al), turnN(n1, 'z', al));
       v.P.assign(pl.P); v.N.assign(pl.N);
       vA.assign(pl.F); vB.assign(pl.Up); vP.assign(lp.mul(pl.size));
       vL.assign(placed(turn(vec3(LURE[0], LURE[1], LURE[2]), STALK, 'z', sway), vec3(1.0, 0.0, 0.0)).P);
+      vK.assign(vec4(pl.size, 0.0, 0.0, 0.0));
     },
     surface: (s, f) => {
-      const part = f.aux.w, lp = f.obj, n0 = s.n, F = normalize(vA), Up = normalize(vB);
-      const fins = one(part, 1), stalk = one(part, 3), eye = one(part, 4), lure = one(part, 6);
-      knit(s, f, { color: mix(mix(lin(0.26, 0.3, 0.42), lin(0.56, 0.3, 0.66), fins), lin(0.3, 0.27, 0.38), stalk), scale: 30, p: vP, frame: [F, Up, cross(F, Up)], k: 1.3 });
-      // the mouth: a wide dark grin from the front back along each side, with a row of white teeth
-      const aa = fwidth(lp.y).add(fwidth(lp.x)).add(1e-4);
-      const front = smoothstep(0.02, 0.1, lp.x).mul(one(part, 0));
-      const lipY = lp.x.sub(0.3).mul(lp.x.sub(0.3)).mul(-1.2).add(lp.z.mul(lp.z).mul(0.6)).sub(0.045);
-      const gap = float(1.0).sub(smoothstep(0.022, aa.add(0.026), abs(lp.y.sub(lipY)))).mul(front);
-      const tooth = abs(fract(lp.x.mul(22.0).add(lp.z.mul(14.0))).sub(0.5)).mul(2.0);
-      const teeth = float(1.0).sub(smoothstep(0.0, aa.mul(2.0).add(0.004), lp.y.sub(lipY).add(0.016).sub(tooth.mul(0.024)))).mul(front);
-      s.albedo = mix(mix(s.albedo, vec3(0.003, 0.001, 0.004), gap), lin(0.95, 0.94, 0.9), teeth.mul(gap));
+      const part = f.aux.w, lp = f.obj, n0 = s.n, F = normalize(vA), Up = normalize(vB), R = cross(F, Up);
+      const body = one(part, 0), fins = one(part, 1), lip = one(part, 2), stalk = one(part, 3), eye = one(part, 4), teeth = one(part, 5), lure = one(part, 6);
+      // the fins a warm purple, deepening toward their edges; the lip and the teeth pale
+      const edge = smoothstep(0.1, 0.3, length(lp.sub(vec3(0.0, 0.0, 0.0))));
+      // (the rosettes at its sides magenta, worked round and round from the middle)
+      const ros = fins.mul(step(0.15, abs(lp.z))).mul(step(lp.y, 0.1));
+      const rr = length(lp.sub(vec3(-0.026, -0.052, sign(lp.z).mul(0.259))));
+      const rows = smoothstep(0.25, 0.5, abs(fract(rr.mul(46.0)).sub(0.5))).mul(0.3).add(0.7);
+      const finCol = mix(mix(lin(0.64, 0.44, 0.8), lin(0.72, 0.34, 0.72), edge), lin(0.8, 0.36, 0.7).mul(rows), ros);
+      const col = mix(mix(mix(lin(0.64, 0.62, 0.8), finCol, fins), lin(0.66, 0.6, 0.84), stalk), lin(0.86, 0.85, 0.88), max(lip, teeth));
+      // (rows round the body from the nose back; along the cords)
+      knit(s, f, { color: col, scale: 46, p: vec3(vP.y, vP.x, vP.z), frame: [Up, F, R], k: 1.3, fuzz: 1.4 });
+      // the mouth: a dark gap just above the lip, widest at the nose, closing at the corners
+      const dn = normalize(lp), ang = atan(dn.z, dn.x), u = ang.div(A_GRIN);
+      const y0 = u.mul(u).mul(0.13).sub(0.3), yl = y0.div(sqrt(y0.mul(y0).add(1.0)));
+      const open = max(float(0.15).mul(float(1.0).sub(u.mul(u))), 0.0);
+      const aa = fwidth(dn.y).add(1e-4);
+      const gap = smoothstep(yl.sub(aa), yl.add(aa.mul(2.0)), dn.y).mul(float(1.0).sub(smoothstep(yl.add(open).sub(aa), yl.add(open).add(aa), dn.y)))
+        .mul(step(abs(u), 1.0)).mul(step(0.0, dn.x)).mul(body);
+      s.albedo = mix(s.albedo, lin(0.12, 0.05, 0.16), gap);
       bead(s, n0, eye);
-      glint(s, lp, 0.17, 0.115, 0.16, 0.05, eye);
-      // the lure's light on it: on what faces it, and in a rim round its edge
-      const toL = vL.sub(f.w), dl = length(toL), ld = toL.div(dl);
-      const facing = max(dot(s.n, ld).add(0.1), 0.0).div(1.1);
+      glint(s, lp, A_EYE[0], A_EYE[1], A_EYE[2], A_EYE[3], eye);
+      // the lure's light on it: on what faces the lure, falling off with distance; a little
+      // round its edge; and a dim light of its own colour from the eye's side, so its round
+      // shape reads against the dark water (as the pictures have it)
+      const toL = vL.sub(f.w), dl = length(toL), ld = toL.div(dl), size = vK.x;
+      const facing = max(dot(s.n, ld).add(0.25), 0.0).div(1.25);
       const vv = normalize(cameraPosition.sub(f.w)), rim = pow(float(1.0).sub(abs(dot(s.n, vv))), 2.5);
-      const lit = facing.mul(facing).mul(float(1.4).div(dl.mul(dl).mul(14.0).add(1.0))).add(0.02);
+      const lit = facing.mul(facing).mul(float(2.2).div(dl.div(size).mul(dl.div(size)).mul(5.0).add(1.0)));
+      const fill = max(dot(s.n, normalize(vv.add(Up.mul(0.6)))), 0.0).mul(0.2).add(0.07).add(fins.mul(0.08));
       const fade = far(f.dist, 34.0, 48.0);
-      // (the lit side as the lure's light on its dark wool; the rim a glow of its own, so the
-      // outline reads against the dark water and the rock)
-      s.emis = s.emis.add(s.albedo.mul(2.6).add(0.01).mul(lit).add(rim.mul(pow(facing, 0.8)).mul(0.16)).mul(LURE_COL).mul(float(1.0).sub(lure)).mul(fade));
-      s.albedo = mix(s.albedo, lin(0.7, 1.0, 0.95), lure);
-      s.emis = s.emis.add(LURE_COL.mul(lure).mul(5.0).mul(fade));
+      s.emis = s.emis.add(s.albedo.mul(LURE_COL.mul(lit).add(vec3(0.75, 0.8, 1.0).mul(fill))).add(LURE_COL.mul(rim.mul(facing).mul(0.05))).mul(float(1.0).sub(lure)).mul(fade));
+      s.albedo = mix(s.albedo, lin(0.5, 0.95, 0.88), lure);
+      s.emis = s.emis.add(LURE_COL.mul(lure).mul(s.albedo.g.mul(0.5).add(0.75)).mul(fade));
     },
   });
 }
@@ -962,14 +1081,80 @@ function lureGlowMaterial() {
       const pl0 = placed(vec3(0.0), vec3(1.0, 0.0, 0.0));
       const at = placed(turn(vec3(LURE[0], LURE[1], LURE[2]), STALK, 'z', lureSway(t, pl0.phase)), vec3(1.0, 0.0, 0.0));
       const d = length(at.P.sub(cameraPosition));
-      v.P.assign(at.P.add(U.right.mul(c0.x).add(U.up.mul(c0.y)).mul(at.size.mul(0.4))));
+      v.P.assign(at.P.add(U.right.mul(c0.x).add(U.up.mul(c0.y)).mul(at.size.mul(0.42))));
       v.aux.assign(vec4(c0, 0.0, 0.0));
       vK.assign(vec4(exp(SIG.mul(d).negate()).mul(smoothstep(0.4, 1.2, d)).mul(far(d, 34.0, 48.0)), 0.0));
     },
     raw: (f) => {
       const r2 = dot(f.aux.xy, f.aux.xy);
-      const m = exp(r2.mul(-5.0)).mul(float(1.0).sub(smoothstep(0.55, 1.0, r2)));
-      return { color: lin(0.35, 1.0, 0.9).mul(m).mul(0.85).mul(vK.rgb), alpha: float(1.0) };
+      const m = exp(r2.mul(-6.0)).mul(0.8).add(exp(r2.mul(-26.0)).mul(0.9)).mul(float(1.0).sub(smoothstep(0.55, 1.0, r2)));
+      return { color: lin(0.35, 1.0, 0.9).mul(m).mul(0.55).mul(vK.rgb), alpha: float(1.0) };
+    },
+  });
+}
+
+// ---- the bottle with a message ------------------------------------------------------------
+
+// A small glass bottle, corked, with a rolled letter inside tied with a string (z5lit): the
+// glass is its own see-through shape, the rest one solid. Real size (about 37 cm long), the
+// neck toward +x. aux.w: 1 cork, 2 paper, 3 string.
+const BOTTLE_PROFILE = [[-0.165, 0], [-0.165, 0.044], [-0.16, 0.054], [0.085, 0.056], [0.11, 0.048], [0.128, 0.032], [0.136, 0.025], [0.17, 0.025], [0.173, 0.03], [0.184, 0.03], [0.187, 0.025]];
+function bottleShape(lod) {
+  const glass = new Mesh(true), inside = new Mesh(true), n = [10, 14, 18][lod], P = BOTTLE_PROFILE;
+  const i0 = glass.i.length, b0 = glass.count;
+  glass.grid(n, P.length - 1, (s, t, o) => {
+    const [x, r] = P[Math.round(t * (P.length - 1))], a = s * TAU;
+    o[0] = x; o[1] = Math.cos(a) * r; o[2] = Math.sin(a) * r;
+  }, true);
+  orient(glass, i0, b0, (x, y, z) => [x < -0.16 ? -1 : 0, y, z]);
+  // the cork, the rolled letter lying against the glass, and its string
+  tube(inside, [[0.162, 0, 0, 0.0225], [0.19, 0, 0, 0.023], [0.208, 0, 0, 0.0215]], [6, 8, 10][lod], [0, 0, 1]);
+  for (let k = 0; k < inside.a.length; k += 4) inside.a[k + 3] = 1;
+  const p0 = inside.count;
+  tube(inside, [[-0.14, -0.014, 0.004, 0.034], [-0.03, -0.012, 0.0, 0.035], [0.075, -0.01, -0.004, 0.033]], [8, 10, 12][lod], [0, 0, 2]);
+  for (let v = p0; v < inside.count; v++) inside.a[v * 4 + 3] = 2;
+  const s0 = inside.count, ring = [];
+  for (let i = 0; i <= 12; i++) { const a = (i / 12) * TAU; ring.push([-0.035, -0.012 + Math.cos(a) * 0.0365, Math.sin(a) * 0.0365, 0.0035]); }
+  tube(inside, ring, 4, [0, 0, 3]);
+  for (let v = s0; v < inside.count; v++) inside.a[v * 4 + 3] = 3;
+  return { glass: glass.build(), inside: inside.build() };
+}
+// Placed in its slot; vK.x how much of it the water leaves from here.
+function bottleVertex(v) {
+  const lp = v.P.toVar(), pl = placed(lp, v.N);
+  v.P.assign(pl.P); v.N.assign(pl.N);
+  vA.assign(pl.F); vB.assign(pl.Up); vP.assign(lp.mul(3.0));
+  const d = length(pl.P.sub(cameraPosition));
+  vK.assign(vec4(far(d, 26.0, 40.0), 0.0, 0.0, 0.0));
+}
+function bottleInsideMaterial() {
+  return material({
+    aux: true, shadow: false,
+    vertex: bottleVertex,
+    surface: (s, f) => {
+      const part = f.aux.w, F = normalize(vA), Up = normalize(vB);
+      const cork = one(part, 1), string = one(part, 3);
+      const col = mix(mix(lin(0.93, 0.87, 0.74), lin(0.7, 0.52, 0.34), cork), lin(0.78, 0.56, 0.3), string);
+      knit(s, f, { color: col, scale: 30, p: vP, frame: [Up, F, cross(F, Up)], k: 0.5, fuzz: 0.4 });
+      s.fluor = float(0.2);
+      // (the twilight's own dim light on it: the jellies' and the lure's, from the eye's side)
+      const vv = normalize(cameraPosition.sub(f.w));
+      s.emis = s.emis.add(s.albedo.mul(max(dot(s.n, vv), 0.0).mul(0.16).add(0.07)).mul(vec3(0.9, 0.95, 1.0)).mul(vK.x));
+    },
+  });
+}
+function bottleGlassMaterial() {
+  return material({
+    transparent: true, twoSided: true, shadow: false,
+    vertex: bottleVertex,
+    raw: (f) => {
+      // glass: clear where it is seen straight through, catching the light at its edges, and a
+      // long bright streak down its side and a glint where its curve faces a light above
+      const vv = normalize(cameraPosition.sub(f.w)), n = f.n, rim = pow(float(1.0).sub(abs(dot(n, vv))), 2.0);
+      const L = normalize(U.up.mul(0.8).add(vv.mul(0.5)).sub(U.right.mul(0.35)));
+      const hl = pow(max(dot(normalize(vv.add(L)), n), 0.0), 60.0);
+      const k = vK.x;
+      return { color: vec3(0.55, 0.85, 0.9).mul(rim.mul(0.35).add(0.02)).add(vec3(1.0).mul(hl.mul(1.6))).mul(k), alpha: min(rim.mul(0.55).add(0.06).add(hl), 1.0).mul(k) };
     },
   });
 }
@@ -1046,9 +1231,10 @@ const vJ0 = varyingProperty('vec4', 'v_j0'), vJ1 = varyingProperty('vec4', 'v_j1
 const TEAL = lin(0.25, 1.0, 0.88), PINK = lin(1.0, 0.36, 0.78);
 const glowOf = (k) => mix(TEAL, PINK, k);
 // How long a jelly hangs below its bell's middle, and how far its tentacles may sway, in radii;
-// how far it keeps from the submarine (beyond the submarine's own keep-clear radius: about the
-// submarine's length) and from Snap. (jellySpots places them by the same numbers.)
-const J_DRIFT = 0.25, J_SUB = 1.9, J_SNAP = 0.6;
+// how far it keeps from the submarine (beyond the submarine's own keep-clear radius: about half
+// the submarine's length) and from Snap. (jellySpots places them a little nearer than that, so
+// as the submarine sinks among them they drift aside from it, gently.)
+const J_DRIFT = 0.25, J_SUB = 1.25, J_SNAP = 0.6;
 const jLow = (R, Lt) => R * (0.75 + Lt);
 
 // How squeezed the bell is at time t: 0 at rest, 1 squeezed; a soft stroke, a slow refill.
@@ -1069,9 +1255,10 @@ function jellyAt(t) {
 // What the water leaves of a jelly's light, from here.
 const jellyKeep = (c, fade) => { const d = length(c.sub(cameraPosition)); return exp(SIG.mul(d).negate()).mul(fade).mul(smoothstep(0.5, 1.6, d)).mul(far(d, 32.0, 44.0)); };
 
-// The bell: a crocheted dome in two colours of stripes, a rolled rim of glowing yarn; it
-// squeezes from the rim and the light inside it brightens as it does. aux = (from the top
-// 0 to the rim 1 and past it round the rolled edge, round 0..1).
+// The bell: a crocheted dome in two colours of stripes and a rolled rim. The light is inside
+// it: its lower rows glow through the yarn, brighter as it squeezes, a ring of glowing beads
+// shows through just above the rim, and seen from below the inside of the dome is lit. aux =
+// (from the top 0 to the rim 1 and past it round the rolled edge, round 0..1).
 function bellShape(lod) {
   const m = new Mesh(true), nb = [6, 8, 10][lod], na = [14, 18, 24][lod];
   const prof = [];
@@ -1087,7 +1274,7 @@ function bellShape(lod) {
 }
 function bellMaterial() {
   return material({
-    aux: true, twoSided: true, shadow: false,
+    aux: true, twoSided: true, shadow: false, fade: [30, 44],
     vertex: (v) => {
       const t = G.time, R = jA.w, J = jellyAt(t), con = pulse(t);
       const lp = v.P.toVar(), ln = v.N.toVar(), tb = v.aux.x;
@@ -1103,123 +1290,186 @@ function bellMaterial() {
     surface: (s, f) => {
       const tb = f.aux.x, glow = glowOf(vJ2.w), keep = vJ0.rgb, con = vJ0.w;
       knit(s, f, { color: vJ1.rgb, color2: vJ2.rgb, stripe: 2, scale: 34, p: vP, frame: [vec3(1.0, 0.0, 0.0), UP, vec3(0.0, 0.0, 1.0)], k: 1.3 });
-      // the rim is glowing yarn; the dome glows faintly from inside, more as it squeezes
+      // (which side is seen: the outside of the dome, or its inside, from below)
+      const vv = normalize(cameraPosition.sub(f.w)), inside = step(dot(normalize(vNrm), vv), 0.0);
       const rim = smoothstep(0.97, 1.03, tb);
-      const inside = float(0.18).add(con.mul(0.25)).mul(float(1.0).sub(rim));
-      s.emis = s.emis.add(glow.mul(rim.mul(2.2).add(inside.mul(s.albedo.g.add(0.3)))).mul(vJ1.w).mul(keep.mul(0.5).add(0.5)));
+      // a ring of glowing beads under the yarn, a little above the rim
+      const cell = vec2(fract(f.aux.y.mul(18.0)).sub(0.5), tb.sub(0.84).mul(6.0));
+      const beads = float(1.0).sub(smoothstep(0.18, 0.34, length(cell))).mul(float(1.0).sub(inside));
+      const through = smoothstep(0.35, 1.0, tb).mul(0.45).add(0.06).add(con.mul(0.3));
+      const lightIn = through.mul(float(1.0).sub(inside)).add(inside.mul(float(1.1).add(con.mul(0.4)))).add(rim.mul(0.6));
+      const k = vJ1.w.mul(keep.mul(0.65).add(0.35));
+      s.emis = s.emis.add(s.albedo.mul(glow.mul(0.7).add(0.35)).mul(lightIn).add(glow.mul(beads).mul(1.1)).mul(k));
     },
   });
 }
-// Its tentacles: cords of glowing yarn hanging from under the rim, and three arms in tight
-// corkscrew curls from the middle, each point following the bell as it was a moment before,
-// so the pulse runs down them. (aux.z: where round the bell; aux.w: 0 a cord, 1 a curl, plus
-// half its length.)
+// Its tentacles: many thin strands of yarn, each its own colour (teal, lilac, pink), hanging
+// from under the rim; and from the middle a few pink oral arms in tight corkscrew curls. Each
+// point follows the bell as it was a moment before, so the pulse runs down them. They are lit
+// by the bell's light, most near it. aux = (along, round, where round the bell 0..1, kind: 0 a
+// strand, 1 an arm, plus half its length 0.3..0.5).
+const J_STRANDS = [9, 13, 18], J_ARMS = [3, 3, 4];
 function tentacleShape(lod) {
-  const m = new Mesh(true), ns = [10, 14, 18][lod], nside = [4, 5, 6][lod], rng = makeRng(31), nc = [5, 6, 7][lod];
-  tubes(m, nc, ns, nside, () => rng.range(0.6, 1.0) * 0.5);
+  const m = new Mesh(true), rng = makeRng(31), ns = [9, 12, 15][lod], nside = [3, 4, 4][lod], na = [26, 34, 44][lod];
+  const n = J_STRANDS[lod], nArm = J_ARMS[lod];
+  tubes(m, n, ns, nside, () => rng.range(0.6, 1.0) * 0.5);
   const first = m.count;
-  tubes(m, 3, ns * 2, nside, () => 1 + rng.range(0.7, 1.0) * 0.5);
-  for (let v = 0; v < m.count; v++) m.a[v * 4 + 2] = v < first ? (m.a[v * 4 + 2] + 0.5) / nc : (m.a[v * 4 + 2] + 0.3) / 3;
+  tubes(m, nArm, na, 5, () => 1 + rng.range(0.75, 1.0) * 0.5);
+  for (let v = 0; v < m.count; v++) m.a[v * 4 + 2] = v < first ? (m.a[v * 4 + 2] + 0.5) / n : (m.a[v * 4 + 2] + 0.3) / nArm;
   return m.build();
 }
+// (a strand's own numbers from where round the bell it hangs: how far out under the rim, its colour)
+const hashJ = (x, k) => fract(sin(x.mul(k)).mul(43758.5453));
 function tentacleMaterial() {
   return material({
-    aux: true, shadow: false,
+    aux: true, shadow: false, fade: [30, 44],
     vertex: (v) => {
       const t = G.time, R = jA.w, J = jellyAt(t);
-      const s = v.aux.x, phi = v.aux.y.mul(TAU), ang = v.aux.z.mul(TAU), curly = step(1.0, v.aux.w), lf = fract(v.aux.w).mul(2.0);
+      const s = v.aux.x, phi = v.aux.y.mul(TAU), w = v.aux.z, ang = w.mul(TAU).add(hashJ(w.add(jB.x), 91.7).mul(0.5)), arm = step(1.0, v.aux.w), lf = fract(v.aux.w).mul(2.0);
       const conL = pulse(t.sub(s.mul(0.9)));
-      const len = R.mul(jB.w).mul(lf).mul(mix(float(1.0), float(0.6), curly)).toVar();
+      const len = R.mul(jB.w).mul(lf).mul(mix(float(1.0), float(0.62), arm)).toVar();
       const out = vec3(cos(ang), 0.0, sin(ang)), tang = vec3(sin(ang).negate(), 0.0, cos(ang));
+      const rOut = mix(hashJ(w.add(jB.x), 37.3).mul(0.32).add(0.55), float(0.2), arm);
       const at = (ss) => {
-        const sway = vec3(sin(t.mul(0.6).add(ss.mul(3.2)).add(ang.mul(2.0)).add(jB.x.mul(9.0))), 0.0, cos(t.mul(0.5).add(ss.mul(2.7)).add(ang.mul(1.7)).add(jB.x.mul(5.0)))).mul(ss.mul(ss).mul(len).mul(0.2));
-        // a cord hangs from under the rim, drawn in a little as the bell squeezes
-        const cord = out.mul(R.mul(float(0.8).sub(conL.mul(0.12))).mul(float(1.0).sub(ss.mul(0.25))));
-        // a curl winds round a line that hangs from near the middle
-        const th = ss.mul(len).div(R.mul(0.11)).add(t.mul(0.6));
-        const coil = out.mul(R.mul(0.22)).add(vec3(cos(th), 0.0, sin(th)).mul(R.mul(0.09)));
-        return J.c.add(mix(cord, coil, curly)).add(vec3(0.0, R.mul(-0.7).sub(ss.mul(len).mul(float(1.0).sub(conL.mul(0.08)))), 0.0)).add(sway);
+        // each strand sways on its own, more toward its end, and drifts a little out from under the bell
+        const ph = t.mul(0.55).add(ss.mul(3.4)).add(ang.mul(2.0)).add(jB.x.mul(9.0)).add(w.mul(17.0));
+        const sway = vec3(sin(ph), 0.0, cos(ph.mul(0.83).add(1.3))).mul(ss.mul(ss).mul(len).mul(0.2)).add(out.mul(ss.mul(len).mul(0.12)))
+          .add(vec3(sin(ss.mul(9.0).add(ang.mul(3.0)).add(t.mul(0.8))), 0.0, cos(ss.mul(8.0).add(ang.mul(2.0)).add(t.mul(0.7)))).mul(R.mul(0.07).mul(ss)));
+        // a strand hangs from under the rim, drawn in a little as the bell squeezes
+        const cord = out.mul(R.mul(rOut.mul(float(1.0).sub(conL.mul(0.12)))).mul(float(1.0).sub(ss.mul(0.2))));
+        // an arm winds tightly round a line that hangs from near the middle
+        const th = ss.mul(len).div(R.mul(0.075)).add(t.mul(0.7)).add(w.mul(9.0));
+        const coil = out.mul(R.mul(0.2)).add(vec3(cos(th), 0.0, sin(th)).mul(R.mul(0.075)));
+        return J.c.add(mix(cord, coil, arm)).add(vec3(0.0, R.mul(-0.68).sub(ss.mul(len).mul(float(1.0).sub(conL.mul(0.08)))), 0.0)).add(sway);
       };
       const C0 = at(s).toVar(), T = normalize(at(s.add(0.01)).sub(C0)).toVar();
-      const r = R.mul(mix(float(0.075), float(0.06), curly)).mul(float(1.0).sub(s.mul(0.35))).mul(sqrt(min(float(1.0).sub(s).mul(25.0), 1.0)));
+      const r = R.mul(mix(float(0.024), float(0.052), arm)).mul(float(1.0).sub(s.mul(0.3))).mul(sqrt(min(float(1.0).sub(s).mul(30.0), 1.0)));
       const rg = ringAt(C0, T, tang, phi, r);
       v.P.assign(rg.p); v.N.assign(rg.n);
       vJ0.assign(vec4(jellyKeep(J.c, J.fade), s));
       vJ1.assign(jC); vJ2.assign(jD);
       vA.assign(rg.S); vB.assign(T);
-      vP.assign(vec3(cos(phi).mul(0.03), s.mul(len), sin(phi).mul(-0.03)).add(v.aux.z.mul(7.0)));
+      vP.assign(vec3(cos(phi).mul(0.02), s.mul(len), sin(phi).mul(-0.02)).add(w.mul(7.0)));
     },
     surface: (s, f) => {
-      const A = normalize(vA), B = normalize(vB);
-      // each strand in one of the two glows; the glowing yarn is bright all along
-      const glow = glowOf(step(0.5, fract(f.aux.z.mul(3.7).add(vJ2.w))));
-      knit(s, f, { color: mix(glow, vJ2.rgb, 0.35), scale: 40, p: vP, frame: [A, B, cross(A, B)], k: 1.1 });
-      s.emis = s.emis.add(glow.mul(float(1.5).sub(vJ0.w.mul(0.6))).mul(vJ1.w).mul(vJ0.rgb.mul(0.5).add(0.5)));
+      const A = normalize(vA), B = normalize(vB), along = vJ0.w, arm = step(1.0, f.aux.w);
+      const glow = glowOf(vJ2.w);
+      // the strands' yarns: teal, lilac, pink, a pale periwinkle; the arms pink
+      const pick = hashJ(f.aux.z.add(vJ2.w.mul(0.37)), 57.1);
+      const strand = mix(mix(lin(0.36, 0.84, 0.84), lin(0.7, 0.62, 0.92), step(0.3, pick)), mix(lin(0.93, 0.44, 0.74), lin(0.6, 0.7, 0.95), step(0.82, pick)), step(0.55, pick));
+      const col = mix(strand, lin(0.9, 0.36, 0.64), arm);
+      knit(s, f, { color: col, scale: 60, p: vP, frame: [A, B, cross(A, B)], k: 1.2 });
+      // the bell's light on the yarn, strongest near it; a little of the yarn's own glow; the
+      // teal ones glow most
+      const near = exp(along.mul(-2.6)), teal = float(1.0).sub(step(0.3, pick)).mul(float(1.0).sub(arm));
+      const lit = glow.mul(near.mul(1.3)).add(0.3).add(teal.mul(0.35)).mul(vJ1.w).mul(vJ0.rgb.mul(0.65).add(0.35));
+      s.emis = s.emis.add(s.albedo.mul(lit));
     },
   });
 }
-// The haze of light round each jelly.
+// The haze of light round each jelly, from inside its bell.
 function haloMaterial() {
   return material({
     additive: true,
     vertex: (v) => {
       const J = jellyAt(G.time), c0 = v.P.xy.toVar();
-      v.P.assign(J.c.sub(vec3(0.0, jA.w.mul(0.9), 0.0)).add(U.right.mul(c0.x).add(U.up.mul(c0.y)).mul(jA.w.mul(3.2))));
+      v.P.assign(J.c.sub(vec3(0.0, jA.w.mul(0.55), 0.0)).add(U.right.mul(c0.x).add(U.up.mul(c0.y)).mul(jA.w.mul(2.6))));
       v.aux.assign(vec4(c0, 0.0, 0.0));
       vJ0.assign(vec4(jellyKeep(J.c, J.fade), 0.0));
       vJ2.assign(jD); vJ1.assign(jC);
     },
     raw: (f) => {
       const r2 = dot(f.aux.xy, f.aux.xy);
-      const m = exp(r2.mul(-3.0)).mul(float(1.0).sub(smoothstep(0.5, 1.0, r2)));
-      return { color: glowOf(vJ2.w).mul(m).mul(0.07).mul(vJ1.w).mul(vJ0.rgb), alpha: float(1.0) };
+      const m = exp(r2.mul(-4.0)).mul(float(1.0).sub(smoothstep(0.5, 1.0, r2)));
+      return { color: glowOf(vJ2.w).mul(m).mul(0.06).mul(vJ1.w).mul(vJ0.rgb), alpha: float(1.0) };
     },
   });
 }
 
-// The siphonophore: a long glowing teal cord, and round it a cord of pink and teal loops
-// coiled like a spring, along a line that sways and arches. Built in the shader: aux = (along
-// 0..1, round 0..1, -, 1 the middle cord or 0 the loops). Where it is comes in every frame (SI).
-const SI = { c: uniform(new Vector3(0, -1000, 0)), d: uniform(new Vector3(1, 0, 0)), n: uniform(new Vector3(0, 0, 1)), len: uniform(14), k: uniform(1) };
-function siphonoMaterial() {
-  const turns = 84, rh = SI.k.mul(0.2), rc = SI.k.mul(0.052), rCore = SI.k.mul(0.06);
+// The siphonophore (z5lit): a glowing teal core, beaded as if strung, and all along it loops
+// of crocheted cord, uneven in size and lean, sticking out above it in teal and periwinkle and
+// below it in pink and magenta, a lilac one here and there; at each end its free cords curl.
+// The core lights the loops from inside: they glow where they meet it. Built in the shader,
+// along a line that sways and arches: aux = (along 0..1, round 0..1, which, kind: 1 the core,
+// 0 a loop, 2 a curl). Where it is comes in every frame (SI).
+const SI = { c: uniform(new Vector3(0, -1000, 0)), d: uniform(new Vector3(1, 0, 0)), n: uniform(new Vector3(0, 0, 1)), len: uniform(14), k: uniform(1), show: uniform(1) };
+const S_LOOPS = [44, 60, 76], S_CURLS = 8;
+function siphonoShape(lod) {
+  const m = new Mesh(true);
+  tubes(m, 1, [70, 100, 130][lod], 6, () => 1);
+  tubes(m, S_LOOPS[lod], [10, 13, 16][lod], 4, () => 0);
+  tubes(m, S_CURLS, [16, 20, 24][lod], 4, () => 2);
+  return m.build();
+}
+function siphonoMaterial(lod) {
+  const nL = S_LOOPS[lod], rc = SI.k.mul(0.04), rCore = SI.k.mul(0.095);
+  const h1 = (x) => fract(sin(x.mul(12.9898).add(4.1)).mul(43758.5453)), h2 = (x) => fract(sin(x.mul(78.233).add(1.7)).mul(24634.6345));
   return material({
-    aux: true, shadow: false,
+    aux: true, shadow: false, fade: [40, 54],
     vertex: (v) => {
-      const t = G.time, s = v.aux.x, phi = v.aux.y.mul(TAU), core = v.aux.w;
-      const len = SI.len, D = SI.d, N2 = SI.n, N1 = normalize(cross(N2, D));
-      const spine = (ss) => SI.c.add(D.mul(ss.sub(0.5).mul(len))).add(N1.mul(sin(ss.mul(TAU * 1.1).sub(t.mul(0.21))).mul(SI.k.mul(0.32))))
-        .add(N2.mul(sin(ss.mul(TAU * 0.7).add(t.mul(0.17)).add(1.3)).mul(SI.k.mul(0.6)))).add(vec3(0.0, sin(ss.mul(Math.PI)).mul(SI.k.mul(0.55)), 0.0));
-      const S0 = spine(s).toVar(), Ts = normalize(spine(s.add(0.002)).sub(S0)).toVar();
-      // (the loops a little uneven, and flatter seen side on, as crochet loops are)
-      const coil = (ss, S, T) => {
-        const n1 = normalize(cross(T, N2)), n2 = cross(T, n1);
-        const th = ss.mul(TAU * turns).add(t.mul(0.5)), big = sin(ss.mul(TAU * 9.0)).mul(0.18).add(sin(ss.mul(TAU * 23.0)).mul(0.1)).add(1.0);
-        return S.add(n1.mul(cos(th)).add(n2.mul(sin(th).mul(0.8))).mul(rh.mul(big)));
+      const t = G.time, s = v.aux.x, phi = v.aux.y.mul(TAU), k = v.aux.z, kind = v.aux.w;
+      const len = SI.len, D = SI.d, N2 = SI.n, N1 = normalize(cross(N2, D)).toVar();
+      const spine = (ss) => SI.c.add(D.mul(ss.sub(0.5).mul(len))).add(N1.mul(sin(ss.mul(TAU * 1.1).sub(t.mul(0.21))).mul(SI.k.mul(0.3))))
+        .add(N2.mul(sin(ss.mul(TAU * 0.7).add(t.mul(0.17)).add(1.3)).mul(SI.k.mul(0.6)))).add(vec3(0.0, sin(ss.mul(Math.PI)).mul(SI.k.mul(0.5)), 0.0));
+      const isCore = one(kind, 1), isCurl = one(kind, 2);
+      // a loop: where along the core it hangs, which way it leans out round it (above or below,
+      // a little toward or away from the eye), how long and how wide
+      const sk = select(isCurl.greaterThan(0.5), step(S_CURLS / 2 - 0.5, k), k.add(0.5).add(h1(k).sub(0.5).mul(0.7)).div(nL).mul(0.94).add(0.03)).toVar();
+      const S = spine(sk).toVar(), T = normalize(spine(sk.add(0.003)).sub(S)).toVar();
+      const side = select(h2(k.add(5.3)).lessThan(0.52), float(1.0), float(-1.0));
+      const lean = side.mul(Math.PI / 2).sub(Math.PI / 2).add(h2(k).sub(0.5).mul(1.9)).add(sin(t.mul(0.5).add(k.mul(1.7))).mul(0.12));
+      const n1 = normalize(cross(T, N2)).toVar(), n2 = cross(T, n1).toVar();
+      const O = n1.mul(cos(lean)).add(n2.mul(sin(lean))).toVar();
+      const L = SI.k.mul(h1(k.add(3.1)).mul(0.26).add(0.3)), W = L.mul(h2(k.add(7.7)).mul(0.2).add(0.34));
+      // (a loop starts and ends at the core: narrow at its foot, round at its end)
+      const loopAt = (u) => {
+        const a = u.mul(TAU), up = float(1.0).sub(cos(a)).mul(0.5);
+        return S.add(T.mul(sin(a).mul(W).mul(up.mul(0.75).add(0.25)))).add(O.mul(up.mul(L))).add(cross(T, O).mul(sin(a.mul(2.0)).mul(W).mul(0.18)));
       };
-      const H0 = coil(s, S0, Ts).toVar();
-      const s1 = s.add(0.0006), S1 = spine(s1);
-      const T = normalize(select(core.greaterThan(0.5), Ts, normalize(coil(s1, S1, normalize(spine(s1.add(0.002)).sub(S1))).sub(H0)))).toVar();
-      const rg = ringAt(select(core.greaterThan(0.5), S0, H0), T, Ts, phi, select(core.greaterThan(0.5), rCore, rc));
-      v.P.assign(rg.p); v.N.assign(rg.n);
-      vA.assign(rg.S); vB.assign(T);
-      vP.assign(vec3(cos(phi).mul(rc), s.mul(select(core.greaterThan(0.5), float(1.0), float(turns * 0.7)).mul(len)), sin(phi).mul(rc.negate())).div(SI.k));
-      const dc = length(S0.sub(cameraPosition));
-      vJ0.assign(vec4(exp(SIG.mul(dc).mul(0.6).negate()).mul(far(dc, 38.0, 52.0)), s));
-      vJ1.assign(vec4(core, 0.0, 0.0, 0.0));
-      vJ2.assign(vec4(normalize(S0.sub(H0)), 0.0));
+      // a curl: off an end of the core, curling round and in, as a loose cord does
+      const end = select(sk.greaterThan(0.5), float(1.0), float(-1.0)), Te = T.mul(end);
+      const curlAt = (u) => {
+        const b = u.mul(Math.PI * 2.6), rr = L.mul(0.55).mul(float(1.0).sub(u.mul(0.62)));
+        return S.add(Te.mul(sin(b).mul(rr).add(u.mul(L).mul(0.35)))).add(O.mul(float(1.0).sub(cos(b)).mul(rr)));
+      };
+      const P0 = select(isCurl.greaterThan(0.5), curlAt(s), loopAt(s)).toVar();
+      const Tl = normalize(select(isCurl.greaterThan(0.5), curlAt(s.add(0.01)), loopAt(s.add(0.01))).sub(P0)).toVar();
+      // the core: beaded
+      const C0 = spine(s).toVar(), Tc = normalize(spine(s.add(0.002)).sub(C0)).toVar();
+      const bead = sin(s.mul(TAU * 70.0)).mul(0.2).add(1.0);
+      const coreR = rCore.mul(bead).mul(smoothstep(0.0, 0.02, s).mul(float(1.0).sub(smoothstep(0.98, 1.0, s))).mul(0.7).add(0.3));
+      const ring = ringAt(select(isCore.greaterThan(0.5), C0, P0), select(isCore.greaterThan(0.5), Tc, Tl), select(isCore.greaterThan(0.5), N2, cross(T, O)), phi, select(isCore.greaterThan(0.5), coreR, rc.mul(float(1.0).sub(isCurl.mul(s).mul(0.4)))));
+      v.P.assign(ring.p); v.N.assign(ring.n);
+      vA.assign(ring.S); vB.assign(select(isCore.greaterThan(0.5), Tc, Tl));
+      vP.assign(vec3(cos(phi).mul(0.03), s.mul(select(isCore.greaterThan(0.5), len, L.mul(2.2))), sin(phi).mul(-0.03)).div(SI.k).add(k.mul(3.7)));
+      const dc = length(C0.sub(cameraPosition));
+      vJ0.assign(vec4(exp(SIG.mul(dc).mul(0.6).negate()).mul(far(dc, 38.0, 52.0)), select(isCore.greaterThan(0.5), s, sk)));
+      // (for a loop: how near the core this point is, 1 at its foot, and which way it leans)
+      vJ1.assign(vec4(kind, select(isCurl.greaterThan(0.5), float(1.0).sub(s), float(1.0).sub(float(1.0).sub(cos(s.mul(TAU))).mul(0.5))), side, h1(k.add(11.3))));
+      vJ2.assign(vec4(normalize(S.sub(P0).add(O.mul(0.001))), 0.0));
     },
     surface: (s, f) => {
-      const A = normalize(vA), B = normalize(vB), along = vJ0.w, core = vJ1.x;
-      // pink loops, teal where the glowing middle cord lights their inner side, and in a few
-      // stretches teal loops
-      const stretch = smoothstep(0.6, 0.85, sin(along.mul(TAU * 6.0)).mul(0.5).add(0.5));
-      const loops = mix(lin(0.98, 0.42, 0.74), lin(0.3, 0.95, 0.86), stretch);
-      knit(s, f, { color: mix(loops, lin(0.45, 1.0, 0.92), core), scale: 46, p: vP, frame: [A, B, cross(A, B)], k: 1.1 });
-      const inward = max(dot(s.n, normalize(vJ2.xyz)), 0.0).mul(float(1.0).sub(core));
-      const ends = smoothstep(0.0, 0.04, along).mul(float(1.0).sub(smoothstep(0.96, 1.0, along)));
-      const glow = loops.mul(0.75).add(TEAL.mul(inward.mul(1.6))).mul(float(1.0).sub(core)).add(lin(0.4, 1.0, 0.9).mul(core).mul(3.0));
-      s.emis = s.emis.add(glow.mul(ends).mul(vJ0.rgb.mul(0.4).add(0.6)));
+      const A = normalize(vA), B = normalize(vB), along = vJ0.w, core = one(vJ1.x, 1), foot = vJ1.y, up = step(0.0, vJ1.z), pick = vJ1.w;
+      // above: teal and periwinkle; below: pink and magenta; a lilac one now and then; the
+      // two ends a little more pink
+      const above = mix(lin(0.36, 0.72, 0.82), lin(0.5, 0.6, 0.86), step(0.5, pick));
+      const below = mix(lin(0.93, 0.4, 0.66), lin(0.82, 0.3, 0.6), step(0.5, pick));
+      const pinkEnds = float(1.0).sub(smoothstep(0.05, 0.3, along)).mul(0.5).add(smoothstep(0.75, 0.97, along).mul(0.3));
+      const loopCol = mix(mix(above, below, max(float(1.0).sub(up), step(fract(pick.mul(7.13)), pinkEnds))), lin(0.72, 0.62, 0.9), step(0.86, pick));
+      const coreCol = lin(0.55, 1.0, 0.92);
+      knit(s, f, { color: mix(loopCol, coreCol, core), scale: 64, p: vP, frame: [A, B, cross(A, B)], k: 1.2 });
+      // light: the core glows; a loop is lit by it at its foot, faces toward the core most,
+      // and has a little of its own colour's light all along, so it reads in the dark
+      const inward = max(dot(s.n, normalize(vJ2.xyz)), 0.0);
+      const ends = smoothstep(0.0, 0.03, along).mul(float(1.0).sub(smoothstep(0.97, 1.0, along)));
+      const loopLit = TEAL.mul(pow(foot, 3.0).mul(1.4).add(inward.mul(foot).mul(0.5))).add(0.32);
+      const beads = sin(along.mul(TAU * 70.0)).mul(0.5).add(0.5);
+      const glow = s.albedo.mul(loopLit).mul(float(1.0).sub(core)).add(coreCol.mul(core).mul(s.albedo.g.mul(1.1).add(0.45).add(beads.mul(0.5))));
+      // (above the drop-off it is not there: it melts into the water behind it)
+      const vv = normalize(f.w.sub(cameraPosition));
+      const beyond = scatter(vv, float(300.0)).sub(scatter(vv, f.dist)).mul(exp(SIG.mul(f.dist)));
+      s.albedo = s.albedo.mul(SI.show); s.spec = s.spec.mul(SI.show);
+      s.emis = s.emis.mul(SI.show).add(glow.mul(mix(ends, float(1.0), float(1.0).sub(core))).mul(vJ0.rgb.mul(0.4).add(0.6)).mul(SI.show)).add(beyond.mul(SI.show.oneMinus()));
     },
   });
 }
@@ -1228,74 +1478,70 @@ function siphonoMaterial() {
 
 // The vents are dark but for the lava: what lives there gets a soft light from the eye's
 // side too, as a diorama is lit for its picture, so it reads against the black.
-function ventFill(s, f) {
+function ventFill(s, f, k = 1, col = vec3(0.17, 0.12, 0.1)) {
   const deep = smoothstep(150.0, 185.0, f.w.y.negate()), v = normalize(cameraPosition.sub(f.w));
-  s.emis = s.emis.add(s.albedo.mul(vec3(0.17, 0.12, 0.1)).mul(max(dot(s.n, v), 0.0).mul(0.65).add(0.35)).mul(deep));
+  s.emis = s.emis.add(s.albedo.mul(col.mul(k)).mul(max(dot(s.n, v), 0.0).mul(0.65).add(0.35)).mul(deep));
 }
-// Tube worms: crocheted tubes in red and white rows, in clumps; most with a red plume of
-// short fat tentacles on top, a few just an open red rim. Built in the shader from rings:
-// aux = (along, round, which: the tube or the plume's tentacles, 0 the tube or 1 a tentacle).
-// Per worm: wA its foot (x, y, z) and height; wB its lean (x, z), its seed, plume (1) or not.
-// The taller the worm, the fatter.
+// Tube worms (z6): fat crocheted tubes, white, their top part solid red, open at the top with
+// a rolled rim; in clumps, leaning out a little from each other. Built in the shader from
+// rings: aux = (along, round). Per worm: wA its foot (x, y, z) and height; wB its lean (x, z),
+// its seed, and how much of it is red. The taller the worm, the fatter.
 const wA = attribute('wA', 'vec4'), wB = attribute('wB', 'vec4');
 function wormShape(lod) {
   const m = new Mesh(true);
-  tubes(m, 1, [7, 9, 10][lod], [6, 7, 8][lod], () => 0);
-  tubes(m, 7, [3, 4, 4][lod], [4, 4, 4][lod], () => 1);
+  tubes(m, 1, [9, 11, 13][lod], [6, 7, 8][lod], () => 0);
   return m.build();
 }
 function wormMaterial() {
   return material({
     aux: true, twoSided: true, shadow: false,
     vertex: (v) => {
-      const t = G.time, s = v.aux.x, phi = v.aux.y.mul(TAU), k = v.aux.z, plumeK = v.aux.w;
-      const H = wA.w, seed = wB.z, rw = H.mul(0.034).add(0.056), kr = rw.div(0.085);
+      const t = G.time, s = v.aux.x, phi = v.aux.y.mul(TAU);
+      const H = wA.w, seed = wB.z, rw = H.mul(0.062).add(0.05);
       // (a tall one leans away from the submarine where it passes low over them)
       const lean = awayFrom(wA.xyz.add(vec3(0.0, H, 0.0)), G.subAt.xyz, G.subAt.w.add(0.35)).div(H);
-      const sway = vec2(sin(t.mul(0.5).add(seed.mul(20.0))), cos(t.mul(0.43).add(seed.mul(13.0)))).mul(0.06).add(wB.xy).add(lean.xz);
+      const sway = vec2(sin(t.mul(0.5).add(seed.mul(20.0))), cos(t.mul(0.43).add(seed.mul(13.0)))).mul(0.04).add(wB.xy).add(lean.xz);
       const stem = (ss) => wA.xyz.add(vec3(sway.x.mul(ss).mul(ss).mul(H), ss.mul(H), sway.y.mul(ss).mul(ss).mul(H)));
-      // the tube, flaring a little at its mouth
+      // the tube, a little wider toward its top, and a rolled rim round its mouth
       const C0 = stem(s).toVar(), T0 = normalize(stem(s.add(0.02)).sub(C0)).toVar();
-      const rgT = ringAt(C0, T0, vec3(1.0, 0.0, 0.0), phi, rw.mul(smoothstep(0.85, 1.0, s).mul(0.25).add(1.0)));
-      // a plume tentacle: out from the rim, up, and over, waving
-      const top = stem(float(1.0)), Tt = normalize(top.sub(stem(float(0.95))));
-      const a = k.mul(TAU / 7).add(seed.mul(6.0)), o0 = vec3(cos(a), 0.0, sin(a));
-      const out = normalize(o0.sub(Tt.mul(dot(o0, Tt))));
-      const wave = sin(t.mul(1.4).add(k.mul(1.9)).add(seed.mul(9.0))).mul(0.25);
-      const pl = (ss) => top.add(out.mul(ss.mul(0.15).add(0.05).add(ss.mul(ss).mul(wave).mul(0.1)).mul(kr))).add(Tt.mul(ss.mul(0.12).sub(ss.mul(ss).mul(0.06)).add(0.015).mul(kr)));
-      const C1 = pl(s).toVar(), T1 = normalize(pl(s.add(0.05)).sub(C1)).toVar();
-      const rgP = ringAt(C1, T1, cross(out, Tt), phi, float(0.032).mul(kr).mul(float(1.0).sub(s.mul(0.4))).mul(sqrt(min(float(1.0).sub(s).mul(10.0), 1.0))));
-      const tent = step(0.5, plumeK).greaterThan(0.5), isP = step(0.5, plumeK).mul(step(0.5, wB.w)).greaterThan(0.5);
-      v.P.assign(select(isP, rgP.p, select(tent, top, rgT.p)));
-      v.N.assign(select(isP, rgP.n, rgT.n));
-      vA.assign(select(isP, rgP.S, rgT.S)); vB.assign(select(isP, T1, T0));
-      vP.assign(vec3(cos(phi).mul(rw.mul(0.9)), s.mul(select(isP, float(0.2).mul(kr), H)), sin(phi).mul(rw.mul(-0.9))).add(seed.mul(4.0)));
-      vK.assign(vec4(plumeK, s, 0.0, 0.0));
+      const roll = sin(smoothstep(0.86, 1.0, s).mul(Math.PI)).mul(0.2);
+      const rg = ringAt(C0, T0, vec3(1.0, 0.0, 0.0), phi, rw.mul(s.mul(0.12).add(0.94).add(roll)));
+      v.P.assign(rg.p); v.N.assign(rg.n);
+      vA.assign(rg.S); vB.assign(T0);
+      vP.assign(vec3(cos(phi).mul(rw), s.mul(H), sin(phi).mul(rw.negate())).add(seed.mul(4.0)));
+      vK.assign(vec4(s, wB.w, phi, 0.0));
     },
     surface: (s, f) => {
-      const A = normalize(vA), B = normalize(vB), red = lin(0.84, 0.16, 0.13), white = lin(0.95, 0.92, 0.87);
-      const solidRed = max(step(0.5, vK.x), smoothstep(0.88, 0.92, vK.y));
-      knit(s, f, { color: mix(white, red, solidRed), color2: red, stripe: 3, scale: 32, p: vP, frame: [A, B, cross(A, B)], k: 1.3 });
-      ventFill(s, f);
+      const A = normalize(vA), B = normalize(vB), red = lin(0.9, 0.33, 0.27), white = lin(0.96, 0.94, 0.9);
+      // red from its top down to a row of stitches; inside the tube, in its own shade
+      const edge = float(1.0).sub(vK.y).add(sin(vK.z.mul(9.0)).mul(0.012));
+      const isRed = smoothstep(edge.sub(0.006), edge.add(0.006), vK.x);
+      knit(s, f, { color: mix(white, red, isRed), scale: 34, p: vP, frame: [A, B, cross(A, B)], k: 1.4 });
+      const vv = normalize(cameraPosition.sub(f.w)), inside = step(dot(normalize(vNrm), vv), 0.0);
+      s.albedo = s.albedo.mul(float(1.0).sub(inside.mul(0.6)));
+      ventFill(s, f, 1.6);
     },
   });
 }
 
-// Sea sheep: little fluffy white slugs, all bobbles, two bead eyes and two soft ears.
-// aux.w: 0 wool, 4 eyes. Per sheep: hA where it sits and its size; hB which way it faces, its seed.
+// Sea sheep (z6): little fluffy cream creatures of crochet, a round body with a face of two
+// bead eyes, two soft round ears on top, and stubby legs all round, splayed over the rock they
+// sit on. aux.w: 0 wool, 4 eyes. Per sheep: hA where it sits and its size; hB which way it
+// faces, its seed.
 const hA = attribute('hA', 'vec4'), hB = attribute('hB', 'vec4');
 function sheepShape(lod) {
-  const m = new Mesh(true), rng = makeRng(5), res = [5, 6, 7][lod];
-  ball(m, 0, 0.08, 0, 0.17, 0.09, 0.105, res, 0);
-  for (let i = 0, n = [16, 24, 32][lod]; i < n; i++) {
-    const a = rng() * TAU, up = rng.range(0.1, 1), x = rng.range(-0.15, 0.13);
-    const y = 0.08 + 0.085 * up, z = Math.cos(a) * 0.1 * Math.sqrt(1 - up * up * 0.6) * (1 - Math.abs(x) * 1.5);
-    const r = rng.range(0.03, 0.05);
-    ball(m, x, y + Math.abs(Math.sin(a)) * 0.02, z, r, r * 0.9, r, 2, 0);
+  const m = new Mesh(true), rng = makeRng(5), res = [6, 7, 9][lod];
+  ball(m, 0, 0.11, 0, 0.135, 0.115, 0.13, res, 0);
+  // the legs: round the back and the sides (not under the face), splayed out and down
+  const legs = [55, 95, 135, 175, 215, 255, 300];
+  for (const deg of legs) {
+    const a = (deg + rng.range(-10, 10)) * Math.PI / 180, c = Math.cos(a), s = Math.sin(a), l = rng.range(0.13, 0.17), r = rng.range(0.04, 0.05);
+    tube(m, [[c * 0.05, 0.1, s * 0.05, r * 1.05], [c * (0.06 + l * 0.55), 0.075, s * (0.06 + l * 0.55), r], [c * (0.06 + l), 0.035, s * (0.06 + l), r * 0.95]], [5, 6, 7][lod], [0, 0, 0]);
   }
+  // the ears: soft nubs on top, leaning out
   for (const side of [1, -1]) {
-    ball(m, 0.15, 0.12, side * 0.045, 0.019, 0.019, 0.019, 2, 4);
-    tube(m, [[0.11, 0.15, side * 0.035, 0.016], [0.1, 0.21, side * 0.05, 0.014], [0.07, 0.25, side * 0.06, 0.01]], 5, [0, 0, 0]);
+    ball(m, -0.005, 0.225, side * 0.055, 0.032, 0.05, 0.03, Math.max(res - 3, 3), 0);
+    ball(m, 0.114, 0.145, side * 0.048, 0.025, 0.025, 0.025, 3, 4);
   }
   return m.build();
 }
@@ -1305,20 +1551,34 @@ function sheepMaterial() {
     vertex: (v) => {
       const t = G.time, lp = v.P.toVar(), ln = v.N.toVar(), seed = hB.z;
       // it breathes, and now and then looks about
-      const b = sin(t.mul(1.1).add(seed.mul(20.0))).mul(0.03);
-      const look = sin(t.mul(0.23).add(seed.mul(7.0))).mul(0.3).mul(smoothstep(0.0, 0.12, lp.x));
-      const q = turn(vec3(lp.x, lp.y.mul(b.add(1.0)), lp.z.mul(b.mul(0.5).add(1.0))), vec3(0.05, 0.1, 0.0), 'y', look);
+      const b = sin(t.mul(1.1).add(seed.mul(20.0))).mul(0.025);
+      const look = sin(t.mul(0.23).add(seed.mul(7.0))).mul(0.25).mul(smoothstep(0.06, 0.12, lp.y).mul(smoothstep(-0.02, 0.06, lp.x)));
+      const q = turn(vec3(lp.x, lp.y.mul(b.add(1.0)), lp.z.mul(b.mul(0.5).add(1.0))), vec3(0.0, 0.1, 0.0), 'y', look);
       const F = vec3(cos(hB.x), 0.0, sin(hB.x)), R = vec3(sin(hB.x).negate(), 0.0, cos(hB.x));
       v.P.assign(hA.xyz.add(F.mul(q.x).add(UP.mul(q.y)).add(R.mul(q.z)).mul(hA.w)));
       v.N.assign(normalize(F.mul(ln.x).add(UP.mul(ln.y)).add(R.mul(ln.z))));
       vA.assign(F); vP.assign(lp.mul(hA.w).add(seed.mul(3.0)));
     },
     surface: (s, f) => {
-      const n0 = s.n, F = normalize(vA);
-      knit(s, f, { color: lin(0.97, 0.92, 0.82), scale: 46, p: vP, frame: [F, UP, cross(F, UP)], k: 1.6, fuzz: 2.4 });
-      ventFill(s, f);
+      const n0 = s.n, F = normalize(vA), lp = f.obj;
+      knit(s, f, { color: lin(0.96, 0.9, 0.76), scale: 40, p: vP, frame: [F, UP, cross(F, UP)], k: 1.7, fuzz: 2.6 });
       bead(s, n0, one(f.aux.w, 4));
+      ventFill(s, f, 3.0, vec3(0.16, 0.14, 0.13));
+      glint(s, lp, 0.114, 0.145, 0.048, 0.025, one(f.aux.w, 4));
     },
+  });
+}
+// The rock the big sea sheep sits on: a lump of the vents' black rock (as the ground's own
+// rock is shaded, terrain.js), crusted teal near its foot.
+function rockShape(lod) {
+  const m = new Mesh(false);
+  blob(m, 0, 0, 0, (x, y, z) => (1 + 0.22 * noise3(x * 1.7 + 3.1, y * 1.7, z * 1.7) + 0.1 * noise3(x * 4.1, y * 4.1 + 2, z * 4.1)) * (y < 0 ? 0.8 : 1), [6, 8, 10][lod]);
+  return m.build();
+}
+function sheepRockMaterial() {
+  return material({
+    shadow: false, fade: [60, 78],
+    surface: (s, f) => { rockSurf(s, f.w.mul(2.5), f.w, float(1.0), float(1.0), f.dist); ventFill(s, f, 2.2); },
   });
 }
 
@@ -1418,25 +1678,65 @@ function chimneys() {
 // Where the camera is nearest to a place at the vents: its p.
 const ventP = (z) => Math.min(Math.max(6.25 + ((-314 - z) / 69) * 0.75, 6.25), 7.0);
 
-// A box's corners on the screen of camera c: [x0, x1, y0, y1, nearest along the line of sight].
-function rectOf(c, scr, x0, x1, y0, y1, z0, z1, out = [0, 0, 0, 0, 0]) {
+// A box's corners on the screen of camera c: [x0, x1, y0, y1, nearest and furthest along the
+// line of sight].
+function rectOf(c, scr, x0, x1, y0, y1, z0, z1, out = [0, 0, 0, 0, 0, 0]) {
   const q = [0, 0, 0];
-  out[0] = out[2] = 1e9; out[1] = out[3] = -1e9; out[4] = 1e9;
+  out[0] = out[2] = 1e9; out[1] = out[3] = -1e9; out[4] = 1e9; out[5] = -1e9;
   for (const x of [x0, x1]) for (const y of [y0, y1]) for (const z of [z0, z1]) {
     project(c, x, y, z, scr, q);
-    out[0] = Math.min(out[0], q[0]); out[1] = Math.max(out[1], q[0]); out[2] = Math.min(out[2], q[1]); out[3] = Math.max(out[3], q[1]); out[4] = Math.min(out[4], q[2]);
+    out[0] = Math.min(out[0], q[0]); out[1] = Math.max(out[1], q[0]); out[2] = Math.min(out[2], q[1]); out[3] = Math.max(out[3], q[1]); out[4] = Math.min(out[4], q[2]); out[5] = Math.max(out[5], q[2]);
+  }
+  return out;
+}
+// The submarine's outline on the screen of camera c, where it is at s: it lies across the view,
+// its nose to the left and a little toward the visitor (cast.js); about 2.3 m long, 1 m wide and
+// 1.15 m high with its skids.
+function subRect(c, scr, s, out = [0, 0, 0, 0, 0, 0]) {
+  const q = [0, 0, 0], A = dirOf([0, 0, 0], -0.85 * c.R[0] - 0.5 * c.F[0], 0, -0.85 * c.R[2] - 0.5 * c.F[2]);
+  out[0] = out[2] = 1e9; out[1] = out[3] = -1e9; out[4] = 1e9; out[5] = -1e9;
+  for (const a of [-1.2, 1.2]) for (const b of [-0.55, 0.55]) for (const h of [-0.62, 0.58]) {
+    project(c, s[0] + A[0] * a - A[2] * b, s[1] + h, s[2] + A[2] * a + A[0] * b, scr, q);
+    out[0] = Math.min(out[0], q[0]); out[1] = Math.max(out[1], q[0]); out[2] = Math.min(out[2], q[1]); out[3] = Math.max(out[3], q[1]); out[4] = Math.min(out[4], q[2]); out[5] = Math.max(out[5], q[2]);
+  }
+  return out;
+}
+// A jelly's outline on the screen of camera c: it hangs from `top` down to `low` at (x, z), r
+// round. (Its points down its line, each with its radius: tighter than a box round it, which
+// seen from below or above would stretch far beyond it.)
+// (Only what is in front of the camera counts; out[6]: how many of its points are not.)
+function jellyRect(c, scr, x, z, r, top, low, out) {
+  const q = [0, 0, 0];
+  out[0] = out[2] = 1e9; out[1] = out[3] = -1e9; out[4] = 1e9; out[5] = -1e9; out[6] = 0;
+  for (let i = 0; i <= 4; i++) {
+    project(c, x, lerp(top, low, i / 4), z, scr, q);
+    if (q[2] < r + 0.3) { out[6]++; continue; }
+    const ry = r / (q[2] * scr.tanV), rx = ry / scr.aspect;
+    out[0] = Math.min(out[0], q[0] - rx); out[1] = Math.max(out[1], q[0] + rx); out[2] = Math.min(out[2], q[1] - ry); out[3] = Math.max(out[3], q[1] + ry); out[4] = Math.min(out[4], q[2] - r); out[5] = Math.max(out[5], q[2] + r);
   }
   return out;
 }
 const overlaps = (a, b, m) => a[0] < b[1] + m && a[1] > b[0] - m && a[2] < b[3] + m && a[3] > b[2] - m;
+// Whether a ball (x, y, z, radius r) would show under the page's header or its depth label (top
+// right on a wide screen; under the header on a phone), seen by camera c on screen scr.
+const _ui = [0, 0, 0];
+function onUI(c, scr, x, y, z, r) {
+  project(c, x, y, z, scr, _ui);
+  if (_ui[2] < 0.3) return false;
+  const ry = r / (_ui[2] * scr.tanV), rx = ry / scr.aspect, X = _ui[0], Y = _ui[1];
+  if (X + rx < -1 || X - rx > 1 || Y + ry < -1 || Y - ry > 1) return false;
+  if (Y + ry > scr.top - 0.03) return true;
+  return scr.kind === 'wide' && X + rx > 0.74 && Y + ry > 0.38 && Y - ry < 0.62;
+}
 
 // Where the jellies live: down the drop-off, in the view at each height as the camera goes down,
 // and some where it comes back up. Each must keep, wherever it bobs and drifts, a submarine's
 // length and more from the submarine at every point of its way, on either shape of screen (so
 // the push aside in its shader has little to do and always from the side); keep clear of the
-// siphonophore and the anglerfish while they go down with the visitor; and at the moments the
-// visitor stops at, neither cover the submarine nor be cut by the page's header. [x, y, z,
-// radius, tentacles' length in radii]
+// siphonophore and the anglerfish while they go down with the visitor; at the moments the
+// visitor stops at, cover neither the submarine, the anglerfish nor the bottle, and be whole in
+// the view, below the page's header, or out of it; and never be seen from above the drop-off,
+// where the water is still sunlit. [x, y, z, radius, tentacles' length in radii]
 function jellySpots(rng, n, nUp) {
   const scrs = [SCREENS.wide, SCREENS.tall], q = [0, 0, 0];
   // (kept in buckets of four metres of height, so each jelly looks only at those near its own)
@@ -1448,38 +1748,54 @@ function jellySpots(rng, n, nUp) {
   }
   const beats = [];
   // (the moments: on a wide screen, and on a phone's)
-  for (const [p, scr] of [[5.3, SCREENS.wide], [5.5, SCREENS.wide], [5.66, SCREENS.wide], [7.4, SCREENS.wide], [5.5, SCREENS.tall], [5.7, SCREENS.tall], [7.4, SCREENS.tall]]) {
-    const c = camAt(p), s = subAt(p, scr.kind, [0, 0, 0]);
-    // (the submarine lies across the view: about 2.3 m long, 1.1 m high with its skids, 1 m wide)
-    const ax = Math.abs(c.R[0]) * 1.15 + Math.abs(c.L[0]) * 0.55, az = Math.abs(c.R[2]) * 1.15 + Math.abs(c.L[2]) * 0.55;
-    const sub = rectOf(c, scr, s[0] - ax, s[0] + ax, s[1] - 0.6, s[1] + 0.55, s[2] - az, s[2] + az);
+  for (const [p, scr] of [[5.15, SCREENS.wide], [5.3, SCREENS.wide], [5.5, SCREENS.wide], [5.66, SCREENS.wide], [7.4, SCREENS.wide], [5.5, SCREENS.tall], [5.7, SCREENS.tall], [7.4, SCREENS.tall]]) {
+    const c = camAt(p), keep = [subRect(c, scr, subAt(p, scr.kind, [0, 0, 0]))];
     let ang = null;
     if (p >= ANGLER[0] - 0.04 && p <= ANGLER[1] + 0.06) {
-      const o = anglerAt(p, scr.tanV, scr.aspect, { c: [0, 0, 0], f: [0, 0, 0] });
-      ang = rectOf(c, scr, o.c[0] - 0.75, o.c[0] + 0.75, o.c[1] - 0.6, o.c[1] + 0.7, o.c[2] - 0.75, o.c[2] + 0.75);
+      const o = anglerAt(p, scr.tanV, scr.aspect, { c: [0, 0, 0], f: [0, 0, 0] }), r = o.size * 0.42;
+      keep.push(ang = rectOf(c, scr, o.c[0] - r * 1.4, o.c[0] + r * 1.4, o.c[1] - r * 0.8, o.c[1] + r * 1.0, o.c[2] - r * 1.4, o.c[2] + r * 1.4));
     }
-    beats.push({ c, scr, sub, ang });
+    if (p >= BOTTLE[0] - 0.04 && p <= BOTTLE[1] + 0.04) {
+      const o = bottleAt(p, scr.tanV, scr.aspect, { c: [0, 0, 0], f: [0, 0, 0] });
+      keep.push(rectOf(c, scr, o.c[0] - 0.3, o.c[0] + 0.3, o.c[1] - 0.3, o.c[1] + 0.3, o.c[2] - 0.3, o.c[2] + 0.3));
+    }
+    beats.push({ c, scr, keep, ang, up: c.F[1] > 0.5 });
   }
+  // (from above the drop-off, where the water is still sunlit, none may be seen)
+  const before = [];
+  for (let p = 4.7; p <= 5.025; p += 0.015) for (const scr of scrs) before.push({ c: camAt(p), scr });
   const along = new Map();
   for (let p = SIPHON[0] - 0.24; p <= SIPHON[1] + 0.03; p += 0.01) for (const scr of scrs) {
     const o = siphonAt(p, scr.tanV, scr.aspect, { c: [0, 0, 0], d: [0, 0, 0], f: [0, 0, 0], len: 0, k: 1 });
-    for (let i = 0; i <= 16; i++) { const u = i / 16 - 0.5; bucket(along, [o.c[0] + o.d[0] * u * o.len, o.c[1] + o.d[1] * u * o.len + Math.cos(u * Math.PI) * 0.55 * o.k, o.c[2] + o.d[2] * u * o.len, 1.0 * o.k + 0.3]); }
-    if (p >= ANGLER[0] - 0.02 && p <= ANGLER[1] + 0.03) { const a = anglerAt(p, scr.tanV, scr.aspect, { c: [0, 0, 0], f: [0, 0, 0] }); bucket(along, [a.c[0], a.c[1], a.c[2], 1.6]); }
+    for (let i = 0; i <= 16; i++) { const u = i / 16 - 0.5; bucket(along, [o.c[0] + o.d[0] * u * o.len, o.c[1] + o.d[1] * u * o.len + Math.cos(u * Math.PI) * 0.5 * o.k, o.c[2] + o.d[2] * u * o.len, 1.1 * o.k + 0.3]); }
+    if (p >= ANGLER[0] - 0.02 && p <= ANGLER[1] + 0.03) { const a = anglerAt(p, scr.tanV, scr.aspect, { c: [0, 0, 0], f: [0, 0, 0] }); bucket(along, [a.c[0], a.c[1], a.c[2], 0.6 * a.size + 0.5]); }
   }
-  const list = [], rect = [0, 0, 0, 0, 0];
+  const list = [], rect = [0, 0, 0, 0, 0, 0, 0];
   const ok = (x, y, z, R, Lt) => {
     const low = y - jLow(R, Lt) - 0.6, top = y + 0.15 * R + 0.6, sd = J_DRIFT + 0.15;
     if (low < groundY(x, z) + 1.5) return false;
     for (const j of list) if (Math.hypot(j[0] - x, j[1] - y, j[2] - z) < 3.2) return false;
-    const need = 1.3 + J_SUB + 1.05 * R + 0.25 + 0.35;
+    const need = 1.3 + 1.05 * R + 0.6;
     if (near(subs, low - need, top + need, (s) => { const v = Math.min(Math.max(s[1], low), top) - s[1]; return (x - s[0]) ** 2 + (z - s[2]) ** 2 + v * v < need * need; })) return false;
     if (near(along, low - 4, top + 4, (a) => { const v = Math.min(Math.max(a[1], low), top) - a[1], r = a[3] + R + sd; return (x - a[0]) ** 2 + (z - a[2]) ** 2 + v * v < r * r; })) return false;
     for (const b of beats) {
-      rectOf(b.c, b.scr, x - R - sd, x + R + sd, low, top, z - R - sd, z + R + sd, rect);
-      if (rect[4] < 0.5 || rect[0] > 1.05 || rect[1] < -1.05 || rect[2] > 1.05 || rect[3] < -1.05) continue;
-      if (overlaps(rect, b.sub, 0.04) || (b.ang && overlaps(rect, b.ang, 0.04))) return false;
-      // (cut by the header: only what is big enough to notice)
-      if (rect[3] > b.scr.top - 0.03 && rect[2] < 1.05 && rect[3] - rect[2] > 0.16) return false;
+      jellyRect(b.c, b.scr, x, z, R + sd, top, low, rect);
+      if (rect[6] === 5 || rect[4] > 44 || rect[0] > 1.0 || rect[1] < -1.0 || rect[2] > 1.0 || rect[3] < -1.0) continue;
+      // (one that comes past the camera, partly beside or behind it, in view: too near)
+      if (rect[6] > 0) return false;
+      // (nor under the depth label or the rail of dots at the right of a wide screen)
+      if (b.scr.kind === 'wide' && rect[1] > 0.74 && rect[3] > 0.36 && rect[2] < 0.64) return false;
+      if (b.scr.kind === 'wide' && rect[1] > 0.92 && rect[2] < 0.58 && rect[3] > -0.58) return false;
+      for (const k of b.keep) if (overlaps(rect, k, 0.04) && (rect[4] < k[5] + 1.5 || rect[4] < (k === b.ang ? 15 : 25))) return false;
+      // (whole in the view and below the header: only the ends of its strands may go past the
+      // bottom of the view, and one too far or small to notice may be cut)
+      const h = rect[3] - rect[2];
+      // (looking up at one from below, its strands hang toward the eye: their ends may go past)
+      if ((rect[4] < 32 && rect[3] > b.scr.top - 0.03) || (rect[4] < 26 && h > 0.12 && (rect[0] < -1.0 || rect[1] > 1.0 || rect[3] - 0.3 * h < -1.0 || (!b.up && rect[2] < -1.0 - 0.15 * h)))) return false;
+    }
+    for (const b of before) {
+      jellyRect(b.c, b.scr, x, z, R + sd, top, low, rect);
+      if (rect[6] < 5 && rect[4] < 42 && rect[0] < 1.05 && rect[1] > -1.05 && rect[2] < 1.05 && rect[3] > -1.05) return false;
     }
     return offTrack(x, z, y) > 2.2 + R && offTrack(x, z, (y + low) / 2) > 1.6 + R;
   };
@@ -1489,9 +1805,9 @@ function jellySpots(rng, n, nUp) {
     for (let p = from; p <= to; p += 0.005) { pathAt(p, _o); const d = Math.abs(_o[1] - y); if (d < bd) { bd = d; best = p; } }
     return best;
   };
-  // first, at each moment, a few placed for it: on a wide screen one between the words and
-  // the submarine and one beyond it, on a phone's one below it; then the rest, spread by the
-  // camera's height as it passes, in the view there
+  // first, at each moment, a few placed for it: on a wide screen one between the words and the
+  // submarine and one beyond it (and among the jellies, more), on a phone's one below it; then
+  // the rest, spread by the camera's height as it passes, in the view there
   const tryAt = (pc, scr, nx, ny, d, zMax) => {
     const R = rng.range(0.55, 0.75), Lt = rng.range(3.6, 5.0);
     onScreen(q, camAt(pc, _cA), d, nx, ny, scr.tanV, scr.aspect);
@@ -1499,20 +1815,30 @@ function jellySpots(rng, n, nUp) {
     list.push([q[0], q[1], q[2], R, Lt]);
     return true;
   };
-  for (const [pc, zMax] of [[5.3, -279], [5.5, -279], [5.66, -279], [7.4, 1e9]]) {
-    for (let k = 0; k < 80 && !tryAt(pc, SCREENS.wide, rng.range(-0.3, -0.1), rng.range(-0.6, 0.3), rng.range(8.5, 12), zMax); k++);
-    for (let k = 0; k < 80 && !tryAt(pc, SCREENS.wide, rng.range(0.62, 0.98), rng.range(-0.8, -0.15), rng.range(7, 11), zMax); k++);
-  }
-  for (const [pc, zMax] of [[5.5, -279], [5.7, -279], [7.4, 1e9]]) {
-    for (let k = 0; k < 80 && !tryAt(pc, SCREENS.tall, rng.range(-0.7, -0.1), rng.range(-0.6, -0.25), rng.range(8, 11.5), zMax); k++);
-  }
+  const some = (k, pc, scr, x0, x1, y0, y1, d0, d1, zMax) => { for (let i = 0; i < k; i++) for (let t = 0; t < 80 && !tryAt(pc, scr, rng.range(x0, x1), rng.range(y0, y1), rng.range(d0, d1), zMax); t++); };
+  // (wide: at the cliff, below the siphonophore; dropping, either side of the submarine; among
+  // them, left of it and right of it, one behind the words; at the angler, beyond it on the
+  // right and far up on the left; on the way up, one near on the left and one far on the right.
+  // A phone: below the submarine)
+  some(1, 5.15, SCREENS.wide, -0.62, -0.3, -0.6, -0.1, 13, 20, -279);
+  some(1, 5.3, SCREENS.wide, -0.32, -0.1, -0.55, 0.0, 10, 14, -279);
+  some(1, 5.3, SCREENS.wide, 0.62, 0.86, -0.75, -0.35, 8, 11, -279);
+  some(1, 5.5, SCREENS.wide, -0.62, -0.36, -0.6, 0.1, 7, 10, -279);
+  some(1, 5.5, SCREENS.wide, 0.68, 0.88, -0.65, 0.05, 7, 10, -279);
+  some(1, 5.5, SCREENS.wide, -0.32, -0.12, -0.65, -0.2, 12, 16, -279);
+  some(1, 5.66, SCREENS.wide, 0.62, 0.88, -0.7, -0.15, 9, 13, -279);
+  some(1, 5.66, SCREENS.wide, -0.62, -0.38, -0.3, 0.2, 10, 14, -279);
+  some(1, 7.4, SCREENS.wide, -0.62, -0.36, -0.2, 0.4, 7, 11, 1e9);
+  some(1, 7.4, SCREENS.wide, -0.3, -0.08, 0.3, 0.6, 12, 18, 1e9);
+  some(1, 5.7, SCREENS.tall, -0.55, 0.45, -0.85, -0.45, 9, 13, -279);
+  some(1, 7.4, SCREENS.tall, -0.5, 0.3, -0.7, -0.2, 7, 11, 1e9);
   const designed = list.length;
   const make = (count, from, to, ys, sides, ups, zMax) => {
-    for (let tries = 0, k = 0; k < count && tries < count * 200; tries++) {
+    for (let tries = 0, k = 0; k < count && tries < count * 500; tries++) {
       const band = ys[Math.min(Math.floor(((k + rng()) / count) * ys.length), ys.length - 1)];
       const pc = pAtY(rng.range(band[0], band[1]), from, to), c = camAt(pc, _cA);
       // (on a wide screen: in its left third, behind the words; or either side of the submarine)
-      const left = rng() < sides, mid = rng() < 0.5, nx = left ? rng.range(-1.05, -0.6) : mid ? rng.range(-0.34, 0.0) : rng.range(0.6, 1.1), ny = rng.range(ups[0], ups[1]);
+      const left = rng() < sides, mid = rng() < 0.5, nx = left ? rng.range(-0.92, -0.5) : mid ? rng.range(-0.34, 0.0) : rng.range(0.48, 0.8), ny = rng.range(ups[0], ups[1]);
       const d = left ? rng.range(4.2, 6.5) : rng.range(7, 13), R = left ? rng.range(0.38, 0.55) : rng.range(0.5, 0.72), Lt = rng.range(3.4, 5.0);
       onScreen(q, c, d, nx, ny, SCREENS.wide.tanV, SCREENS.wide.aspect);
       if (q[2] > zMax || !ok(q[0], q[1], q[2], R, Lt)) continue;
@@ -1530,7 +1856,8 @@ function jellySpots(rng, n, nUp) {
 function castTrack() {
   const pts = [];
   for (let p = 0; p <= 8.0; p += 0.005) {
-    if (p > 4.45 && p < 7.75) continue;
+    if (p > 4.45 && p < 7.1) continue;
+    if (p < 7.75) { for (const k of ['wide', 'tall']) { const s = subAt(p, k, [0, 0, 0]); pts.push([p, s[0], s[1], s[2], 1.4]); } continue; }
     for (const k of ['wide', 'tall']) { const s = snapAt(p, k, [0, 0, 0]); pts.push([p, s[0], s[1], s[2], 0.45]); }
     if (p >= 7.75) {
       for (const scr of [SCREENS.wide, SCREENS.tall]) {
@@ -1592,13 +1919,16 @@ export function buildFauna(ctx) {
   const slot = (n, look, seed) => ({ cS: new Float32Array([n, seed, look, 0]) });
   const turtleGeo = turtleShape(lod), turtleMat = turtleMaterial(), octGeo = octopusShape(lod), octMat = octopusMaterial();
   const mid = (p0, p1, ahead) => inView((p0 + p1) / 2, ahead, 0, 0);
-  const reefC = mid(REEF_TURTLE[0], REEF_TURTLE[1], 6), endC = inView(7.95, 5, 0, -1.5), angC = mid(ANGLER[0], ANGLER[1], 5), cabC = wreck ? wreck.cabin.toArray() : inView(4.6, 3, 0, 0);
+  const reefC = mid(REEF_TURTLE[0], REEF_TURTLE[1], 6), endC = inView(7.95, 5, 0, -1.5), angC = mid(ANGLER[0], ANGLER[1], 5), botC = mid(BOTTLE[0], BOTTLE[1], 5), cabC = wreck ? wreck.cabin.toArray() : inView(4.6, 3, 0, 0);
   add(solid(copies(turtleGeo, 1, slot(0, 0, 0.3), new Sphere(new Vector3(...reefC), 30)), turtleMat), 100);
   add(solid(copies(turtleGeo, 1, slot(1, 1, 0.7), new Sphere(new Vector3(...endC), 12)), turtleMat), 80);
   add(solid(copies(octGeo, 1, slot(2, 0, 0.1), new Sphere(new Vector3(...cabC), 16)), octMat), 80);
   add(solid(copies(octGeo, 1, slot(3, 0, 0.6), new Sphere(new Vector3(...endC), 12)), octMat), 80);
   add(solid(copies(anglerShape(lod), 1, slot(4, 0, 0.5), new Sphere(new Vector3(...angC), 34)), anglerMaterial()), 52);
   add(solid(cards(1, slot(4, 0, 0.5), new Sphere(new Vector3(...angC), 34)), lureGlowMaterial()), 52);
+  const bottle = bottleShape(lod);
+  add(solid(copies(bottle.inside, 1, slot(5, 0, 0.8), new Sphere(new Vector3(...botC), 34)), bottleInsideMaterial()), 44);
+  add(solid(copies(bottle.glass, 1, slot(5, 0, 0.8), new Sphere(new Vector3(...botC), 34)), bottleGlassMaterial()), 44);
 
   // gulls: a few over each marina, riding wide circles high over the boats
   const gullGeo = gullShape(lod), gullMat = gullMaterial(), gulls = [];
@@ -1616,7 +1946,10 @@ export function buildFauna(ctx) {
 
   // jellies
   const spots = jellySpots(rng, Math.max(10, Math.round(22 * Math.sqrt(amt))), Math.max(3, Math.round(6 * Math.sqrt(amt))));
-  const BELLS = [[[0.3, 0.82, 0.8], [0.62, 0.36, 0.78], 0], [[0.95, 0.5, 0.62], [0.56, 0.3, 0.7], 1], [[0.55, 0.84, 0.82], [0.93, 0.9, 0.86], 0], [[0.64, 0.4, 0.82], [0.95, 0.55, 0.75], 1]];
+  // (the bells: teal and violet stripes; pink and plum; mint and cream; lilac and pink; a dusty
+  // mauve and a coral pink, both lit teal inside, as in the picture of the twilight)
+  const BELLS = [[[0.3, 0.8, 0.78], [0.6, 0.38, 0.76], 0], [[0.92, 0.5, 0.62], [0.58, 0.32, 0.66], 1], [[0.55, 0.84, 0.82], [0.9, 0.88, 0.84], 0], [[0.66, 0.46, 0.8], [0.93, 0.56, 0.74], 1],
+    [[0.66, 0.56, 0.68], [0.6, 0.5, 0.64], 0], [[0.88, 0.46, 0.54], [0.84, 0.42, 0.52], 0]];
   const bellGeo = bellShape(lod), tentGeo = tentacleShape(lod), bellMat = bellMaterial(), tentMat = tentacleMaterial(), haloMat = haloMaterial();
   // (in three groups, the upper and lower drop-off and the way back up, so each is switched off when it is far)
   const nj = spots.length;
@@ -1638,14 +1971,11 @@ export function buildFauna(ctx) {
     add(solid(cards(n, attrs, sph), haloMat), 46);
   }
 
-  // the siphonophore: a middle cord and its coil of loops, along a line set every frame
+  // the siphonophore: its core, its loops and its curls, along a line set every frame
   {
-    const sm = new Mesh(true);
-    tubes(sm, 1, [70, 110, 150][lod], 6, () => 1);
-    tubes(sm, 1, [700, 1100, 1500][lod], [4, 5, 5][lod], () => 0);
-    const geo = sm.build(), c0 = inView((SIPHON[0] + SIPHON[1]) / 2, 9, 0, 0);
+    const geo = siphonoShape(lod), c0 = inView((SIPHON[0] + SIPHON[1]) / 2, 9, 0, 0);
     geo.boundingSphere = new Sphere(new Vector3(...c0), 60);
-    add(solid(geo, siphonoMaterial()), 56);
+    add(solid(geo, siphonoMaterial(lod)), 56);
   }
 
   // the vents: clumps of tube worms at the chimneys' feet, on the side the camera passes; sea sheep on the rock
@@ -1659,7 +1989,7 @@ export function buildFauna(ctx) {
       if (offTrack(cx, cz) < 2.2) continue;
       for (let i = 0, nw = Math.max(3, Math.round(rng.range(5, 8) * Math.sqrt(amt))); i < nw; i++) {
         const x = cx + rng.bell() * 0.45, z = cz + rng.bell() * 0.45;
-        worms.push([x, groundY(x, z) - 0.06, z, rng.range(0.45, 1.0), rng.bell() * 0.12, rng.bell() * 0.12, rng(), rng() < 0.72 ? 1 : 0]);
+        worms.push([x, groundY(x, z) - 0.06, z, rng.range(0.45, 1.0), rng.bell() * 0.12, rng.bell() * 0.12, rng(), rng.range(0.4, 0.56)]);
       }
     }
   }
@@ -1667,13 +1997,34 @@ export function buildFauna(ctx) {
   for (const f of ventForeground(rng, chim)) {
     for (let i = 0, nw = Math.max(6, Math.round(rng.range(10, 13) * Math.sqrt(amt))); i < nw; i++) {
       const r = Math.sqrt(rng()) * 0.75, a = rng() * TAU, x = f.x + Math.cos(a) * r, z = f.z + Math.sin(a) * r * 0.8;
-      worms.push([x, groundY(x, z) - 0.08, z, rng.range(1.5, 2.5) * (1 - 0.35 * r), (x - f.x) * 0.1 + rng.bell() * 0.05, (z - f.z) * 0.1 + rng.bell() * 0.05, rng(), rng() < 0.7 ? 1 : 0]);
+      worms.push([x, groundY(x, z) - 0.08, z, rng.range(1.5, 2.5) * (1 - 0.35 * r), (x - f.x) * 0.12 + rng.bell() * 0.05, (z - f.z) * 0.12 + rng.bell() * 0.05, rng(), rng.range(0.4, 0.56)]);
     }
     if (f.sheep) {
       // (beside the clump, toward the middle of the view and a little further away)
       const x = f.x - f.back[0] * 0.8 + Math.cos(f.toward + Math.PI / 2) * 1.5, z = f.z - f.back[1] * 0.8 + Math.sin(f.toward + Math.PI / 2) * 1.5;
-      sheep.push([x, groundY(x, z) + 0.02, z, rng.range(2.8, 3.2), f.toward + rng.range(-0.4, 0.4), 0, rng(), 0]);
+      sheep.push([x, groundY(x, z) + 0.02, z, rng.range(2.2, 2.6), f.toward + rng.range(-0.4, 0.4), 0, rng(), 0]);
     }
+  }
+  // and one large, close by, on a rock in the foreground as the camera comes to the vents: low in
+  // the view, right of its middle, under the submarine, looking at the visitor
+  const sheepRock = (() => {
+    const c = camAt(6.33), q = [0, 0, 0];
+    for (let k = 0; k < 30; k++) {
+      const d = 4.9 + 0.1 * k, nx = 0.34 + 0.01 * (k % 5);
+      inViewAt(q, c, 0, nx * d * SCREENS.wide.tanV * SCREENS.wide.aspect, 0);
+      const x = q[0] + c.L[0] * d, z = q[2] + c.L[2] * d;
+      if (chim.some((ch) => Math.hypot(ch.x - x, ch.z - z) < ch.radius + 1.6) || offTrack(x, z) < 2.4) continue;
+      const g = groundY(x, z), toward = Math.atan2(c.z - z, c.x - x);
+      sheep.push([x + Math.cos(toward) * 0.1, g + 0.44, z + Math.sin(toward) * 0.1, 3.3, toward - 0.25, 0, rng(), 0]);
+      return [x, g, z, toward];
+    }
+    return null;
+  })();
+  if (sheepRock) {
+    const m = solid(rockShape(lod), sheepRockMaterial()), [x, g, z, a] = sheepRock;
+    m.position.set(x, g + 0.1, z); m.scale.set(0.78, 0.48, 0.66); m.rotation.set(0, -a, 0);
+    m.updateMatrix();
+    add(m, 70);
   }
   for (const k of [0, 2, 5]) {
     const c = chim[k];
@@ -1744,7 +2095,7 @@ export function buildFauna(ctx) {
   // ---- each frame: the creatures in their slots
   const F = new Vector3(), Upv = new Vector3(), R = new Vector3(), Y = new Vector3(0, 1, 0), P = new Vector3(), Q = new Vector3(), W = new Vector3();
   const octopus = new Vector3();          // where the octopus with the letter is (for Snap to look at)
-  const hold = { c: [0, 0, 0], f: [0, 0, 0], d: [0, 0, 0], len: 0, k: 1 }, hold2 = { c: [0, 0, 0], f: [0, 0, 0] };
+  const hold = { c: [0, 0, 0], f: [0, 0, 0], d: [0, 0, 0], len: 0, k: 1, size: 1, show: 1 }, hold2 = { c: [0, 0, 0], f: [0, 0, 0] };
   const setSlot = (n, pos, fwd, up, size, phase, look, d0 = 0, d1 = 0, d2 = 0, d3 = 0) => {
     const a = POSE.array;
     a[n * 4].set(pos.x, pos.y, pos.z, size);
@@ -1819,16 +2170,21 @@ export function buildFauna(ctx) {
       // the turtle over the reef
       reefTurtleAt(p, tanV, aspect, hold);
       keyed(0, hold, t, 1.7, 0.3, 0, 0.1, 0.25, -0.45);
-      // the anglerfish
+      // the anglerfish, and the bottle with a message (tilted, turning slowly as it sinks)
       anglerAt(p, tanV, aspect, hold);
-      keyed(4, hold, t, 1.4, 0.5, 0, 0.08, 0.2, 0);
+      keyed(4, hold, t, hold.size, 0.5, 0, 0.05, 0.1, 0);
+      bottleAt(p, tanV, aspect, hold);
+      keyed(5, hold, t, 1.6, 0.8, 0, 0.06, 0.08, 0.5 * t);
       // the siphonophore
       siphonAt(p, tanV, aspect, hold);
       SI.c.value.set(hold.c[0], hold.c[1], hold.c[2]); SI.d.value.set(hold.d[0], hold.d[1], hold.d[2]); SI.n.value.set(hold.f[0], hold.f[1], hold.f[2]); SI.len.value = hold.len; SI.k.value = hold.k;
+      SI.show.value = hold.show;
+      // (a fill on the fish on the way back up, where they are seen against the surface)
+      U.fill.value = 0.35 * smooth(7.2, 7.3, p) * (1 - smooth(7.62, 7.78, p));
       // the end: the turtle, and the octopus swimming, leaning into it
       endingAt(p, tanV, aspect, hold, hold2);
       keyed(1, hold, t, 1.0, 0.7, 1, 0.08, 0.3, 0);
-      keyed(3, hold2, t, 0.85, 0.6, 0, 0.1, 0.25, 0);
+      keyed(3, hold2, t, 0.85, 0.6, 1, 0.1, 0.25, 0);
       // (the octopus leans forward as it swims: its head ahead, its arms trailing)
       {
         const a = POSE.array, f = a[3 * 4 + 1], u = a[3 * 4 + 2];
@@ -1873,4 +2229,5 @@ export function buildFauna(ctx) {
 export const faunaParts = {
   FISH, COL, KINDS, fishShape, fishMaterial, fishMesh, eyeOf, turtleShape, turtleMaterial, octopusShape, octopusMaterial, anglerShape, anglerMaterial, lureGlowMaterial,
   gullShape, gullMaterial, copies, cards, solid, POSE, SI, toLin, jellySpots, castTrack, populate, camAt, subAt, snapAt, siphonAt, anglerAt, reefTurtleAt, endingAt, SCREENS, rectOf,
+  bottleShape, bottleInsideMaterial, bottleGlassMaterial, bottleAt, sheepShape, sheepMaterial, wormShape, wormMaterial, project, onUI,
 };
