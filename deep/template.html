@@ -1,0 +1,636 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>crabcrop · All the Way Down</title>
+<meta name="description" content="Dive with Snap the crab through crabcrop, the Rust image API: from the marina to the vents and back up, building an image URL on the way.">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#04121a">
+<meta name="color-scheme" content="dark">
+<style>
+/* The page around the scene. Written plainly, it is an ordinary page: every word is in the
+   document, in order, readable with no script and no canvas. Where scripts run and motion
+   is welcome it is the dive instead (the block at the end): each zone is a stretch of
+   scroll, and its beats (a heading, a card, a choice) rise one at a time into a glass panel
+   over the scene, held at the foot of the window while the camera travels. The script adds
+   .page to <html> when the scene is off (reduced motion, no WebGL, ?page, or it failed),
+   and .ready once the scene is drawn. No file is loaded: system fonts, drawn icons. */
+:root {
+  --night: #04121a; --paper: #eef2ec; --accent: #E8482F; --accent-hi: #ff6a4f; --coral: #ff9a82; --sand: #ffd88a;
+  --ink2: rgba(238, 242, 236, .82); --ink3: rgba(238, 242, 236, .6); --line: rgba(238, 242, 236, .16); --line2: rgba(238, 242, 236, .3);
+  --glass: rgba(4, 18, 26, .74);
+  --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  --gut: clamp(16px, 3.6vw, 56px);
+  --top: 70px;   /* where the fixed bar ends (the script measures it) */
+}
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { background: var(--night); color: var(--paper); font: 16px/1.55 var(--sans); -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+body { margin: 0; min-height: 100vh; background: linear-gradient(180deg, #0b3446 0, #072636 520px, var(--night) 1400px) no-repeat var(--night); overflow-wrap: break-word; }
+canvas#world { display: none; }
+a { color: inherit; text-decoration-color: var(--accent); text-decoration-thickness: 2px; text-underline-offset: 3px; }
+a:hover { text-decoration-color: var(--sand); }
+:focus-visible { outline: 2px solid var(--sand); outline-offset: 2px; border-radius: 4px; }
+::selection { background: var(--sand); color: var(--night); }
+h1, h2, h3, p, ol, ul, fieldset, legend, figure { margin: 0; padding: 0; }
+ol, ul { list-style: none; }
+fieldset { border: 0; min-width: 0; }
+code { font: .84em/1.5 var(--mono); }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.nw { white-space: nowrap; }
+.skip { position: fixed; left: 12px; top: -80px; z-index: 9; padding: 10px 14px; border-radius: 10px; background: var(--paper); color: var(--night); font-weight: 650; text-decoration: none; }
+.skip:focus { top: 12px; }
+:root.page .dive-only { display: none !important; }
+@media (scripting: none), (prefers-reduced-motion: reduce) { .dive-only { display: none !important; } }
+@media (scripting: none) { .js-only { display: none !important; } }
+
+/* ---- the bar: the URL being built ---- */
+.bar { position: sticky; top: 0; z-index: 5; display: flex; align-items: center; gap: 10px 14px; padding: 9px max(var(--gut), env(safe-area-inset-right)) 9px max(var(--gut), env(safe-area-inset-left)); background: rgba(4, 18, 26, .94); border-bottom: 1px solid var(--line); }
+.home { display: inline-flex; align-items: center; gap: 8px; flex: none; font-weight: 760; letter-spacing: -.01em; text-decoration: none; }
+.home svg { width: 26px; height: 26px; }
+.u { flex: 1 1 auto; min-width: 0; display: flex; align-items: baseline; gap: 10px; }
+.lab { flex: none; font-size: 11px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: var(--coral); }
+.url { min-width: 0; font: 12.5px/1.5 var(--mono); color: var(--ink3); overflow-wrap: anywhere; }
+.part { color: var(--paper); transition: color .6s; }
+.part.new { animation: glow 1.8s ease-out; }
+.p-sig.new, .p-seal.new { animation-name: glow-soft; }
+@keyframes glow { 0%, 30% { color: var(--sand); text-shadow: 0 0 14px rgba(255, 216, 138, .8); } 100% { text-shadow: 0 0 14px rgba(255, 216, 138, 0); } }
+@keyframes glow-soft { 0% { color: var(--sand); } }
+.tools { display: flex; gap: 8px; flex: none; position: relative; }
+.ib { flex: none; display: inline-flex; align-items: center; justify-content: center; gap: 7px; height: 36px; min-width: 36px; padding: 0 12px; border: 1px solid var(--line); border-radius: 10px; background: rgba(238, 242, 236, .06); color: var(--paper); font: 600 13px/1 var(--sans); cursor: pointer; }
+.ib:hover { background: rgba(238, 242, 236, .14); }
+.ib svg { width: 16px; height: 16px; flex: none; }
+.ib[aria-pressed="true"], .ib[aria-expanded="true"] { border-color: var(--accent); background: rgba(232, 72, 47, .2); }
+#sound[aria-pressed="false"] .on, #sound[aria-pressed="true"] .off { display: none; }
+.settings { position: absolute; right: 0; top: calc(100% + 10px); z-index: 6; width: 268px; padding: 14px 16px; border: 1px solid var(--line2); border-radius: 14px; background: rgba(4, 18, 26, .96); box-shadow: 0 18px 50px rgba(0, 0, 0, .45); font-size: 14px; }
+.settings > * + * { margin-top: 12px; }
+.settings legend { margin-bottom: 8px; font-size: 11px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: var(--coral); }
+.seg { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+.seg label { position: relative; display: block; }
+.seg input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+.seg span { display: block; padding: 6px 0; border: 1px solid var(--line); border-radius: 8px; text-align: center; font-size: 13px; }
+.seg input:checked + span { border-color: var(--accent); background: rgba(232, 72, 47, .2); }
+.seg input:focus-visible + span { outline: 2px solid var(--sand); outline-offset: 2px; }
+.fine { font-size: 13px; color: var(--ink3); }
+
+/* ---- the words, as a page ---- */
+main { display: block; max-width: 1120px; margin: 0 auto; padding: 0 max(var(--gut), env(safe-area-inset-right)) 72px max(var(--gut), env(safe-area-inset-left)); }
+main:focus { outline: none; }
+.zone { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); align-items: start; gap: 16px; padding-top: clamp(48px, 9vh, 88px); }
+.slot { display: contents; }
+.beat { min-width: 0; padding: 20px 22px; border: 1px solid var(--line); border-radius: 18px; background: rgba(238, 242, 236, .04); }
+.hero, .intro, .tale, .pick, .clam, .fin { grid-column: 1 / -1; max-width: 780px; }
+.hero, .intro { padding: 0; border: 0; background: none; }
+.beat > * + * { margin-top: 12px; }
+.eyebrow .d { text-transform: none; letter-spacing: .02em; }
+.eyebrow { font-size: 12px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: var(--coral); }
+h1 { font-size: clamp(36px, 5.4vw, 64px); line-height: 1.02; font-weight: 820; letter-spacing: -.028em; text-wrap: balance; }
+h2 { font-size: clamp(28px, 3.6vw, 44px); line-height: 1.06; font-weight: 800; letter-spacing: -.022em; text-wrap: balance; }
+h3 { font-size: 20px; line-height: 1.2; font-weight: 720; letter-spacing: -.01em; text-wrap: balance; }
+p { text-wrap: pretty; }
+.lede { font-size: 17.5px; line-height: 1.5; color: var(--ink2); max-width: 60ch; }
+.card p, .clam p { color: var(--ink2); }
+.ex code, .cmd code, .final code { display: block; padding: 7px 10px; border: 1px solid var(--line); border-radius: 10px; background: rgba(0, 0, 0, .3); color: var(--paper); overflow-wrap: anywhere; }
+.tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.tags li { padding: 1px 9px; border: 1px solid var(--line2); border-radius: 999px; font-size: 13px; }
+.more { display: inline-block; font-size: 14px; font-weight: 650; }
+.more::after { content: " \2192"; }
+.tale { border-left: 3px solid var(--accent); border-radius: 4px 18px 18px 4px; }
+.tale p { font-size: 17px; }
+.tale em { font-style: normal; color: var(--coral); }
+.steps { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 14px; font-weight: 650; color: var(--ink2); counter-reset: s; }
+.steps li { counter-increment: s; }
+.steps li::before { content: counter(s); display: inline-grid; place-items: center; width: 20px; height: 20px; margin-right: 7px; border-radius: 50%; background: var(--accent); color: var(--night); font-size: 12px; font-weight: 800; }
+.uses { display: grid; gap: 8px; }
+.uses li { display: grid; gap: 1px; }
+.uses code { justify-self: start; color: var(--paper); overflow-wrap: anywhere; }
+.uses span { font-size: 14px; color: var(--ink2); }
+
+/* the hero */
+.hero { padding-top: clamp(24px, 10vh, 120px); }
+.hero .lede + .lede { margin-top: 8px; }
+.go { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 0 18px; border: 1px solid var(--line2); border-radius: 12px; background: rgba(238, 242, 236, .06); color: var(--paper); font: 700 15px/1 var(--sans); text-decoration: none; cursor: pointer; }
+.btn:hover { background: rgba(238, 242, 236, .14); }
+.btn.main { border-color: var(--accent); background: var(--accent); color: #fff; }
+.btn.main:hover { background: var(--accent-hi); }
+.btn svg { width: 16px; height: 16px; flex: none; }
+.note { padding: 9px 13px; border: 1px solid var(--line); border-radius: 12px; background: rgba(238, 242, 236, .06); font-size: 14px; color: var(--ink2); }
+.load, .hint { display: flex; align-items: center; gap: 10px; min-height: 20px; font-size: 13px; color: var(--ink2); }
+.track { flex: 0 0 120px; height: 4px; border-radius: 4px; background: var(--line); overflow: hidden; }
+.fill { display: block; height: 100%; background: var(--sand); transform-origin: 0 50%; transform: scaleX(0); transition: transform .3s linear; }
+.pc { min-width: 3.2em; font: 600 12px/1 var(--mono); font-variant-numeric: tabular-nums; color: var(--paper); }
+.hint::before { content: ""; width: 7px; height: 7px; margin: 0 2px 4px 4px; border: solid var(--sand); border-width: 0 2px 2px 0; transform: rotate(45deg); }
+.quiet { font-size: 14px; color: var(--ink3); }
+
+/* a choice: a real radio group */
+.turn { display: block; margin-bottom: 4px; font-size: 12px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: var(--coral); }
+.pick legend { float: left; width: 100%; font-size: 20px; line-height: 1.2; font-weight: 720; letter-spacing: -.01em; }
+.opts { clear: both; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 8px; padding-top: 12px; }
+.opt { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 10px; min-height: 42px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 12px; cursor: pointer; }
+.opt:hover { background: rgba(238, 242, 236, .07); }
+.opt input { flex: none; appearance: none; -webkit-appearance: none; width: 18px; height: 18px; margin: 0; border: 1.5px solid var(--ink3); border-radius: 50%; cursor: pointer; }
+.opt input:checked { border-color: var(--accent); background: radial-gradient(circle, var(--accent) 0 38%, transparent 44%); }
+.opt input:focus-visible { outline-offset: 3px; border-radius: 50%; }
+.opt:has(input:focus-visible) { border-color: var(--sand); }
+.opt .nm { font-weight: 650; }
+.opt code { flex: 1 1 auto; min-width: 0; text-align: right; color: var(--ink3); overflow-wrap: anywhere; }
+.opt:has(input:checked) { border-color: rgba(232, 72, 47, .85); background: rgba(232, 72, 47, .14); }
+.opt:has(input:checked) code { color: var(--paper); }
+.status { min-height: 1.5em; font-size: 14px; color: var(--ink2); }
+
+/* the clam, and the finale */
+.clam h3 { font-size: 24px; }
+.final code { font-size: 13px; }
+.cmd { display: flex; align-items: stretch; gap: 8px; }
+.cmd code { flex: 1 1 auto; min-width: 0; font-size: 12px; }
+.cmd .ib { height: auto; min-height: 36px; }
+.links { display: flex; flex-wrap: wrap; gap: 6px 18px; font-weight: 650; }
+.foot { font-size: 13px; color: var(--ink3); }
+
+.gauge, .stats { display: none; }
+.stats:not([hidden]) { display: block; position: fixed; right: 10px; bottom: 10px; z-index: 8; margin: 0; padding: 6px 9px; border-radius: 8px; background: rgba(0, 0, 0, .66); font: 11px/1.45 var(--mono); color: var(--paper); white-space: pre; pointer-events: none; }
+
+@media (max-width: 760px) {
+  html { font-size: 15px; }
+  .bar { gap: 8px; padding-top: 7px; padding-bottom: 7px; }
+  .home span, .lab, .ib span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .ib { width: 36px; padding: 0; }
+  .tools { gap: 6px; }
+  .url { font-size: 11px; line-height: 1.45; }
+  .lede, .tale p { font-size: 16px; }
+  h3, .pick legend { font-size: 18px; }
+  .beat { padding: 16px; }
+  .settings { right: -2px; width: min(268px, calc(100vw - 20px)); }
+}
+
+/* ======== the dive: scripts run and motion is welcome (the script sets .page when the
+   scene is off; in a browser that does not know `scripting` it opens this block itself) ======== */
+@media (scripting: enabled) and (prefers-reduced-motion: no-preference) {
+  :root:not(.page) { --col: clamp(320px, 33vw, 460px); --col-wide: clamp(340px, 40vw, 560px); --low: clamp(16px, 6vh, 64px); }
+  :root:not(.page) body { background: var(--night); }
+  :root:not(.page) canvas#world { display: block; position: fixed; left: 0; top: 0; z-index: 0; width: 100%; height: 100vh; height: 100lvh; opacity: 0; transition: opacity 1.4s ease; }
+  :root:not(.page).ready canvas#world { opacity: 1; }
+
+  /* the bar floats over the scene, and only its controls take the pointer */
+  :root:not(.page) .bar { position: fixed; top: max(10px, env(safe-area-inset-top)); left: max(10px, env(safe-area-inset-left)); right: max(10px, env(safe-area-inset-right)); padding: 7px 8px 7px 14px; border: 1px solid var(--line); border-radius: 16px; background: var(--glass); pointer-events: none; }
+  :root:not(.page) .bar a, :root:not(.page) .bar button, :root:not(.page) .bar .url, :root:not(.page) .settings { pointer-events: auto; }
+  :root:not(.page) .part:not(.lit) { color: var(--ink3); }
+
+  /* each beat is held in a slot of scroll, at the foot of the window, on the left */
+  :root:not(.page) main { max-width: none; margin: 0; padding: 0; pointer-events: none; }
+  :root:not(.page) .zone { display: block; padding: 0; }
+  :root:not(.page) .slot { display: flex; flex-direction: column; justify-content: flex-end; height: calc(var(--s, .8) * 100vh); }
+  :root:not(.page) .s-hero { --s: 1.2; }
+  :root:not(.page) .s-tale { --s: .85; }
+  :root:not(.page) .s-intro { --s: .78; }
+  :root:not(.page) .s-pick { --s: 1; }
+  :root:not(.page) .s-fin { --s: 1.3; }
+  :root:not(.page) .beat { position: sticky; bottom: calc(var(--low) + env(safe-area-inset-bottom)); width: var(--col); max-width: none; max-height: calc(100vh - var(--top) - var(--low) - 14px); margin: 0 0 0 max(var(--gut), env(safe-area-inset-left)); overflow-y: auto; padding: 20px 24px; border: 1px solid var(--line); border-radius: 18px; background: var(--glass); box-shadow: 0 18px 50px rgba(0, 0, 0, .28); pointer-events: auto; }
+  :root:not(.page) .hero, :root:not(.page) .fin { width: var(--col-wide); }
+  :root:not(.page) .hero { padding: 24px 26px; }
+  :root:not(.page) .beat.gone { pointer-events: none; }
+  :root:not(.page) .opts { grid-template-columns: 1fr; gap: 6px; }
+  :root:not(.page) .tale { border-left: 3px solid var(--accent); border-radius: 6px 18px 18px 6px; }
+  :root:not(.page) h1 { font-size: clamp(34px, 3.7vw, 52px); }
+  :root:not(.page) h2 { font-size: clamp(26px, 2.5vw, 34px); }
+  :root:not(.page) .lede { font-size: 16.5px; }
+  :root:not(.page).ready .load, :root:not(.page):not(.ready) .hint { display: none !important; }
+
+  /* the gauge: how deep, and which zone */
+  :root:not(.page) .gauge { display: block; position: fixed; right: max(20px, env(safe-area-inset-right)); top: 50%; z-index: 3; width: 14px; height: min(50vh, 420px); transform: translateY(-50%); pointer-events: none; }
+  :root:not(.page) .gauge::before { content: ""; position: absolute; left: 6px; top: 0; bottom: 0; width: 2px; border-radius: 2px; background: rgba(238, 242, 236, .3); }
+  :root:not(.page) .gauge ol { position: absolute; inset: 0; display: grid; grid-template-rows: repeat(8, 1fr); }
+  :root:not(.page) .gauge li { position: relative; }
+  :root:not(.page) .gauge a { position: absolute; right: -5px; top: -12px; display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; text-decoration: none; pointer-events: auto; }
+  :root:not(.page) .gauge a::after { content: ""; width: 8px; height: 8px; border-radius: 50%; background: rgba(238, 242, 236, .6); box-shadow: 0 0 0 3px rgba(4, 18, 26, .5); }
+  :root:not(.page) .gauge a[aria-current]::after { background: var(--paper); }
+  :root:not(.page) .gauge a span { position: absolute; right: 28px; top: 50%; transform: translateY(-50%); padding: 3px 9px; border-radius: 8px; background: rgba(4, 18, 26, .86); font-size: 12px; white-space: nowrap; opacity: 0; transition: opacity .2s; pointer-events: none; }
+  :root:not(.page) .gauge a:hover span, :root:not(.page) .gauge a:focus-visible span { opacity: 1; }
+  :root:not(.page) .gauge:hover .now, :root:not(.page) .gauge:focus-within .now { opacity: 0; }
+  :root:not(.page) .mark { position: absolute; left: 0; top: 0; width: 14px; height: 0; }
+  :root:not(.page) .mark::before { content: ""; position: absolute; left: 0; top: -7px; width: 14px; height: 14px; border: 2px solid var(--accent); border-radius: 50%; background: rgba(4, 18, 26, .7); }
+  :root:not(.page) .now { position: absolute; right: 24px; top: -21px; display: flex; flex-direction: column; align-items: flex-end; padding: 4px 10px; border-radius: 10px; background: rgba(4, 18, 26, .72); white-space: nowrap; line-height: 1.25; transition: opacity .2s; }
+  :root:not(.page) .now b { font: 700 15px/1.25 var(--mono); letter-spacing: -.02em; }
+  :root:not(.page) .now span { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink2); }
+
+  :root:not(.page) .stats:not([hidden]) { right: 54px; top: calc(var(--top) + 4px); bottom: auto; }
+
+  @media (hover: hover) and (pointer: fine) {
+    :root:not(.page) .bar, :root:not(.page) .beat { -webkit-backdrop-filter: blur(14px) saturate(1.15); backdrop-filter: blur(14px) saturate(1.15); }
+    :root:not(.page) .beat, :root:not(.page) .bar { background: rgba(4, 18, 26, .68); }
+  }
+  @media (prefers-reduced-transparency: reduce) {
+    :root:not(.page) .bar, :root:not(.page) .beat { background: rgba(4, 18, 26, .95); -webkit-backdrop-filter: none; backdrop-filter: none; }
+  }
+  /* middling widths: the bar's buttons go to icons, so the URL keeps its room */
+  @media (max-width: 1100px) and (min-width: 761px) {
+    :root:not(.page) .ib span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+    :root:not(.page) .ib { width: 36px; padding: 0; }
+  }
+  @media (max-width: 900px) and (min-width: 761px) { :root:not(.page) .lab { display: none; } }
+  /* short windows (a small laptop, a phone on its side): tighter words, and below 520 px a
+     wider column, so a beat still fits without scrolling inside */
+  @media (max-height: 620px) and (min-width: 761px) {
+    :root:not(.page) { --low: 12px; }
+    :root:not(.page) .beat { padding: 14px 18px; }
+    :root:not(.page) .beat > * + * { margin-top: 8px; }
+    :root:not(.page) h1 { font-size: 32px; }
+    :root:not(.page) h2 { font-size: 24px; }
+    :root:not(.page) .opt { min-height: 36px; padding: 5px 10px; }
+    :root:not(.page) .hint { display: none !important; }
+  }
+  @media (max-height: 520px) and (min-width: 761px) {
+    :root:not(.page) { --col: min(500px, 56vw); --col-wide: min(540px, 60vw); --low: 8px; }
+    :root:not(.page) .bar { top: 6px; padding: 4px 6px 4px 12px; }
+    :root:not(.page) .lab, :root:not(.page) .beat .eyebrow { display: none; }
+    :root:not(.page) .ib span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+    :root:not(.page) .ib { width: 34px; height: 34px; padding: 0; }
+    :root:not(.page) .beat { padding: 10px 14px; font-size: 14px; }
+    :root:not(.page) .beat > * + * { margin-top: 6px; }
+    :root:not(.page) h1 { font-size: 25px; }
+    :root:not(.page) h2 { font-size: 21px; }
+    :root:not(.page) h3, :root:not(.page) .pick legend { font-size: 16px; }
+    :root:not(.page) .lede, :root:not(.page) .tale p, :root:not(.page) .card p, :root:not(.page) .clam p { font-size: 14px; line-height: 1.45; }
+    :root:not(.page) .opts { grid-template-columns: 1fr 1fr; gap: 4px; padding-top: 6px; }
+    :root:not(.page) .opt { min-height: 30px; padding: 3px 9px; }
+    :root:not(.page) .opt code { font-size: 11px; }
+    :root:not(.page) .btn { min-height: 34px; padding: 0 12px; font-size: 14px; }
+    :root:not(.page) .tags li { font-size: 12px; }
+    :root:not(.page) .uses { gap: 4px; }
+    :root:not(.page) .final code { font-size: 11px; }
+    :root:not(.page) .fin .cmd code { white-space: nowrap; overflow-x: auto; scrollbar-width: none; }
+    :root:not(.page) .fin .cmd wbr { display: none; }
+    :root:not(.page) .fin .foot { display: none; }
+    :root:not(.page) .gauge { height: min(56vh, 230px); }
+  }
+
+  /* phones and narrow windows: the words are a sheet along the foot of the screen, at most
+     45% of it; the gauge is a line under the bar */
+  @media (max-width: 760px) {
+    :root:not(.page) .bar { top: max(8px, env(safe-area-inset-top)); left: max(8px, env(safe-area-inset-left)); right: max(8px, env(safe-area-inset-right)); padding: 7px 10px; border-radius: 14px; background: rgba(4, 18, 26, .84); }
+    :root:not(.page) .tools { position: absolute; right: 0; top: calc(100% + 8px); }
+    :root:not(.page) .tools .ib { background: rgba(4, 18, 26, .8); }
+    :root:not(.page) .beat .eyebrow, :root:not(.page) .hint, :root:not(.page) #page-link { display: none !important; }
+    :root:not(.page) .beat, :root:not(.page) .hero, :root:not(.page) .fin { width: auto; max-height: 45vh; max-height: 45svh; margin: 0 max(8px, env(safe-area-inset-right)) 0 max(8px, env(safe-area-inset-left)); bottom: max(8px, env(safe-area-inset-bottom)); padding: 14px 16px; border-radius: 16px; background: rgba(4, 18, 26, .86); }
+    :root:not(.page) .beat > * + * { margin-top: 9px; }
+    :root:not(.page) h1 { font-size: 29px; }
+    :root:not(.page) h2 { font-size: 23px; }
+    :root:not(.page) .lede, :root:not(.page) .tale p { font-size: 15px; }
+    :root:not(.page) .card p, :root:not(.page) .clam p { font-size: 14.5px; }
+    :root:not(.page) .opt { min-height: 38px; padding: 6px 10px; }
+    :root:not(.page) .btn { min-height: 40px; padding: 0 15px; }
+    :root:not(.page) .gauge { right: auto; left: max(8px, env(safe-area-inset-left)); top: calc(var(--top) + 14px); width: auto; height: auto; transform: none; }
+    :root:not(.page) .gauge::before, :root:not(.page) .gauge ol, :root:not(.page) .mark::before { display: none; }
+    :root:not(.page) .mark { position: static; width: auto; transform: none !important; }
+    :root:not(.page) .now { position: static; flex-direction: row; align-items: baseline; gap: 8px; padding: 3px 10px; border-radius: 999px; background: rgba(4, 18, 26, .8); }
+    :root:not(.page) .now b { font-size: 13px; }
+    :root:not(.page) .stats:not([hidden]) { right: 8px; top: calc(var(--top) + 52px); }
+    /* the finale keeps to its 45%: the install command scrolls sideways in its box */
+    :root:not(.page) .final code { font-size: 11.5px; padding: 6px 9px; }
+    :root:not(.page) .fin .fine { font-size: 12.5px; line-height: 1.45; }
+    :root:not(.page) .fin .cmd code { white-space: nowrap; overflow-x: auto; scrollbar-width: none; }
+    :root:not(.page) .fin .cmd wbr { display: none; }
+    :root:not(.page) .fin .foot { display: none; }
+  }
+  /* small phones: a little smaller still, and up to 48% of a short screen */
+  @media (max-width: 760px) and (max-height: 700px) {
+    :root:not(.page) .beat, :root:not(.page) .hero, :root:not(.page) .fin { max-height: 48vh; max-height: 48svh; padding: 11px 14px; }
+    :root:not(.page) .beat > * + * { margin-top: 7px; }
+    :root:not(.page) h1 { font-size: 25px; }
+    :root:not(.page) h2 { font-size: 21px; }
+    :root:not(.page) h3, :root:not(.page) .pick legend { font-size: 16.5px; }
+    :root:not(.page) .lede, :root:not(.page) .tale p { font-size: 14.5px; line-height: 1.45; }
+    :root:not(.page) .card p, :root:not(.page) .clam p, :root:not(.page) .uses span { font-size: 13.5px; line-height: 1.45; }
+    :root:not(.page) .opts { gap: 4px; padding-top: 8px; }
+    :root:not(.page) .opt { min-height: 33px; padding: 3px 10px; }
+    :root:not(.page) .btn { min-height: 36px; padding: 0 13px; font-size: 14px; }
+    :root:not(.page) .status { font-size: 13px; }
+    :root:not(.page) .fin .links { display: none; }
+    :root:not(.page) .final code { font-size: 11px; padding: 5px 8px; }
+    :root:not(.page) .fin .fine { font-size: 12px; }
+    :root:not(.page) .fin > * + * { margin-top: 6px; }
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+.fin .served { margin: 4px 0 12px; }
+.fin .served canvas { display: block; width: 100%; max-width: 300px; height: auto; border-radius: 10px; box-shadow: 0 6px 24px rgba(0, 0, 0, .35); }
+@media (max-width: 600px) { .fin .served canvas { max-width: 150px; } }
+</style>
+</head>
+<body>
+<a class="skip" href="#words">Skip to the words</a>
+<canvas id="world" aria-hidden="true"></canvas>
+
+<header class="bar" id="bar">
+  <a class="home" href="https://crabcrop.org/" aria-label="crabcrop home"><svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="18" r="11" fill="#E8482F"/><circle cx="11" cy="13" r="4.5" fill="#FBF2DF"/><circle cx="24" cy="6" r="3.4" fill="#E8482F"/><circle cx="8" cy="6" r="3" fill="#E8482F"/></svg><span>crabcrop</span></a>
+  <p class="u"><span class="lab" id="url-lab">Your URL</span><code class="url" id="url">https://<wbr>img.example.com/<wbr><span class="part p-sig" title="The signature, shortened here">3843ad67…</span>/<wbr><span class="part p-crop">crop:<wbr>1200x630:<wbr>smart</span>/<wbr>filters:<wbr><span class="part p-look">sharpen(1.2):<wbr>saturation(1.1)</span>/<wbr><span class="part p-src">root:<wbr>photos/<wbr>print.jpg</span></code></p>
+  <div class="tools">
+    <button class="ib js-only" id="copy-url" type="button" aria-label="Copy your URL"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="5.5" y="5.5" width="8" height="8" rx="1.6"/><path d="M10.5 3.2v-.1a1.6 1.6 0 0 0-1.6-1.6H4.1a1.6 1.6 0 0 0-1.6 1.6v4.8a1.6 1.6 0 0 0 1.6 1.6h.1"/></svg><span>Copy</span></button>
+    <button class="ib dive-only" id="sound" type="button" aria-pressed="false" title="Sound (M)"><svg class="off" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 6v4h2.6L8 13V3L4.6 6z"/><path d="M10.6 6.2l3.4 3.6M14 6.2l-3.4 3.6"/></svg><svg class="on" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 6v4h2.6L8 13V3L4.6 6z"/><path d="M10.6 5.6a3.4 3.4 0 0 1 0 4.8M12.6 3.8a6 6 0 0 1 0 8.4"/></svg><span>Sound</span></button>
+    <button class="ib dive-only" id="gear" type="button" aria-expanded="false" aria-controls="settings" title="Settings"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><path d="M2 4.5h7M12.5 4.5H14M2 11.5h2M7.5 11.5H14"/><circle cx="10.8" cy="4.5" r="1.7"/><circle cx="5.8" cy="11.5" r="1.7"/></svg><span>Settings</span></button>
+    <div class="settings dive-only" id="settings" hidden>
+      <fieldset>
+        <legend>Detail</legend>
+        <div class="seg">
+          <label><input type="radio" name="level" value="auto" checked><span>Auto</span></label>
+          <label><input type="radio" name="level" value="low"><span>Low</span></label>
+          <label><input type="radio" name="level" value="medium"><span>Medium</span></label>
+          <label><input type="radio" name="level" value="high"><span>High</span></label>
+        </div>
+      </fieldset>
+      <p class="fine">Auto picks from what your device says about itself. Lower detail draws less, for a steadier dive.</p>
+      <p><a href="?page">Read it as a page</a></p>
+      <p class="fine">Keys: <b>M</b> sound, <b>H</b> frame statistics</p>
+    </div>
+  </div>
+</header>
+
+<nav class="gauge dive-only" id="gauge" aria-label="Depth">
+  <ol>
+    <li><a href="#s0" aria-current="step"><span>0 m · The Marina</span></a></li>
+    <li><a href="#s1"><span>−5 m · The Shallows</span></a></li>
+    <li><a href="#s2"><span>−15 m · The Kelp Forest</span></a></li>
+    <li><a href="#s3"><span>−30 m · The Coral Reef</span></a></li>
+    <li><a href="#s4"><span>−60 m · The Shipwreck</span></a></li>
+    <li><a href="#s5"><span>−500 m · The Twilight Zone</span></a></li>
+    <li><a href="#s6"><span>−2,500 m · The Vents</span></a></li>
+    <li><a href="#s7"><span>0 m · Back to the Surface</span></a></li>
+  </ol>
+  <div class="mark" id="mark" aria-hidden="true"><p class="now"><b id="depth">0 m</b><span id="zone">The Marina</span></p></div>
+</nav>
+
+<main id="words" tabindex="-1">
+
+<section class="zone" id="s0" aria-labelledby="h0">
+  <div class="slot s-hero"><div class="beat hero">
+    <p class="eyebrow"><span class="d">0 m</span> · The Marina</p>
+    <h1 id="h0" tabindex="-1">Blazing fast, <span class="nw">on-demand</span> images.</h1>
+    <p class="lede">Crabcrop resizes, crops, converts and filters your images straight from a signed URL. One Rust binary, no pre-generated thumbnails, no build step.</p>
+    <p class="lede">Dive with Snap, make five choices on the way down, and come back up with an image URL of your own.</p>
+    <p class="note" id="mode-note" hidden></p>
+    <div class="load dive-only" id="load"><span class="track" id="load-track" role="progressbar" aria-label="Loading the scene" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span class="fill" id="load-fill"></span></span><span class="pc" id="load-pc">0%</span><span id="load-label">Filling the sea</span></div>
+    <p class="hint dive-only">Scroll to dive</p>
+    <div class="go">
+      <a class="btn main" id="start" href="#s1">Dive <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2.5v10M3.5 8.5 8 13l4.5-4.5"/></svg></a>
+      <a class="btn" href="https://crabcrop.org/#install">Install</a>
+      <a class="btn" href="https://crabcrop.org/docs.html">Docs</a>
+    </div>
+    <p class="quiet js-only" id="page-link"><a href="?page">Read it as a page</a></p>
+  </div></div>
+  <div class="slot s-tale"><div class="beat tale">
+    <p><em>A gust snatches Snap’s favorite photo print from his claw, and it sinks.</em> He doesn’t hesitate: he dives, grabs the anchor chain and goes after it.</p>
+    <ol class="steps" aria-label="How it goes"><li>Scroll to dive</li><li>Make five choices</li><li>Copy your URL</li></ol>
+  </div></div>
+</section>
+
+<section class="zone" id="s1" aria-labelledby="h1">
+  <div class="slot s-intro"><div class="beat intro">
+    <p class="eyebrow"><span class="d">−5 m</span> · The Shallows</p>
+    <h2 id="h1" tabindex="-1">One URL does the whole job.</h2>
+    <p class="lede">A crabcrop URL reads left to right: a signature, then the operations, then the source. Each of your five choices is one part of it, and lights up in the bar above.</p>
+  </div></div>
+  <div class="slot"><article class="beat card" data-lights="sig">
+    <h3>Signed URLs, from any stack</h3>
+    <p>Every URL carries an HMAC-SHA256 signature over the operations and the source. Same inputs, same URL, from any of these:</p>
+    <ul class="tags"><li>TypeScript</li><li>Python</li><li>Rust</li><li>curl</li></ul>
+    <a class="more" href="https://crabcrop.org/docs.html#signing">Read the docs<span class="sr"> on signing</span></a>
+  </article></div>
+  <div class="slot"><article class="beat card">
+    <h3>All major formats, in and out</h3>
+    <p>JPEG, PNG, WebP, GIF, AVIF and JPEG XL. Name no format and the browser’s Accept header decides; on a tie, AVIF, then JPEG XL, then WebP.</p>
+    <p class="ex"><code>format(avif) · format(jxl) · format(webp)</code></p>
+    <a class="more" href="https://crabcrop.org/docs.html#format">Read the docs<span class="sr"> on formats</span></a>
+  </article></div>
+  <div class="slot s-pick"><div class="beat pick" data-lights="format">
+    <fieldset data-choice="format">
+      <legend><span class="turn">Choice 1 of 5</span>Pick a format</legend>
+      <div class="opts">
+        <label class="opt"><input type="radio" name="format" value="0" checked><span class="nm">Auto</span><code>no format named</code></label>
+        <label class="opt"><input type="radio" name="format" value="1"><span class="nm">AVIF</span><code>format(avif)</code></label>
+        <label class="opt"><input type="radio" name="format" value="2"><span class="nm">JPEG XL</span><code>format(jxl)</code></label>
+        <label class="opt"><input type="radio" name="format" value="3"><span class="nm">WebP</span><code>format(webp)</code></label>
+      </div>
+    </fieldset>
+    <p class="status" aria-live="polite" id="st-format">No format named: the browser’s Accept header decides.</p>
+  </div></div>
+  <div class="slot"><article class="beat card">
+    <h3>Sources beyond photos</h3>
+    <p>The source can be one frame of a video, one page of a PDF, an object in S3 or GCS, a local file, or a short <code>root:</code> reference.</p>
+    <p class="ex"><code>frame:50% · page:2 · root:photos/<wbr>print.jpg</code></p>
+    <a class="more" href="https://crabcrop.org/docs.html#sources">Read the docs<span class="sr"> on sources</span></a>
+  </article></div>
+</section>
+
+<section class="zone" id="s2" aria-labelledby="h2">
+  <div class="slot s-intro"><div class="beat intro">
+    <p class="eyebrow"><span class="d">−15 m</span> · The Kelp Forest</p>
+    <h2 id="h2" tabindex="-1">51 filters, one chain.</h2>
+    <p class="lede">Resize, crop, fit-in and pad are their own path segments. The filters chain inside one <code>filters:</code> segment and run in the order written.</p>
+  </div></div>
+  <div class="slot"><article class="beat card">
+    <h3>Chained filters</h3>
+    <p>Sharpen, saturate, tone, blur, duotone and more, applied in the order you write them.</p>
+    <p class="ex"><code>filters:<wbr>sharpen(1.2):<wbr>saturation(1.1)</code></p>
+    <a class="more" href="https://crabcrop.org/docs.html#adjust">Read the docs<span class="sr"> on filters</span></a>
+  </article></div>
+  <div class="slot s-pick"><div class="beat pick" data-lights="look">
+    <fieldset data-choice="look">
+      <legend><span class="turn">Choice 2 of 5</span>Pick a look</legend>
+      <div class="opts">
+        <label class="opt"><input type="radio" name="look" value="0" checked><span class="nm">Crisp</span><code>sharpen(1.2):<wbr>saturation(1.1)</code></label>
+        <label class="opt"><input type="radio" name="look" value="1"><span class="nm">Deep sea</span><code>duotone(0d202e,<wbr>ffd88a)</code></label>
+        <label class="opt"><input type="radio" name="look" value="2"><span class="nm">Vintage</span><code>sepia</code></label>
+      </div>
+    </fieldset>
+    <p class="status" aria-live="polite" id="st-look">Sharpened a touch, with a little more color.</p>
+  </div></div>
+  <div class="slot"><article class="beat card">
+    <h3>Size, crop, fit and pad</h3>
+    <p>Resize to exact pixels, crop to a window that finds the subject, fit inside a box, or pad out to a shape. Each is its own path segment.</p>
+    <p class="ex"><code>crop:1200x630:smart · fit-in · pad</code></p>
+    <a class="more" href="https://crabcrop.org/docs.html#size">Read the docs<span class="sr"> on sizing</span></a>
+  </article></div>
+  <div class="slot"><article class="beat card">
+    <h3>Presets and purge</h3>
+    <p>Server-side preset names keep templates short. Purge one result, or a whole preset group, with signatures from their own subkey.</p>
+    <p class="ex"><code>preset:og-card · POST /purge-group</code></p>
+    <a class="more" href="https://crabcrop.org/docs.html#presets">Read the docs<span class="sr"> on presets</span></a>
+  </article></div>
+</section>
+
+<section class="zone" id="s3" aria-labelledby="h3">
+  <div class="slot s-intro"><div class="beat intro">
+    <p class="eyebrow"><span class="d">−30 m</span> · The Coral Reef</p>
+    <h2 id="h3" tabindex="-1">It sees what matters.</h2>
+    <p class="lede">Smart crops that keep faces whole, face detection, redaction and object removal.</p>
+  </div></div>
+  <div class="slot"><article class="beat card">
+    <h3>Smart crop, face safe</h3>
+    <p>Ask for any shape and the crop window moves to the subject. Faces stay whole, never cut at the edge.</p>
+    <p class="ex"><code>crop:1200x630:smart</code></p>
+    <a class="more" href="https://crabcrop.org/docs.html#size">Read the docs<span class="sr"> on smart crop</span></a>
+  </article></div>
+  <div class="slot s-pick"><div class="beat pick" data-lights="crop">
+    <fieldset data-choice="crop">
+      <legend><span class="turn">Choice 3 of 5</span>Pick a crop</legend>
+      <div class="opts">
+        <label class="opt"><input type="radio" name="crop" value="0" checked><span class="nm">Wide card</span><code>crop:1200x630:smart</code></label>
+        <label class="opt"><input type="radio" name="crop" value="1"><span class="nm">Square</span><code>crop:760x760:smart</code></label>
+        <label class="opt"><input type="radio" name="crop" value="2"><span class="nm">Whole picture</span><code>fit-in:1200x630</code></label>
+      </div>
+    </fieldset>
+    <p class="status" aria-live="polite" id="st-crop">1200 × 630, the window moved to the subject.</p>
+  </div></div>
+  <div class="slot"><article class="beat card">
+    <h3>Faces, redaction, removal</h3>
+    <p>A YuNet model finds every face: crop to them or blur them. Blur a whole class of thing, like people, before a picture goes out; if detection fails, so does the request. Mark a box, and an inpainting model fills it in.</p>
+    <p class="ex"><code>crop:760x760:face · blurfaces · blurclass(person) · remove_region(40,<wbr>120,<wbr>300,<wbr>200)</code></p>
+    <a class="more" href="https://crabcrop.org/docs.html#ai">Read the docs<span class="sr"> on faces, redaction and removal</span></a>
+  </article></div>
+  <div class="slot s-intro"><article class="beat clam" aria-labelledby="h3b">
+    <p class="eyebrow">At the reef’s end · The giant clam</p>
+    <h3 id="h3b">A studio in a shell.</h3>
+    <p>Studio light for product shots, clean cut-outs and sharper small pictures: each one more filter in the URL, run in process on a model you supply.</p>
+    <ul class="uses">
+      <li><code>studio(product,<wbr>bg:brand,<wbr>shadow:soft,<wbr>pad:10)</code><span>Cut out, on your brand color, with a soft shadow.</span></li>
+      <li><code>removebg</code><span>Only the subject stays, on transparency.</span></li>
+      <li><code>upscale(2)</code><span>Twice the size, with real detail.</span></li>
+    </ul>
+    <a class="more" href="https://crabcrop.org/docs.html#studio">Read the docs<span class="sr"> on studio mode</span></a>
+  </article></div>
+  <div class="slot s-pick"><div class="beat pick" data-lights="finish">
+    <fieldset data-choice="finish">
+      <legend><span class="turn">Choice 4 of 5</span>Pick a finish</legend>
+      <div class="opts">
+        <label class="opt"><input type="radio" name="finish" value="0" checked><span class="nm">None</span><code>nothing added</code></label>
+        <label class="opt"><input type="radio" name="finish" value="1"><span class="nm">Studio</span><code>studio(product,<wbr>bg:brand,<wbr>shadow:soft,<wbr>pad:10)</code></label>
+        <label class="opt"><input type="radio" name="finish" value="2"><span class="nm">Cut out</span><code>removebg</code></label>
+      </div>
+    </fieldset>
+    <p class="status" aria-live="polite" id="st-finish">Nothing added: the picture leaves as photographed.</p>
+  </div></div>
+</section>
+
+<section class="zone" id="s4" aria-labelledby="h4">
+  <div class="slot s-intro"><div class="beat intro">
+    <p class="eyebrow"><span class="d">−60 m</span> · The Shipwreck</p>
+    <h2 id="h4" tabindex="-1">Signed, sealed, provable.</h2>
+    <p class="lede">Some links should stay unreadable, some pictures should prove where they came from, and some addresses should never be fetched at all.</p>
+  </div></div>
+  <div class="slot"><article class="beat card">
+    <h3>Sealed URLs</h3>
+    <p>For links that stay public but unreadable: the whole recipe, operations and source, sealed into one opaque token in the signature’s place. Only the server opens it, and it serves the same render.</p>
+    <p class="ex"><code>s1.&lt;token&gt;/<wbr>print.jpg</code></p>
+    <a class="more" href="https://crabcrop.org/docs.html#sealed">Read the docs<span class="sr"> on sealed URLs</span></a>
+  </article></div>
+  <div class="slot s-pick"><div class="beat pick" data-lights="seal">
+    <fieldset data-choice="seal">
+      <legend><span class="turn">Choice 5 of 5</span>Seal it, or keep it readable</legend>
+      <div class="opts">
+        <label class="opt"><input type="radio" name="seal" value="0" checked><span class="nm">Readable</span><code>crop:…/<wbr>root:…</code></label>
+        <label class="opt"><input type="radio" name="seal" value="1"><span class="nm">Sealed</span><code>s1.&lt;token&gt;</code></label>
+      </div>
+    </fieldset>
+    <p class="status" aria-live="polite" id="st-seal">Readable: the recipe stays in plain sight. It is the right default for most links.</p>
+  </div></div>
+  <div class="slot"><article class="beat card">
+    <h3>Provenance, checked and signed</h3>
+    <p>Meta reports the Content Credentials a source carries. With your own certificate, outputs are signed as served, the source recorded as an ingredient, so the chain survives the transform.</p>
+    <p class="ex"><code>CRABCROP_C2PA_CERT · CRABCROP_C2PA_KEY</code></p>
+    <a class="more" href="https://crabcrop.org/docs.html#provenance">Read the docs<span class="sr"> on provenance</span></a>
+  </article></div>
+  <div class="slot"><article class="beat card">
+    <h3>Private sources blocked by default</h3>
+    <p>The loader refuses sources on loopback, private and other non-public addresses, checked again on every redirect. Allowlisting a host is how you vouch for an internal one.</p>
+    <p class="ex"><code>403 source_forbidden · CRABCROP_ALLOWED_SOURCES</code></p>
+    <a class="more" href="https://crabcrop.org/docs.html#private-sources">Read the docs<span class="sr"> on private sources</span></a>
+  </article></div>
+</section>
+
+<section class="zone" id="s5" aria-labelledby="h5">
+  <div class="slot s-intro"><div class="beat intro">
+    <p class="eyebrow"><span class="d">−500 m</span> · The Twilight Zone</p>
+    <h2 id="h5" tabindex="-1">It reads the picture.</h2>
+    <p class="lede">Almost no sunlight reaches this far. What a picture holds, a meta answer names: tags with their scores, a line of alt text, the text in it, and a report on the URL itself.</p>
+  </div></div>
+  <div class="slot"><article class="beat card">
+    <h3>Metadata that describes the picture</h3>
+    <p>JSON meta for every render: size, format, provenance. Richer answers are opt-ins with their own models: CLIP tags and alt text, detections, moderation, embeddings, an aesthetic score, OCR text.</p>
+    <p class="ex"><code>Accept: application/json; detections=1</code></p>
+    <a class="more" href="https://crabcrop.org/docs.html#meta">Read the docs<span class="sr"> on metadata</span></a>
+  </article></div>
+  <div class="slot"><article class="beat card">
+    <h3>Text recognition</h3>
+    <p>Opt a meta request in and the answer reads the picture: the lines of text in reading order, each with its box and a confidence score. The image bytes stay exactly the same.</p>
+    <p class="ex"><code>Accept: application/json; ocr=1</code></p>
+    <a class="more" href="https://crabcrop.org/docs.html#meta">Read the docs<span class="sr"> on text recognition</span></a>
+  </article></div>
+  <div class="slot"><article class="beat card">
+    <h3>URLs that explain themselves</h3>
+    <p>Put <code>explain/</code> in front of the signature and the server answers with a report on the URL: the signature’s verdict, the source, every operation in plain words, and what will come out.</p>
+    <p class="ex"><code>GET /explain/&lt;signature&gt;/…</code></p>
+    <a class="more" href="https://crabcrop.org/docs.html#explain">Read the docs<span class="sr"> on explain</span></a>
+  </article></div>
+</section>
+
+<section class="zone" id="s6" aria-labelledby="h6">
+  <div class="slot s-intro"><div class="beat intro">
+    <p class="eyebrow"><span class="d">−2,500 m</span> · The Vents</p>
+    <h2 id="h6" tabindex="-1">The engine at the bottom.</h2>
+    <p class="lede">Everything above runs on what is down here: one Rust binary, the libraries that build its URLs, and a server that agents can talk to.</p>
+  </div></div>
+  <div class="slot"><article class="beat card">
+    <h3>One binary, built in Rust</h3>
+    <p>Install it, give it a secret, and request images with the operations written into the URL. No pre-generated thumbnails, no build step: the URL is the API.</p>
+    <p class="ex"><code>CRABCROP_SECRET=… crabcrop</code></p>
+    <a class="more" href="https://crabcrop.org/docs.html#start">Read the docs<span class="sr"> on getting started</span></a>
+  </article></div>
+  <div class="slot"><article class="beat card">
+    <h3>SDKs and loaders</h3>
+    <p>Build and sign the same URL from TypeScript, Python, or the Rust crate the server verifies with. Loaders drop it into your framework’s image component:</p>
+    <ul class="tags"><li>Next.js</li><li>Nuxt</li><li>Hydrogen</li><li>Astro</li><li>SvelteKit</li></ul>
+    <p class="ex"><code>npm install @crabcrop/url</code></p>
+    <a class="more" href="https://crabcrop.org/docs.html#sdks">Read the docs<span class="sr"> on SDKs and loaders</span></a>
+  </article></div>
+  <div class="slot"><article class="beat card">
+    <h3>MCP server for agents</h3>
+    <p>Coding agents sign, explain and inspect URLs through four tools over the same SDK: <code>sign_url</code>, <code>explain_url</code>, <code>fetch_meta</code> and <code>purge_result</code>.</p>
+    <p class="ex"><code>@crabcrop/mcp</code></p>
+    <a class="more" href="https://crabcrop.org/docs.html#mcp">Read the docs<span class="sr"> on the MCP server</span></a>
+  </article></div>
+  <div class="slot s-tale"><div class="beat tale" data-lights="src">
+    <p><em>There it is, in the glow of the geode: Snap’s print.</em> It is the last part of your URL, the source: <code>root:photos/<wbr>print.jpg</code>.</p>
+  </div></div>
+</section>
+
+<section class="zone" id="s7" aria-labelledby="h7">
+  <div class="slot s-tale"><div class="beat tale">
+    <p class="eyebrow"><span class="d">0 m</span> · Back to the Surface</p>
+    <p><em>Up, with the print.</em> Every choice you made on the way down is one part of your URL: the format, the look, the crop, the finish, and whether it is sealed.</p>
+  </div></div>
+  <div class="slot s-fin"><div class="beat fin">
+    <h2 id="h7" tabindex="-1">Your image, served.</h2>
+    <figure class="served js-only" hidden><canvas id="served" width="960" height="504" role="img" aria-label="The picture your URL serves: Snap, with the crop, finish and look you chose"></canvas></figure>
+    <p class="final"><code id="final-url">https://<wbr>img.example.com/<wbr>3843ad67974400e1c368394dfc3f33326429aabd37c9a15c232662d83a45079a/<wbr>crop:<wbr>1200x630:<wbr>smart/<wbr>filters:<wbr>sharpen(1.2):<wbr>saturation(1.1)/<wbr>root:<wbr>photos/<wbr>print.jpg</code></p>
+    <div class="go js-only">
+      <button class="btn main" id="copy-final" type="button">Copy your URL</button>
+      <a class="btn" id="again" href="#s0"><span id="again-label">Dive again</span> <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 13.5v-10M3.5 7.5 8 3l4.5 4.5"/></svg></a>
+    </div>
+    <p class="fine" id="final-note">Signed in your browser with the sample secret <code>demo-secret</code>, on a stand-in host. Sign the same path with your own secret and your crabcrop server serves the picture.</p>
+    <div class="cmd"><code id="install-cmd">curl --proto '=https' --tlsv1.2 -LsSf https://<wbr>github.com/<wbr>dayvson/<wbr>crabcrop/<wbr>releases/<wbr>latest/<wbr>download/<wbr>crabcrop-installer.sh | sh</code><button class="ib js-only" id="copy-install" type="button" aria-label="Copy the install command"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="5.5" y="5.5" width="8" height="8" rx="1.6"/><path d="M10.5 3.2v-.1a1.6 1.6 0 0 0-1.6-1.6H4.1a1.6 1.6 0 0 0-1.6 1.6v4.8a1.6 1.6 0 0 0 1.6 1.6h.1"/></svg><span>Copy</span></button></div>
+    <p class="links"><a href="https://crabcrop.org/#install">Install</a><a href="https://crabcrop.org/docs.html">Docs</a><a href="https://play.crabcrop.org">Playground</a><a href="https://github.com/dayvson/crabcrop">GitHub</a></p>
+    <p class="foot">Built on the shore, in Rust. MIT licensed. See you at low tide.</p>
+  </div></div>
+</section>
+
+</main>
+<p class="sr" id="say" role="status"></p>
+<p class="stats" id="stats" hidden></p>
+<!--SCRIPT-->
+</body>
+</html>
