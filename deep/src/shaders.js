@@ -43,7 +43,7 @@ export const G = {
   light: uniform(new Vector4(1, 1, 1, 1)),                        // scales: sun, sky, caustics, shafts
   // above the water: the evening sun, low over the sea ahead, and the sky's own light
   // (the sun low behind the lighthouse, a little to its right)
-  skySunDir: uniform(new Vector3(-0.27, 0.075, -0.96).normalize()),
+  skySunDir: uniform(new Vector3(-0.31, 0.087, -0.947).normalize()),
   skySunCol: uniform(new Color(2.4, 1.45, 0.62)),
   skyLow: uniform(new Color(1.32, 0.78, 0.42)),                    // the sky at the horizon: gold
   skyMid: uniform(new Color(1.12, 0.80, 0.66)),                    // peach above it
@@ -138,7 +138,7 @@ export const skyColor = Fn(([rd]) => {
   const up = max(rd.y, 0.0);
   const base = mix(mix(G.skyLow, G.skyMid, smoothstep(0.0, 0.22, up)), G.skyHigh, smoothstep(0.18, 0.85, up));
   const sd = max(dot(rd, G.skySunDir), 0.0);
-  return base.add(G.skySunCol.mul(pow(sd, 4.0).mul(0.42).add(pow(sd, 24.0).mul(0.75)).add(pow(sd, 160.0).mul(1.6)).add(smoothstep(0.99955, 0.99975, sd).mul(9.0))));
+  return base.add(G.skySunCol.mul(pow(sd, 4.0).mul(0.42).add(pow(sd, 24.0).mul(0.8)).add(pow(sd, 90.0).mul(2.0)).add(smoothstep(0.99905, 0.99935, sd).mul(4.5))));
 });
 // A colour seen from the eye: through the water for the part of the way that is under the
 // surface, through the evening air for the part above it. (The eye sits at the waterline
