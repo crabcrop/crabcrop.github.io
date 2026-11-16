@@ -23,6 +23,18 @@ const SLOT = {
 // one spot: low over the sand in the shallows, up among the kelp, low and further over the
 // reef. [from p, to p, forward, right, up] added to his place, eased in and out)
 const DRIFT = [[1.45, 2.05, 0.25, 0.25, -0.3], [2.1, 2.95, -0.15, -0.1, 0.2], [3.05, 3.7, 0.12, 0.2, -0.15]];
+// the submarine's place in the deep, beat by beat (wide screens): small, dropping past the
+// cliff; close among the jellies; back, so the anglerfish can come close; small and high
+// among the chimneys. [from p, to p, forward, right, up] added to its place.
+const SUB_DRIFT = [[5.08, 5.35, 2.2, 0.7, -0.45], [5.4, 5.6, 0.5, 0.0, 0.15], [5.6, 5.76, 1.7, 0.6, 0.65], [6.12, 6.82, 1.7, 0.3, 0.95]];
+const subDriftAt = (p, out) => {
+  out[0] = out[1] = out[2] = 0;
+  for (let i = 0; i < SUB_DRIFT.length; i++) {
+    const d = SUB_DRIFT[i], k = smooth(d[0], d[0] + 0.06, p) * (1 - smooth(d[1] - 0.06, d[1], p));
+    out[0] += d[2] * k; out[1] += d[3] * k; out[2] += d[4] * k;
+  }
+  return out;
+};
 const driftAt = (p, out) => {
   out[0] = out[1] = out[2] = 0;
   for (let i = 0; i < DRIFT.length; i++) {
@@ -58,6 +70,7 @@ function buildPrint() {
       const img = pic.sample(uv()).rgb;
       s.albedo = select(faceDirection.greaterThan(0.0), img, vec3(0.86, 0.80, 0.68));
       s.spec = float(0.05); s.gloss = float(8.0); s.fluor = float(0.2);
+      s.emis = s.albedo.mul(0.3);                 // (pale felt catches the light from all round)
     },
   });
   const mesh = new Mesh(new PlaneGeometry(PRINT_W, PRINT_H), mat);
@@ -114,15 +127,17 @@ export function buildCast(ctx) {
       const jump = dt <= 0 || !st.placed;
       const follow = (cur, want, rate) => { if (jump || cur.distanceToSquared(want) > 64) cur.copy(want); else cur.lerp(want, 1 - Math.exp(-dt * rate)); };
 
-      // ---- the submarine: comes down from ahead and to the right (away from the wreck, which
-      // is on the left), then stays in its place
+      // ---- the submarine: comes down from ahead and a little to the right (away from the
+      // wreck, which is on the left), where it can be seen coming, then stays in its place
       const come = smooth(SUB_COMES[0], SUB_COMES[1], p);
       // (at the geode it moves aside, so the geode shows: up on a phone, right on a wide screen)
       const geode = smooth(6.8, 6.87, p) * (1 - smooth(7.04, 7.1, p));
-      if (o === SLOT.wide) SUB_AT[0] = o.sub[0], SUB_AT[1] = o.sub[1] + 0.75 * geode, SUB_AT[2] = o.sub[2] + 0.1 * geode;
-      else SUB_AT[0] = o.sub[0] + 0.5 * geode, SUB_AT[1] = o.sub[1], SUB_AT[2] = o.sub[2] + 1.05 * geode;
+      if (o === SLOT.wide) {
+        subDriftAt(p, DRIFT_AT);
+        SUB_AT[0] = o.sub[0] + DRIFT_AT[0]; SUB_AT[1] = o.sub[1] + 0.75 * geode + DRIFT_AT[1]; SUB_AT[2] = o.sub[2] + 0.1 * geode + DRIFT_AT[2];
+      } else SUB_AT[0] = o.sub[0] + 0.5 * geode, SUB_AT[1] = o.sub[1], SUB_AT[2] = o.sub[2] + 1.05 * geode;
       slot(SUB_AT, A);
-      B.copy(A).addScaledVector(F, 3).addScaledVector(R, 7).addScaledVector(UP, 3);
+      B.copy(A).addScaledVector(F, 6).addScaledVector(R, 2.2).addScaledVector(UP, 2.4);
       A.lerp(B, 1 - come);
       A.y += Math.sin(t * 0.9) * 0.06;
       A.y = Math.max(A.y, groundY(A.x, A.z) + 0.95);        // (never in the ground)
@@ -211,8 +226,9 @@ export function buildCast(ctx) {
       snap.life.squint = Math.max(st.wave * 0.8, pk > 0.4 ? Math.sin((pk - 0.4) / 0.6 * Math.PI) : 0);
       // the gust: a start as the print goes
       if (p > GUST[0] && p < GUST[0] + 0.08) snap.life.surprise = Math.max(snap.life.surprise, Math.sin(((p - GUST[0]) / 0.08) * Math.PI));
-      // and he reaches after it with his free claw
-      snap.life.hold = p > GUST[0] && p < DIVE[1] ? Math.sin(((p - GUST[0]) / (DIVE[1] - GUST[0])) * Math.PI) * 1.6 : 0;
+      // and he reaches after it with his free claw; and reaches for the submarine as it comes
+      snap.life.hold = p > GUST[0] && p < DIVE[1] ? Math.sin(((p - GUST[0]) / (DIVE[1] - GUST[0])) * Math.PI) * 2.2
+        : p > SUB_COMES[0] && p < SNAP_BOARDS[0] + 0.04 ? Math.sin(((p - SUB_COMES[0]) / (SNAP_BOARDS[0] + 0.04 - SUB_COMES[0])) * Math.PI) * 2.0 : 0;
       // he turns to face the visitor, his body a little toward where he goes; on the chain,
       // his up runs along it
       C.copy(camera.position).sub(st.pos);
@@ -223,6 +239,9 @@ export function buildCast(ctx) {
       const turnAway = hang || inSub || cabin > 0.5 || p < DIVE[1] ? 0 : smooth(0.55, 0.95, Math.sin(t * 0.37 + 1.3)) * 0.75;
       qb.setFromAxisAngle(UP, -0.35 - turnAway + snap.life.swing * 0.15);
       snap.group.quaternion.copy(qa).multiply(qb);
+      // head-first as he dives after the print, and a forward lean when he swims hard
+      const pitchDown = Math.sin(dive * Math.PI) * 1.05 + (hang || inSub || cabin > 0.5 ? 0 : clamp(speed * 0.12, 0, 0.3));
+      if (pitchDown > 0.001) { qa.setFromAxisAngle(R, -pitchDown); snap.group.quaternion.premultiply(qa); }
       if (hang) {
         qa.setFromUnitVectors(UP, ALONG);
         snap.group.quaternion.premultiply(qa);
@@ -238,7 +257,8 @@ export function buildCast(ctx) {
         const g = cast.sights[i];
         if (p > g.from && p < g.to && Math.sin(t * 0.7 + i) > -0.2) { snap.target.copy(g.at); break; }
       }
-      snap.U.cabin.value = inSub ? 0.16 * smooth(40, 90, depth) : 0;
+      // (in the submarine a warm light inside keeps him red in the dark)
+      snap.U.cabin.value = inSub ? 0.1 + 0.3 * smooth(40, 90, depth) : 0;
       snap.live(t, dt);
 
       // ---- his print: held up in his raised claw; snatched by the gust, it flies up and falls
@@ -257,17 +277,19 @@ export function buildCast(ctx) {
           FLY[2].set(FLY[0].x - 2.3, 0.02, FLY[0].z - 3.6);
           if (sink <= 0) bez(print.mesh.position, FLY[0], FLY[1], FLY[2], g * g * (1.6 - 0.6 * g));
           else {
-            // sinking: ahead and down, rocking side to side as paper does
-            const u = Math.pow(sink, 0.85);
-            print.mesh.position.set(
-              FLY[2].x + (4.6 - FLY[2].x) * u + Math.sin(sink * 19) * 0.35 * (1 - u),
-              FLY[2].y + (groundY(4.6, -34) + 0.4 - FLY[2].y) * u,
-              FLY[2].z + (-34 - FLY[2].z) * u);
+            // sinking: it settles in just ahead of Snap and a little to his left, seesawing down
+            // through the light as paper does, leading the way; past the anchor it drifts on
+            // ahead, down the slope and out of sight
+            const lead = smooth(0, 0.18, sink), on = smooth(0.62, 1.0, sink);
+            HELD.copy(camera.position).addScaledVector(F, 3.3 + 9 * on).addScaledVector(R, 0.35 - 0.4 * on).addScaledVector(U, -0.15 - 1.6 * on);
+            HELD.x += Math.sin(t * 1.3) * 0.22; HELD.y += Math.sin(t * 2.6) * 0.06;
+            print.mesh.position.copy(FLY[2]).lerp(HELD, lead);
           }
         }
         print.mesh.lookAt(camera.position);
-        qt.setFromAxisAngle(TUMBLE, g * 8.5 + sink * 14 + (g > 0 ? Math.sin(t * 2.3) * 0.25 : Math.sin(t * 1.4) * 0.08));
+        qt.setFromAxisAngle(TUMBLE, g * 8.5 + (sink > 0 ? Math.sin(t * 1.3) * 0.5 : 0) + (g > 0 ? Math.sin(t * 2.3) * 0.25 : Math.sin(t * 1.4) * 0.08));
         print.mesh.quaternion.multiply(qt);
+        print.mesh.scale.setScalar(sink > 0 ? 1.25 : 1);
       } else st.flyFrom = false;
 
       // ---- the lamp: on as the light goes, aimed where the visitor points

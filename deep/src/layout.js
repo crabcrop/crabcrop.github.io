@@ -80,19 +80,19 @@ export const ZONES = [
 const P = (p, z, off, y, up, yaw, pitch) => ({ p, z, off, y, up, yaw, pitch });
 const STOPS = [
   // the marina from the waterline, half above and half below; then under, beneath the pier
-  P(0.0, 18, 0, 0.0, false, 0, -3), P(0.28, 15, 0, 0.0, false, -2, -4), P(0.55, 9, -0.6, -1.6, false, -3, 2), P(1.0, -8, -0.6, -3.7, false, 3, 2),
+  P(0.0, 18, 0, 0.0, false, 0, -3), P(0.28, 15, 0, 0.0, false, -2, -4), P(0.55, 9, -0.6, -1.6, false, -3, 2), P(1.0, -8, 0.6, -3.7, false, 5, 2),
   // the shallows: down the chain to the anchor, then over the sand
   P(1.3, -18, -1.2, 2.6, true, 6, -8), P(1.65, -31, 1.0, 2.1, true, -5, -5), P(2.0, -48, 0, 2.4, true, 0, -2),
   // the kelp forest
   P(2.3, -64, 2.5, 3.0, true, -8, 4), P(2.6, -82, -2.0, 3.6, true, 7, 9), P(2.85, -98, 2.0, 3.4, true, -5, 3), P(3.0, -112, 0, 3.0, true, 0, -6),
   // the reef, and the giant clam at its far end
-  P(3.3, -130, -3.0, 2.8, true, 9, -7), P(3.6, -148, 3.5, 2.5, true, -9, -5), P(3.82, -164, -1.5, 2.6, true, 16, -4), P(4.0, -182, 1.0, 3.4, true, -3, -9),
+  P(3.3, -130, -3.0, 2.8, true, 9, -7), P(3.6, -148, 3.5, 2.5, true, -9, -8), P(3.82, -164, -1.5, 2.6, true, 16, -4), P(4.0, -182, 1.0, 3.4, true, -3, -9),
   // the wreck on its ledge: over its stern, then alongside, and a look into the captain's
   // cabin through the hole in its side while the visitor makes the last choice (Snap swims
   // in ahead of the camera); out again, past the bow, to the edge
   P(4.25, -204, 4.0, 5.0, true, -10, -12), P(4.4, -228, 7.0, -53.4, false, -62, -5),
   P(4.5, -234.6, 3.15, -54.3, false, -82, -3), P(4.56, -234.9, 0.55, -54.3, false, -82, -4), P(4.63, -235.0, 0.45, -54.3, false, -84, -4),
-  P(4.71, -237, 5.0, -54.2, false, -70, -3), P(4.82, -244, 8.0, 3.6, true, -34, -3), P(5.0, -264, 2.0, 4.2, true, -4, -14),
+  P(4.71, -237, 5.0, -54.2, false, -70, -3), P(4.82, -244, 8.0, 3.6, true, -34, -3), P(5.0, -264, 2.0, 4.2, true, -4, -20),
   // off the edge and down the wall, into the dark
   P(5.2, -284, 0, -66, false, 18, -24), P(5.45, -293, 1.0, -98, false, 38, -14), P(5.7, -295, 1.0, -134, false, 46, -8), P(5.9, -294, 0, -168, false, 30, -14), P(6.0, -297, 0, -193, false, 8, -16),
   // the vents, and the geode at the end
@@ -175,9 +175,10 @@ export const optSlope = (d) => { const e = d - KNEE; return 1 + DEEPER * 0.5 * (
 const WATER = [
   [0, 0.11, 0.62, 0.78, 0.26, 0.66, 0.76, 0.42, 1.25],
   [8, 0.11, 0.62, 0.78, 0.26, 0.66, 0.76, 0.44, 1.25],
-  [16, 0.10, 0.60, 0.68, 0.24, 0.66, 0.66, 0.52, 1.2],
+  [16, 0.08, 0.48, 0.50, 0.22, 0.58, 0.56, 0.48, 1.3],
   [32, 0.12, 0.60, 0.90, 0.24, 0.62, 0.80, 0.60, 1.15],
-  [58, 0.10, 0.44, 0.80, 0.18, 0.50, 0.78, 0.72, 0.8],
+  [46, 0.08, 0.40, 0.56, 0.18, 0.48, 0.62, 0.60, 0.9],
+  [58, 0.06, 0.30, 0.40, 0.14, 0.38, 0.52, 0.62, 0.7],
   [90, 0.12, 0.20, 0.50, 0.16, 0.30, 0.70, 0.95, 0.0],
   [130, 0.12, 0.13, 0.38, 0.16, 0.22, 0.62, 1.08, 0.0],
   [206, 0.10, 0.09, 0.28, 0.14, 0.18, 0.55, 1.08, 0.0],

@@ -88,7 +88,8 @@ export function start() {
     // Snap holds the set's own chain, and looks at the clam, the octopus and the geode as he passes
     if (sets.chainAt) cast.chainAt = sets.chainAt;
     if (sets.clam) cast.sights.push({ from: 3.6, to: 4.05, at: sets.clam.position });
-    if (fauna.octopus) cast.sights.push({ from: 4.42, to: 4.78, at: fauna.octopus });
+    if (fauna.octopus) cast.sights.push({ from: 4.42, to: 4.7, at: fauna.octopus });
+    cast.sights.push({ from: 4.72, to: 4.95, at: cast.sub.group.position });     // (the submarine, as it comes for him)
     if (sets.geode) cast.sights.push({ from: 6.7, to: 7.05, at: sets.geode.position });
     return cast;
   }];

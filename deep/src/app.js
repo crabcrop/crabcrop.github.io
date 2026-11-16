@@ -10,7 +10,7 @@ import { Euler, PerspectiveCamera, Scene } from 'three/webgpu';
 import { Engine, pickLevel } from './engine.js';
 import { buildFlora } from './flora.js';
 import { DEEPER, KNEE, P_MAX, optDepth, optSlope, pathAt, waterAt } from './layout.js';
-import { clamp } from './math.js';
+import { clamp, smooth } from './math.js';
 import { buildRocks } from './rocks.js';
 import { buildSea } from './sea.js';
 import { G } from './shaders.js';
@@ -56,7 +56,10 @@ function resize() {
 function place(p) {
   pathAt(p, S.path);
   camera.position.set(S.path[0], S.path[1], S.path[2]);
-  euler.set((S.path[4] + S.lookY) * DEG, -(S.path[3] + S.lookX) * DEG, 0, 'YXZ');
+  // (on a phone the marina's view turns a little left at the start and the end, so a pier
+  // post, its buoy and the lighthouse with the sun behind it are in the narrow frame)
+  const marina = camera.aspect < 1 ? -13 * ((1 - smooth(0.12, 0.3, p)) + smooth(7.84, 7.95, p)) : 0;
+  euler.set((S.path[4] + S.lookY) * DEG, -(S.path[3] + S.lookX + marina) * DEG, 0, 'YXZ');
   camera.quaternion.setFromEuler(euler);
   camera.updateMatrixWorld(true);
   const d = -camera.position.y;
@@ -68,6 +71,12 @@ function place(p) {
   // the deep's own faint violet: from the twilight down; nearly black at the vents
   const deep = Math.min(1, Math.max(0, (d - 70) / 60)), vents = Math.min(1, Math.max(0, (d - 185) / 15));
   G.deepAmb.value.setRGB(0.036 * deep * (1 - 0.5 * vents), 0.010 * deep * (1 - 0.5 * vents), 0.050 * deep * (1 - 0.55 * vents));
+  // the sky at the return is later in the evening: pinker, lilac above
+  const dusk = smooth(7.5, 7.9, p);
+  G.skyLow.value.setRGB(1.32 - 0.1 * dusk, 0.78 - 0.18 * dusk, 0.42 + 0.14 * dusk);
+  G.skyMid.value.setRGB(1.12 - 0.1 * dusk, 0.80 - 0.2 * dusk, 0.66 + 0.1 * dusk);
+  G.skyHigh.value.setRGB(0.62 - 0.06 * dusk, 0.58 - 0.08 * dusk, 0.92);
+  G.skySunCol.value.setRGB(2.4 - 0.2 * dusk, 1.45 - 0.45 * dusk, 0.62);
   S.parts.sea.follow(camera);
   cull(camera);
   for (let i = 0; i < live.length; i++) live[i].update(S.time, S.dt, p);

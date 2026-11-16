@@ -10,7 +10,7 @@ import { G, detail, material, skyAt, sunAt } from './shaders.js';
 
 // what each part is made of (aux.x): 0 brass, 1 dark brass (rivets, bands), 2 steel (the
 // arm), 3 tan leather (the cabin behind the glass), 4 lamp glass, 5-7 the cabin's lights
-const PAINT = [[0.96, 0.54, 0.19], [0.64, 0.33, 0.12], [0.52, 0.53, 0.55], [0.70, 0.44, 0.24], [1.0, 0.95, 0.85]];
+const PAINT = [[0.96, 0.54, 0.19], [0.64, 0.33, 0.12], [0.52, 0.53, 0.55], [0.20, 0.09, 0.04], [1.0, 0.95, 0.85]];
 
 const vLocal = varyingProperty('vec3', 'v_local');
 
@@ -40,8 +40,12 @@ function bodyMaterial(lamp) {
       s.emis = s.emis.add(s.albedo.mul(lamp.mul(0.09)).mul(pow(float(1).sub(abs(dot(s.n, vv))), 2.0).mul(2.0).add(0.5)));
       // (brass keeps a little of its own warmth in blue water, where the red has gone out of the light)
       s.emis = s.emis.add(s.albedo.mul(vec3(0.3, 0.12, 0.0)).mul(min(sunAt(f.w.y).g, 1.0)));
-      // the cockpit behind Snap is lit warm by its own small lights
-      s.emis = s.emis.add(s.albedo.mul(select(id.greaterThan(2.5).and(id.lessThan(3.5)), float(0.35), float(0.0))));
+      // the cockpit behind Snap: dark leather, lit warm and low by its own small lights
+      s.emis = s.emis.add(s.albedo.mul(select(id.greaterThan(2.5).and(id.lessThan(3.5)), float(0.5), float(0.0))));
+      // polished: a warm brass sheen at grazing angles in any light, so it reads as metal
+      // in the sunlit water and under the lamp alike
+      const sheen = pow(float(1).sub(abs(dot(s.n, vv))), 3.0).mul(select(id.lessThan(1.5), float(1), float(0)));
+      s.emis = s.emis.add(vec3(0.55, 0.32, 0.1).mul(sheen).mul(0.22));
     },
   });
 }
@@ -54,13 +58,18 @@ function glassMaterial() {
     raw: (f) => {
       const v = normalize(f.w.sub(cameraPosition));
       const nd = abs(dot(f.n, v));
-      const fres = pow(float(1).sub(nd), 4.0).mul(0.85).add(0.06);
-      const sun = sunAt(f.w.y).mul(pow(max(dot(f.n, normalize(G.sunDir.sub(v))), 0.0), 120.0)).mul(2.5);
+      const fres = pow(float(1).sub(nd), 3.0).mul(0.9).add(0.08).toVar();
+      // highlights that show the glass is round: the light from above in a soft broad streak
+      // and a sharp one, and the lamp's own glare where the dome faces it
+      const up = max(dot(f.n, normalize(vec3(-0.3, 1.0, 0.25))), 0.0);
+      const sun = sunAt(f.w.y).mul(pow(max(dot(f.n, normalize(G.sunDir.sub(v))), 0.0), 120.0).mul(2.5).add(pow(up, 24.0).mul(0.5)));
+      const toLamp = normalize(G.lampPos.sub(f.w));
+      const glare = G.lampCol.rgb.mul(pow(max(dot(f.n, normalize(toLamp.sub(v))), 0.0), 60.0)).mul(0.5);
       // the rim mirrors the water around it: as bright as the light that is there, which in
-      // the deep is only the lamp's
+      // the deep is only the lamp's; a faint green-blue tint all over, as thick glass has
       const lampOn = G.lampCol.rgb.mul(0.04);
-      const rim = skyAt(f.w, f.n).mul(0.9).add(lampOn).mul(fres);
-      return { color: rim.add(sun).add(lampOn.mul(0.2)), alpha: fres.add(0.04).min(0.9) };
+      const rim = skyAt(f.w, f.n).mul(0.9).add(lampOn).add(vec3(0.05, 0.07, 0.065)).mul(fres);
+      return { color: rim.add(sun).add(glare).add(vec3(0.02, 0.035, 0.032)), alpha: fres.add(0.1).min(0.92) };
     },
   });
 }
@@ -99,6 +108,10 @@ export function buildSub(q) {
   lieAlongZ(m, k);
   tag(k, 3);
   for (const [x, y, id] of [[-0.13, -0.3, 5], [0.0, -0.32, 6], [0.13, -0.3, 7]]) { k = m.count; blob(m, x, y, -0.128, () => 0.016, 3); tag(k, id); }
+  // the dials above the lights, small brass rims round dark faces
+  k = m.count;
+  for (const x of [-0.16, 0.0, 0.16]) tube(m, [[x, -0.17, -0.12, 0.045], [x, -0.17, -0.14, 0.045]], 10);
+  tag(k, 1);
   // the collar where the glass sits: a thick brass ring with a lip
   k = m.count;
   lathe(m, 0, 0, 0, [[0.43, -0.2], [0.5, -0.17], [0.52, -0.1], [0.5, -0.02], [0.43, 0.03]], S(34));
