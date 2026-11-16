@@ -12,7 +12,6 @@ export const media = manifest as unknown as {
   snapStand: { w: number; h: number };
   print: { w: number; h: number };
   fish: { w: number; h: number; rects: Record<string, [number, number, number, number]> };
-  seagrass: { w: number; h: number };
   kelp: { w: number; h: number };
   coral: { w: number; h: number };
   /** A pier post, out of focus, for the foreground of the way from under the pier to the shallows. */
