@@ -304,7 +304,7 @@ const subAt = (p, kind, out) => {
 // The moments a creature belongs to, and where it is in the view then. Each writes into o:
 // c its middle, f the way it faces (level unless said), and for the siphonophore d its
 // length's direction and len its length. A screen is (tanV, aspect).
-const SIPHON = [5.15, 5.86], ANGLER = [5.57, 5.79], BOTTLE = [5.36, 5.8], REEF_TURTLE = [3.2, 3.68], ENDING = [7.84, 8.0];
+const SIPHON = [5.15, 5.86], ANGLER = [5.57, 5.79], BOTTLE = [5.36, 5.8], REEF_TURTLE = [3.08, 3.42], ENDING = [7.84, 8.0];
 const dirOf = (o, x, y, z) => { const l = Math.hypot(x, y, z) || 1; o[0] = x / l; o[1] = y / l; o[2] = z / l; return o; };
 // The siphonophore: it rises out of the dark below to meet the visitor as they go over the
 // drop-off, goes down with them through the twilight, across the top of the view, drifting
@@ -351,11 +351,11 @@ function bottleAt(p, tanV, aspect, o) {
   dirOf(o.f, 0.62 * c.R[0] + 0.72 * c.U[0] + 0.3 * c.L[0], 0.72 * c.U[1], 0.62 * c.R[2] + 0.72 * c.U[2] + 0.3 * c.L[2]);
   return o;
 }
-// The turtle over the reef: high in the right of the view, heading left and a little toward
-// the visitor, drifting toward the middle as the camera goes on.
+// The turtle over the reef: close and big in the middle of the view (the reef's first station
+// frames it: the smart crop), heading left and a little toward the visitor, drifting on slowly.
 function reefTurtleAt(p, tanV, aspect, o) {
   const pc = clampN(p, REEF_TURTLE[0], REEF_TURTLE[1]), u = (pc - REEF_TURTLE[0]) / (REEF_TURTLE[1] - REEF_TURTLE[0]), wide = aspect >= 1, c = camAt(pc, _cA);
-  onScreen(o.c, c, wide ? 6.6 : 8.6, wide ? 0.62 - 0.16 * u : 0.16 - 0.16 * u, wide ? 0.4 : 0.55, tanV, aspect);
+  onScreen(o.c, c, wide ? 4.6 : 6.0, wide ? 0.2 - 0.12 * u : 0.02 - 0.06 * u, wide ? 0.18 : 0.36, tanV, aspect);
   dirOf(o.f, -c.R[0] - 0.42 * c.L[0], -0.06, -c.R[2] - 0.42 * c.L[2]);
   return o;
 }
@@ -2160,7 +2160,11 @@ export function buildFauna(ctx) {
     return out;
   };
 
+  // where the creatures other parts of the page point at are, kept every frame (the reef's crop
+  // frame snaps onto the turtle)
+  const marks = { turtle: { at: new Vector3(), r: 0.85, on: false } };
   return {
+    spots: marks,
     update(t, dt, p) {
       const e = camera.matrixWorld.elements;
       U.right.value.set(e[0], e[1], e[2]);
@@ -2174,6 +2178,7 @@ export function buildFauna(ctx) {
       // the turtle over the reef
       reefTurtleAt(p, tanV, aspect, hold);
       keyed(0, hold, t, 1.7, 0.3, 0, 0.1, 0.25, -0.45);
+      { const a = POSE.array[0]; marks.turtle.at.set(a.x, a.y, a.z); marks.turtle.on = p > REEF_TURTLE[0] - 0.05 && p < REEF_TURTLE[1] + 0.05; }
       // the anglerfish, and the bottle with a message (tilted, turning slowly as it sinks)
       anglerAt(p, tanV, aspect, hold);
       keyed(4, hold, t, hold.size, 0.5, 0, 0.05, 0.1, 0);
