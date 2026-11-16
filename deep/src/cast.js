@@ -4,8 +4,9 @@
 // look at the visitor (into the wreck's cabin too, where the camera follows him). As they
 // leave the wreck the submarine comes for him; from the drop-off on he rides in its glass
 // bubble, and its lamp is the visitor's light in the dark.
-import { DataTexture, Mesh, PlaneGeometry, Quaternion, Vector3 } from 'three/webgpu';
-import { abs, faceDirection, float, max, mix, select, smoothstep, texture, uniform, uv, vec2, vec3 } from 'three/tsl';
+import { Mesh, PlaneGeometry, Quaternion, Vector3 } from 'three/webgpu';
+import { faceDirection, float, select, texture, uv, vec3 } from 'three/tsl';
+import { feltPrint } from './feltprint.js';
 import { groundY } from './layout.js';
 import { clamp, smooth } from './math.js';
 import { G, material } from './shaders.js';
@@ -34,36 +35,22 @@ const HELD = new Vector3(), UP3 = new Vector3(), SNAP_AT = [0, 0, 0];
 const FLY = [new Vector3(), new Vector3(), new Vector3()], TUMBLE = new Vector3(0.35, 1, 0.5).normalize(), qt = new Quaternion();
 const bez = (out, a, b, c, u) => out.copy(a).multiplyScalar((1 - u) * (1 - u)).addScaledVector(b, 2 * (1 - u) * u).addScaledVector(c, u * u);
 
-// Snap's photo print: the visitor's picture (cast.showPrint) in a white border on the front,
-// plain paper on the back. 0.3 by 0.21 m.
+// Snap's photo print: the felt picture (feltprint.js) on the front, plain felt on the back.
+// 0.3 by 0.21 m.
 const PRINT_W = 0.3, PRINT_H = 0.21;
 function buildPrint() {
-  const blank = new DataTexture(new Uint8Array([196, 186, 168, 255]), 1, 1);
-  blank.needsUpdate = true;
-  const pic = texture(blank), fit = uniform(vec2(1, 1));
-  pic.mergeable = false;
+  const pic = texture(feltPrint());
   const mat = material({
     twoSided: true, shadow: false,
     surface(s) {
-      const q = uv(), d = max(abs(q.x.sub(0.5)), abs(q.y.sub(0.5)).mul(PRINT_H / PRINT_W));
-      const inside = float(1).sub(smoothstep(0.43, 0.44, d));
-      const img = pic.sample(q.sub(0.5).mul(fit).div(0.86).add(0.5)).rgb;
-      const paper = vec3(0.93, 0.91, 0.86);
-      s.albedo = select(faceDirection.greaterThan(0.0), mix(paper, img, inside), paper.mul(0.96));
-      s.spec = float(0.35); s.gloss = float(30.0);
+      const img = pic.sample(uv()).rgb;
+      s.albedo = select(faceDirection.greaterThan(0.0), img, vec3(0.86, 0.80, 0.68));
+      s.spec = float(0.05); s.gloss = float(8.0); s.fluor = float(0.2);
     },
   });
   const mesh = new Mesh(new PlaneGeometry(PRINT_W, PRINT_H), mat);
   mesh.visible = false;
-  return {
-    mesh,
-    show(tex, aspect) {
-      pic.value = tex;
-      // the picture covers the print's window, cut to fit
-      const a = PRINT_W / PRINT_H;
-      fit.value.set(aspect > a ? a / aspect : 1, aspect > a ? 1 : aspect / a);
-    },
-  };
+  return { mesh };
 }
 
 export function buildCast(ctx) {
@@ -92,7 +79,6 @@ export function buildCast(ctx) {
   const cast = {
     snap, sub, loading,
     chainAt: null,                 // set when the chain exists: chainAt(s, out) writes x, y, z and its direction
-    showPrint: print.show,         // (texture, aspect): the picture on his print
     // things worth a look on the way: { from, to, at } (p range, a Vector3); he glances at
     // one while the camera passes it, and back at the visitor between glances
     sights: [],

@@ -1,15 +1,14 @@
-// The visitor's image: what the URL they built would serve. It is a photograph of Snap
-// taken by the page itself: his own model, posed and lit for the picture, framed by the
-// crop they chose, set against the finish they chose (the water he was found in, a studio
-// backdrop with a soft shadow, or cut out), and graded with the look they chose. It is
-// drawn into a target whenever a choice changes; the finale shows it, and so does the
-// frame in the geode.
+// The visitor's image: what the URL they built would serve. The source is Snap's print, the
+// felt picture he chased down to the geode (feltprint.js); the page photographs it itself,
+// framed by the crop they chose, set against the finish they chose (the water it was found
+// in, a studio backdrop with a soft shadow, or cut out), and graded with the look they
+// chose. It is drawn into a target whenever a choice changes; the finale shows it.
 import { Mesh, PerspectiveCamera, PlaneGeometry, RenderTarget, Scene, UnsignedByteType, Vector4 } from 'three/webgpu';
-import { abs, clamp, dot, float, floor, length, mix, mod, pow, select, smoothstep, texture, uniform, uv, vec2, vec3, vec4 } from 'three/tsl';
-import { G, pass } from './shaders.js';
-import { CENTRE } from './snap.js';
+import { abs, clamp, dot, float, floor, length, max, mix, mod, normalize, pow, select, smoothstep, texture, uniform, uv, vec2, vec3, vec4 } from 'three/tsl';
+import { feltPrint, FELT_ASPECT } from './feltprint.js';
+import { G, material, pass } from './shaders.js';
 
-// the crops: aspect, and how much of him the frame holds (the camera's distance)
+// the crops: aspect, and how much of the print the frame holds (the camera's distance)
 export const CROPS = [
   { name: 'Wide card', aspect: 1200 / 630, dist: 2.0 },
   { name: 'Square', aspect: 1, dist: 1.55 },
@@ -20,7 +19,7 @@ const W = 960;
 // (the studio stands far outside the world, beyond the shadow map's reach)
 const AT = [600, 0, 600];
 
-export function createPrint(engine, snap) {
+export function createPrint(engine) {
   const scene = new Scene();
   const studio = new Mesh();
   studio.position.set(...AT);
@@ -45,7 +44,20 @@ export function createPrint(engine, snap) {
   })();
   back.position.set(0, 0.6, -1.4);
   studio.add(back);
-  // a soft shadow under him on the studio floor (none in the water, none when cut out)
+  // the print itself, standing a little turned, 0.9 m wide in the picture's own scale
+  // (lit as in a studio: a soft key light from the upper left and an even fill, so its own
+  // colours come through; the backdrop and the grade make the rest)
+  const card = new Mesh(new PlaneGeometry(0.9, 0.9 / FELT_ASPECT), material({
+    shadow: false,
+    raw: (f) => {
+      const key = max(dot(f.n, normalize(vec3(-0.45, 0.55, 0.7))), 0.0);
+      return pow(texture(feltPrint()).sample(uv()).rgb, vec3(2.2)).mul(key.mul(0.55).add(0.62)).mul(select(finish.lessThan(0.5), float(0.85), float(1.0)));
+    },
+  }));
+  card.rotation.set(-0.1, -0.28, 0.025);
+  card.frustumCulled = false;
+  studio.add(card);
+  // a soft shadow under it on the studio floor (none in the water, none when cut out)
   const shade = new Mesh(new PlaneGeometry(1.4, 0.7).rotateX(-Math.PI / 2), pass(null));
   shade.material.transparent = true;
   shade.material.fragmentNode = (() => {
@@ -57,7 +69,7 @@ export function createPrint(engine, snap) {
   studio.add(shade);
 
   const camera = new PerspectiveCamera(30, CROPS[0].aspect, 0.05, 20);
-  let him = null, target = null, crop = 0;
+  let target = null, crop = 0;
   const grade = pass(null);
   const src = texture(engine.water.texture); src.mergeable = false;
   grade.fragmentNode = (() => {
@@ -75,9 +87,7 @@ export function createPrint(engine, snap) {
   return {
     // draw the picture for these choices: { look, crop, finish } as indices. Returns the
     // target holding it (sRGB, 8 bits), and its size.
-    draw(choices, t) {
-      if (!snap.ready) return null;
-      if (!him) { him = new Mesh(snap.mesh.geometry, snap.mesh.material); him.frustumCulled = false; studio.add(him); }
+    draw(choices) {
       crop = choices.crop | 0;
       const C = CROPS[crop];
       const w = W, h = Math.round(W / C.aspect);
@@ -88,20 +98,12 @@ export function createPrint(engine, snap) {
       }
       finish.value = choices.finish | 0;
       look.value = choices.look | 0;
-      // him: facing the camera, a little turned, his middle at the origin; smiling and waving
-      him.scale.setScalar(snap.height);
-      him.position.copy(CENTRE).multiplyScalar(-snap.height);
-      him.rotation.set(0, -0.35, 0);
-      him.updateMatrixWorld(true);
       camera.aspect = C.aspect;
       studio.updateMatrixWorld(true);
       camera.position.set(AT[0] + 0.15, AT[1] + 0.12, AT[2] + C.dist);
       camera.lookAt(AT[0], AT[1], AT[2]);
       camera.updateProjectionMatrix();
       camera.updateMatrixWorld(true);
-      snap.life.hello = 1; snap.life.squint = 0.8;
-      snap.target.copy(camera.position);
-      snap.live(t, 0.5, him);
       // light it as a photograph in shallow water (no caustics in the studio or cut out)
       keep.opt.copy(G.opt.value); keep.light.copy(G.light.value); keep.lamp.copy(G.lampCol.value);
       G.opt.value.set(4, 1, 60, 3.2);

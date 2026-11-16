@@ -2,11 +2,12 @@
 // everything in it. Where the scene cannot run (reduced motion, no WebGPU and no WebGL 2,
 // ?page), the words are the page and nothing else starts.
 import { Mesh, PlaneGeometry, Vector3 } from 'three/webgpu';
-import { abs, float, max, smoothstep, texture, uv, vec3 } from 'three/tsl';
+import { float, texture, uv } from 'three/tsl';
 import { startDive } from './app.js';
 import { createAudio } from './audio.js';
 import { buildCast } from './cast.js';
 import { buildFauna } from './fauna.js';
+import { FELT_ASPECT, feltPrint } from './feltprint.js';
 import { createPrint } from './print.js';
 import { buildSets } from './sets.js';
 import { material } from './shaders.js';
@@ -31,21 +32,17 @@ const ui = createUI({
   onStart() { audio.cue('start'); },
 });
 
-// the frame in the geode that holds the print, once both exist
-let printNode = null;
+// Snap's print in the geode's hollow, where the story finds it: the felt picture he chased
+// down, lying on the crystals, a little lit by them.
+let hung = false;
 function hangPrint(scene) {
-  if (!sets || !sets.geode || !print || !print.texture || printNode) return;
-  const g = sets.geode, w = g.size || 1, h = w / Math.max(print.aspect, 1);
-  printNode = texture(print.texture);
-  printNode.mergeable = false;
+  if (!sets || !sets.geode || hung) return;
+  hung = true;
+  const g = sets.geode, w = Math.min(g.size || 1, 0.75), h = w / FELT_ASPECT;
+  const pic = texture(feltPrint());
   const mat = material({
     shadow: false,
-    raw: () => {
-      const q = uv();
-      // a pale border round the picture, which glows a little, as if lit from inside the stone
-      const frame = smoothstep(0.455, 0.465, max(abs(q.x.sub(0.5)), abs(q.y.sub(0.5))));
-      return printNode.sample(q).rgb.mul(1.4).mul(float(1).sub(frame)).add(vec3(0.85, 0.82, 0.75).mul(frame).mul(0.6));
-    },
+    surface(s) { s.albedo = pic.sample(uv()).rgb; s.spec = float(0.05); s.gloss = float(8.0); s.emis = s.albedo.mul(0.18); },
   });
   const plane = new Mesh(new PlaneGeometry(w, h), mat);
   plane.position.copy(g.position);
@@ -63,10 +60,8 @@ function onFrame(p, dt) {
   if (ui.statsOn && ++frames % 30 === 0 && dive) ui.stats(dive.stats());
   // the print is drawn again only when a choice that shows in it changed; the finale gets
   // its own copy once the visitor nears it
-  if (print && printDirty && cast && cast.snap.ready) {
-    print.draw(ui.choices, dive ? dive.S.time : 0);
-    if (printNode) printNode.value = print.texture;
-    cast.showPrint(print.texture, print.aspect);
+  if (print && printDirty) {
+    print.draw(ui.choices);
     printDirty = false;
   }
   if (print && !printDirty && !printRead && p > 7.3) {
@@ -100,8 +95,8 @@ export function start() {
   startDive({ parts, follow: () => ui.pTo, progress: (f, label) => ui.loading(f, label), onFrame, onFail: (why) => ui.failed(why) })
     .then((d) => {
       dive = d;
-      print = createPrint(d.engine, cast.snap);
-      cast.loading.then(() => { print.draw(ui.choices, 0); printDirty = false; hangPrint(d.scene); cast.showPrint(print.texture, print.aspect); });
+      print = createPrint(d.engine);
+      print.draw(ui.choices); printDirty = false; hangPrint(d.scene);
       // the pointer steers the lamp; a tap on Snap, and he reacts
       const canvas = document.getElementById('world');
       addEventListener('pointermove', (e) => { if (e.target === canvas) cast.aim((e.clientX / innerWidth) * 2 - 1, -((e.clientY / innerHeight) * 2 - 1)); }, { passive: true });
