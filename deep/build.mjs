@@ -69,7 +69,14 @@ const result = await build({
   logLevel: 'warning',
 });
 const js = result.outputFiles[0].text.replace(/<\/script/gi, '<\\/script');
-const template = readFileSync(arg('template') ? resolve(arg('template')) : join(here, 'template.html'), 'utf8');
+// The page shell, with each zone's words from zones/<id>.html in place of its include marker,
+// and every zone's styles (zones/*.css, core.css first) in place of /*ZONES*/ in its style.
+let template = readFileSync(arg('template') ? resolve(arg('template')) : join(here, 'template.html'), 'utf8');
+template = template.replace(/<!--include:([\w/.-]+)-->/g, (m, f) => readFileSync(join(here, f), 'utf8').trimEnd());
+if (template.includes('/*ZONES*/')) {
+  const css = readdirSync(join(here, 'zones')).filter((f) => f.endsWith('.css')).sort((a, b) => (a === 'core.css' ? -1 : b === 'core.css' ? 1 : a.localeCompare(b)));
+  template = template.replace('/*ZONES*/', () => css.map((f) => readFileSync(join(here, 'zones', f), 'utf8').trim()).join('\n'));
+}
 if (!template.includes('<!--SCRIPT-->')) throw new Error('template.html has no <!--SCRIPT--> marker');
 // The page's one script goes in by hash: a Content-Security-Policy, as the first tag after
 // <meta charset>, that allows that script and nothing else to run, Snap's files to be

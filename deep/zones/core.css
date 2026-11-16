@@ -1,0 +1,132 @@
+/* ---- the scene's hands-on layer (src/stage.js): cues, rings, yarn, the dock, Snap's story ----
+   One look for every instruction, as in the painted dive: a verb on a sun badge, then the
+   thing it is done to, on cream paper with an ink line. */
+:root { --cream: #FBF4E6; --ink: #0D202E; --ink-2: #3E5260; --sun: #FFB020; --sun-soft: #FFD88A; --sea-glass: #8FE3E1; --spring: cubic-bezier(.34, 1.4, .64, 1); }
+.fx { display: none; }
+@media (scripting: enabled) and (prefers-reduced-motion: no-preference) {
+  :root:not(.page) .fx { display: block; position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
+}
+:root.page .fx, :root.page .dock, :root.page .note { display: none !important; }
+
+.cue { display: inline-flex; align-items: center; gap: 10px; min-height: 42px; margin: 0; padding: 6px 16px 6px 6px; background: var(--cream); color: var(--ink); border: 2px solid var(--ink); border-radius: 21px 21px 21px 6px; box-shadow: 0 3px 0 rgba(13, 32, 46, .35), 0 8px 22px rgba(0, 0, 0, .22); font: 650 15px/1.25 var(--sans); text-align: left; white-space: nowrap; }
+.cue .ask, .cue .did { display: inline-flex; align-items: center; gap: 10px; }
+.cue .did, .cue.done .ask { display: none; }
+.cue.done .did { display: inline-flex; }
+.do { flex: none; display: inline-grid; place-items: center; height: 28px; min-width: 28px; padding: 0 10px; background: var(--sun); color: var(--ink); border: 1.5px solid var(--ink); border-radius: 14px 14px 14px 4px; font: 800 11px/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; }
+.cue.done .did .do { background: var(--sea-glass); padding: 0; font-size: 13px; }
+.cue .more { font-weight: 500; color: var(--ink-2); }
+.cue.big { min-height: 52px; padding: 8px 22px 8px 9px; gap: 12px; font-size: 17px; border-radius: 26px 26px 26px 7px; }
+.cue.big .ask, .cue.big .did { gap: 12px; }
+.cue.big .do { height: 34px; min-width: 34px; padding: 0 13px; font-size: 12.5px; border-radius: 17px 17px 17px 5px; }
+button.cue { cursor: pointer; pointer-events: auto; }
+button.cue:hover { background: #fff; }
+/* flat: on a card, in a list, no paper of its own */
+.cue.flat { min-height: 0; padding: 0; background: none; border: 0; box-shadow: none; white-space: normal; align-items: flex-start; color: inherit; font-size: 15px; }
+.cue.flat .do { margin-top: -3px; }
+.cue.flat .more { color: var(--ink3); }
+
+/* What a scene offers, said once on its heading, in the same cues. */
+.can { margin-top: 16px !important; padding-top: 14px; border-top: 1.5px dashed rgba(255, 216, 138, .45); }
+.can-h { margin-bottom: 10px; font: 800 11px/1 var(--mono); letter-spacing: .16em; text-transform: uppercase; color: var(--sun-soft); }
+.can ul { display: grid; gap: 9px; }
+:root.page .can .gl, .can .phone { display: none; }
+@media (max-width: 760px) { :root:not(.page) .can .phone { display: list-item; } :root:not(.page) .can .desk { display: none; } }
+
+/* A cue tied to the thing it is about by a stitch of yarn (wide screens): it hangs above the
+   point (or below: .under), its label slid to stay in the view while the yarn stays on it. */
+.tie { position: absolute; left: 0; top: 0; z-index: 2; width: max-content; max-width: min(420px, 40vw); white-space: normal; pointer-events: none; opacity: 0; transition: opacity .35s; }
+.tie.on { opacity: 1; }
+.tie::after { content: ""; position: absolute; left: var(--yx, 34px); top: 100%; height: var(--yarn, 24px); margin-left: -1.25px; border-left: 2.5px dashed #fff; filter: drop-shadow(0 1px 1px rgba(13, 32, 46, .55)); }
+.tie.under::after { top: auto; bottom: 100%; }
+.tie.gone, .tie.done.gone { opacity: 0; transition: opacity .5s 1.6s; }
+:root:not(.wide) .tie { display: none; }
+
+/* The one ring for everything in the world that can be touched: stitched, a sun centre, breathing. */
+.ring { position: absolute; left: 0; top: 0; width: 46px; height: 46px; margin: -23px 0 0 -23px; padding: 0; border: 2.5px dashed #fff; border-radius: 50%; background: radial-gradient(circle, var(--sun) 0 5px, var(--ink) 5.5px 7px, transparent 7.5px); filter: drop-shadow(0 1px 2px rgba(13, 32, 46, .5)); opacity: 0; transition: opacity .3s; pointer-events: none; cursor: pointer; }
+.ring.on { opacity: 1; pointer-events: auto; }
+.ring.beacon { pointer-events: none !important; cursor: default; }
+.ring::after { content: ""; position: absolute; inset: -11px; border-radius: 50%; border: 2px solid rgba(255, 216, 138, .7); animation: breathe 2.6s ease-in-out infinite; }
+.ring.beacon::after { inset: -13px; }
+.ring:hover::after, .ring.done::after { animation: none; opacity: 0; }
+.ring.done { border-style: solid; border-color: var(--sea-glass); background: radial-gradient(circle, var(--accent) 0 5px, var(--ink) 5.5px 7px, transparent 7.5px); }
+.ring:focus-visible { outline: 2px solid var(--sun-soft); outline-offset: 4px; }
+@keyframes breathe { 0% { transform: scale(.8); opacity: .9; } 70% { transform: scale(1.2); opacity: 0; } 100% { transform: scale(1.2); opacity: 0; } }
+
+/* the tip a ring opens: what the thing is, and its part of a URL */
+.tip { position: absolute; left: 0; top: 0; z-index: 3; width: max-content; max-width: 260px; padding: 9px 12px; background: var(--cream); color: var(--ink); border: 2px solid var(--ink); border-radius: 14px 14px 14px 4px; box-shadow: 0 3px 0 rgba(13, 32, 46, .35); font-size: 14px; line-height: 1.35; opacity: 0; transform-origin: 0 100%; transition: opacity .2s; pointer-events: none; }
+.tip.on { opacity: 1; }
+.tip b { display: block; }
+.tip code { display: inline-block; margin: 3px 0; padding: 1px 6px; border-radius: 6px; background: var(--ink); color: var(--sun-soft); font-size: 12px; }
+
+/* The dock: a big cue at rest at the foot of the open water, right of the words; on phones,
+   under the bar (the words are a sheet along the bottom). */
+.dock { display: none; }
+@media (scripting: enabled) and (prefers-reduced-motion: no-preference) {
+  :root:not(.page) .dock { display: flex; justify-content: center; position: fixed; z-index: 4; left: calc(var(--col) + 2 * var(--gut)); right: 70px; bottom: max(26px, env(safe-area-inset-bottom)); height: 52px; pointer-events: none; }
+  :root:not(.page) .dock .cue { position: absolute; bottom: 0; opacity: 0; transform: translateY(10px); transition: opacity .35s, transform .35s var(--spring); }
+  :root:not(.page) .dock .cue.on { opacity: 1; transform: none; }
+}
+@media (max-width: 760px) {
+  :root:not(.page) .dock { left: 8px; right: 8px; top: calc(var(--top) + 52px); bottom: auto; height: auto; }
+  :root:not(.page) .dock .cue { position: absolute; top: 0; bottom: auto; transform: translateY(-8px); }
+  :root:not(.page) .dock .cue.big { min-height: 44px; font-size: 15px; padding: 6px 16px 6px 7px; }
+  :root:not(.page) .dock .cue.big .do { height: 30px; font-size: 11.5px; }
+}
+
+/* Snap's story: a note when something happens (top right; on phones under the bar) */
+.note { display: none; }
+@media (scripting: enabled) and (prefers-reduced-motion: no-preference) {
+  :root:not(.page) .note { display: block; position: fixed; z-index: 4; right: 72px; top: calc(var(--top) + 18px); width: min(340px, 34vw); padding: 12px 16px 14px; background: var(--cream); color: var(--ink); border: 1.5px solid var(--ink); border-radius: 16px 16px 16px 5px; box-shadow: 0 3px 0 rgba(13, 32, 46, .3), 0 14px 34px rgba(0, 0, 0, .3); opacity: 0; transform: translateY(8px); transition: opacity .6s, transform .6s; pointer-events: none; }
+  :root:not(.page) .note.on { opacity: 1; transform: none; }
+  :root:not(.page) .note::before { content: "Snap\2019s story"; display: block; margin-bottom: 4px; font: 800 11px/1 var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--accent); }
+  :root:not(.page) .note p { font-size: 15.5px; line-height: 1.42; }
+  :root:not(.page) .note code { font-size: 12.5px; padding: 0 4px; border-radius: 5px; background: rgba(13, 32, 46, .08); }
+}
+@media (max-width: 760px) {
+  :root:not(.page) .note { left: 8px; right: 8px; width: auto; top: calc(var(--top) + 52px); }
+  :root:not(.page) .note p { font-size: 14px; }
+}
+/* below the wreck what floats over the scene turns dark with it */
+:root.night .cue:not(.flat), :root.night .note, :root.night .tip { background: #0F2636; color: #EDF6F4; border-color: rgba(143, 227, 225, .7); }
+:root.night .cue .more { color: #A8C4CF; }
+
+/* Each choice's panel: "Your turn · Choice N of 5" and five dots; under its options, the URL as far
+   as that choice with the part it chose marked (ui.js), as in the painted dive */
+.pick legend .turn { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; padding: 0 0 8px; border-bottom: 1.5px dashed rgba(255, 216, 138, .35); font: 800 11px/1 var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--sun-soft); }
+.pick legend .turn .yt { color: var(--sun); }
+.pick legend .turn .of { color: var(--coral); }
+.pick legend .turn .dots { margin-left: auto; display: flex; gap: 6px; }
+.pick legend .turn .dots i { width: 9px; height: 9px; border-radius: 50%; border: 1.5px solid var(--sun-soft); }
+.pick legend .turn .dots i.on { background: var(--sun-soft); }
+.pick legend .turn .dots i.now { background: var(--cream); box-shadow: 0 0 0 2.5px var(--sun), 0 0 0 4px var(--ink); border-color: var(--ink); }
+.so-far { margin-top: 10px !important; padding: 8px 11px 9px; background: rgba(0, 0, 0, .34); border: 1px solid var(--line); border-radius: 12px 12px 12px 4px; }
+.so-far:empty { display: none; }
+.so-far .lab { display: block; margin-bottom: 3px; font: 800 10.5px/1.3 var(--mono); letter-spacing: .14em; text-transform: uppercase; color: rgba(143, 227, 225, .7); }
+.so-far code { display: block; font-size: 11.5px; line-height: 1.55; color: var(--sea-glass); overflow-wrap: anywhere; }
+.so-far .dim { opacity: .55; }
+.so-far mark { padding: 1px 4px; border-radius: 4px; background: var(--sun); color: var(--ink); font-weight: 800; }
+.so-far.pop mark { animation: chip .45s var(--spring); }
+@keyframes chip { 0% { transform: scale(.4); opacity: 0; } 100% { transform: none; opacity: 1; } }
+@media (max-width: 760px) { .so-far .lab { display: none; } .so-far code { font-size: 11px; } }
+
+/* sparkles: a burst of little sun stars (stage.sparkle) */
+.spark { position: absolute; width: 12px; height: 12px; margin: -6px 0 0 -6px; background: var(--sun); clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%); filter: drop-shadow(0 0 3px rgba(255, 216, 138, .9)); animation: spark .8s ease-out both; pointer-events: none; }
+@keyframes spark { 0% { transform: translate(0, 0) scale(.3) rotate(0); opacity: 1; } 70% { opacity: 1; } 100% { transform: translate(var(--dx), var(--dy)) scale(1) rotate(90deg); opacity: 0; } }
+
+/* the headings' second halves in coral, as in the painted dive */
+h1 .hi, h2 .hi, h3 .hi { color: var(--coral); }
+/* the hero's install command, and the site's links in the settings */
+.hero-cmd { max-width: 560px; }
+.hero-cmd code { font-size: 11.5px; }
+.settings .site { display: flex; flex-wrap: wrap; gap: 4px 14px; padding-top: 10px; border-top: 1px solid var(--line); font-size: 13.5px; font-weight: 650; }
+.skip2:focus { top: 58px; }
+.story-lab { font: 800 11px/1 var(--mono) !important; letter-spacing: .14em; text-transform: uppercase; color: var(--coral); }
+@media (max-width: 760px) { :root:not(.page) .hero-cmd { display: none; } }
+.spark.drop { width: 9px; height: 11px; margin: -5px 0 0 -4px; background: radial-gradient(circle at 35% 35%, #fff, #bfeff5 55%, #7fd6e3); clip-path: none; border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%; filter: none; animation-name: drop; animation-duration: .9s; }
+@keyframes drop { 0% { transform: translate(0, 0) scale(.5); opacity: 1; } 45% { transform: translate(calc(var(--dx) * .6), calc(-1 * abs(var(--dy)) - 26px)) scale(1); opacity: 1; } 100% { transform: translate(var(--dx), 18px) scale(.7); opacity: 0; } }
+
+/* a card Snap has leapt onto tips a little under his weight */
+@media (scripting: enabled) and (prefers-reduced-motion: no-preference) {
+  :root:not(.page) .beat { transition: transform .5s var(--spring); transform-origin: 30% 100%; }
+  :root:not(.page) .beat.visited { transform: rotate(-1.4deg); }
+}

@@ -87,6 +87,7 @@ export class Engine {
       invProj: uniform(new Matrix4()), camWorld: uniform(new Matrix4()), camPos: uniform(new Vector3()),
       texel: uniform(new Vector2()), first: uniform(0), size: uniform(new Vector2(1, 1)),
       exposure: uniform(1), bloom: uniform(this.q.bloom), look: uniform(new Vector4(0, 0, 0, 0)), fade: uniform(1),
+      ascent: uniform(new Vector2(0, 0)), shimmer: uniform(0),
     };
     this.shaftMat = pass(shaftPass(this.u, this.q.steps));
     this.blurMat = pass(blurPass(this.u));
@@ -116,6 +117,15 @@ export class Engine {
 
   // Wash the scene in a look for a moment: 1 crisp, 2 deep sea, 3 vintage.
   pulseLook(k) { this.lookK = k; this.lookAt = G.time.value; }
+  // Hold a look on the whole picture (k as above, amount 0 to 1: 0 lets it go): the kelp forest
+  // shows the picked look, and the one hovered while it is hovered. The stronger of this and a
+  // wash wins.
+  holdLook(k, amount) { this.holdK = k; this.holdA = amount; }
+  // The climb home (amount 0 to 1, q how far up 0 to 1): bands of every zone's colour slide
+  // down past the window and warm streaks fall, behind the submarine and Snap.
+  ascent(amount, q) { this.u.ascent.value.set(amount, q); }
+  // The water wavering with heat round the visitor's hand (at the vents): 0 to 1.
+  shimmer(amount) { this.u.shimmer.value = amount; }
 
   drawQuad(mat, target) {
     this.quad.material = mat;
@@ -176,7 +186,8 @@ export class Engine {
     u.fScene.value = t.scene.texture; u.fShaft.value = t.shaft2.texture; u.fBloom.value = src.texture;
     u.exposure.value = exposure; u.fade.value = fade;
     const since = G.time.value - this.lookAt, w = since >= 0 && since < 3 ? (since < 0.25 ? since / 0.25 : 1 - (since - 0.25) / 2.75) : 0;
-    u.look.value.set(this.lookK, w * w * (3 - 2 * w), 0, 0);
+    const wash = w * w * (3 - 2 * w);
+    if ((this.holdA || 0) > wash) u.look.value.set(this.holdK, this.holdA, 0, 0); else u.look.value.set(this.lookK, wash, 0, 0);
     this.drawQuad(this.finalMat, this.capture);
   }
 }
@@ -407,8 +418,13 @@ function finalPass(u) {
   const curve = (x) => clamp(x.mul(x.mul(2.51).add(0.03)).div(x.mul(x.mul(2.43).add(0.59)).add(0.14)), 0.0, 1.0);
   const lum = (c) => dot(c, vec3(0.2126, 0.7152, 0.0722));
   return Fn(() => {
-    const q = uv();
-    const c = u.fScene.sample(q).rgb.add(u.fShaft.sample(q).rgb).toVar();
+    const q0 = uv();
+    // (the heat over the vents wavers round the visitor's hand)
+    const hd = q0.sub(vec2(G.hand.x.mul(0.5).add(0.5), float(0.5).sub(G.hand.y.mul(0.5)))).mul(vec2(G.hand.w, 1.0));
+    const sh = u.shimmer.mul(G.hand.z).mul(float(1).sub(smoothstep(0.03, 0.22, length(hd))));
+    const q = q0.add(vec2(sin(q0.y.mul(140.0).add(G.time.mul(7.0))), cos(q0.x.mul(120.0).add(G.time.mul(6.0)))).mul(sh.mul(0.0035))).toVar();
+    const sc = u.fScene.sample(q).toVar();
+    const c = sc.rgb.add(u.fShaft.sample(q).rgb).toVar();
     const bl = u.fBloom.sample(q).rgb.div(u.bloom).toVar();
     c.assign(mix(c, bl, 0.07).add(bl.mul(0.035)).mul(u.exposure));
     // at the waterline, the meniscus where the surface meets the lens: a thin dark edge that
@@ -437,6 +453,29 @@ function finalPass(u) {
     const sepia = mix(c, vec3(dot(c, vec3(0.393, 0.769, 0.189)), dot(c, vec3(0.349, 0.686, 0.168)), dot(c, vec3(0.272, 0.534, 0.131))), 0.86);
     const k = select(u.look.x.lessThan(1.5), crisp, select(u.look.x.lessThan(2.5), deep, sepia));
     c.assign(mix(c, clamp(k, 0.0, 1.0), u.look.y));
+    // the climb home (the painted dive's "lines that show you are going up"): the view filled
+    // with bands of every zone's colour, the shallower above, sliding down the window as the
+    // visitor scrolls up through them (about 1.3 zones in view at once), and thin warm streaks
+    // falling in narrow lanes, about three window heights a second; over what is more than a
+    // few metres away (the scene's alpha is its distance), so the submarine, Snap and the print
+    // stay in front
+    const am = u.ascent.x;
+    const yy = q.y;
+    const pos = clamp(u.ascent.y.mul(8.4).add(float(1).sub(yy).mul(1.3)).sub(0.4), 0.0, 8.99).toVar();
+    const bi = pos.floor(), bf = pos.sub(bi);
+    // vents ember, black, deep navy, twilight violet, wreck teal, reef turquoise, kelp olive,
+    // shallows aqua, sunset peach (picture values, in linear light)
+    const ZC = [[0.36, 0.11, 0.04], [0.1, 0.11, 0.15], [0.07, 0.08, 0.22], [0.2, 0.1, 0.34], [0.05, 0.29, 0.35], [0.07, 0.58, 0.58], [0.3, 0.46, 0.2], [0.55, 0.88, 0.87], [1.0, 0.64, 0.5]]
+      .map((v) => vec3(...v.map((x) => Math.pow(x, 2.2))));
+    const zc = (i) => { let r = ZC[8]; for (let k = 7; k >= 0; k--) r = select(i.lessThan(k + 0.5), ZC[k], r); return r; };
+    const band = mix(zc(bi), zc(bi.add(1)), smoothstep(0.25, 0.75, bf)).mul(float(1).sub(pow(abs(q.x.sub(0.5)).mul(2), 2.0).mul(0.35)));
+    const behind = smoothstep(4.5, 8.0, sc.a);
+    c.assign(mix(c, band, am.mul(behind).mul(0.92)));
+    const lane = q.x.mul(u.size.x.div(5.0).max(160.0)).floor();
+    const h = fract(sin(lane.mul(91.7)).mul(43758.5453));
+    const st = fract(yy.mul(0.7).sub(h.mul(1.4).add(0.8).mul(G.time)).sub(h.mul(7.0)));
+    const streak = select(h.greaterThanEqual(0.86), smoothstep(0.0, 0.08, st).mul(float(1).sub(smoothstep(0.08, 0.45, st))), float(0.0));
+    c.addAssign(vec3(1.0, 0.94, 0.8).mul(streak.mul(am).mul(behind.mul(0.75).add(0.25)).mul(0.1)));
     c.assign(pow(max(c, vec3(0)), vec3(1 / 2.2)));
     c.addAssign(ign(screenCoordinate.xy).add(ign(screenCoordinate.xy.add(37.0))).sub(1.0).div(255.0));
     return vec4(c.mul(u.fade), 1.0);

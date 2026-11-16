@@ -38,7 +38,7 @@ import {
   abs, attribute, cameraPosition, clamp, cos, cross, dFdx, dFdy, dot, exp, float, floor, fract, fwidth, int, ivec3, length, max, min, mix, normalize, pow,
   reflect, select, sign, sin, smoothstep, step, texture, varyingProperty, vec2, vec3, vec4,
 } from 'three/tsl';
-import { centerX, floorY, groundY } from './layout.js';
+import { ANCHOR, BUOY, MOORING, anchorRing, centerX, floorY, groundY } from './layout.js';
 import { Mesh, TAU, blob, clamp as clampN, lerp, makeRng, noise3 } from './math.js';
 import { G, SIG, detail, hash1, hash3, inWater, material, sunAt, yarn } from './shaders.js';
 import { rockSurf, rockyAt } from './terrain.js';
@@ -499,9 +499,9 @@ function bobTSL(v) {
 // to the right, local z toward the camera (what is ahead has z < 0).
 const MARINA_START = { vx: 4.59, vz: 18 };
 const MARINA_END = { vx: -3.02, vz: -396 };
-// The sailboat that rides to the anchor, and the anchor (only at the start).
-const MOORED = { x: 6.55, z: -7.2, len: 6.2, beam: 2.1 };
-const ANCHOR = { x: 4.35, z: -24.5 };
+// A sailboat at its own mooring beyond the right pier (only at the start). The mooring buoy
+// the dinghy is tied to, its chain and the anchor are in layout.js (the camera rides that chain).
+const MOORED = { x: 11.0, z: -9.5, len: 6.2, beam: 2.1, heading: -3.015 };
 const COL = { coral: [0.92, 0.42, 0.33], cream: [0.93, 0.86, 0.72], navy: [0.20, 0.25, 0.42], teal: [0.25, 0.58, 0.60], sun: [0.96, 0.72, 0.30] };
 
 function buildMarina(ctx, q, vp, opts) {
@@ -591,6 +591,23 @@ function buildMarina(ctx, q, vp, opts) {
     hangRope(r, db.at(0.85, db.sheerAt(0.8) + 0.03, 1.2), [fx[0], 0.52, fx[2]], 0.014, 0.03, 6);
     markBob(r, v1, r.count - v1, dinghy.x, dinghy.z, 0.3);
   }
+  // the mooring buoy the dinghy rides to, at the waterline in front of its bow: a big knitted
+  // ball in coral and cream stripes, with the dinghy's line to it; its chain hangs from under it
+  // (buildChain), down to the anchor. It heaves a little less than the boats (its chain holds it)
+  if (opts.anchor) {
+    const v0 = y.count, R = BUOY.r;
+    y.paint(COL.coral, COL.cream);
+    ball(y, BUOY.x, BUOY.ring + 0.03 + R * 0.9, BUOY.z, (dx, dy, dz) => 1 / Math.sqrt((dx / R) ** 2 + (dy / (R * 0.9)) ** 2 + (dz / R) ** 2), 12);
+    markBob(y, v0, y.count - v0, BUOY.x, BUOY.z, 0.8);
+    for (let v = v0; v < y.count; v++) y.bob[v * 4 + 3] = 0.35;
+    const top = [BUOY.x, BUOY.ring + 0.03 + R * 1.8, BUOY.z];
+    const v1 = r.count;
+    r.paint(ROPE);
+    coil(r, [top[0], top[1] - 0.04, top[2]], 0.07, 0.022, 1.2, 0.2);
+    hangRope(r, db.at(0, db.sheerAt(1) + 0.03, dinghy.len / 2 + 0.02), [top[0], top[1] - 0.02, top[2]], 0.02, 0.55, 18);
+    markBob(r, v1, r.count - v1, BUOY.x, BUOY.z, 0.8);
+    for (let v = v1; v < r.count; v++) r.bob[v * 4 + 3] = 0.35;
+  }
   // the buoy on its coil of rope, on the left pier, tilted where it rests
   {
     const cx = X(-4.75), cz = Z(-7.25);
@@ -618,7 +635,7 @@ function buildMarina(ctx, q, vp, opts) {
   ];
   let moored = null;
   if (opts.anchor) {
-    moored = { x: MOORED.x, z: MOORED.z, len: MOORED.len, beam: MOORED.beam, heading: Math.atan2(ANCHOR.x - MOORED.x, ANCHOR.z - MOORED.z), paint: [[0.90, 0.88, 0.82], [0.24, 0.36, 0.55]], mastH: 7.0, jib: true, seed: 1.9, depth: 0.5, sheer: 0.62 };
+    moored = { x: MOORED.x, z: MOORED.z, len: MOORED.len, beam: MOORED.beam, heading: MOORED.heading, paint: [[0.90, 0.88, 0.82], [0.24, 0.36, 0.55]], mastH: 7.0, jib: true, seed: 1.9, depth: 0.5, sheer: 0.62 };
     far.push(moored);
   }
   for (const f of far) {
@@ -861,30 +878,10 @@ function buildLighthouse(ctx, x, z, deep) {
 
 // ---- the chain --------------------------------------------------------------------------------
 
-// The rest shape: a catenary from the bow roller down to where it meets the sand, then up to the
-// anchor's ring. Sampled at even lengths for chainAt.
-function chainShape(bow, ring, foot) {
-  const ax = foot[0] - bow[0], az = foot[1] - bow[2], al = Math.hypot(ax, az), ux = ax / al, uz = az / al;
-  const T = [foot[0] - ux * 1.6, 0, foot[1] - uz * 1.6];
-  T[1] = groundY(T[0], T[2]) + 0.05;
-  const L = Math.hypot(bow[0] - T[0], bow[2] - T[2]), H = bow[1] - T[1];
-  let lo = 0.3, hi = 300;
-  for (let i = 0; i < 60; i++) { const a = (lo + hi) / 2; if (a * (Math.cosh(L / a) - 1) > H) lo = a; else hi = a; }
-  const a = (lo + hi) / 2, Sh = a * Math.sinh(L / a);
-  const px = (bow[0] - T[0]) / L, pz = (bow[2] - T[2]) / L;
-  const N = 300, pts = [];
-  for (let i = 0; i <= N; i++) {
-    const u = a * Math.asinh((Sh * (1 - i / N)) / a);
-    const x = T[0] + px * u, z = T[2] + pz * u;
-    pts.push([x, Math.max(T[1] + a * (Math.cosh(u / a) - 1), groundY(x, z) + 0.05), z]);
-  }
-  const M = 60, mid = [T[0] + ux * 0.6, T[1] + 0.04, T[2] + uz * 0.6];
-  for (let i = 1; i <= M; i++) {
-    const t = i / M, a0 = (1 - t) * (1 - t), a1 = 2 * t * (1 - t), a2 = t * t;
-    pts.push([a0 * T[0] + a1 * mid[0] + a2 * ring[0], a0 * T[1] + a1 * mid[1] + a2 * ring[1], a0 * T[2] + a1 * mid[2] + a2 * ring[2]]);
-  }
-  const acc = runLength(pts);
-  return { all: pts, acc, total: acc[acc.length - 1], hang: acc[N], plane: [px, pz] };
+// The rest shape: hung from the ring under the buoy to the anchor's ring (layout.js has it: the
+// camera rides beside it). Sampled at even lengths for chainAt.
+function chainShape() {
+  return { all: MOORING.pts, acc: MOORING.acc, total: MOORING.total, hang: MOORING.total, plane: MOORING.plane };
 }
 
 // The sway, the same in JavaScript and in the shader: h is how far down the hanging part
@@ -914,8 +911,8 @@ function rustSurf(s, f) {
   s.spec = float(0.08); s.gloss = float(18.0); s.fluor = float(0.55);
 }
 
-function buildChain(ctx, q, bow, ring, foot) {
-  const C = chainShape(bow, ring, foot);
+function buildChain(ctx, q) {
+  const C = chainShape();
   const d = 0.034, r = d / 2, a = 0.85 * d, cR = 1.25 * d, pitch = 3.2 * d;
   // one link: a stadium-shaped ring in its own plane (x across, y along the chain)
   const m = new Mesh(true), line = [], arcN = q.amount >= 0.5 ? 6 : 4;
@@ -2512,14 +2509,14 @@ export function buildSets(ctx) {
   mark('marina');
   buildMarina(ctx, q, MARINA_END, { seed: 7272, lights: true, deep: true });
   mark('marina2');
-  // the chain: from the moored sailboat's bow roller down to the anchor in the sand
-  const mo = start.moored;
-  const bow = mo.at(0, mo.sheerAt(1) + 0.08, mo.len / 2 + 0.06);
-  const tw = [mo.x - ANCHOR.x, mo.z - ANCHOR.z], tl = Math.hypot(tw[0], tw[1]);
+  // the chain: from the ring under the mooring buoy down to the anchor in the sand
+  const tw = [BUOY.x - ANCHOR.x, BUOY.z - ANCHOR.z], tl = Math.hypot(tw[0], tw[1]);
   // (the arms turned 40 degrees from square to the way the camera comes, so arms and stock both show)
   const fa = Math.atan2(-0.9, 0.435) + 0.7;
   const ring = buildAnchor(ctx, [ANCHOR.x, ANCHOR.z], [tw[0] / tl, tw[1] / tl], [Math.cos(fa), Math.sin(fa)]);
-  const chain = buildChain(ctx, q, bow, ring, [ANCHOR.x, ANCHOR.z]);
+  // (the chain was hung, in layout.js, to where this ring is: check they agree)
+  if (typeof DEV !== 'undefined' && DEV) { const r2 = anchorRing(); if (Math.hypot(ring[0] - r2[0], ring[1] - r2[1], ring[2] - r2[2]) > 0.01) console.warn('sets: the anchor ring moved: ' + ring + ' vs ' + r2); }
+  const chain = buildChain(ctx, q);
   mark('chain');
   const clam = buildClam(ctx, q);
   const clamGlows = clam.glows;

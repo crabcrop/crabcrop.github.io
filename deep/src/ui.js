@@ -61,6 +61,16 @@ export function createUI(opts = {}) {
     choices: { format: 0, look: 0, crop: 0, finish: 0, seal: 0 },
     statsOn: false,
     loading, ready, failed, frame, stats,
+    // pick option i of a choice from elsewhere (a curtain in the forest, the wax seal): its
+    // radio is checked as if clicked
+    choose(key, i) {
+      const input = words.querySelectorAll('fieldset[data-choice="' + key + '"] input[type="radio"]')[i];
+      if (!input || input.checked) return;
+      input.checked = true;
+      choose(key, i);
+    },
+    // the parts of the page that answer a choice (a zone's live specimens) register here
+    onChoice: [], onPreview: [],
   };
 
   const bar = $('bar'), urlEl = $('url'), finalEl = $('final-url'), finalNote = $('final-note');
@@ -130,18 +140,63 @@ export function createUI(opts = {}) {
     fs.querySelectorAll('input[type="radio"]').forEach((input, i) => {
       if (input.checked) ui.choices[key] = i;       // (a browser may have kept a choice across a reload)
       input.addEventListener('change', () => { if (input.checked) choose(key, i); });
+      // hovering or focusing an option shows it in the scene for as long as it lasts
+      const opt = input.closest('.opt') || input;
+      opt.addEventListener('pointerenter', (e) => { if (e.pointerType !== 'touch') preview(key, i); });
+      opt.addEventListener('pointerleave', () => preview(key, null));
+      input.addEventListener('focus', () => { if (input.matches(':focus-visible')) preview(key, i); });
+      input.addEventListener('blur', () => preview(key, null));
     });
     if (ui.choices[key]) status[key].textContent = NOTES[key][ui.choices[key]];
   }
 
+  // Each choice's panel: "Your turn · Choice N of 5" with five dots (the ones before filled),
+  // and under its options the URL as far as that choice, the part it chose marked (a later
+  // panel shows more of it; the last shows it whole, or sealed). As in the painted dive.
+  const farEls = {};
+  KEYS.forEach((key, n) => {
+    const fs = words.querySelector('fieldset[data-choice="' + key + '"]');
+    if (!fs) return;
+    const turn = fs.querySelector('legend .turn');
+    if (turn) turn.innerHTML = '<span class="yt">Your turn</span> <span class="of">Choice ' + (n + 1) + ' of 5</span><span class="dots" aria-hidden="true">' + [0, 1, 2, 3, 4].map((d) => '<i' + (d < n ? ' class="on"' : d === n ? ' class="now"' : '') + '></i>').join('') + '</span>';
+    const far = doc.createElement('p');
+    far.className = 'so-far js-only';
+    fs.after(far);
+    farEls[key] = far;
+  });
+  let changedKey = '';
+  function soFar() {
+    const c = ui.choices, fmt = OPTIONS.format[c.format], look = OPTIONS.look[c.look], crop = OPTIONS.crop[c.crop], fin = OPTIONS.finish[c.finish];
+    const src = '/root:photos/print.jpg', tail = (fmt ? ':' + fmt : '') + src, rem = remainder(c);
+    const dim = (t) => '<span class="dim">' + soft(t) + '</span>', mark = (t) => '<mark>' + soft(t) + '</mark>';
+    const lines = {
+      format: dim('…/') + (fmt ? dim('filters:') + mark(fmt) : '') + dim(fmt ? src : src.slice(1)),
+      look: dim('…/filters:') + mark(look) + dim(tail),
+      crop: dim('…/') + mark(crop) + dim('/filters:' + look + tail),
+      finish: dim('…/' + crop + '/filters:' + look) + (fin ? dim(':') + mark(fin) : '') + dim(tail),
+      seal: c.seal && token !== '' ? dim(BASE) + mark(token ? token.slice(0, 14) + '…' : 's1.…') + dim('/' + NAME) : dim(BASE + sign(rem).slice(0, 8) + '…/') + soft(rem),
+    };
+    for (const k of KEYS) {
+      const el = farEls[k];
+      if (!el) continue;
+      const html = '<span class="lab">Your URL so far</span><code>' + lines[k] + '</code>';
+      if (el.innerHTML !== html) el.innerHTML = html;
+      if (k === changedKey) { el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); }
+    }
+    changedKey = '';
+  }
+
   function choose(key, i) {
+    changedKey = key;
     ui.choices[key] = i;
     status[key].textContent = NOTES[key][i];
     fresh = key === 'seal' ? (i ? 'seal' : 'sig') : key;
     lit.add(fresh);
     render();
     if (opts.onChoice) opts.onChoice(key, i);
+    for (const f of ui.onChoice) f(key, i);
   }
+  function preview(key, i) { for (const f of ui.onPreview) f(key, i); }
 
   function render() {
     const c = ui.choices;
@@ -181,6 +236,7 @@ export function createUI(opts = {}) {
         : 'Signed in your browser with the sample secret <code>demo-secret</code>, on a stand-in host. Sign the same path with your own secret and your crabcrop server serves the picture.';
     }
     urlEl.innerHTML = html;
+    soFar();
     if (!(c.seal && token === null)) fresh = '';   // (a token on its way keeps the glow for when it lands)
   }
 
@@ -227,6 +283,7 @@ export function createUI(opts = {}) {
   $('copy-url').addEventListener('click', (e) => copy(e.currentTarget, full));
   $('copy-final').addEventListener('click', (e) => copy(e.currentTarget, full));
   $('copy-install').addEventListener('click', (e) => copy(e.currentTarget, $('install-cmd').textContent));
+  if ($('copy-hero')) $('copy-hero').addEventListener('click', (e) => copy(e.currentTarget, $('hero-cmd').textContent));
 
   let soundOn = false;
   function setSound(on) {
@@ -266,7 +323,7 @@ export function createUI(opts = {}) {
   const lightBeats = [], lightParts = [], lightY = [];
   beats.forEach((b, j) => { if (b.dataset.lights) { lightBeats.push(j); lightParts.push(b.dataset.lights); lightY.push(0); } });
   let vh = innerHeight, low = 0, maxY = 1, barBottom = -1, gaugeOn = false, gaugeH = 0, MARK = [];
-  let shownG = -1, shownD = -1, shownZ = -1, quiet = false, measured = false;
+  let shownG = -1, shownD = -1, shownZ = -1, shownWay = null, shownNight = null, quiet = false, measured = false;
 
   // Where zone i's first beat has settled in place: the scroll a jump to that zone goes to.
   const zoneStart = (i) => (i <= 0 ? 0 : Math.min(maxY, Math.max(0, slotTop[first[i]] - vh + low + beatH[first[i]] + 2)));
@@ -324,6 +381,17 @@ export function createUI(opts = {}) {
     }
     for (let k = 0; k < lightBeats.length; k++) if (y >= lightY[k]) light(lightParts[k]);
   }
+  // The card that is in its place now (risen into view and not yet rising away), or null: Snap
+  // visits it when the visitor pauses.
+  ui.cardInPlace = () => {
+    if (ui.mode !== 'dive' || !measured) return null;
+    const y = scrollY;
+    for (let j = N - 1; j >= 0; j--) {
+      if (gone[j] || shown[j] !== STEPS) continue;
+      if (y >= slotTop[j] - vh + low + beatH[j] && y + vh - low <= slotBot[j]) return beats[j];
+    }
+    return null;
+  };
 
   let pending = false;
   const schedule = () => { if (!pending) { pending = true; requestAnimationFrame(() => { pending = false; measure(); }); } };
@@ -341,10 +409,35 @@ export function createUI(opts = {}) {
     go(1, true);
     if (opts.onStart) opts.onStart();
   });
+  // Dive again, and the foot of the page: the view fades to the next morning while the page
+  // goes back to the top, every choice kept (so the URL in the bar is the whole one), and fades
+  // back in on Snap at the start with his print again. (As a page, a plain jump.)
+  let looping = false, lastY = scrollY;
+  const dawn = $('dawn');
+  function loop() {
+    if (looping) return;
+    if (ui.mode !== 'dive' || !dawn) { go(0, false); return; }
+    looping = true;
+    dawn.classList.add('on');
+    setTimeout(() => {
+      quiet = true;
+      try { $('h0').focus({ preventScroll: true }); } finally { quiet = false; }
+      scrollTo({ top: 0, behavior: 'instant' });
+      lastY = 0;
+      setTimeout(() => { dawn.classList.remove('on'); setTimeout(() => { looping = false; }, 500); }, 650);
+    }, 480);
+  }
+  ui.loop = loop;
   $('again').addEventListener('click', (e) => {
     e.preventDefault();
-    go(0, false);
+    loop();
   });
+  // (scrolling on down past the finale: once the very foot of the page is reached going down)
+  addEventListener('scroll', () => {
+    const y = scrollY;
+    if (ui.mode === 'dive' && measured && !looping && y > lastY && y >= maxY - 2 && maxY > vh) loop();
+    lastY = y;
+  }, { passive: true });
   links.forEach((a, i) => a.addEventListener('click', (e) => {
     if (ui.mode !== 'dive') return;
     e.preventDefault();
@@ -426,11 +519,17 @@ export function createUI(opts = {}) {
     const d = depthIndex(depthAt(p));
     if (d !== shownD) { shownD = d; depthEl.textContent = DEPTHS[d]; }
     const z = p >= 7 ? 7 : Math.floor(p);
+    // (between the places, the readout names the way: as in the painted dive)
+    const way = p > 0.22 && p < 1.05 ? 'The plunge' : p > 2.88 && p < 3.06 ? 'To the reef' : p > 4.36 && p < 4.5 ? 'Into the wreck' : p > 5.0 && p < 5.32 ? 'The drop' : p > 7.02 && p < 7.74 ? 'The ascent' : '';
+    if (way !== shownWay) { shownWay = way; zoneEl.textContent = way || NAMES[z]; }
+    // below the wreck what floats over the scene turns to night colours
+    const night = depthAt(p) < -140;
+    if (night !== shownNight) { shownNight = night; root.classList.toggle('night', night); }
     if (z !== shownZ) {
       if (shownZ >= 0) links[shownZ].removeAttribute('aria-current');
       else for (const a of links) a.removeAttribute('aria-current');
       links[z].setAttribute('aria-current', 'step');
-      zoneEl.textContent = NAMES[z];
+      if (!way) zoneEl.textContent = NAMES[z];
       shownZ = z;
     }
   }

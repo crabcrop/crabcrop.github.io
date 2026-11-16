@@ -2,7 +2,7 @@
 // surface seen from underneath, with the bright window straight overhead through which
 // the sky and the sun show, and all around it the mirror that shows the water below.
 import { BackSide, DoubleSide, Mesh, PlaneGeometry, SphereGeometry } from 'three/webgpu';
-import { cameraPosition, clamp, dot, float, length, max, mix, normalize, pow, reflect, refract, select, smoothstep, sqrt, texture, vec3 } from 'three/tsl';
+import { cameraPosition, clamp, dot, exp, float, length, max, mix, normalize, pow, reflect, refract, select, sin, smoothstep, sqrt, texture, vec3 } from 'three/tsl';
 import { G, inWater, material, scatter, scatterFrom, skyColor } from './shaders.js';
 
 export function buildSea(scene) {
@@ -30,6 +30,9 @@ export function buildSea(scene) {
       const sl = texture(G.waterTex, f.w.xz.div(13.0)).ba.sub(0.5)
         .add(texture(G.waterTex, f.w.zx.div(4.7).add(0.2)).ba.sub(0.5).mul(0.7))
         .add(texture(G.waterTex, f.w.xz.div(37.0).add(0.6)).ba.sub(0.5).mul(0.8)).mul(fl.mul(2.0)).toVar();
+      // (rings spreading from where the visitor's hand is over the water)
+      const rd = f.w.xz.sub(G.ripple.xy), rl = length(rd).max(1e-3);
+      sl.addAssign(rd.div(rl).mul(sin(rl.mul(13.0).sub(G.time.mul(5.0))).mul(exp(rl.mul(-1.1))).mul(G.ripple.z).mul(0.5)));
       const n = normalize(vec3(sl.x.mul(-0.8), -1.0, sl.y.mul(-0.8))).toVar();        // facing down, at us
       const ci = clamp(dot(v, n.negate()), 0.0, 1.0);
       const k = float(1).sub(float(1.769).mul(float(1).sub(ci.mul(ci)))).toVar();      // below zero, light cannot leave the water

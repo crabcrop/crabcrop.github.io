@@ -9,7 +9,7 @@
 import { Euler, PerspectiveCamera, Scene } from 'three/webgpu';
 import { Engine, pickLevel } from './engine.js';
 import { buildFlora } from './flora.js';
-import { DEEPER, KNEE, P_MAX, optDepth, optSlope, pathAt, waterAt } from './layout.js';
+import { DEEPER, KNEE, P_MAX, SLOTS, optDepth, optSlope, pathAt, rideCamera, rideWeight, waterAt } from './layout.js';
 import { clamp, smooth } from './math.js';
 import { buildRocks } from './rocks.js';
 import { buildSea } from './sea.js';
@@ -42,6 +42,7 @@ const S = {
 };
 const DEG = Math.PI / 180;
 const euler = new Euler(0, 0, 0, 'YXZ');
+const RT = [0, 0, 0], RW = [0, 0, 0];
 
 function resize() {
   const w = canvas.clientWidth || innerWidth, h = canvas.clientHeight || innerHeight;
@@ -59,6 +60,14 @@ function place(p) {
   // (on a phone the marina's view turns a little left at the start and the end, so a pier
   // post, its buoy and the lighthouse with the sun behind it are in the narrow frame)
   const marina = camera.aspect < 1 ? -13 * ((1 - smooth(0.12, 0.3, p)) + smooth(7.84, 7.95, p)) : 0;
+  // down the mooring's chain the path keeps Snap in a wide view's slot; a tall view's camera
+  // moves so that he is in its own (centred, above the words)
+  const ride = camera.aspect < 1 ? rideWeight(p) : 0;
+  if (ride > 0) {
+    rideCamera(p, S.path[3] + marina, S.path[4], SLOTS.tall.snap, RT);
+    rideCamera(p, S.path[3], S.path[4], SLOTS.wide.snap, RW);
+    camera.position.set(S.path[0] + ride * (RT[0] - RW[0]), S.path[1] + ride * (RT[1] - RW[1]), S.path[2] + ride * (RT[2] - RW[2]));
+  }
   euler.set((S.path[4] + S.lookY) * DEG, -(S.path[3] + S.lookX + marina) * DEG, 0, 'YXZ');
   camera.quaternion.setFromEuler(euler);
   camera.updateMatrixWorld(true);
@@ -164,7 +173,7 @@ async function boot() {
   if (DEV) {
     await Promise.all(waits);
     const { installDev } = await import('./dev.js');
-    if (installDev({ S, engine, scene, camera, place, draw, resize })) return;
+    if (installDev({ S, engine, scene, camera, place, draw, resize, onFrame })) return;
   }
   if (params.has('bench')) {
     const { runBench, showReport } = await import('./bench.js');

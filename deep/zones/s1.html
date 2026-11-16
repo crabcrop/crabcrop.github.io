@@ -1,0 +1,37 @@
+<section class="zone" id="s1" aria-labelledby="h1">
+  <div class="slot s-intro"><div class="beat intro">
+    <p class="eyebrow"><span class="d">−5 m</span> · The Shallows</p>
+    <h2 id="h1" tabindex="-1">One URL does the whole job.</h2>
+    <p class="lede">A crabcrop URL reads left to right: a signature, then the operations, then the source. Each of your five choices is one part of it, and lights up in the bar above.</p>
+  </div></div>
+  <div class="slot"><article class="beat card" data-lights="sig">
+    <h3>Signed URLs, from any stack</h3>
+    <p>Every URL carries an HMAC-SHA256 signature over the operations and the source. Same inputs, same URL, from any of these:</p>
+    <ul class="tags"><li>TypeScript</li><li>Python</li><li>Rust</li><li>curl</li></ul>
+    <a class="more" href="https://crabcrop.org/docs.html#signing">Read the docs<span class="sr"> on signing</span></a>
+  </article></div>
+  <div class="slot"><article class="beat card">
+    <h3>All major formats, in and out</h3>
+    <p>JPEG, PNG, WebP, GIF, AVIF and JPEG XL. Name no format and the browser’s Accept header decides; on a tie, AVIF, then JPEG XL, then WebP.</p>
+    <p class="ex"><code>format(avif) · format(jxl) · format(webp)</code></p>
+    <a class="more" href="https://crabcrop.org/docs.html#format">Read the docs<span class="sr"> on formats</span></a>
+  </article></div>
+  <div class="slot s-pick"><div class="beat pick" data-lights="format">
+    <fieldset data-choice="format">
+      <legend><span class="turn">Choice 1 of 5</span>Pick a format</legend>
+      <div class="opts">
+        <label class="opt"><input type="radio" name="format" value="0" checked><span class="nm">Auto</span><code>no format named</code></label>
+        <label class="opt"><input type="radio" name="format" value="1"><span class="nm">AVIF</span><code>format(avif)</code></label>
+        <label class="opt"><input type="radio" name="format" value="2"><span class="nm">JPEG XL</span><code>format(jxl)</code></label>
+        <label class="opt"><input type="radio" name="format" value="3"><span class="nm">WebP</span><code>format(webp)</code></label>
+      </div>
+    </fieldset>
+    <p class="status" aria-live="polite" id="st-format">No format named: the browser’s Accept header decides.</p>
+  </div></div>
+  <div class="slot"><article class="beat card">
+    <h3>Sources beyond photos</h3>
+    <p>The source can be one frame of a video, one page of a PDF, an object in S3 or GCS, a local file, or a short <code>root:</code> reference.</p>
+    <p class="ex"><code>frame:50% · page:2 · root:photos/<wbr>print.jpg</code></p>
+    <a class="more" href="https://crabcrop.org/docs.html#sources">Read the docs<span class="sr"> on sources</span></a>
+  </article></div>
+</section>

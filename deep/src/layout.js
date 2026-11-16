@@ -70,6 +70,81 @@ export const ZONES = [
   { id: 's7', name: 'Back to the Surface', depth: 0 },
 ];
 
+// ---- the mooring at the start ----------------------------------------------------------
+
+// A knitted buoy floats at the waterline just beyond where Snap starts, the dinghy tied to it;
+// its chain hangs from a ring under it and runs ahead and down to the anchor in the sand. Snap
+// grabs that chain as he dives and rides it all the way down to the anchor, and the camera
+// rides down beside him (RIDE: from p; at p, at the anchor's ring; and at p, where he lets go
+// of it: the camera waits there for him).
+export const BUOY = { x: 5.05, z: 13.6, r: 0.42, ring: -0.36 };
+export const ANCHOR = { x: 4.4, z: -9.0 };
+export const RIDE = [0.2, 1.05, 1.13];
+// Where Snap is in the camera's view (metres forward, right, up): a wide window keeps the left
+// for the words, a tall one the bottom; and the submarine's place.
+// (close enough that he is about a quarter of a wide view's height, a sixth of a phone's: the
+// painted dive drew him 26 % and 20 %)
+export const SLOTS = {
+  wide: { snap: [2.15, 0.82, -0.22], sub: [3.7, 1.15, -0.3] },
+  tall: { snap: [2.45, 0.0, 0.42], sub: [4.0, 0.0, 0.62] },
+};
+
+// Where the anchor's ring is (sets.js stands the anchor so: its shank leaning 0.28 rad toward
+// the buoy, the ring 1.86 m up it at a scale of 1.3, the foot sunk 0.14 m).
+export function anchorRing() {
+  const tx = BUOY.x - ANCHOR.x, tz = BUOY.z - ANCHOR.z, tl = Math.hypot(tx, tz), k = 1.86 * 1.3, lean = 0.28;
+  return [ANCHOR.x + (Math.sin(lean) * k * tx) / tl, groundY(ANCHOR.x, ANCHOR.z) - 0.14 + Math.cos(lean) * k, ANCHOR.z + (Math.sin(lean) * k * tz) / tl];
+}
+// The chain at rest: hung from the ring under the buoy (a) to the anchor's ring (b), sagging
+// `sag` metres in the middle below the straight line, so that it comes down steeply from the
+// buoy and reaches the ring still going a little down, clear of the sand all the way. Sampled
+// at N + 1 points with their run lengths; total is its length.
+export function hangLine(a, b, sag = 0.8, N = 300) {
+  const pts = [], acc = [0];
+  for (let i = 0; i <= N; i++) {
+    const t = i / N, x = lerp(a[0], b[0], t), z = lerp(a[2], b[2], t);
+    pts.push([x, Math.max(lerp(a[1], b[1], t) - 4 * sag * t * (1 - t), groundY(x, z) + 0.3), z]);
+    if (i) acc.push(acc[i - 1] + Math.hypot(x - pts[i - 1][0], pts[i][1] - pts[i - 1][1], z - pts[i - 1][2]));
+  }
+  const l = Math.hypot(b[0] - a[0], b[2] - a[2]);
+  return { pts, acc, total: acc[N], plane: [(a[0] - b[0]) / l, (a[2] - b[2]) / l] };
+}
+export const MOORING = hangLine([BUOY.x, BUOY.ring, BUOY.z], anchorRing());
+// The point u of the way down the chain (0 at the buoy, 1 at the anchor's ring).
+let mseg = 0;
+export function mooringAt(u, out) {
+  const { pts, acc, total } = MOORING, sig = clamp(u, 0, 1) * total;
+  while (mseg < acc.length - 2 && acc[mseg + 1] < sig) mseg++;
+  while (mseg > 0 && acc[mseg] > sig) mseg--;
+  const A = pts[mseg], B = pts[mseg + 1], t = (sig - acc[mseg]) / Math.max(acc[mseg + 1] - acc[mseg], 1e-6);
+  out[0] = lerp(A[0], B[0], t); out[1] = lerp(A[1], B[1], t); out[2] = lerp(A[2], B[2], t);
+  return out;
+}
+// How far down the chain Snap is at p: from just under the buoy as his dive ends, slowly at
+// first, to the anchor's ring at the end of the ride (at an even pace in between).
+export function rideU(p) {
+  const t = clamp((p - RIDE[0]) / (RIDE[1] - RIDE[0]), 0, 1);
+  return 0.025 + 0.96 * (0.5 * t + 0.5 * t * t * (3 - 2 * t));
+}
+// How much the camera rides the chain at p (0 before the dive and after the anchor).
+export const rideWeight = (p) => smooth(RIDE[0] - 0.1, RIDE[0] + 0.02, p) * (1 - smooth(RIDE[2], RIDE[2] + 0.2, p));
+// Where the camera is while it rides the chain: Snap's grip on the chain at p in the given slot
+// of a view that looks yaw and pitch (degrees, as in the path). out: [x, y, z].
+const RC = [0, 0, 0];
+export function rideCamera(p, yaw, pitch, slot, out) {
+  mooringAt(rideU(p), RC);
+  const y = (yaw * Math.PI) / 180, x = (pitch * Math.PI) / 180;
+  const cy = Math.cos(y), sy = Math.sin(y), cx = Math.cos(x), sx = Math.sin(x);
+  // the view's forward, right and up, as the camera turns (yaw, then pitch)
+  const F0 = sy * cx, F1 = sx, F2 = -cy * cx, R0 = cy, R2 = sy, U0 = -sx * sy, U1 = cx, U2 = sx * cy;
+  // (Snap hangs a little below his grip: his middle is what sits in the slot)
+  const gx = RC[0], gy = RC[1] - 0.12, gz = RC[2];
+  out[0] = gx - F0 * slot[0] - R0 * slot[1] - U0 * slot[2];
+  out[1] = gy - F1 * slot[0] - U1 * slot[2];
+  out[2] = gz - F2 * slot[0] - R2 * slot[1] - U2 * slot[2];
+  return out;
+}
+
 // ---- the camera's path -----------------------------------------------------------------
 
 // Where the camera is at p, the dive's one coordinate: its whole part is the zone (0 to 7)
@@ -79,20 +154,24 @@ export const ZONES = [
 // pitch (positive up).
 const P = (p, z, off, y, up, yaw, pitch) => ({ p, z, off, y, up, yaw, pitch });
 const STOPS = [
-  // the marina from the waterline, half above and half below; then under, beneath the pier
-  P(0.0, 18, 0, 0.0, false, 0, -3), P(0.28, 15, 0, 0.0, false, -2, -4), P(0.55, 9, -0.6, -1.6, false, -3, 2), P(1.0, -8, 0.6, -3.7, false, 5, 2),
-  // the shallows: down the chain to the anchor, then over the sand
-  P(1.3, -18, -1.2, 2.0, true, 6, -8), P(1.65, -31, 1.0, 1.5, true, -5, -4), P(2.0, -48, 0, 1.8, true, 0, -2),
+  // the marina from the waterline, half above and half below; then down the mooring's chain
+  // with Snap, under the pier, to the anchor (where the stops between RIDE[0] and RIDE[1] are
+  // only how the camera looks: rideCamera places it)
+  P(0.0, 18, 0, 0.0, false, 0, -3), P(0.28, 15, 0, 0.0, false, -1, -9), P(0.55, 9, -0.6, -1.6, false, -2, -11), P(0.8, 0, 0, -3, false, 1, -12), P(1.0, -8, 0.6, -3.7, false, 3, -16),
+  P(1.12, -8, 0, -4, false, 4, -14),
+  // the shallows: over the sand
+  P(1.4, -16, -1.2, 2.0, true, 6, -8), P(1.65, -31, 1.0, 1.5, true, -5, -4), P(2.0, -48, 0, 1.8, true, 0, -2),
   // the kelp forest
   P(2.3, -64, 2.5, 3.0, true, -8, 4), P(2.6, -82, -2.0, 3.6, true, 7, 9), P(2.85, -98, 2.0, 3.4, true, -5, 3), P(3.0, -112, 0, 3.0, true, 0, -6),
   // the reef, and the giant clam at its far end
   P(3.3, -130, -3.0, 1.9, true, 9, -5), P(3.6, -148, 3.5, 1.8, true, -9, -6), P(3.82, -164, -1.5, 2.0, true, 16, -3), P(4.0, -182, 1.0, 3.4, true, -3, -9),
   // the wreck on its ledge: over its stern, then alongside, and a look into the captain's
   // cabin through the hole in its side while the visitor makes the last choice (Snap swims
-  // in ahead of the camera); out again, past the bow, to the edge
+  // in ahead of the camera); out again, past the bow, slowly while the submarine takes Snap
+  // aboard, to the edge
   P(4.25, -204, 4.0, 5.0, true, -10, -12), P(4.4, -228, 7.0, -53.4, false, -62, -5),
   P(4.5, -234.6, 3.15, -54.3, false, -82, -3), P(4.56, -234.9, 0.55, -54.3, false, -82, -4), P(4.63, -235.0, 0.45, -54.3, false, -84, -4),
-  P(4.71, -237, 5.0, -54.2, false, -70, -3), P(4.82, -244, 8.0, 3.6, true, -34, -3), P(5.0, -264, 2.0, 4.2, true, -4, -20),
+  P(4.71, -237, 5.0, -54.2, false, -70, -3), P(4.82, -244, 8.0, 3.6, true, -34, -3), P(4.95, -254, 4.5, 3.6, true, -14, -8), P(5.0, -264, 2.0, 4.2, true, -4, -20),
   // off the edge and down the wall, into the dark
   P(5.2, -284, 0, -66, false, 18, -24), P(5.45, -293, 1.0, -98, false, 38, -14), P(5.7, -295, 1.0, -134, false, 46, -8), P(5.9, -294, 0, -168, false, 30, -14), P(6.0, -297, 0, -193, false, 8, -16),
   // the vents, and the geode at the end
@@ -105,11 +184,17 @@ const STOPS = [
 for (const s of STOPS) {
   s.x = centerX(s.z) + s.off;
   s.wy = s.up ? groundY(s.x, s.z) + s.y : s.y;
+  // (the stops on the ride sit where the ride puts the camera, so the curve leads into it)
+  if (s.p > RIDE[0] && s.p <= RIDE[2]) {
+    const o = rideCamera(s.p, s.yaw, s.pitch, SLOTS.wide.snap, [0, 0, 0]);
+    s.x = o[0]; s.wy = o[1]; s.z = o[2];
+  }
 }
 export const P_MAX = 8;
 
 // Catmull-Rom through the stops, with their p as the knots. out: [x, y, z, yaw, pitch].
 let seg = 0;
+const RW = [0, 0, 0];
 export function pathAt(p, out) {
   p = clamp(p, 0, P_MAX);
   if (p < STOPS[seg].p) seg = 0;
@@ -127,11 +212,18 @@ export function pathAt(p, out) {
   const m0 = lim((b.wy - a0.wy) / da, seg === 0 ? s1 : s0, s1), m1 = lim((b1.wy - a.wy) / db, s1, seg >= STOPS.length - 2 ? s1 : s2);
   out[1] = h00 * a.wy + h10 * h * m0 + h01 * b.wy + h11 * h * m1;
   out[2] = f(a.z, b.z, a0.z, b1.z);
+  out[3] = f(a.yaw, b.yaw, a0.yaw, b1.yaw);
+  out[4] = f(a.pitch, b.pitch, a0.pitch, b1.pitch);
+  // down the chain the camera rides beside Snap (a wide view's slot: app.js puts a tall
+  // view's camera where its own slot needs it)
+  const w = rideWeight(p);
+  if (w > 0) {
+    rideCamera(p, out[3], out[4], SLOTS.wide.snap, RW);
+    out[0] = lerp(out[0], RW[0], w); out[1] = lerp(out[1], RW[1], w); out[2] = lerp(out[2], RW[2], w);
+  }
   // (at the start and the end the camera sits on the waterline: the curve would lift it a
   // little, and from above the water the view's lower half is lost)
   if ((p < 0.3 || p > 7.84) && out[1] > 0) out[1] = 0;
-  out[3] = f(a.yaw, b.yaw, a0.yaw, b1.yaw);
-  out[4] = f(a.pitch, b.pitch, a0.pitch, b1.pitch);
   return out;
 }
 
@@ -154,7 +246,7 @@ export function offTrack(x, z, y) {
 
 // Where the set pieces stand (sets.js), kept clear of plants: [x, z, radius]. The clam, the
 // wreck (two circles along its length), the geode's halves and the helmet, the anchor.
-export const CLEARINGS = [[4.7, -170.4, 3.6], [3.9, -236.5, 5.0], [4.7, -248.5, 5.0], [-4.13, -388.9, 2.5], [-6.38, -387.9, 0.8], [-0.6, -389.3, 1.7], [4.35, -24.5, 1.6]];
+export const CLEARINGS = [[4.7, -170.4, 3.6], [3.9, -236.5, 5.0], [4.7, -248.5, 5.0], [-4.13, -388.9, 2.5], [-6.38, -387.9, 0.8], [-0.6, -389.3, 1.7], [ANCHOR.x, ANCHOR.z, 1.6]];
 export const cleared = (x, z) => CLEARINGS.some(([cx, cz, r]) => (x - cx) * (x - cx) + (z - cz) * (z - cz) < r * r);
 
 // ---- the water -------------------------------------------------------------------------

@@ -34,7 +34,7 @@ import {
   abs, atan, attribute, cameraPosition, clamp, cos, cross, dot, exp, float, floor, fract, fwidth, int, length, max, min, mix, normalize,
   pow, sign, sin, smoothstep, sqrt, step, texture, uniform, uniformArray, varyingProperty, vec2, vec3, vec4, select,
 } from 'three/tsl';
-import { TRACK, centerX, groundY, offTrack, pathAt } from './layout.js';
+import { SLOTS as CAST_SLOTS, TRACK, centerX, groundY, mooringAt, offTrack, pathAt, rideU, rideWeight } from './layout.js';
 import { Mesh, TAU, blob, clamp as clampN, lerp, makeRng, noise3, smooth, tube } from './math.js';
 import { G, SIG, material, scatter, skyAt, sunAt, sunFoot, vNrm, yarn } from './shaders.js';
 import { rockSurf } from './terrain.js';
@@ -267,9 +267,9 @@ const SCREENS = { wide: { tanV: Math.tan(29 * DEG), aspect: 16 / 9, top: 0.8, ki
 // at the geode. (These copy cast.js: they are only used to choose, once, where creatures live
 // so that they are clear of the cast at the moments the visitor stops at; what moves keeps
 // clear of the cast where it really is, G.subAt and G.snapAt, in its shader.)
-const SUB_SLOT = { wide: [4.3, 1.3, -0.35], tall: [4.7, 0.0, 0.7] }, SNAP_SLOT = { wide: [2.8, 1.05, -0.28], tall: [3.3, 0.0, 0.55] };
+const SUB_SLOT = { wide: CAST_SLOTS.wide.sub, tall: CAST_SLOTS.tall.sub }, SNAP_SLOT = { wide: CAST_SLOTS.wide.snap, tall: CAST_SLOTS.tall.snap };
 
-const SUB_FROM = 4.92, SNAP_IN = 5.06;
+const SUB_FROM = 4.82, SNAP_IN = 4.93;
 function subSlot(p, kind, out = [0, 0, 0]) {
   const s = SUB_SLOT[kind], geode = smooth(6.8, 6.87, p) * (1 - smooth(7.04, 7.1, p));
   out[0] = s[0]; out[1] = s[1]; out[2] = s[2];
@@ -287,8 +287,12 @@ function snapAt(p, kind, out) {
   if (p >= SNAP_IN) subSlot(p, kind, _slot); else { _slot[0] = s[0] * (1 - 0.32 * k); _slot[1] = s[1]; _slot[2] = s[2]; }
   inViewAt(out, c, _slot[0], _slot[1], _slot[2]);
   if (p < 0.2) out[1] = lerp(0, out[1], smooth(0.075, 0.2, p));
+  // (down the mooring's chain he is on it, on any screen)
+  const w = rideWeight(p);
+  if (w > 0) { mooringAt(rideU(p), _ride); out[0] = lerp(out[0], _ride[0], w); out[1] = lerp(out[1], _ride[1] - 0.12, w); out[2] = lerp(out[2], _ride[2], w); }
   return out;
 }
+const _ride = [0, 0, 0];
 // (it never touches the ground, nor rises within a metre of the surface)
 const subAt = (p, kind, out) => {
   subSlot(p, kind, _slot);
@@ -300,7 +304,7 @@ const subAt = (p, kind, out) => {
 // The moments a creature belongs to, and where it is in the view then. Each writes into o:
 // c its middle, f the way it faces (level unless said), and for the siphonophore d its
 // length's direction and len its length. A screen is (tanV, aspect).
-const SIPHON = [5.15, 5.86], ANGLER = [5.57, 5.79], BOTTLE = [5.36, 5.8], REEF_TURTLE = [3.2, 3.68], ENDING = [7.84, 8.0];
+const SIPHON = [5.15, 5.86], ANGLER = [5.57, 5.79], BOTTLE = [5.36, 5.8], REEF_TURTLE = [3.08, 3.42], ENDING = [7.84, 8.0];
 const dirOf = (o, x, y, z) => { const l = Math.hypot(x, y, z) || 1; o[0] = x / l; o[1] = y / l; o[2] = z / l; return o; };
 // The siphonophore: it rises out of the dark below to meet the visitor as they go over the
 // drop-off, goes down with them through the twilight, across the top of the view, drifting
@@ -347,11 +351,11 @@ function bottleAt(p, tanV, aspect, o) {
   dirOf(o.f, 0.62 * c.R[0] + 0.72 * c.U[0] + 0.3 * c.L[0], 0.72 * c.U[1], 0.62 * c.R[2] + 0.72 * c.U[2] + 0.3 * c.L[2]);
   return o;
 }
-// The turtle over the reef: high in the right of the view, heading left and a little toward
-// the visitor, drifting toward the middle as the camera goes on.
+// The turtle over the reef: close and big in the middle of the view (the reef's first station
+// frames it: the smart crop), heading left and a little toward the visitor, drifting on slowly.
 function reefTurtleAt(p, tanV, aspect, o) {
   const pc = clampN(p, REEF_TURTLE[0], REEF_TURTLE[1]), u = (pc - REEF_TURTLE[0]) / (REEF_TURTLE[1] - REEF_TURTLE[0]), wide = aspect >= 1, c = camAt(pc, _cA);
-  onScreen(o.c, c, wide ? 6.6 : 8.6, wide ? 0.62 - 0.16 * u : 0.16 - 0.16 * u, wide ? 0.4 : 0.55, tanV, aspect);
+  onScreen(o.c, c, wide ? 4.6 : 6.0, wide ? 0.2 - 0.12 * u : 0.02 - 0.06 * u, wide ? 0.18 : 0.36, tanV, aspect);
   dirOf(o.f, -c.R[0] - 0.42 * c.L[0], -0.06, -c.R[2] - 0.42 * c.L[2]);
   return o;
 }
@@ -2156,7 +2160,11 @@ export function buildFauna(ctx) {
     return out;
   };
 
+  // where the creatures other parts of the page point at are, kept every frame (the reef's crop
+  // frame snaps onto the turtle)
+  const marks = { turtle: { at: new Vector3(), r: 0.85, on: false } };
   return {
+    spots: marks,
     update(t, dt, p) {
       const e = camera.matrixWorld.elements;
       U.right.value.set(e[0], e[1], e[2]);
@@ -2170,6 +2178,7 @@ export function buildFauna(ctx) {
       // the turtle over the reef
       reefTurtleAt(p, tanV, aspect, hold);
       keyed(0, hold, t, 1.7, 0.3, 0, 0.1, 0.25, -0.45);
+      { const a = POSE.array[0]; marks.turtle.at.set(a.x, a.y, a.z); marks.turtle.on = p > REEF_TURTLE[0] - 0.05 && p < REEF_TURTLE[1] + 0.05; }
       // the anglerfish, and the bottle with a message (tilted, turning slowly as it sinks)
       anglerAt(p, tanV, aspect, hold);
       keyed(4, hold, t, hold.size, 0.5, 0, 0.05, 0.1, 0);
