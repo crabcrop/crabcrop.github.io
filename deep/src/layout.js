@@ -86,7 +86,7 @@ const STOPS = [
   // the kelp forest
   P(2.3, -64, 2.5, 3.0, true, -8, 4), P(2.6, -82, -2.0, 3.6, true, 7, 9), P(2.85, -98, 2.0, 3.4, true, -5, 3), P(3.0, -112, 0, 3.0, true, 0, -6),
   // the reef, and the giant clam at its far end
-  P(3.3, -130, -3.0, 2.8, true, 9, -7), P(3.6, -148, 3.5, 2.5, true, -9, -5), P(3.82, -164, -1.5, 2.6, true, 6, -4), P(4.0, -182, 1.0, 3.4, true, -3, -9),
+  P(3.3, -130, -3.0, 2.8, true, 9, -7), P(3.6, -148, 3.5, 2.5, true, -9, -5), P(3.82, -164, -1.5, 2.6, true, 16, -4), P(4.0, -182, 1.0, 3.4, true, -3, -9),
   // the wreck on its ledge: over its stern, then alongside, and a look into the captain's
   // cabin through the hole in its side while the visitor makes the last choice (Snap swims
   // in ahead of the camera); out again, past the bow, to the edge
@@ -96,7 +96,7 @@ const STOPS = [
   // off the edge and down the wall, into the dark
   P(5.2, -284, 0, -66, false, 18, -24), P(5.45, -293, 1.0, -98, false, 38, -14), P(5.7, -295, 1.0, -134, false, 46, -8), P(5.9, -294, 0, -168, false, 30, -14), P(6.0, -297, 0, -193, false, 8, -16),
   // the vents, and the geode at the end
-  P(6.25, -314, -2.0, 4.6, true, 8, -8), P(6.5, -338, -4.0, 4.0, true, 12, -5), P(6.75, -362, 3.0, 3.6, true, -10, -4), P(7.0, -383, 0.5, 3.2, true, -2, -8),
+  P(6.25, -314, -2.0, 4.6, true, 8, -8), P(6.5, -338, -4.0, 4.0, true, 12, -5), P(6.75, -362, 3.0, 3.6, true, -10, -4), P(6.9, -377, 1.5, 3.4, true, -4, -8), P(7.0, -383, 0.5, 2.9, true, 3, -7),
   // straight up, and the surface again
   P(7.15, -387, 0.5, -172, false, 0, 34), P(7.35, -388, 0.5, -96, false, 0, 52), P(7.55, -388, 0.5, -30, false, 0, 44), P(7.72, -390, 0.5, -6.5, false, 0, 22),
   // at the waterline again for the last stretch: the marina at sunset above, the cast below
@@ -120,7 +120,12 @@ export function pathAt(p, out) {
   const da = b.p - a0.p || 1, db = b1.p - a.p || 1;
   const f = (ka, kb, k0, k1) => h00 * ka + h10 * h * ((kb - k0) / da) + h01 * kb + h11 * h * ((k1 - ka) / db);
   out[0] = f(a.x, b.x, a0.x, b1.x);
-  out[1] = f(a.wy, b.wy, a0.wy, b1.wy);
+  // height without overshoot (monotone between the stops: where the dive rises or falls
+  // sharply next to a level stretch, the plain curve would dip or bulge past the stops)
+  const s0 = (a.wy - a0.wy) / (a.p - a0.p || 1), s1 = (b.wy - a.wy) / h, s2 = (b1.wy - b.wy) / (b1.p - b.p || 1);
+  const lim = (m, l, r) => (l * r <= 0 ? 0 : Math.sign(m) * Math.min(Math.abs(m), 3 * Math.min(Math.abs(l), Math.abs(r))));
+  const m0 = lim((b.wy - a0.wy) / da, seg === 0 ? s1 : s0, s1), m1 = lim((b1.wy - a.wy) / db, s1, seg >= STOPS.length - 2 ? s1 : s2);
+  out[1] = h00 * a.wy + h10 * h * m0 + h01 * b.wy + h11 * h * m1;
   out[2] = f(a.z, b.z, a0.z, b1.z);
   // (at the start and the end the camera sits on the waterline: the curve would lift it a
   // little, and from above the water the view's lower half is lost)
@@ -149,7 +154,7 @@ export function offTrack(x, z, y) {
 
 // Where the set pieces stand (sets.js), kept clear of plants: [x, z, radius]. The clam, the
 // wreck (two circles along its length), the geode's halves and the helmet, the anchor.
-export const CLEARINGS = [[5.9, -178.0, 3.4], [3.9, -236.5, 5.0], [4.7, -248.5, 5.0], [-4.4, -388.9, 2.4], [-1.95, -389.3, 2.0], [-1.1, -390.5, 1.4], [4.35, -24.5, 1.6]];
+export const CLEARINGS = [[4.7, -170.4, 3.6], [3.9, -236.5, 5.0], [4.7, -248.5, 5.0], [-5.3, -389.2, 2.4], [-2.75, -389.7, 2.0], [-3.85, -388.05, 1.3], [4.35, -24.5, 1.6]];
 export const cleared = (x, z) => CLEARINGS.some(([cx, cz, r]) => (x - cx) * (x - cx) + (z - cz) * (z - cz) < r * r);
 
 // ---- the water -------------------------------------------------------------------------

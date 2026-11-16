@@ -43,7 +43,7 @@ const R = new Vector3(), U = new Vector3(), F = new Vector3(), A = new Vector3()
 const UP = new Vector3(0, 1, 0), M = new Vector3(), Z = new Vector3(0, 0, 1);
 const qa = new Quaternion(), qb = new Quaternion();
 const ON = [0, 0, 0, 0, 0, 0], GRIP = new Vector3(), ALONG = new Vector3(), MID = new Vector3();
-const HELD = new Vector3(), UP3 = new Vector3(), SNAP_AT = [0, 0, 0], DRIFT_AT = [0, 0, 0];
+const HELD = new Vector3(), UP3 = new Vector3(), SNAP_AT = [0, 0, 0], DRIFT_AT = [0, 0, 0], SUB_AT = [0, 0, 0];
 const FLY = [new Vector3(), new Vector3(), new Vector3()], TUMBLE = new Vector3(0.35, 1, 0.5).normalize(), qt = new Quaternion();
 const bez = (out, a, b, c, u) => out.copy(a).multiplyScalar((1 - u) * (1 - u)).addScaledVector(b, 2 * (1 - u) * u).addScaledVector(c, u * u);
 
@@ -117,7 +117,11 @@ export function buildCast(ctx) {
       // ---- the submarine: comes down from ahead and to the right (away from the wreck, which
       // is on the left), then stays in its place
       const come = smooth(SUB_COMES[0], SUB_COMES[1], p);
-      slot(o.sub, A);
+      // (at the geode it moves aside, so the geode shows: up on a phone, right on a wide screen)
+      const geode = smooth(6.8, 6.87, p) * (1 - smooth(7.04, 7.1, p));
+      if (o === SLOT.wide) SUB_AT[0] = o.sub[0], SUB_AT[1] = o.sub[1] + 0.75 * geode, SUB_AT[2] = o.sub[2] + 0.1 * geode;
+      else SUB_AT[0] = o.sub[0] + 0.5 * geode, SUB_AT[1] = o.sub[1], SUB_AT[2] = o.sub[2] + 1.05 * geode;
+      slot(SUB_AT, A);
       B.copy(A).addScaledVector(F, 3).addScaledVector(R, 7).addScaledVector(UP, 3);
       A.lerp(B, 1 - come);
       A.y += Math.sin(t * 0.9) * 0.06;
