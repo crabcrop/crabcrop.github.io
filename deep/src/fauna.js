@@ -539,6 +539,7 @@ function bellMaterial() {
   return material({
     aux: true, additive: true, twoSided: true,
     vertex: (v) => {
+      if (globalThis.__dbg) vJ2.assign(vec4(0, 1, 0, 1));
       const t = G.time, R = jA.w, J = jellyAt(t), con = pulse(t);
       const lp = v.P.toVar(), ln = v.N.toVar(), tb = v.aux.x;
       const sq = float(1.0).sub(con.mul(0.3).mul(pow(tb, 1.3))), st = con.mul(0.12).add(1.0);
@@ -565,6 +566,7 @@ function bellMaterial() {
       const rim = smoothstep(0.84, 0.97, tb).mul(dots).mul(wave.mul(1.6).add(0.35));
       const lit = vJ1.rgb.mul(fres.mul(0.25).add(0.04));
       const col = tint.mul(fres.mul(0.32).add(0.02)).add(glow.mul(rim.mul(2.4).add(canal.mul(0.22)))).add(warm.mul(gonad).mul(0.45)).add(tint.mul(lit));
+      if (globalThis.__dbg) return { color: vec3(0.0, 8.0, 0.0), alpha: float(1.0) };
       return { color: col.mul(vJ2.w).mul(vJ0.rgb), alpha: float(1.0) };
     },
   });
@@ -913,3 +915,6 @@ export function buildFauna(ctx) {
     },
   };
 }
+
+// (for dev pages: the pieces, to put fish where they can be looked at)
+export const fishParts = { SHAPES, COLOURS, KIND, fishShape, fishMaterial, fishMesh };

@@ -28,7 +28,7 @@ import {
 } from 'three/webgpu';
 import {
   Fn, Loop, abs, attribute, cameraPosition, clamp, dot, exp, faceDirection, float, floor, int, ivec3, length, max, min, mix,
-  modelWorldMatrix, normalLocal, normalize, positionLocal, pow, select, sign, smoothstep, sqrt, texture, uint, uniform,
+  floor as floorN, fract, modelWorldMatrix, normalLocal, normalize, positionGeometry, positionLocal, pow, select, sign, smoothstep, sqrt, texture, uint, uniform,
   uniformArray, varyingProperty, vec2, vec3, vec4,
 } from 'three/tsl';
 import { SUN } from './layout.js';
@@ -51,6 +51,7 @@ export const G = {
   // the textures the page draws itself; the engine sets them before any material is made
   waterTex: null,      // r: caustics, ba: the surface's slope
   detailTex: null,     // rg: slope, b: height, a: mottle
+  stitchTex: null,     // rg: slope, b: height of the yarn, a: which stitch (0..1); 8 by 8 stitches
   shadowTex: null,
   debug: 0,            // 1: show only shadow times caustics (dev.html?dbg)
 };
@@ -173,6 +174,48 @@ export function detail(p, n, scale, k) {
 // (These are written out where they are used, not compiled as functions of their own: a
 // function of its own would not see the shared values above.)
 
+// ---- yarn ---------------------------------------------------------------------------------
+
+// Crochet: lay the stitch texture on a surface and make it wool. Call it from a surface step:
+//   yarn(s, f, { color, color2, stripe, scale, p, k, fuzz })
+//     color    the yarn's colour (vec3)
+//     color2   a second colour for stripes (rows of `stripe` stitches each, counted up p.y);
+//              leave it out for one colour
+//     scale    stitches per metre (default 20: chunky, readable from a few metres)
+//     p        where to read the stitches: default f.obj (the shape's own space, so they stay
+//              on a moving shape); pass f.w for things that never move
+//     k        how strongly the stitches bend the light (default 1.3)
+//     fuzz     how much the wool glows at grazing angles (default 1)
+// The stitches are laid along the three axes and blended by which way the surface faces, so
+// any shape takes them without seams; rows run level on upright faces.
+export function yarn(s, f, o) {
+  const p = (o.p ?? f.obj).mul((o.scale ?? 20) / 8).toVar();
+  const n = s.n;
+  const w0 = pow(abs(n), vec3(4.0));
+  const w = w0.div(w0.x.add(w0.y).add(w0.z)).toVar();
+  const x = texture(G.stitchTex, p.zy).toVar(), y = texture(G.stitchTex, p.xz).toVar(), z = texture(G.stitchTex, p.xy).toVar();
+  const h = x.b.mul(w.x).add(y.b.mul(w.y)).add(z.b.mul(w.z)).toVar();
+  const id = x.a.mul(w.x).add(y.a.mul(w.y)).add(z.a.mul(w.z));
+  const k = o.k ?? 1.3;
+  const gx = x.rg.sub(0.5).mul(k), gy = y.rg.sub(0.5).mul(k), gz = z.rg.sub(0.5).mul(k);
+  const b = vec3(0.0, gx.y, gx.x).mul(w.x).add(vec3(gy.x, 0.0, gy.y).mul(w.y)).add(vec3(gz.x, gz.y, 0.0).mul(w.z));
+  s.n = normalize(n.sub(b)).toVar();
+  // the colour: stripes by row, a little difference from stitch to stitch, darker in the gaps
+  let col = o.color;
+  if (o.color2) {
+    const band = floorN(p.y.mul(8).div(o.stripe ?? 3));
+    col = mix(o.color, o.color2, band.mul(0.5).fract().mul(2.0).floor());
+  }
+  s.albedo = vec3(col).mul(h.mul(0.5).add(0.5)).mul(id.mul(0.16).add(0.92));
+  s.ao = s.ao.mul(h.mul(0.35).add(0.65));
+  s.spec = float(0.03); s.gloss = float(9.0); s.trans = float(0.18); s.fluor = float(0.55);
+  // wool catches the light at grazing angles: a soft halo on every outline
+  const vv = normalize(cameraPosition.sub(f.w));
+  const graze = pow(float(1.0).sub(abs(dot(s.n, vv))), 3.0);
+  s.emis = s.emis.add(sunAt(f.w.y).mul(0.06).add(G.amb.mul(0.14)).mul(graze).mul(s.albedo).mul(o.fuzz ?? 1.0));
+  return { h, id };
+}
+
 // ---- light ------------------------------------------------------------------------------
 
 // Everything that lights a surface, in the water: the sun (through its shadow, with the
@@ -219,6 +262,7 @@ export const shadeLit = Fn(([albedo, n, spec, gloss, trans, fluor, emis, ao, sh,
 export const vAux = varyingProperty('vec4', 'v_aux');
 export const vNrm = varyingProperty('vec3', 'v_nrm');
 export const vPos = varyingProperty('vec3', 'v_pos');
+export const vObj = varyingProperty('vec3', 'v_obj');     // the shape's own position, before anything moves it
 
 // Instances carry their own placement: three rows of a 3x4 matrix (rotation and scale,
 // then the move) in the attributes i0, i1, i2. (Not three.js's InstancedMesh: this way
@@ -265,6 +309,7 @@ export function material(o) {
     const v = { P, N, aux, shadow };
     if (o.vertex) o.vertex(v);
     if (!shadow) {
+      vObj.assign(positionGeometry);
       vAux.assign(v.aux);
       vNrm.assign(normalize(modelWorldMatrix.mul(vec4(v.N, 0.0)).xyz));
       vPos.assign(modelWorldMatrix.mul(vec4(v.P, 1.0)).xyz);
@@ -276,7 +321,7 @@ export function material(o) {
     const w = vPos.toVar('W');
     const dist = length(w.sub(cameraPosition));
     const n0 = normalize(vNrm).toVar('N0');
-    const f = { w, n: o.twoSided ? n0.mul(faceDirection).toVar() : n0, aux: vAux, dist };
+    const f = { w, n: o.twoSided ? n0.mul(faceDirection).toVar() : n0, aux: vAux, dist, obj: vObj };
     let col, alpha;
     if (o.raw) {
       // a colour (solid), or { color, alpha } (blended)

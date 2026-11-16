@@ -15,7 +15,7 @@ import {
   WebGLCoordinateSystem, WebGPURenderer,
 } from 'three/webgpu';
 import {
-  Fn, Loop, abs, clamp, cos, dot, exp, float, int, ivec3, length, max, min, mix, normalize, pow, screenCoordinate, select, sin, smoothstep, sqrt,
+  Fn, Loop, abs, clamp, cos, dot, exp, float, fract, int, ivec3, length, max, min, mix, normalize, pow, screenCoordinate, select, sin, smoothstep, sqrt,
   texture, uniform, uv, vec2, vec3, vec4,
 } from 'three/tsl';
 import { SHADOW_BOX, SUN } from './layout.js';
@@ -56,6 +56,10 @@ export class Engine {
     const detail = new RenderTarget(1024, 1024, { type: UnsignedByteType, depthBuffer: false, minFilter: LinearMipmapLinearFilter, magFilter: LinearFilter, wrapS: RepeatWrapping, wrapT: RepeatWrapping, generateMipmaps: true, anisotropy: 8 });
     this.drawQuad(pass(detailTexture()), detail);
     G.detailTex = detail.texture;
+    // the stitch texture: drawn here, once
+    const stitch = new RenderTarget(512, 512, { type: UnsignedByteType, depthBuffer: false, minFilter: LinearMipmapLinearFilter, magFilter: LinearFilter, wrapS: RepeatWrapping, wrapT: RepeatWrapping, generateMipmaps: true, anisotropy: 8 });
+    this.drawQuad(pass(stitchTexture()), stitch);
+    G.stitchTex = stitch.texture;
 
     // the water texture: drawn every frame
     const W = this.q.water;
@@ -239,6 +243,42 @@ function detailTexture() {
     const h = height(p);
     const g = vec2(height(p.add(vec2(e, 0))).sub(height(p.sub(vec2(e, 0)))), height(p.add(vec2(0, e))).sub(height(p.sub(vec2(0, e))))).div(2 * e);
     return vec4(clamp(g.mul(0.02).add(0.5), 0.0, 1.0), h, tf(p.add(7.3), 4, 5));
+  })();
+}
+
+// The stitch texture, drawn once: eight by eight crochet stitches, each a V of two rounded
+// strands of yarn, twisted, meeting at the bottom, with gaps between. rg: the slope of the
+// yarn's height, b: the height, a: which stitch it is (for a little colour difference).
+function stitchTexture() {
+  const N = 8;
+  // the height of the yarn at a point of one stitch (q in 0..1, y up)
+  const leg = (q, ax, ay, bx, by) => {
+    const pa = q.sub(vec2(ax, ay)), ba = vec2(bx - ax, by - ay);
+    const t = clamp(dot(pa, ba).div(dot(ba, ba)), 0.0, 1.0);
+    const d = length(pa.sub(ba.mul(t)));
+    const r = 0.2;
+    const across = clamp(d.div(r), 0.0, 1.0);
+    const round = sqrt(max(float(1).sub(across.mul(across)), 0.0));
+    // the ply: two strands twisted round each other, seen as slanted ridges along the leg
+    const L = Math.hypot(bx - ax, by - ay), side = vec2(-(by - ay) / L, (bx - ax) / L);
+    const ply = sin(t.mul(9.0 * Math.PI).add(dot(pa, side).mul(26.0))).mul(0.12).add(0.88);
+    return round.mul(ply);
+  };
+  const height = Fn(([q]) => {
+    const c = fract(q);
+    const a = leg(c, 0.07, 0.96, 0.47, 0.1), b = leg(c, 0.93, 0.96, 0.53, 0.1);
+    // the chain that joins this row to the one above, peeking between the Vs
+    const top = leg(c, 0.0, 0.99, 1.0, 0.99).mul(0.55);
+    return max(max(a, b), top);
+  }, { q: 'vec2', return: 'float' });
+  return Fn(() => {
+    const q = uv().mul(N).toVar();
+    const e = N / 512;
+    const h = height(q);
+    const g = vec2(height(q.add(vec2(e, 0))).sub(height(q.sub(vec2(e, 0)))), height(q.add(vec2(0, e))).sub(height(q.sub(vec2(0, e))))).div(2 * e);
+    const cell = q.floor();
+    const id = hash3(ivec3(vec3(cell.mod(N), 7.0)));
+    return vec4(clamp(g.mul(0.08).add(0.5), 0.0, 1.0), h, id);
   })();
 }
 

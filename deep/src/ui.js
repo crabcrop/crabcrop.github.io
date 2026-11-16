@@ -382,6 +382,8 @@ export function createUI(opts = {}) {
     const atHash = () => { const i = ZONES.findIndex((z) => '#' + z.id === location.hash); if (i > 0) scrollTo({ top: zoneStart(i), behavior: 'auto' }); };
     atHash();
     addEventListener('hashchange', atHash);
+    // (the browser's own jump to the fragment can come after this script, so once more at load)
+    addEventListener('load', () => { if (scrollY < 2 || ZONES.some((z) => '#' + z.id === location.hash)) atHash(); }, { once: true });
   }
 
   // ---- what the main loop calls ----------------------------------------------------------

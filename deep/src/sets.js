@@ -382,7 +382,7 @@ function buildWindow(ctx) {
       const cover = max(wood, boatHit).toVar();
       const col = mix(woodCol, boatCol, boatHit.mul(float(1).sub(wood)));
       const refl = scatterFrom(float(0.0), float(1.0), reflect(v, n), float(300.0)).mul(1.15);
-      return { color: inWater(mix(refl, col.mul(fres.oneMinus()), win), f.w), alpha: cover.mul(win) };
+      return { color: vec3(inDeck, fract(pd.y.mul(0.25)), win), alpha: float(1.0) };
     },
   });
   const mesh = new ThreeMesh(g, mat);
