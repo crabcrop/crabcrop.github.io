@@ -25,6 +25,7 @@
 //   'zone'     one low, slow bell under everything: the camera entered another zone
 //   'start'    a splash and a burst of bubbles: the visitor pressed Dive
 //   'surface'  a bright splash, the waves back, and a rising chime: the surface again
+//   'lock'     a low clunk and a few bubbles: the submarine's canopy shut and locked
 //
 // createAudio({ context, solo }) is for tests only: an OfflineAudioContext to render into,
 // and the name of one layer to hear alone.
@@ -257,6 +258,12 @@ export function createAudio(opts = {}) {
     } else if (name === 'start') {
       splash(t, false);
       bubbleBurst(t + 0.15, 9, 1.4, 0.11);
+    } else if (name === 'lock') {
+      // the canopy shuts and its latch goes home: a low clunk, a ring of metal, a few bubbles
+      ring(t, 92, 0.18, 0.45, 0);
+      ring(t + 0.05, 138, 0.1, 0.35, 0.1);
+      ring(t + 0.22, 880, 0.03, 0.6, 0.2);
+      bubbleBurst(t + 0.06, 5, 0.5, 0.07);
     } else if (name === 'surface') {
       splash(t, true);
       bubbleBurst(t, 6, 0.8, 0.09);

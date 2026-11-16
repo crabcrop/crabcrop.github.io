@@ -5,7 +5,7 @@ import { Mesh, PlaneGeometry, Vector3 } from 'three/webgpu';
 import { float, texture, uv } from 'three/tsl';
 import { startDive } from './app.js';
 import { createAudio } from './audio.js';
-import { buildCast } from './cast.js';
+import { LOCKS, buildCast } from './cast.js';
 import { buildFauna } from './fauna.js';
 import { FELT_ASPECT, feltPrint } from './feltprint.js';
 import { createPrint } from './print.js';
@@ -56,6 +56,7 @@ function onFrame(p, dt) {
   const z = Math.min(7, Math.floor(p));
   if (z !== zone) { if (zone >= 0) audio.cue('zone'); zone = z; }
   if (lastP < 7.7 && p >= 7.7) audio.cue('surface');
+  if (lastP < LOCKS[0] && p >= LOCKS[0]) audio.cue('lock');
   lastP = p;
   if (ui.statsOn && ++frames % 30 === 0 && dive) ui.stats(dive.stats());
   // the print is drawn again only when a choice that shows in it changed; the finale gets
@@ -76,6 +77,9 @@ function onFrame(p, dt) {
   }
 }
 
+// (dev builds only: the cast and the sets, for probes)
+if (DEV) window.__dbg = { get cast() { return cast; }, get sets() { return sets; } };
+
 // (for the end-to-end test only: where the page says the camera should be)
 if (new URLSearchParams(location.search).has('e2e')) window.__pTo = () => ui.pTo;
 
@@ -90,7 +94,7 @@ export function start() {
     if (sets.geode) cast.geodeAt = sets.geode.position;
     if (sets.clam) cast.sights.push({ from: 3.6, to: 4.05, at: sets.clam.position });
     if (fauna.octopus) cast.sights.push({ from: 4.42, to: 4.7, at: fauna.octopus });
-    cast.sights.push({ from: 4.72, to: 4.95, at: cast.sub.group.position });     // (the submarine, as it comes for him)
+    cast.sights.push({ from: 4.68, to: 4.86, at: cast.sub.group.position });     // (the submarine, as it comes for him)
     if (sets.geode) cast.sights.push({ from: 6.7, to: 7.05, at: sets.geode.position });
     return cast;
   }];

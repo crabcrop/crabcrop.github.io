@@ -7,18 +7,16 @@
 import { Mesh, PlaneGeometry, Quaternion, Vector3 } from 'three/webgpu';
 import { faceDirection, float, select, texture, uv, vec3 } from 'three/tsl';
 import { feltPrint } from './feltprint.js';
-import { groundY } from './layout.js';
+import { RIDE, SLOTS, groundY, rideU } from './layout.js';
 import { clamp, smooth } from './math.js';
 import { G, material } from './shaders.js';
 import { Snap } from './snap.js';
 import { buildSub } from './sub.js';
 
 // Where they sit in the camera's view: metres forward, right, up. A wide window keeps the
-// left for the words; a tall one keeps the bottom for them.
-const SLOT = {
-  wide: { snap: [2.8, 1.05, -0.28], sub: [4.3, 1.3, -0.35] },
-  tall: { snap: [3.3, 0.0, 0.55], sub: [4.7, 0.0, 0.7] },
-};
+// left for the words; a tall one keeps the bottom for them. (layout.js: the camera rides
+// down the mooring's chain keeping Snap in his.)
+const SLOT = SLOTS;
 // (on a wide screen his place drifts a little from scene to scene, so he is not pinned to
 // one spot: low over the sand in the shallows, up among the kelp, low and further over the
 // reef. [from p, to p, forward, right, up] added to his place, eased in and out)
@@ -45,9 +43,16 @@ const driftAt = (p, out) => {
   }
   return out;
 };
-// The story's beats along p: Snap rides the anchor chain down from the boat and lets go
-// over the shallows; past the wreck the submarine comes; Snap gets in before the drop.
-const CHAIN_LEAVES = [1.18, 1.42], SUB_COMES = [4.74, 4.92], SNAP_BOARDS = [4.92, 5.06];
+// The story's beats along p: Snap dives onto the mooring's chain just under its buoy, rides
+// it down to the anchor's ring (RIDE in layout.js) and lets go there; past the wreck the
+// submarine comes and turns its cockpit to him, its canopy lifting (OPENS); he climbs in and
+// sits (SNAP_BOARDS); the canopy shuts (SHUTS) and its latch locks (LOCKS: the lights go green,
+// a clunk); and away they go, over the drop.
+const CHAIN_LEAVES = [RIDE[2], RIDE[2] + 0.18], SUB_COMES = [4.68, 4.82], OPENS = [4.76, 4.84], SNAP_BOARDS = [4.84, 4.93];
+const SHUTS = [4.935, 4.97];
+export const LOCKS = [4.975, 4.992];
+// how far along the chain his grip is at p (0 at the buoy, 1 at the anchor's ring)
+const chainS = (p) => rideU(p);
 // The opening: he treads water at the waterline in his place, his photo print held up out of
 // the water; a gust snatches it, it flies and falls in ahead and sinks, leading the way down;
 // he hops and dives after it.
@@ -56,7 +61,7 @@ const GUST = [0.035, 0.15], DIVE = [0.075, 0.2], PRINT_GONE = 1.55;
 const R = new Vector3(), U = new Vector3(), F = new Vector3(), A = new Vector3(), B = new Vector3(), C = new Vector3();
 const UP = new Vector3(0, 1, 0), M = new Vector3(), Z = new Vector3(0, 0, 1);
 const qa = new Quaternion(), qb = new Quaternion();
-const ON = [0, 0, 0, 0, 0, 0], GRIP = new Vector3(), ALONG = new Vector3(), MID = new Vector3();
+const ON = [0, 0, 0, 0, 0, 0], GRIP = new Vector3(), ALONG = new Vector3(), D = new Vector3();
 const HELD = new Vector3(), UP3 = new Vector3(), SNAP_AT = [0, 0, 0], DRIFT_AT = [0, 0, 0], SUB_AT = [0, 0, 0];
 const FLY = [new Vector3(), new Vector3(), new Vector3()], TUMBLE = new Vector3(0.35, 1, 0.5).normalize(), qt = new Quaternion();
 const bez = (out, a, b, c, u) => out.copy(a).multiplyScalar((1 - u) * (1 - u)).addScaledVector(b, 2 * (1 - u) * u).addScaledVector(c, u * u);
@@ -86,22 +91,11 @@ export function buildCast(ctx) {
   scene.add(snap.group, sub.group, print.mesh);
   const loading = snap.load(Math.max(innerWidth, innerHeight) * (devicePixelRatio || 1) < 1400).catch((e) => console.warn('dive: Snap did not load: ' + e.message));
   const st = {
-    pos: new Vector3(), last: new Vector3(), subPos: new Vector3(), placed: false,
-    aimX: 0, aimY: 0, idle: 0, lastP: -1, wave: 0, poked: -1e9, t: 0, s: -1, flyFrom: false,
+    pos: new Vector3(), last: new Vector3(), subPos: new Vector3(), rel: new Vector3(), subRel: new Vector3(), placed: false,
+    aimX: 0, aimY: 0, idle: 0, lastP: -1, wave: 0, poked: -1e9, t: 0, flyFrom: false,
   };
   const ndc = new Vector3();
   const slot = (o, out) => out.copy(camera.position).addScaledVector(F, o[0]).addScaledVector(R, o[1]).addScaledVector(U, o[2]);
-
-  // The point of the chain nearest a place: the chain's s (0 at the boat, 1 at the anchor).
-  const nearestOnChain = (want) => {
-    let best = 0, bd = 1e9;
-    for (let i = 0; i <= 40; i++) {
-      cast.chainAt(i / 40, ON);
-      const d = (ON[0] - want.x) ** 2 + (ON[1] - want.y) ** 2 + (ON[2] - want.z) ** 2;
-      if (d < bd) { bd = d; best = i / 40; }
-    }
-    return [best, Math.sqrt(bd)];
-  };
 
   const cast = {
     snap, sub, loading,
@@ -128,11 +122,26 @@ export function buildCast(ctx) {
       const o = camera.aspect < 1 ? SLOT.tall : SLOT.wide;
       const depth = -camera.position.y;
       const jump = dt <= 0 || !st.placed;
-      const follow = (cur, want, rate) => { if (jump || cur.distanceToSquared(want) > 64) cur.copy(want); else cur.lerp(want, 1 - Math.exp(-dt * rate)); };
+      // (each follows its place as the camera sees it: where the camera goes they go at once,
+      // and only a change of place within the view is eased, so a fast scroll never leaves them
+      // behind; rel is where each was from the camera)
+      // (a place that is fixed in the world, as where the submarine parks, is followed there)
+      const follow = (cur, rel, want, rate, fixed = false) => {
+        if (fixed && !jump) {
+          cur.lerp(want, 1 - Math.exp(-dt * rate));
+          rel.copy(cur).sub(camera.position);
+          return;
+        }
+        D.copy(want).sub(camera.position);
+        if (jump || rel.distanceToSquared(D) > 64) rel.copy(D); else rel.lerp(D, 1 - Math.exp(-dt * rate));
+        cur.copy(camera.position).add(rel);
+      };
 
       // ---- the submarine: comes down from ahead and a little to the right (away from the
       // wreck, which is on the left), where it can be seen coming, then stays in its place
       const come = smooth(SUB_COMES[0], SUB_COMES[1], p);
+      // (while he gets in, it turns its cockpit toward the visitor, so the canopy and he show)
+      const facing = smooth(OPENS[0], OPENS[1], p) * (1 - smooth(LOCKS[1], LOCKS[1] + 0.1, p));
       // (at the geode it moves aside, so the geode shows: up on a phone, right on a wide screen)
       const geode = smooth(6.8, 6.87, p) * (1 - smooth(7.04, 7.1, p));
       if (o === SLOT.wide) {
@@ -154,20 +163,27 @@ export function buildCast(ctx) {
       }
       A.y = Math.max(A.y, groundY(A.x, A.z) + 0.85);        // (never in the ground)
       A.y = Math.min(A.y, -1.0);                             // (nor through the surface: it would be cut by it)
-      follow(st.subPos, A, 3);
+      follow(st.subPos, st.subRel, A, 3, park > 0.5);
       sub.group.visible = come > 0.001;
       sub.group.position.copy(st.subPos);
       G.subAt.value.set(st.subPos.x, sub.group.visible ? st.subPos.y : -1000, st.subPos.z, 1.3);
       // its nose points across the view, a little toward the visitor, so the bubble shows;
       // level, with a little pitch where the dive goes up or down
       C.copy(R).multiplyScalar(-0.85).addScaledVector(F, -0.5);
+      if (facing > 0) C.lerp(M.copy(R).multiplyScalar(-0.42).addScaledVector(F, -0.9), facing);
       if (park > 0) { M.copy(cast.geodeAt).sub(st.subPos); M.y = 0; M.normalize(); C.lerp(M, park); }
       C.y = 0; C.normalize();
       sub.group.quaternion.setFromUnitVectors(Z, C.negate());
       qa.setFromAxisAngle(R, clamp(F.y, -0.6, 0.6) * 0.35 + Math.sin(t * 0.7) * 0.03);
       sub.group.quaternion.premultiply(qa);
+      // the canopy lifts as it arrives, shuts once he is in (with a little bounce), and locks
+      const shut = smooth(SHUTS[0], SHUTS[1], p), bounce = Math.sin(clamp((p - SHUTS[1]) / 0.02, 0, 1) * Math.PI) * 0.05;
+      sub.open(smooth(OPENS[0], OPENS[1], p) * (1 - shut) + bounce);
+      const locked = smooth(LOCKS[0], LOCKS[1], p);
+      sub.lock(locked);
       sub.group.updateMatrixWorld(true);
-      sub.turn(dt, come);
+      // (the propeller idles while it waits, and drives once the canopy is locked)
+      sub.turn(dt, come * (0.25 + 0.75 * locked));
 
       // ---- Snap: swimming in his place, then into the bubble. In the wreck's cabin he comes
       // closer to the camera (the room is small: the desk is three metres off)
@@ -179,43 +195,41 @@ export function buildCast(ctx) {
       A.y = Math.max(A.y, groundY(A.x, A.z) + 0.45);
       const board = smooth(SNAP_BOARDS[0], SNAP_BOARDS[1], p);
       if (board > 0) {
-        // in through the front of the bubble: first to just before the glass, then into his
-        // seat (never over the top, where the hull's rings are)
+        // in at the front of the open cockpit: first to just before it, then up over its lip
+        // and down into his seat
         B.copy(sub.seat).applyMatrix4(sub.group.matrixWorld);
-        HELD.copy(sub.seat); HELD.z -= 0.95; HELD.applyMatrix4(sub.group.matrixWorld);
-        const a1 = smooth(0, 0.6, board), a2 = smooth(0.55, 1, board);
+        HELD.copy(sub.door).applyMatrix4(sub.group.matrixWorld);
+        const a1 = smooth(0, 0.55, board), a2 = smooth(0.45, 1, board);
         A.lerp(HELD, a1).lerp(B, a2);
+        A.y += Math.sin(a2 * Math.PI) * 0.16;
       }
       if (board >= 1) A.copy(B);
-      // on the chain: he holds it at the point nearest where he would be, and slides along
-      // it as the camera goes down; then lets go and swims to his place
-      const onChain = cast.chainAt ? 1 - smooth(CHAIN_LEAVES[0], CHAIN_LEAVES[1], p) : 0;
-      let hang = false;
+      // on the chain: his dive ends on the mooring's chain just under its buoy, and from there
+      // his raised claw holds it all the way down to the anchor (where the ride has him, as the
+      // camera has him: he never lets go on the way); then he lets go and swims to his place
+      const dive = smooth(DIVE[0], DIVE[1], p);
+      const onChain = cast.chainAt && p > DIVE[0] ? 1 - smooth(CHAIN_LEAVES[0], CHAIN_LEAVES[1], p) : 0;
+      let grip = 0;
       if (onChain > 0) {
-        const [s0, gap] = nearestOnChain(A);
-        if (gap < 8) {
-          st.s = jump || st.s < 0 ? s0 : st.s + (s0 - st.s) * (1 - Math.exp(-dt * 3));
-          cast.chainAt(st.s, ON);
-          GRIP.set(ON[0], ON[1], ON[2]);
-          ALONG.set(ON[3], ON[4], ON[5]).normalize();
-          if (ALONG.y < 0) ALONG.negate();            // his up runs up the chain, toward the boat
-          // the grip is in his raised claw: his middle hangs below and in front of it
-          MID.copy(snap.centreFromGrip ?? Z).multiplyScalar(snap.height);
-          hang = onChain > 0.5;
-          B.copy(GRIP);
-          A.lerp(B, onChain);
-        }
+        cast.chainAt(chainS(Math.max(p, RIDE[0])), ON);
+        GRIP.set(ON[0], ON[1], ON[2]);
+        ALONG.set(ON[3], ON[4], ON[5]).normalize();
+        if (ALONG.y < 0) ALONG.negate();            // his up runs up the chain, toward the buoy
+        // (his middle hangs a little below his grip; the dive carries him there)
+        B.copy(GRIP); B.y -= 0.12;
+        A.lerp(B, onChain * dive);
+        // the claw closes on the chain as the dive ends, and lets go as he leaves it
+        grip = smooth(DIVE[1] - 0.025, DIVE[1] + 0.01, p) * smooth(0.5, 0.75, onChain);
       }
+      const hang = grip > 0.5;
       // the opening: treading water, his middle just under the waterline and bobbing with the
       // swell, so the print in his raised claw is out of the water; then a hop and a dive
-      const dive = smooth(DIVE[0], DIVE[1], p);
       if (dive < 1) {
         const atTop = -0.04 + Math.sin(t * 1.1) * 0.025 + Math.sin(t * 1.7 + 1) * 0.012;
         A.y = atTop + (A.y - atTop) * dive + Math.sin(dive * Math.PI) * 0.32;
-        hang = false;
       }
       st.last.copy(st.pos);
-      follow(st.pos, A, board >= 1 || dive < 0.5 ? 30 : dive < 1 ? 12 : hang ? 12 : 4.5);
+      follow(st.pos, st.rel, A, board >= 1 || dive < 0.5 ? 30 : dive < 1 ? 12 : grip > 0 ? 14 : 4.5);
       snap.group.position.copy(st.pos);
       G.snapAt.value.set(st.pos.x, st.pos.y, st.pos.z, 0.45);
       // how he moves: paddling harder the faster he goes, leaning into it
@@ -255,17 +269,20 @@ export function buildCast(ctx) {
       // head-first as he dives after the print, and a forward lean when he swims hard
       const plunge = smooth(0.075, 0.15, p) * (1 - smooth(0.36, 0.62, p));
       const swims = hang || inSub || cabin > 0.5 || p < 0.62 ? 0 : 0.28 + clamp(speed * 0.08, 0, 0.2);
-      const pitchDown = Math.max(Math.sin(dive * Math.PI) * 1.05, plunge * 0.95) + swims;
+      const pitchDown = (Math.max(Math.sin(dive * Math.PI) * 1.05, plunge * 0.95) + swims) * (1 - grip);
       if (pitchDown > 0.001) { qa.setFromAxisAngle(R, -pitchDown); snap.group.quaternion.premultiply(qa); }
-      if (hang) {
+      if (grip > 0) {
+        // his up along the chain, and his raised claw on it: he is moved so that the claw sits
+        // exactly on the chain (as the claw closes, from where the dive brought him)
         qa.setFromUnitVectors(UP, ALONG);
-        snap.group.quaternion.premultiply(qa);
-        // hold the chain with the raised claw: move him so that claw sits on it
+        qb.identity().slerp(qa, grip);
+        snap.group.quaternion.premultiply(qb);
         snap.group.updateMatrixWorld(true);
         snap.gripWorld(B);
-        st.pos.sub(B).add(GRIP);
+        st.pos.addScaledVector(D.copy(GRIP).sub(B), grip);
+        st.rel.copy(st.pos).sub(camera.position);
         snap.group.position.copy(st.pos);
-        snap.life.kick = 0.12;
+        snap.life.kick = 0.12 + (1 - grip) * snap.life.kick;
       }
       snap.target.copy(camera.position);
       for (let i = 0; i < cast.sights.length; i++) {

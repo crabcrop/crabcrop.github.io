@@ -1,10 +1,12 @@
 // Snap's submarine, made in code, after the painted dive's own (sub.webp): a brass boat, its
 // hull riveted plates tapering to a tail with four fins and a propeller, a short conning
 // tower with its hatch, a periscope whose lamp is the visitor's light in the dark, a ballast
-// tank slung underneath, a pincer arm under the bow, and in front the big glass bubble Snap
-// sits in. Its own frame: forward is -z, up is +y, about 2.3 m from the glass to the tail.
+// tank slung underneath, a pincer arm under the bow, and in front the big glass dome Snap
+// sits in. The dome is a canopy: it lifts on a hinge at the top of its brass collar to let him
+// in, shuts, and a latch under it locks (the cockpit's three lights go from red to green).
+// Its own frame: forward is -z, up is +y, about 2.3 m from the glass to the tail.
 import { Group, Mesh as ThreeMesh, Vector3 } from 'three/webgpu';
-import { abs, cameraPosition, dot, float, max, min, mix, normalize, pow, select, smoothstep, uniform, varyingProperty, vec3 } from 'three/tsl';
+import { abs, cameraPosition, dot, float, max, min, mix, normalize, pow, select, sin, smoothstep, uniform, varyingProperty, vec3 } from 'three/tsl';
 import { Mesh, TAU, blob, lathe, tube } from './math.js';
 import { G, detail, material, skyAt, sunAt } from './shaders.js';
 
@@ -14,7 +16,7 @@ const PAINT = [[0.96, 0.54, 0.19], [0.64, 0.33, 0.12], [0.52, 0.53, 0.55], [0.20
 
 const vLocal = varyingProperty('vec3', 'v_local');
 
-function bodyMaterial(lamp) {
+function bodyMaterial(lamp, ready, glint) {
   return material({
     aux: true, shadow: false,
     vertex: (v) => { vLocal.assign(v.P); },
@@ -33,8 +35,11 @@ function bodyMaterial(lamp) {
       s.fluor = float(0.08);
       // the lamp's glass glows when the lamp is on
       s.emis = vec3(1.0, 0.9, 0.72).mul(select(id.greaterThan(3.5).and(id.lessThan(4.5)), lamp.mul(10.0).add(0.8), float(0.0)));
-      // the cabin's small lights behind Snap: red, amber, green
-      s.emis = s.emis.add(select(id.greaterThan(4.5), select(id.lessThan(5.5), vec3(2.2, 0.25, 0.2), select(id.lessThan(6.5), vec3(2.2, 1.4, 0.3), vec3(0.3, 2.0, 0.6))), vec3(0.0)));
+      // the cabin's small lights behind Snap: red, amber, green; all green once the canopy is
+      // locked (and the red one blinks while it is not)
+      const blink = sin(G.time.mul(9.0)).mul(0.5).add(0.5).mul(float(1).sub(ready)).mul(0.8).add(0.2);
+      const lights = select(id.lessThan(5.5), vec3(2.2, 0.25, 0.2).mul(blink.add(ready.mul(0.8))), select(id.lessThan(6.5), vec3(2.2, 1.4, 0.3), vec3(0.3, 2.0, 0.6)));
+      s.emis = s.emis.add(select(id.greaterThan(4.5), mix(lights, vec3(0.35, 2.4, 0.7), ready), vec3(0.0)));
       // in the dark, the lamp's spill on the hull and a warm rim, so it still reads as brass
       const vv = normalize(cameraPosition.sub(f.w));
       s.emis = s.emis.add(s.albedo.mul(lamp.mul(0.09)).mul(pow(float(1).sub(abs(dot(s.n, vv))), 2.0).mul(2.0).add(0.5)));
@@ -48,6 +53,8 @@ function bodyMaterial(lamp) {
       // in the sunlit water and under the lamp alike
       const sheen = pow(float(1).sub(abs(dot(s.n, vv))), 3.0).mul(select(id.lessThan(1.5), float(1), float(0)));
       s.emis = s.emis.add(vec3(0.55, 0.32, 0.1).mul(sheen).mul(0.22));
+      // the canopy's rim (aux.y) flashes gold as the latch goes home
+      s.emis = s.emis.add(vec3(1.0, 0.72, 0.32).mul(glint.mul(2.2)).mul(select(f.aux.y.greaterThan(0.5), float(1), float(0))));
     },
   });
 }
@@ -122,7 +129,7 @@ export function buildSub(q) {
   for (const x of [-0.19, 0.19]) tube(m, [[x, -0.4, -0.3, 0.012], [x * 1.05, -0.22, -0.46, 0.011]], 6);
   tag(k, 2);
   for (const x of [-0.19, 0.19]) { k = m.count; blob(m, x * 1.05, -0.21, -0.47, () => 0.026, 3); tag(k, 5); }
-  // the collar where the glass sits: a thick brass ring with a lip
+  // the collar the canopy shuts against: a thick brass ring with a lip
   k = m.count;
   lathe(m, 0, 0, 0, [[0.43, -0.2], [0.5, -0.17], [0.52, -0.1], [0.5, -0.02], [0.43, 0.03]], S(34));
   lieAlongZ(m, k);
@@ -193,7 +200,9 @@ export function buildSub(q) {
   blob(m, 0.0, -0.62, -0.62, () => 0.04, 3);
   tag(k, 2);
   const lamp = uniform(0);                    // how bright the lamp is, 0 to 1
-  const mat = bodyMaterial(lamp);
+  const ready = uniform(0);                   // the canopy locked: 0 to 1
+  const glint = uniform(0);                   // the rim's flash as it locks
+  const mat = bodyMaterial(lamp, ready, glint);
   const body = new ThreeMesh(m.build(), mat);
 
   // the propeller: four blades on a hub, turning about z
@@ -207,11 +216,34 @@ export function buildSub(q) {
   const prop = new ThreeMesh(pm.build(), mat);
   prop.position.set(0, 0, 1.33);
 
-  // the glass bubble in front of the collar
+  // the canopy: a glass dome on a brass rim, hinged at the top of the collar (HINGE); open, it
+  // stands up over the cockpit (100 degrees), clear of the periscope behind it
+  const HINGE = new Vector3(0, 0.47, -0.17), DOME = [0.46, 0.46, 0.8];
   const gm = new Mesh(false);
-  blob(gm, 0, 0, -0.6, () => 0.47, S(14));
+  blob(gm, 0, 0, -0.17, ellipsoid(DOME[0], DOME[1], DOME[2]), S(14));
+  // (the back half folded flat into the collar, out of sight)
+  for (let i = 0; i < gm.count; i++) if (gm.p[i * 3 + 2] > -0.17) gm.p[i * 3 + 2] = -0.17;
+  for (let i = 0; i < gm.count; i++) { gm.p[i * 3] -= HINGE.x; gm.p[i * 3 + 1] -= HINGE.y; gm.p[i * 3 + 2] -= HINGE.z; }
   const glass = new ThreeMesh(gm.build(), glassMaterial());
   glass.renderOrder = 6;
+  const rm = new Mesh(true), rim = [];
+  for (let i = 0; i <= 32; i++) { const a = (i / 32) * TAU; rim.push([Math.cos(a) * 0.475 - HINGE.x, Math.sin(a) * 0.475 - HINGE.y, -0.185 - HINGE.z, 0.028]); }
+  tube(rm, rim, 7);
+  // (and a handle at the front of the rim, below, that the latch takes)
+  tube(rm, [[0, -0.475 - HINGE.y, -0.2 - HINGE.z, 0.022], [0, -0.52 - HINGE.y, -0.26 - HINGE.z, 0.02]], 6);
+  for (let i = 0; i < rm.count; i++) { rm.a[i * 4] = 1; rm.a[i * 4 + 1] = 1; }
+  const rimMesh = new ThreeMesh(rm.build(), mat);
+  const canopy = new Group();
+  canopy.position.copy(HINGE);
+  canopy.add(glass, rimMesh);
+  // the latch under the collar: a brass lever on a pivot that swings up over the canopy's handle
+  const lm = new Mesh(true);
+  tube(lm, [[0, 0, 0, 0.026], [0, -0.13, -0.03, 0.022]], 6);
+  blob(lm, 0, -0.14, -0.035, () => 0.034, 3);
+  blob(lm, 0, 0, 0, () => 0.036, 3);
+  for (let i = 0; i < lm.count; i++) lm.a[i * 4] = 0;
+  const latch = new ThreeMesh(lm.build(), mat);
+  latch.position.set(0, -0.53, -0.12);
 
   // a soft glow round the lamp, from any side: a ball that is bright where it faces the eye
   const halo = material({
@@ -228,11 +260,18 @@ export function buildSub(q) {
   h.position.set(0, 0.88, -0.07);
   h.renderOrder = 7;
   const group = new Group();
-  for (const o of [body, prop, glass, h]) { o.frustumCulled = false; group.add(o); }
+  for (const o of [body, prop, canopy, latch, h]) group.add(o);
+  for (const o of [body, prop, glass, rimMesh, latch, h]) o.frustumCulled = false;
   return {
     group, prop, lamp,
     seat: new Vector3(0, -0.12, -0.6),          // where Snap's middle goes
+    door: new Vector3(0, 0.08, -1.2),           // where he climbs in from, in front of the open cockpit
     lampAt: new Vector3(0, 0.88, -0.14),        // the periscope's lamp
     turn(dt, thrust) { prop.rotation.z += dt * (2 + 14 * thrust); },
+    // the canopy: 0 shut, 1 open (it may go a little past either way, for a bounce)
+    open(a) { canopy.rotation.x = a * 1.75; },
+    // the latch: 0 open (hanging back), 1 locked (swung forward over the canopy's handle); the
+    // cockpit's lights follow
+    lock(a) { latch.rotation.x = -0.6 + a * 2.05; ready.value = a; glint.value = Math.sin(Math.min(Math.max((a - 0.6) / 0.4, 0), 1) * Math.PI); },
   };
 }

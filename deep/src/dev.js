@@ -37,6 +37,7 @@ export function installDev({ S, engine, scene, camera, place, draw }) {
   };
   const api = {
     ready: true, level: engine.level, backend: engine.webgpu ? 'WebGPU' : 'WebGL 2',
+    camera,
     async shot(p, time = 20, yaw = 0, pitch = 0) {
       S.p = S.pTo = p; S.time = time; G.time.value = time; S.dt = 0;
       S.lookX = S.lookXTo = yaw; S.lookY = S.lookYTo = pitch;
@@ -44,6 +45,14 @@ export function installDev({ S, engine, scene, camera, place, draw }) {
       if (params.has('capture')) await capture();
       else { draw(); await engine.renderer.backend.device?.queue.onSubmittedWorkDone(); }
       return { calls: engine.calls, tris: engine.tris, pos: camera.position.toArray().map((v) => +v.toFixed(1)), size: [engine.width, engine.height], backend: api.backend };
+    },
+    // one frame of the loop without drawing: the camera eases toward pTo as it does when
+    // the page scrolls (for probes of how things move)
+    step(pTo, dt = 1 / 60) {
+      S.pTo = pTo; S.dt = dt; S.time += dt; G.time.value = S.time;
+      S.p += (S.pTo - S.p) * (1 - Math.exp(-dt * 5.5));
+      place(S.p);
+      return S.p;
     },
   };
   window.__deep = api;
