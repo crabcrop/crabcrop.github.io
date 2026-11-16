@@ -261,10 +261,14 @@ export function scanScript(code) {
     else templates.push(t);
     prev = { type: "string" };
   };
+  // A slash starts a regular expression where an expression can begin: at
+  // the start, after a keyword that takes one, or after a punctuator other
+  // than ")", "]", "++" and "--". After "++" or "--" it is a division
+  // (i++/2): neither operator can stand before a regular expression.
   const regexOk = () =>
     !prev ||
     (prev.type === "name" && BEFORE_EXPRESSION.has(prev.value)) ||
-    (prev.type === "punct" && prev.value !== ")" && prev.value !== "]");
+    (prev.type === "punct" && ![")", "]", "++", "--"].includes(prev.value));
   while (i < n) {
     const c = code[i];
     if (SPACE.test(c)) {
@@ -709,6 +713,10 @@ const SELF_TESTS = [
   }, null],
   ["a division that is not a regular expression", (f) => {
     edit(f, "preview/dive/assets/world-Bb2.js", "var q=", "var w=innerWidth/2;f(\"beam\");var h=innerHeight/2,q=");
+    f["preview/dive/media/beam.webp"] = "";
+  }, null],
+  ["a division after an increment", (f) => {
+    edit(f, "preview/dive/assets/world-Bb2.js", "var q=", "var i=0,h=i++/2;f(\"beam\");var j=h--/2,q=");
     f["preview/dive/media/beam.webp"] = "";
   }, null],
   ["the page's own script names a picture", (f) => {
