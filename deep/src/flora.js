@@ -18,7 +18,7 @@ import {
   abs, attribute, cameraPosition, clamp as clampN, cos, cross, dot, float, floor, fract, length, max, mix, normalize, pow, select, sin, smoothstep, sqrt, step,
   texture, varyingProperty, vec2, vec3, vec4,
 } from 'three/tsl';
-import { CLEARINGS, TRACK, centerX, cleared, groundY, halfWidth, offTrack, pathAt } from './layout.js';
+import { CLEARINGS, SLOTS, TRACK, centerX, cleared, groundY, halfWidth, offTrack, pathAt } from './layout.js';
 import { Mesh, TAU, blob, clamp, fbm2, fbm3, lathe, makeRng, noise2, noise3, smooth, tube } from './math.js';
 import { orb, perches } from './rocks.js';
 import { G, detail, material, shadow1, sunAt, yarn } from './shaders.js';
@@ -582,8 +582,8 @@ function buildGrass(add, q) {
 // ---- the reef --------------------------------------------------------------------------
 
 // The line from the camera to Snap at every step of the path, for wide and for tall windows
-// (src/cast.js puts him 2.8 m ahead, 1.05 m right and 0.28 m down, or 3.3 m ahead and 0.55 m
-// up): nothing is planted across it. Six numbers a line: the camera, and Snap.
+// (where layout.js's SLOTS put him): nothing is planted across it. Six numbers a line: the
+// camera, and Snap.
 const SIGHT = (() => {
   const out = [], o = [0, 0, 0, 0, 0], D = Math.PI / 180;
   for (let p = 0; p <= 8.0001; p += 0.004) {
@@ -591,7 +591,7 @@ const SIGHT = (() => {
     const [x, y, z, yaw, pitch] = o;
     const cy = Math.cos(-yaw * D), sy = Math.sin(-yaw * D), cp = Math.cos(pitch * D), sp = Math.sin(pitch * D);
     const F = [-sy * cp, sp, -cy * cp], R = [cy, 0, -sy], U = [sy * sp, cp, cy * sp];
-    for (const [f, r, u] of [[2.8, 1.05, -0.28], [3.3, 0, 0.55]]) out.push(x, y, z, x + F[0] * f + R[0] * r + U[0] * u, y + F[1] * f + R[1] * r + U[1] * u, z + F[2] * f + R[2] * r + U[2] * u);
+    for (const [f, r, u] of [SLOTS.wide.snap, SLOTS.tall.snap]) out.push(x, y, z, x + F[0] * f + R[0] * r + U[0] * u, y + F[1] * f + R[1] * r + U[1] * u, z + F[2] * f + R[2] * r + U[2] * u);
   }
   return new Float32Array(out);
 })();

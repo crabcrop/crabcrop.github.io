@@ -82,9 +82,11 @@ export const ANCHOR = { x: 4.4, z: -9.0 };
 export const RIDE = [0.2, 1.05, 1.13];
 // Where Snap is in the camera's view (metres forward, right, up): a wide window keeps the left
 // for the words, a tall one the bottom; and the submarine's place.
+// (close enough that he is about a quarter of a wide view's height, a sixth of a phone's: the
+// painted dive drew him 26 % and 20 %)
 export const SLOTS = {
-  wide: { snap: [2.8, 1.05, -0.28], sub: [4.3, 1.3, -0.35] },
-  tall: { snap: [3.3, 0.0, 0.55], sub: [4.7, 0.0, 0.7] },
+  wide: { snap: [2.15, 0.82, -0.22], sub: [3.7, 1.15, -0.3] },
+  tall: { snap: [2.45, 0.0, 0.42], sub: [4.0, 0.0, 0.62] },
 };
 
 // Where the anchor's ring is (sets.js stands the anchor so: its shank leaning 0.28 rad toward

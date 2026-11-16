@@ -89,3 +89,22 @@ button.cue:hover { background: #fff; }
 /* below the wreck what floats over the scene turns dark with it */
 :root.night .cue:not(.flat), :root.night .note, :root.night .tip { background: #0F2636; color: #EDF6F4; border-color: rgba(143, 227, 225, .7); }
 :root.night .cue .more { color: #A8C4CF; }
+
+/* Each choice's panel: "Your turn · Choice N of 5" and five dots; under its options, the URL as far
+   as that choice with the part it chose marked (ui.js), as in the painted dive */
+.pick legend .turn { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; padding: 0 0 8px; border-bottom: 1.5px dashed rgba(255, 216, 138, .35); font: 800 11px/1 var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--sun-soft); }
+.pick legend .turn .yt { color: var(--sun); }
+.pick legend .turn .of { color: var(--coral); }
+.pick legend .turn .dots { margin-left: auto; display: flex; gap: 6px; }
+.pick legend .turn .dots i { width: 9px; height: 9px; border-radius: 50%; border: 1.5px solid var(--sun-soft); }
+.pick legend .turn .dots i.on { background: var(--sun-soft); }
+.pick legend .turn .dots i.now { background: var(--cream); box-shadow: 0 0 0 2.5px var(--sun), 0 0 0 4px var(--ink); border-color: var(--ink); }
+.so-far { margin-top: 10px !important; padding: 8px 11px 9px; background: rgba(0, 0, 0, .34); border: 1px solid var(--line); border-radius: 12px 12px 12px 4px; }
+.so-far:empty { display: none; }
+.so-far .lab { display: block; margin-bottom: 3px; font: 800 10.5px/1.3 var(--mono); letter-spacing: .14em; text-transform: uppercase; color: rgba(143, 227, 225, .7); }
+.so-far code { display: block; font-size: 11.5px; line-height: 1.55; color: var(--sea-glass); overflow-wrap: anywhere; }
+.so-far .dim { opacity: .55; }
+.so-far mark { padding: 1px 4px; border-radius: 4px; background: var(--sun); color: var(--ink); font-weight: 800; }
+.so-far.pop mark { animation: chip .45s var(--spring); }
+@keyframes chip { 0% { transform: scale(.4); opacity: 0; } 100% { transform: none; opacity: 1; } }
+@media (max-width: 760px) { .so-far .lab { display: none; } .so-far code { font-size: 11px; } }

@@ -150,7 +150,44 @@ export function createUI(opts = {}) {
     if (ui.choices[key]) status[key].textContent = NOTES[key][ui.choices[key]];
   }
 
+  // Each choice's panel: "Your turn · Choice N of 5" with five dots (the ones before filled),
+  // and under its options the URL as far as that choice, the part it chose marked (a later
+  // panel shows more of it; the last shows it whole, or sealed). As in the painted dive.
+  const farEls = {};
+  KEYS.forEach((key, n) => {
+    const fs = words.querySelector('fieldset[data-choice="' + key + '"]');
+    if (!fs) return;
+    const turn = fs.querySelector('legend .turn');
+    if (turn) turn.innerHTML = '<span class="yt">Your turn</span> <span class="of">Choice ' + (n + 1) + ' of 5</span><span class="dots" aria-hidden="true">' + [0, 1, 2, 3, 4].map((d) => '<i' + (d < n ? ' class="on"' : d === n ? ' class="now"' : '') + '></i>').join('') + '</span>';
+    const far = doc.createElement('p');
+    far.className = 'so-far js-only';
+    fs.after(far);
+    farEls[key] = far;
+  });
+  let changedKey = '';
+  function soFar() {
+    const c = ui.choices, fmt = OPTIONS.format[c.format], look = OPTIONS.look[c.look], crop = OPTIONS.crop[c.crop], fin = OPTIONS.finish[c.finish];
+    const src = '/root:photos/print.jpg', tail = (fmt ? ':' + fmt : '') + src, rem = remainder(c);
+    const dim = (t) => '<span class="dim">' + soft(t) + '</span>', mark = (t) => '<mark>' + soft(t) + '</mark>';
+    const lines = {
+      format: dim('…/') + (fmt ? dim('filters:') + mark(fmt) : '') + dim(fmt ? src : src.slice(1)),
+      look: dim('…/filters:') + mark(look) + dim(tail),
+      crop: dim('…/') + mark(crop) + dim('/filters:' + look + tail),
+      finish: dim('…/' + crop + '/filters:' + look) + (fin ? dim(':') + mark(fin) : '') + dim(tail),
+      seal: c.seal && token !== '' ? dim(BASE) + mark(token ? token.slice(0, 14) + '…' : 's1.…') + dim('/' + NAME) : dim(BASE + sign(rem).slice(0, 8) + '…/') + soft(rem),
+    };
+    for (const k of KEYS) {
+      const el = farEls[k];
+      if (!el) continue;
+      const html = '<span class="lab">Your URL so far</span><code>' + lines[k] + '</code>';
+      if (el.innerHTML !== html) el.innerHTML = html;
+      if (k === changedKey) { el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); }
+    }
+    changedKey = '';
+  }
+
   function choose(key, i) {
+    changedKey = key;
     ui.choices[key] = i;
     status[key].textContent = NOTES[key][i];
     fresh = key === 'seal' ? (i ? 'seal' : 'sig') : key;
@@ -199,6 +236,7 @@ export function createUI(opts = {}) {
         : 'Signed in your browser with the sample secret <code>demo-secret</code>, on a stand-in host. Sign the same path with your own secret and your crabcrop server serves the picture.';
     }
     urlEl.innerHTML = html;
+    soFar();
     if (!(c.seal && token === null)) fresh = '';   // (a token on its way keeps the glow for when it lands)
   }
 
@@ -359,10 +397,35 @@ export function createUI(opts = {}) {
     go(1, true);
     if (opts.onStart) opts.onStart();
   });
+  // Dive again, and the foot of the page: the view fades to the next morning while the page
+  // goes back to the top, every choice kept (so the URL in the bar is the whole one), and fades
+  // back in on Snap at the start with his print again. (As a page, a plain jump.)
+  let looping = false, lastY = scrollY;
+  const dawn = $('dawn');
+  function loop() {
+    if (looping) return;
+    if (ui.mode !== 'dive' || !dawn) { go(0, false); return; }
+    looping = true;
+    dawn.classList.add('on');
+    setTimeout(() => {
+      quiet = true;
+      try { $('h0').focus({ preventScroll: true }); } finally { quiet = false; }
+      scrollTo({ top: 0, behavior: 'instant' });
+      lastY = 0;
+      setTimeout(() => { dawn.classList.remove('on'); setTimeout(() => { looping = false; }, 500); }, 650);
+    }, 480);
+  }
+  ui.loop = loop;
   $('again').addEventListener('click', (e) => {
     e.preventDefault();
-    go(0, false);
+    loop();
   });
+  // (scrolling on down past the finale: once the very foot of the page is reached going down)
+  addEventListener('scroll', () => {
+    const y = scrollY;
+    if (ui.mode === 'dive' && measured && !looping && y > lastY && y >= maxY - 2 && maxY > vh) loop();
+    lastY = y;
+  }, { passive: true });
   links.forEach((a, i) => a.addEventListener('click', (e) => {
     if (ui.mode !== 'dive') return;
     e.preventDefault();

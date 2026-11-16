@@ -51,6 +51,11 @@ const driftAt = (p, out) => {
 const CHAIN_LEAVES = [RIDE[2], RIDE[2] + 0.18], SUB_COMES = [4.68, 4.82], OPENS = [4.76, 4.84], SNAP_BOARDS = [4.84, 4.93];
 const SHUTS = [4.935, 4.97];
 export const LOCKS = [4.975, 4.992];
+// The homecoming: at the surface the submarine comes up, its tower and the top of its hull out
+// of the water (SURFACES), its canopy lifts and Snap climbs out onto its back (CLIMBS_OUT),
+// holding up his print and waving, as he began; the canopy shuts behind him (EMPTY_SHUT).
+export const SURFACES = [7.74, 7.86], CLIMBS_OUT = [7.85, 7.91];
+const EMPTY_SHUT = [7.91, 7.95];
 // how far along the chain his grip is at p (0 at the buoy, 1 at the anchor's ring)
 const chainS = (p) => rideU(p);
 // The opening: he treads water at the waterline in his place, his photo print held up out of
@@ -149,7 +154,8 @@ export function buildCast(ctx) {
       // wreck, which is on the left), where it can be seen coming, then stays in its place
       const come = smooth(SUB_COMES[0], SUB_COMES[1], p);
       // (while he gets in, it turns its cockpit toward the visitor, so the canopy and he show)
-      const facing = smooth(OPENS[0], OPENS[1], p) * (1 - smooth(LOCKS[1], LOCKS[1] + 0.1, p));
+      const home = smooth(SURFACES[0], SURFACES[1], p);
+      const facing = Math.max(smooth(OPENS[0], OPENS[1], p) * (1 - smooth(LOCKS[1], LOCKS[1] + 0.1, p)), home * 0.35);
       // (at the geode it moves aside, so the geode shows: up on a phone, right on a wide screen)
       const geode = smooth(6.8, 6.87, p) * (1 - smooth(7.04, 7.1, p));
       if (o === SLOT.wide) {
@@ -170,7 +176,7 @@ export function buildCast(ctx) {
         A.lerp(B, park);
       }
       A.y = Math.max(A.y, groundY(A.x, A.z) + 0.85);        // (never in the ground)
-      A.y = Math.min(A.y, -1.0);                             // (nor through the surface: it would be cut by it)
+      A.y = Math.min(A.y, -1.0 + 0.78 * home);               // (nor through the surface, until it comes home)
       follow(st.subPos, st.subRel, A, 3, park > 0.5);
       sub.group.visible = come > 0.001;
       sub.group.position.copy(st.subPos);
@@ -186,7 +192,7 @@ export function buildCast(ctx) {
       sub.group.quaternion.premultiply(qa);
       // the canopy lifts as it arrives, shuts once he is in (with a little bounce), and locks
       const shut = smooth(SHUTS[0], SHUTS[1], p), bounce = Math.sin(clamp((p - SHUTS[1]) / 0.02, 0, 1) * Math.PI) * 0.05;
-      sub.open(smooth(OPENS[0], OPENS[1], p) * (1 - shut) + bounce);
+      sub.open(Math.max(smooth(OPENS[0], OPENS[1], p) * (1 - shut) + bounce, smooth(CLIMBS_OUT[0] - 0.03, CLIMBS_OUT[0], p) * (1 - smooth(EMPTY_SHUT[0], EMPTY_SHUT[1], p))));
       const locked = smooth(LOCKS[0], LOCKS[1], p);
       sub.lock(locked);
       sub.group.updateMatrixWorld(true);
@@ -197,7 +203,7 @@ export function buildCast(ctx) {
       // closer to the camera (the room is small: the desk is three metres off)
       const cabin = smooth(4.49, 4.55, p) * (1 - smooth(4.63, 4.69, p));
       if (o === SLOT.wide) driftAt(p, DRIFT_AT); else { DRIFT_AT[0] = DRIFT_AT[1] = 0; DRIFT_AT[2] = -0.75 * cabin; }
-      M.set(o.snap[0] * (1 - 0.32 * cabin) + DRIFT_AT[0], o.snap[1] + DRIFT_AT[1], o.snap[2] + DRIFT_AT[2]);
+      M.set(o.snap[0] * (1 - 0.1 * cabin) + DRIFT_AT[0], o.snap[1] * (1 - 0.25 * cabin) + DRIFT_AT[1], o.snap[2] + DRIFT_AT[2]);
       slot(M.toArray(SNAP_AT), A);
       A.y += Math.sin(t * 1.3) * 0.05;
       A.y = Math.max(A.y, groundY(A.x, A.z) + 0.45);
@@ -212,6 +218,14 @@ export function buildCast(ctx) {
         A.y += Math.sin(a2 * Math.PI) * 0.16;
       }
       if (board >= 1) A.copy(B);
+      // and home: out over the cockpit's lip and up onto the submarine's back, in front of its
+      // tower, where he stands with his print held up
+      const out = smooth(CLIMBS_OUT[0], CLIMBS_OUT[1], p);
+      if (out > 0) {
+        HELD.copy(sub.perch).applyMatrix4(sub.group.matrixWorld);
+        A.lerp(HELD, out);
+        A.y += Math.sin(out * Math.PI) * 0.28;
+      }
       // on the chain: his dive ends on the mooring's chain just under its buoy, and from there
       // his raised claw holds it all the way down to the anchor (where the ride has him, as the
       // camera has him: he never lets go on the way); then he lets go and swims to his place
@@ -242,9 +256,9 @@ export function buildCast(ctx) {
       G.snapAt.value.set(st.pos.x, st.pos.y, st.pos.z, 0.45);
       // how he moves: paddling harder the faster he goes, leaning into it
       const speed = dt > 0 ? M.copy(st.pos).sub(st.last).length() / dt : 0;
-      const inSub = board >= 1;
+      const inSub = board >= 1 && out < 0.5;
       snap.life.kick = inSub ? 0 : dive < 1 ? 0.15 + 0.85 * Math.sin(dive * Math.PI) : clamp(0.25 + speed * 0.5, 0, 1);
-      snap.life.planted = inSub ? 1 : 0;
+      snap.life.planted = inSub || out >= 1 ? 1 : 0;
       snap.life.swing = dt > 0 ? clamp(M.copy(st.pos).sub(st.last).dot(R) / dt, -2, 2) * 0.5 : 0;
       // when the visitor stops scrolling for a while, he waves; at the surface he waves goodbye
       st.idle = Math.abs(p - st.lastP) < 1e-4 ? st.idle + dt : 0;
@@ -305,8 +319,17 @@ export function buildCast(ctx) {
 
       // ---- his print: held up in his raised claw; snatched by the gust, it flies up and falls
       // in a few metres beyond him, then sinks ahead of the camera, tumbling, down past the anchor
-      print.mesh.visible = snap.ready && p < PRINT_GONE;
-      if (print.mesh.visible) {
+      // (and home again at the end, held up as at the start, once he is out on the submarine's back)
+      const homeHeld = p > CLIMBS_OUT[1] - 0.012;
+      print.mesh.visible = snap.ready && (p < PRINT_GONE || homeHeld);
+      if (print.mesh.visible && homeHeld) {
+        snap.gripWorld(HELD);
+        print.mesh.position.copy(HELD); print.mesh.position.y += 0.13;
+        print.mesh.lookAt(camera.position);
+        qt.setFromAxisAngle(TUMBLE, Math.sin(t * 1.4) * 0.08);
+        print.mesh.quaternion.multiply(qt);
+        print.mesh.scale.setScalar(1);
+      } else if (print.mesh.visible) {
         snap.gripWorld(HELD);
         HELD.y += 0.13;
         const g = clamp((p - GUST[0]) / (GUST[1] - GUST[0]), 0, 1), sink = clamp((p - GUST[1]) / (PRINT_GONE - GUST[1]), 0, 1);

@@ -1,0 +1,66 @@
+/* ---- s7: the way up and the surface ---- */
+/* The way up: the print in the submarine's pincer takes on the choices one at a time, and the
+   URL prints under it, a line for each (the painted dive's) */
+.ascent-print { display: none; }
+@media (scripting: enabled) and (prefers-reduced-motion: no-preference) {
+  :root:not(.page) .ascent-print { display: grid; justify-items: start; gap: 8px; position: fixed; left: 0; top: 0; z-index: 1; margin: 0; pointer-events: none; opacity: 0; transition: opacity .4s; }
+  :root:not(.page) .ascent-print.on { opacity: 1; }
+}
+.ap-ticket { display: block; min-width: 150px; max-width: 290px; padding: 6px 10px 8px; font-family: var(--mono); color: var(--ink); background: #FFFDF7; border: 2px solid var(--ink); border-radius: 3px 3px 10px 10px; box-shadow: 0 3px 0 rgba(13, 32, 46, .35); }
+.ap-title { display: block; margin-bottom: 3px; padding-bottom: 3px; border-bottom: 1.5px dashed rgba(20, 40, 50, .35); font-size: 9.5px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-2); }
+.ap-lines { display: grid; gap: 1px; font-size: 11px; font-weight: 800; line-height: 1.35; }
+.ap-lines li { padding: 1px 5px; margin: 0 -5px; border-radius: 5px; overflow-wrap: break-word; }
+.ap-lines li.more { padding-left: 17px; }
+.ap-lines li.mute { font-weight: 600; font-style: italic; color: var(--ink-2); }
+.ap-lines li.now { background: var(--sun-soft); animation: line-in .5s var(--spring); }
+@keyframes line-in { 0% { opacity: 0; transform: translateY(-7px) scale(1.06); } 100% { opacity: 1; transform: none; } }
+.recipe-img { position: relative; display: block; overflow: hidden; border-radius: 6px; background: #20343c; }
+.recipe-img img, .recipe-img canvas { display: block; width: 100%; height: 100%; object-fit: cover; transition: filter .6s, padding .6s; }
+.recipe-img.s-look[data-look="crisp"] img { filter: saturate(1.35) contrast(1.08); }
+.recipe-img.s-look[data-look="deep"] img { filter: url(#duotone); }
+.recipe-img.s-look[data-look="vintage"] img { filter: sepia(.9) contrast(.96); }
+.recipe-img.s-crop[data-crop="whole"] img { object-fit: contain; }
+.recipe-img.s-finish[data-finish="studio"] { background: radial-gradient(ellipse 44% 10% at 50% 90%, rgba(20, 40, 50, .3), transparent 72%), linear-gradient(180deg, #FFEBC2, #FFD88A); }
+.recipe-img.s-finish[data-finish="studio"] img { object-fit: contain; padding: 8% 12% 14%; }
+.recipe-img.s-finish[data-finish="cutout"] { background: repeating-conic-gradient(#E9D3A1 0 25%, #F6E7C8 0 50%) 0 0 / 14px 14px; }
+.recipe-img.s-finish[data-finish="cutout"] img { object-fit: contain; padding: 6%; }
+/* (the format changes the bytes, not the look: the picture gets a label for what it was encoded as) */
+.recipe-img.s-fmt::before { content: "AVIF"; position: absolute; left: 5%; top: 7%; z-index: 1; padding: 1px 6px; font: 800 10px/1.5 var(--mono); letter-spacing: .05em; color: var(--ink); background: var(--sun); border: 1.5px solid var(--ink); border-radius: 5px; animation: chip .45s var(--spring); }
+.recipe-img.s-fmt[data-fmt="webp"]::before { content: "WebP"; }
+.recipe-img.s-fmt[data-fmt="jxl"]::before { content: "JPEG XL"; }
+.recipe-img.s-seal[data-sealed="true"]::after { content: ""; position: absolute; right: 7%; bottom: 9%; width: 18%; aspect-ratio: 1; border-radius: 47% 53% 50% 50% / 52% 48% 52% 48%; background: radial-gradient(circle at 50% 50%, transparent 38%, rgba(0, 0, 0, .14) 40%, transparent 47%), radial-gradient(circle at 34% 28%, #e86a5a, #b3201a 58%, #7d140f); box-shadow: 0 2px 0 rgba(20, 40, 50, .3); animation: chip .45s var(--spring); }
+@keyframes chip { 0% { transform: scale(.4); opacity: 0; } 100% { transform: none; opacity: 1; } }
+.ap-frame { width: 220px; height: 172px; border: 3px solid #fff; box-shadow: 0 10px 26px rgba(0, 0, 0, .4); transition: width .6s var(--spring), height .6s var(--spring), background .6s; }
+.ap-frame.s-crop[data-crop="wide"], .ap-frame.s-crop[data-crop="whole"] { width: 250px; height: 131px; }
+.ap-frame.s-crop[data-crop="square"] { width: 180px; height: 180px; }
+@media (max-width: 760px) {
+  .ap-frame { width: 170px; height: 133px; }
+  .ap-frame.s-crop[data-crop="wide"], .ap-frame.s-crop[data-crop="whole"] { width: 196px; height: 103px; }
+  .ap-frame.s-crop[data-crop="square"] { width: 146px; height: 146px; }
+  .ap-ticket { max-width: 230px; }
+}
+
+/* the finale: Snap takes a picture of it: a flash, and the polaroid drops in */
+.flash, .polaroid, .dawn { display: none; }
+@media (scripting: enabled) and (prefers-reduced-motion: no-preference) {
+  :root:not(.page) .flash { display: block; position: fixed; inset: 0; z-index: 30; background: #fff; opacity: 0; pointer-events: none; }
+  :root:not(.page) .flash.go { animation: flash .8s ease-out; }
+  :root:not(.page) .polaroid { display: block; position: fixed; right: 96px; top: 15vh; z-index: 2; width: min(230px, 19vw); margin: 0; padding: 12px 12px 30px; background: #FFFDF7; border-radius: 3px; box-shadow: 0 18px 40px rgba(20, 40, 50, .35); pointer-events: none; opacity: 0; transform: translateY(-120vh) rotate(-14deg); }
+  :root:not(.page) .polaroid.drop { opacity: 1; transform: translateY(0) rotate(5deg); transition: transform 1.2s cubic-bezier(.2, 1.25, .35, 1) .25s, opacity .2s .25s; }
+  :root:not(.page) .polaroid figcaption { margin-top: 10px; font-style: italic; font-size: 14px; color: var(--ink-2); text-align: center; }
+  :root:not(.page) .pol-img { aspect-ratio: 1200 / 630; }
+  :root:not(.page) .pol-img[data-crop="square"] { aspect-ratio: 1; }
+  :root:not(.page) .pol-img.s-fmt::before, :root:not(.page) .pol-img.s-seal::after { display: none; }
+  /* "Dive again", and the bottom of the page: the view fades to the next morning while the page
+     goes back to the top */
+  :root:not(.page) .dawn { display: grid; place-items: center; position: fixed; inset: 0; z-index: 18; background: linear-gradient(180deg, #FFE1B4 0%, #FBF0D9 46%, #CFE8EE 100%); opacity: 0; visibility: hidden; pointer-events: none; transition: opacity .45s ease, visibility 0s .45s; }
+  :root:not(.page) .dawn.on { opacity: 1; visibility: visible; transition: opacity .45s ease; }
+  :root:not(.page) .dawn p { font-size: clamp(28px, 3.4vw, 52px); font-weight: 860; letter-spacing: -.015em; color: var(--ink); }
+  :root:not(.page) .loop-space { height: 70vh; }
+}
+@media (max-width: 760px) {
+  :root:not(.page) .polaroid { right: 12px; top: calc(var(--top) + 60px); width: 132px; padding: 7px 7px 20px; }
+  :root:not(.page) .polaroid figcaption { font-size: 12px; margin-top: 6px; }
+}
+@keyframes flash { 0% { opacity: .92; } 100% { opacity: 0; } }
+.again-note { font-size: 14px; color: var(--ink2); }
