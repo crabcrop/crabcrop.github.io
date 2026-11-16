@@ -40,8 +40,10 @@ function bodyMaterial(lamp) {
       s.emis = s.emis.add(s.albedo.mul(lamp.mul(0.09)).mul(pow(float(1).sub(abs(dot(s.n, vv))), 2.0).mul(2.0).add(0.5)));
       // (brass keeps a little of its own warmth in blue water, where the red has gone out of the light)
       s.emis = s.emis.add(s.albedo.mul(vec3(0.3, 0.12, 0.0)).mul(min(sunAt(f.w.y).g, 1.0)));
+      // (and in the dark, where the lamp's spill alone would turn it copper, a little yellow of its own)
+      s.emis = s.emis.add(s.albedo.mul(vec3(0.1, 0.075, 0.02)).mul(float(1).sub(min(sunAt(f.w.y).g, 1.0))).mul(select(id.lessThan(1.5), float(1), float(0))));
       // the cockpit behind Snap: dark leather, lit warm and low by its own small lights
-      s.emis = s.emis.add(s.albedo.mul(select(id.greaterThan(2.5).and(id.lessThan(3.5)), float(0.5), float(0.0))));
+      s.emis = s.emis.add(s.albedo.mul(select(id.greaterThan(2.5).and(id.lessThan(3.5)), float(0.95), float(0.0))));
       // polished: a warm brass sheen at grazing angles in any light, so it reads as metal
       // in the sunlit water and under the lamp alike
       const sheen = pow(float(1).sub(abs(dot(s.n, vv))), 3.0).mul(select(id.lessThan(1.5), float(1), float(0)));
@@ -112,6 +114,14 @@ export function buildSub(q) {
   k = m.count;
   for (const x of [-0.16, 0.0, 0.16]) tube(m, [[x, -0.17, -0.12, 0.045], [x, -0.17, -0.14, 0.045]], 10);
   tag(k, 1);
+  // his seat's padded back behind him, and two levers by his claws with red knobs
+  k = m.count;
+  blob(m, 0, -0.16, -0.3, ellipsoid(0.21, 0.2, 0.055), S(5));
+  tag(k, 3);
+  k = m.count;
+  for (const x of [-0.19, 0.19]) tube(m, [[x, -0.4, -0.3, 0.012], [x * 1.05, -0.22, -0.46, 0.011]], 6);
+  tag(k, 2);
+  for (const x of [-0.19, 0.19]) { k = m.count; blob(m, x * 1.05, -0.21, -0.47, () => 0.026, 3); tag(k, 5); }
   // the collar where the glass sits: a thick brass ring with a lip
   k = m.count;
   lathe(m, 0, 0, 0, [[0.43, -0.2], [0.5, -0.17], [0.52, -0.1], [0.5, -0.02], [0.43, 0.03]], S(34));

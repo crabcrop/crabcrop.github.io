@@ -5,8 +5,7 @@
 //                   the waterline: two wooden piers with posts and rope, string lights, crochet
 //                   fenders, the buoy on its coil of rope, a dinghy between them, sailboats with
 //                   planked and painted hulls, a striped lighthouse. Under water the posts are
-//                   weathered grey wood, and from just below the surface each goes on up into its
-//                   own reflection. At the start, one of the sailboats rides to an anchor: its
+//                   weathered grey wood. At the start, one of the sailboats rides to an anchor: its
 //                   chain hangs down to an anchor stood in the sand, and Snap rides down that
 //                   chain. At the end the piers stand on a shallow shelf of rippled sand, with
 //                   stones and weed, that cannot be seen from the deep below it.
@@ -664,58 +663,7 @@ function buildMarina(ctx, q, vp, opts) {
   if (bulbs) buildBulbs(ctx, bulbs);
   buildLighthouse(ctx, X(-34.2), Z(-94), deep);
   if (deep) buildShelf(ctx, q, posts);
-  postMirror(ctx, posts);
   return { moored, dinghy, posts };
-}
-
-// The posts as the underside of the surface mirrors them: seen from just below the water, at a
-// slant the surface is a mirror, and each post goes on up into its own reflection instead of
-// stopping flat at the waterline. Each post's reflection (its part under water, turned over
-// above the surface) is laid onto the surface itself, along the line to the eye, so it is drawn
-// over the surface and under anything nearer; it fades out where the surface turns clear (the
-// bright window overhead) and with distance, and is not drawn at all from above the water.
-const vRef = varyingProperty('vec3', 'v_set_ref');
-function postMirror(ctx, posts) {
-  const m = new Mesh(true);
-  for (const p of posts) {
-    const h = Math.min(-p.foot, 6.0), hw = p.hw;
-    // a box from the waterline up, without its bottom (that lies in the surface itself)
-    const c = [[-hw, -hw], [hw, -hw], [hw, hw], [-hw, hw]];
-    for (let k = 0; k < 4; k++) {
-      const a = c[k], b = c[(k + 1) % 4], nx = (a[0] + b[0]) / (2 * hw), nz = (a[1] + b[1]) / (2 * hw), v0 = m.count;
-      for (const [q, y] of [[a, 0], [b, 0], [b, h], [a, h]]) m.vert(p.x + q[0], y, p.z + q[1], nx, 0, nz, 0, 0, y, k, 0, 0);
-      triFacing(m, v0, v0 + 1, v0 + 2, nx, 0, nz); triFacing(m, v0, v0 + 2, v0 + 3, nx, 0, nz);
-    }
-    const v0 = m.count;
-    for (const q of c) m.vert(p.x + q[0], h, p.z + q[1], 0, 1, 0, 0, 0, h, 4, 0, 0);
-    triFacing(m, v0, v0 + 1, v0 + 2, 0, 1, 0); triFacing(m, v0, v0 + 2, v0 + 3, 0, 1, 0);
-  }
-  const geo = sphereOf(m.build(), 1);
-  addMesh(ctx, geo, material({
-    aux: true, transparent: true, shadow: false,
-    vertex: (v) => {
-      // where the line from the eye to the reflected point crosses the surface, a little nearer
-      // (along the same line, so the picture is the same; only the depth test sees it in front)
-      const C = cameraPosition, V = v.P.toVar();
-      vRef.assign(V);
-      const t = C.y.div(min(C.y.sub(V.y), -1e-3)).clamp(0.0, 1.0);
-      const S = C.add(V.sub(C).mul(t.mul(0.975)));
-      v.P.assign(select(C.y.lessThan(-0.03), S, vec3(C.x, C.y.sub(5.0), C.z)));
-    },
-    raw: (f) => {
-      // the post's own wood, as the water shows it: weathered grey, lit from above, greener and
-      // dimmer the deeper the part it shows; through the water the whole way there and back
-      const V = vRef, Vb = vec3(V.x, V.y.negate(), V.z);
-      const g = texture(G.detailTex, vec2(V.x.add(V.z).mul(1.7), V.y.mul(0.2))).toVar();
-      const wood = mix(srgb(0.58, 0.53, 0.45), srgb(0.40, 0.45, 0.34), smoothstep(0.6, 3.0, V.y)).mul(g.b.mul(0.3).add(0.8));
-      const side = select(f.aux.y.lessThan(3.5), float(1.0), float(0.6));
-      const lit = wood.mul(sunAt(Vb.y).mul(0.34).add(G.amb.mul(0.3))).mul(side);
-      const col = inWater(lit, Vb);
-      const rd = normalize(V.sub(cameraPosition));
-      const mirror = float(1).sub(smoothstep(0.55, 0.68, rd.y)).mul(float(1).sub(smoothstep(18.0, 34.0, length(V.sub(cameraPosition)))));
-      return { color: col, alpha: mirror.mul(0.95) };
-    },
-  }), 45, { noShadow: true });
 }
 
 // At the end the marina stands on a shallow shelf of cream sand a few metres down, as in our
@@ -886,14 +834,15 @@ function buildLighthouse(ctx, x, z, deep) {
     },
   }), 200);
   // the island
-  const isl = new Mesh(true), cy = deep ? -2.2 : -5;
+  const isl = new Mesh(true), cy = -2.2;
   blob(isl, x, cy, z, (dx, dy, dz) => (dy > 0 ? 7.0 : 7.6) * (1 + 0.18 * noise3(dx * 2.2 + 4, dy * 2.2, dz * 2.2) + 0.08 * noise3(dx * 6, dy * 6, dz * 6 + 2)), 24);
-  // (at the end there is no sea floor below it: the rock ends just under the water, open
-  // underneath, so seen from the deep, where the camera comes up, it is not a dark blot against
-  // the bright surface; from the waterline the water hides the rest)
-  for (let v = 0; v < isl.count; v++) { const yy = isl.p[v * 3 + 1] - cy; isl.p[v * 3 + 1] = cy + (yy > 0 ? yy * (deep ? 0.62 : 0.9) : yy * (deep ? 0.28 : 1.3)); }
+  // (the rock ends just under the water, open underneath: at the end so that seen from the deep,
+  // where the camera comes up, it is not a dark blot against the bright surface; at the start so
+  // that from the shallows it is not a far grey slab in the water; from the waterline the water
+  // hides the rest)
+  for (let v = 0; v < isl.count; v++) { const yy = isl.p[v * 3 + 1] - cy; isl.p[v * 3 + 1] = cy + (yy > 0 ? yy * 0.62 : yy * 0.28); }
   isl.normals(0, isl.count, 0, null);
-  if (deep) {
+  {
     const keep = [];
     for (let k = 0; k < isl.i.length; k += 3) { const a = isl.i[k], b = isl.i[k + 1], c = isl.i[k + 2]; if (Math.max(isl.p[a * 3 + 1], isl.p[b * 3 + 1], isl.p[c * 3 + 1]) > -0.6) keep.push(a, b, c); }
     isl.i = keep;

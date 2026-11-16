@@ -424,7 +424,7 @@ function finalPass(u) {
     const lip = exp(e.sub(2.6).mul(e.sub(2.6)).mul(-0.5)).mul(near);
     c.assign(c.mul(float(1).sub(edge.mul(0.55))).add(vec3(0.95, 0.92, 0.85).mul(lip).mul(0.35)));
     const d = q.sub(0.5);
-    c.mulAssign(float(1).sub(dot(d, d).mul(0.5)));
+    c.mulAssign(float(1).sub(dot(d, d).mul(0.75)));
     c.assign(curve(c));
     const l0 = lum(c).toVar();
     const l = mix(l0, l0.mul(l0).mul(float(3).sub(l0.mul(2))), 0.5).toVar();       // a gentle S on brightness

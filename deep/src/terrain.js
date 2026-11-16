@@ -2,7 +2,7 @@
 // behind the camera or far ahead costs nothing. Its sand and rock are shaded from the
 // detail texture at three sizes, laid on along the three axes.
 import { Mesh as ThreeMesh, Sphere, Vector3 } from 'three/webgpu';
-import { cameraPosition, clamp, cos, dot, exp, float, floor, fract, fwidth, int, ivec3, length, max, mix, normalize, sin, smoothstep, vec2, vec3 } from 'three/tsl';
+import { cameraPosition, clamp, cos, dot, exp, float, floor, fract, fwidth, int, ivec3, length, max, mix, normalize, sin, smoothstep, step, vec2, vec3 } from 'three/tsl';
 import { centerX, floorY, groundY, rockiness } from './layout.js';
 import { Mesh, clamp as clampJ } from './math.js';
 import { detail, hash1, hash3, material } from './shaders.js';
@@ -13,9 +13,12 @@ import { detail, hash1, hash3, material } from './shaders.js';
 function grains(w, per, seed) {
   const q = w.xz.mul(per).toVar();
   const c = floor(q), r = hash3(ivec3(int(c.x), int(c.y), int(seed))).toVar();
-  const d = length(fract(q).sub(0.5).sub(vec2(r.sub(0.5).mul(0.3), fract(r.mul(13.7)).sub(0.5).mul(0.3))));
+  // (each grain wanders well off its cell's middle, and some cells have none, so the grains never
+  // line up into a visible grid)
+  const d = length(fract(q).sub(0.5).sub(vec2(r.sub(0.5).mul(0.56), fract(r.mul(13.7)).sub(0.5).mul(0.56))));
   const fw = fwidth(q.x).add(fwidth(q.y)).toVar();
-  const on = smoothstep(fw.add(0.24), max(float(0.24).sub(fw), 0.0), d).mul(float(1).sub(smoothstep(0.25, 0.6, fw)));
+  const on = smoothstep(fw.add(0.2), max(float(0.2).sub(fw), 0.0), d).mul(float(1).sub(smoothstep(0.25, 0.6, fw)))
+    .mul(step(0.4, fract(r.mul(7.13).add(0.31))));
   return vec2(on, r);
 }
 
@@ -57,7 +60,7 @@ export function rockSurf(s, p, w, rocky, open, dist, foot = null) {
   const dark = max(g1.x.mul(float(1).sub(smoothstep(0.24, 0.28, g1.y))), g2.x.mul(float(1).sub(smoothstep(0.3, 0.34, g2.y))));
   // and patches of teal mineral crust, a powder that gathers in hollows and round the rocks
   const crustS = smoothstep(0.66, 0.86, C.m.mul(0.55).add(B.m.mul(0.6)).add(A.m.mul(0.25)).sub(hgt.mul(0.2))).mul(vent).toVar();
-  const blackG = black.mul(pale.mul(4.5).add(1.0)).mul(float(1).sub(dark.mul(0.45)));
+  const blackG = black.mul(pale.mul(2.4).add(1.0)).mul(float(1).sub(dark.mul(0.45)));
   const sand = mix(lit, blackG, smoothstep(110.0, 170.0, depth))
     .mul(rip.mul(0.14).add(0.9)).mul(C.h.sub(0.45).mul(near).mul(0.25).add(0.94)).toVar();
   const tealC = mix(vec3(0.02, 0.2, 0.16), vec3(0.08, 0.38, 0.29), C.h.mul(0.7).add(pale.mul(0.5)));

@@ -22,7 +22,7 @@ const SLOT = {
 // (on a wide screen his place drifts a little from scene to scene, so he is not pinned to
 // one spot: low over the sand in the shallows, up among the kelp, low and further over the
 // reef. [from p, to p, forward, right, up] added to his place, eased in and out)
-const DRIFT = [[1.45, 2.05, 0.25, 0.25, -0.3], [2.1, 2.95, -0.15, -0.1, 0.2], [3.05, 3.7, 0.12, 0.2, -0.15]];
+const DRIFT = [[1.45, 2.05, 0.25, 0.25, -0.3], [2.1, 2.95, -0.15, -0.1, 0.2], [3.05, 3.7, 0.12, 0.2, -0.15], [3.68, 3.95, -0.2, -0.75, 0.12]];
 // the submarine's place in the deep, beat by beat (wide screens): small, dropping past the
 // cliff; close among the jellies; back, so the anglerfish can come close; small and high
 // among the chimneys. [from p, to p, forward, right, up] added to its place.
@@ -172,7 +172,7 @@ export function buildCast(ctx) {
       // ---- Snap: swimming in his place, then into the bubble. In the wreck's cabin he comes
       // closer to the camera (the room is small: the desk is three metres off)
       const cabin = smooth(4.49, 4.55, p) * (1 - smooth(4.63, 4.69, p));
-      if (o === SLOT.wide) driftAt(p, DRIFT_AT); else DRIFT_AT[0] = DRIFT_AT[1] = DRIFT_AT[2] = 0;
+      if (o === SLOT.wide) driftAt(p, DRIFT_AT); else { DRIFT_AT[0] = DRIFT_AT[1] = 0; DRIFT_AT[2] = -0.75 * cabin; }
       M.set(o.snap[0] * (1 - 0.32 * cabin) + DRIFT_AT[0], o.snap[1] + DRIFT_AT[1], o.snap[2] + DRIFT_AT[2]);
       slot(M.toArray(SNAP_AT), A);
       A.y += Math.sin(t * 1.3) * 0.05;
@@ -253,7 +253,9 @@ export function buildCast(ctx) {
       qb.setFromAxisAngle(UP, -0.35 - turnAway + snap.life.swing * 0.15);
       snap.group.quaternion.copy(qa).multiply(qb);
       // head-first as he dives after the print, and a forward lean when he swims hard
-      const pitchDown = Math.sin(dive * Math.PI) * 1.05 + (hang || inSub || cabin > 0.5 ? 0 : clamp(speed * 0.12, 0, 0.3));
+      const plunge = smooth(0.075, 0.15, p) * (1 - smooth(0.36, 0.62, p));
+      const swims = hang || inSub || cabin > 0.5 || p < 0.62 ? 0 : 0.28 + clamp(speed * 0.08, 0, 0.2);
+      const pitchDown = Math.max(Math.sin(dive * Math.PI) * 1.05, plunge * 0.95) + swims;
       if (pitchDown > 0.001) { qa.setFromAxisAngle(R, -pitchDown); snap.group.quaternion.premultiply(qa); }
       if (hang) {
         qa.setFromUnitVectors(UP, ALONG);
@@ -271,7 +273,7 @@ export function buildCast(ctx) {
         if (p > g.from && p < g.to && Math.sin(t * 0.7 + i) > -0.2) { snap.target.copy(g.at); break; }
       }
       // (in the submarine a warm light inside keeps him red in the dark)
-      snap.U.cabin.value = inSub ? 0.1 + 0.3 * smooth(40, 90, depth) : 0;
+      snap.U.cabin.value = inSub ? 0.1 + 0.3 * smooth(40, 90, depth) : 0.22 * cabin;   // (and the lantern's glow on him in the wreck's cabin)
       snap.live(t, dt);
 
       // ---- his print: held up in his raised claw; snatched by the gust, it flies up and falls
@@ -294,13 +296,15 @@ export function buildCast(ctx) {
             // through the light as paper does, leading the way; past the anchor it drifts on
             // ahead, down the slope and out of sight
             const lead = smooth(0, 0.18, sink), on = smooth(0.62, 1.0, sink);
-            HELD.copy(camera.position).addScaledVector(F, 3.3 + 9 * on).addScaledVector(R, 0.35 - 0.4 * on).addScaledVector(U, -0.15 - 1.6 * on);
+            HELD.copy(camera.position).addScaledVector(F, 3.3 + 9 * on).addScaledVector(R, 0.35 - 0.4 * on).addScaledVector(U, -0.65 - 1.4 * on);
             HELD.x += Math.sin(t * 1.3) * 0.22; HELD.y += Math.sin(t * 2.6) * 0.06;
             print.mesh.position.copy(FLY[2]).lerp(HELD, lead);
           }
         }
         print.mesh.lookAt(camera.position);
-        qt.setFromAxisAngle(TUMBLE, g * 8.5 + (sink > 0 ? Math.sin(t * 1.3) * 0.5 : 0) + (g > 0 ? Math.sin(t * 2.3) * 0.25 : Math.sin(t * 1.4) * 0.08));
+        // (two whole turns in the air, so it lands face up and sinks with its picture toward
+        // the visitor, rocking as it goes)
+        qt.setFromAxisAngle(TUMBLE, g * 4 * Math.PI + (sink > 0 ? Math.sin(t * 1.3) * 0.45 : 0) + (g > 0 && sink <= 0 ? Math.sin(t * 2.3) * 0.25 : g > 0 ? 0 : Math.sin(t * 1.4) * 0.08));
         print.mesh.quaternion.multiply(qt);
         print.mesh.scale.setScalar(sink > 0 ? 1.25 : 1);
       } else st.flyFrom = false;

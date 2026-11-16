@@ -82,11 +82,11 @@ const STOPS = [
   // the marina from the waterline, half above and half below; then under, beneath the pier
   P(0.0, 18, 0, 0.0, false, 0, -3), P(0.28, 15, 0, 0.0, false, -2, -4), P(0.55, 9, -0.6, -1.6, false, -3, 2), P(1.0, -8, 0.6, -3.7, false, 5, 2),
   // the shallows: down the chain to the anchor, then over the sand
-  P(1.3, -18, -1.2, 2.6, true, 6, -8), P(1.65, -31, 1.0, 2.1, true, -5, -5), P(2.0, -48, 0, 2.4, true, 0, -2),
+  P(1.3, -18, -1.2, 2.0, true, 6, -8), P(1.65, -31, 1.0, 1.5, true, -5, -4), P(2.0, -48, 0, 1.8, true, 0, -2),
   // the kelp forest
   P(2.3, -64, 2.5, 3.0, true, -8, 4), P(2.6, -82, -2.0, 3.6, true, 7, 9), P(2.85, -98, 2.0, 3.4, true, -5, 3), P(3.0, -112, 0, 3.0, true, 0, -6),
   // the reef, and the giant clam at its far end
-  P(3.3, -130, -3.0, 2.8, true, 9, -7), P(3.6, -148, 3.5, 2.5, true, -9, -8), P(3.82, -164, -1.5, 2.6, true, 16, -4), P(4.0, -182, 1.0, 3.4, true, -3, -9),
+  P(3.3, -130, -3.0, 1.9, true, 9, -5), P(3.6, -148, 3.5, 1.8, true, -9, -6), P(3.82, -164, -1.5, 2.0, true, 16, -3), P(4.0, -182, 1.0, 3.4, true, -3, -9),
   // the wreck on its ledge: over its stern, then alongside, and a look into the captain's
   // cabin through the hole in its side while the visitor makes the last choice (Snap swims
   // in ahead of the camera); out again, past the bow, to the edge
@@ -175,7 +175,7 @@ export const optSlope = (d) => { const e = d - KNEE; return 1 + DEEPER * 0.5 * (
 const WATER = [
   [0, 0.11, 0.62, 0.78, 0.26, 0.66, 0.76, 0.42, 1.25],
   [8, 0.11, 0.62, 0.78, 0.26, 0.66, 0.76, 0.44, 1.25],
-  [16, 0.08, 0.48, 0.50, 0.22, 0.58, 0.56, 0.48, 1.3],
+  [16, 0.05, 0.36, 0.36, 0.20, 0.52, 0.46, 0.42, 1.6],
   [32, 0.12, 0.60, 0.90, 0.24, 0.62, 0.80, 0.60, 1.15],
   [46, 0.08, 0.40, 0.56, 0.18, 0.48, 0.62, 0.60, 0.9],
   [58, 0.06, 0.30, 0.40, 0.14, 0.38, 0.52, 0.62, 0.7],
