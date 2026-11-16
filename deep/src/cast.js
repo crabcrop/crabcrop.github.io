@@ -19,6 +19,18 @@ const SLOT = {
   wide: { snap: [2.8, 1.05, -0.28], sub: [4.3, 1.3, -0.35] },
   tall: { snap: [3.3, 0.0, 0.55], sub: [4.7, 0.0, 0.7] },
 };
+// (on a wide screen his place drifts a little from scene to scene, so he is not pinned to
+// one spot: low over the sand in the shallows, up among the kelp, low and further over the
+// reef. [from p, to p, forward, right, up] added to his place, eased in and out)
+const DRIFT = [[1.45, 2.05, 0.25, 0.25, -0.3], [2.1, 2.95, -0.15, -0.1, 0.2], [3.05, 3.7, 0.12, 0.2, -0.15]];
+const driftAt = (p, out) => {
+  out[0] = out[1] = out[2] = 0;
+  for (let i = 0; i < DRIFT.length; i++) {
+    const d = DRIFT[i], k = smooth(d[0], d[0] + 0.12, p) * (1 - smooth(d[1] - 0.12, d[1], p));
+    out[0] += d[2] * k; out[1] += d[3] * k; out[2] += d[4] * k;
+  }
+  return out;
+};
 // The story's beats along p: Snap rides the anchor chain down from the boat and lets go
 // over the shallows; past the wreck the submarine comes; Snap gets in before the drop.
 const CHAIN_LEAVES = [1.18, 1.42], SUB_COMES = [4.74, 4.92], SNAP_BOARDS = [4.92, 5.06];
@@ -31,7 +43,7 @@ const R = new Vector3(), U = new Vector3(), F = new Vector3(), A = new Vector3()
 const UP = new Vector3(0, 1, 0), M = new Vector3(), Z = new Vector3(0, 0, 1);
 const qa = new Quaternion(), qb = new Quaternion();
 const ON = [0, 0, 0, 0, 0, 0], GRIP = new Vector3(), ALONG = new Vector3(), MID = new Vector3();
-const HELD = new Vector3(), UP3 = new Vector3(), SNAP_AT = [0, 0, 0];
+const HELD = new Vector3(), UP3 = new Vector3(), SNAP_AT = [0, 0, 0], DRIFT_AT = [0, 0, 0];
 const FLY = [new Vector3(), new Vector3(), new Vector3()], TUMBLE = new Vector3(0.35, 1, 0.5).normalize(), qt = new Quaternion();
 const bez = (out, a, b, c, u) => out.copy(a).multiplyScalar((1 - u) * (1 - u)).addScaledVector(b, 2 * (1 - u) * u).addScaledVector(c, u * u);
 
@@ -128,7 +140,8 @@ export function buildCast(ctx) {
       // ---- Snap: swimming in his place, then into the bubble. In the wreck's cabin he comes
       // closer to the camera (the room is small: the desk is three metres off)
       const cabin = smooth(4.49, 4.55, p) * (1 - smooth(4.63, 4.69, p));
-      M.set(o.snap[0] * (1 - 0.32 * cabin), o.snap[1], o.snap[2]);
+      if (o === SLOT.wide) driftAt(p, DRIFT_AT); else DRIFT_AT[0] = DRIFT_AT[1] = DRIFT_AT[2] = 0;
+      M.set(o.snap[0] * (1 - 0.32 * cabin) + DRIFT_AT[0], o.snap[1] + DRIFT_AT[1], o.snap[2] + DRIFT_AT[2]);
       slot(M.toArray(SNAP_AT), A);
       A.y += Math.sin(t * 1.3) * 0.05;
       A.y = Math.max(A.y, groundY(A.x, A.z) + 0.45);
@@ -199,7 +212,10 @@ export function buildCast(ctx) {
       C.copy(camera.position).sub(st.pos);
       C.y *= 0.3; C.normalize();
       qa.setFromUnitVectors(Z, C);
-      qb.setFromAxisAngle(UP, -0.35 + snap.life.swing * 0.15);
+      // (now and then, swimming, he turns his body toward where he goes, his eyes still on
+      // the visitor; on the chain, in the cabin and in the submarine he faces them)
+      const turnAway = hang || inSub || cabin > 0.5 || p < DIVE[1] ? 0 : smooth(0.55, 0.95, Math.sin(t * 0.37 + 1.3)) * 0.75;
+      qb.setFromAxisAngle(UP, -0.35 - turnAway + snap.life.swing * 0.15);
       snap.group.quaternion.copy(qa).multiply(qb);
       if (hang) {
         qa.setFromUnitVectors(UP, ALONG);
