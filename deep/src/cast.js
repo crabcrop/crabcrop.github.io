@@ -99,6 +99,7 @@ export function buildCast(ctx) {
   const st = {
     pos: new Vector3(), last: new Vector3(), subPos: new Vector3(), rel: new Vector3(), subRel: new Vector3(), placed: false,
     aimX: 0, aimY: 0, idle: 0, lastP: -1, wave: 0, poked: -1e9, react: 'poke', nPoke: 0, t: 0, flyFrom: false,
+    free: false, visiting: false, visitFrom: -1e9, visitAt: new Vector3(), visitK: 0,
   };
   const ndc = new Vector3();
   const slot = (o, out) => out.copy(camera.position).addScaledVector(F, o[0]).addScaledVector(R, o[1]).addScaledVector(U, o[2]);
@@ -112,6 +113,15 @@ export function buildCast(ctx) {
     sights: [],
     // the pointer steers the lamp: x and y from -1 to 1
     aim(x, y) { st.aimX = x; st.aimY = y; },
+    // A card visit: where he should stand (a Vector3: on the top edge of the card on screen, as
+    // far off as he is), or null to come back. He leaps there, snaps his pincer twice on it, and
+    // leaps back once the visitor scrolls on. Returns whether he can visit now (free, swimming).
+    visit(at) {
+      if (at) { if (!st.free) return false; if (!st.visiting) { st.visitFrom = st.t; st.react = 'snap'; st.poked = st.t + 0.55; } st.visiting = true; st.visitAt.copy(at); }
+      else if (st.visiting) { st.visiting = false; st.visitFrom = st.t; }
+      return true;
+    },
+    get idle() { return st.idle; },
     // whether (x, y) in -1..1 (y up) is on Snap
     hits(x, y) {
       if (!snap.ready || !snap.group.visible) return false;
@@ -243,6 +253,7 @@ export function buildCast(ctx) {
         GRIP.set(ON[0], ON[1], ON[2]);
         ALONG.set(ON[3], ON[4], ON[5]).normalize();
         if (ALONG.y < 0) ALONG.negate();            // his up runs up the chain, toward the buoy
+        ALONG.y += 0.9; ALONG.normalize();          // (more upright than the chain: he hangs from it)
         // (his middle hangs a little below his grip; the dive carries him there)
         B.copy(GRIP); B.y -= 0.12;
         A.lerp(B, onChain * dive);
@@ -250,6 +261,11 @@ export function buildCast(ctx) {
         grip = smooth(DIVE[1] - 0.025, DIVE[1] + 0.01, p) * smooth(0.5, 0.75, onChain);
       }
       const hang = grip > 0.5;
+      // (free to visit a card: swimming in his place, not on the chain, in the cabin or aboard)
+      st.free = grip <= 0 && board <= 0 && cabin <= 0 && p > RIDE[2] + 0.2 && p < 4.4;
+      const vk = st.visiting && st.free ? smooth(0, 0.6, st.t - st.visitFrom) : st.visitK > 0 && st.free ? 1 - smooth(0, 0.5, st.t - st.visitFrom) : 0;
+      if (st.visiting || vk <= 0) st.visitK = vk; else st.visitK = Math.min(st.visitK, vk);
+      if (st.visitK > 0) { A.lerp(st.visitAt, st.visitK); A.y += Math.sin(st.visitK * Math.PI) * 0.35; }
       // the opening: treading water, his middle just under the waterline and bobbing with the
       // swell, so the print in his raised claw is out of the water; then a hop and a dive
       if (dive < 1) {

@@ -12,7 +12,7 @@
 .ap-lines li { padding: 1px 5px; margin: 0 -5px; border-radius: 5px; overflow-wrap: break-word; }
 .ap-lines li.more { padding-left: 17px; }
 .ap-lines li.mute { font-weight: 600; font-style: italic; color: var(--ink-2); }
-.ap-lines li.now { background: var(--sun-soft); animation: line-in .5s var(--spring); }
+.ap-lines li.fresh { background: var(--sun-soft); animation: line-in .5s var(--spring); }
 @keyframes line-in { 0% { opacity: 0; transform: translateY(-7px) scale(1.06); } 100% { opacity: 1; transform: none; } }
 .recipe-img { position: relative; display: block; overflow: hidden; border-radius: 6px; background: #20343c; }
 .recipe-img img, .recipe-img canvas { display: block; width: 100%; height: 100%; object-fit: cover; transition: filter .6s, padding .6s; }

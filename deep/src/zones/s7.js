@@ -67,7 +67,7 @@ export default {
         const parts = row.text.match(/[^:,]+[:,]?|[:,]/g) || [row.text];
         if (parts.length > 1 && parts[0].length === 1) parts.splice(0, 2, parts[0] + parts[1]);
         parts.forEach((part, i) => { if (i) li.append(doc.createElement('wbr')); li.append(part); });
-        if (row.now) li.className = 'now';
+        if (row.now) li.className = 'fresh';
         if (row.mute) li.classList.add('mute');
         if (row.text.startsWith(':')) li.classList.add('more');
         return li;

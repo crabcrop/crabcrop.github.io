@@ -124,3 +124,9 @@ h1 .hi, h2 .hi, h3 .hi { color: var(--coral); }
 @media (max-width: 760px) { :root:not(.page) .hero-cmd { display: none; } }
 .spark.drop { width: 9px; height: 11px; margin: -5px 0 0 -4px; background: radial-gradient(circle at 35% 35%, #fff, #bfeff5 55%, #7fd6e3); clip-path: none; border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%; filter: none; animation-name: drop; animation-duration: .9s; }
 @keyframes drop { 0% { transform: translate(0, 0) scale(.5); opacity: 1; } 45% { transform: translate(calc(var(--dx) * .6), calc(-1 * abs(var(--dy)) - 26px)) scale(1); opacity: 1; } 100% { transform: translate(var(--dx), 18px) scale(.7); opacity: 0; } }
+
+/* a card Snap has leapt onto tips a little under his weight */
+@media (scripting: enabled) and (prefers-reduced-motion: no-preference) {
+  :root:not(.page) .beat { transition: transform .5s var(--spring); transform-origin: 30% 100%; }
+  :root:not(.page) .beat.visited { transform: rotate(-1.4deg); }
+}

@@ -53,9 +53,35 @@ function hangPrint(scene) {
   return plane;
 }
 
+// Snap's card visits: when the visitor has paused a while on a card, he leaps onto its top
+// edge (once a card), snaps his pincer on it, and the card tips a little under him; scrolling
+// on brings him back.
+const visited = new WeakSet(), onCard = new Vector3(), V3 = new Vector3();
+let visiting = null;
+function cardVisits() {
+  if (!cast || !stage || !cast.snap.ready) return;
+  if (visiting && cast.idle < 0.1) { cast.visit(null); visiting.classList.remove('visited'); visiting = null; return; }
+  if (visiting || cast.idle < 3.5) return;
+  const card = ui.cardInPlace();
+  if (!card || visited.has(card)) return;
+  const r = card.getBoundingClientRect(), cam = stage.camera;
+  // the top edge, a little in from its right end, at Snap's distance from the camera
+  const x = r.left + r.width * 0.72, y = r.top;
+  const d = cam.position.distanceTo(cast.snapAt(V3));
+  onCard.set((x / stage.W) * 2 - 1, 1 - (y / stage.H) * 2, 0.5).unproject(cam).sub(cam.position).normalize();
+  const along = d / Math.max(0.2, onCard.dot(V3.set(0, 0, -1).applyQuaternion(cam.quaternion)));
+  onCard.multiplyScalar(along).add(cam.position);
+  onCard.addScaledVector(V3.set(0, 1, 0).applyQuaternion(cam.quaternion), cast.snap.height * 0.42);
+  if (!cast.visit(onCard)) return;
+  visited.add(card);
+  visiting = card;
+  setTimeout(() => { if (visiting === card) card.classList.add('visited'); }, 600);
+}
+
 function onFrame(p, dt) {
   ui.frame(p, dt);
   if (stage) stage.frame(p, dt);
+  cardVisits();
   audio.frame(p, depthAt(p), dt > 0 ? Math.abs(p - lastP) / dt : 0, dt);
   const z = Math.min(7, Math.floor(p));
   if (z !== zone) { if (zone >= 0) audio.cue('zone'); zone = z; }

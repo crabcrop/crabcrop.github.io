@@ -381,6 +381,17 @@ export function createUI(opts = {}) {
     }
     for (let k = 0; k < lightBeats.length; k++) if (y >= lightY[k]) light(lightParts[k]);
   }
+  // The card that is in its place now (risen into view and not yet rising away), or null: Snap
+  // visits it when the visitor pauses.
+  ui.cardInPlace = () => {
+    if (ui.mode !== 'dive' || !measured) return null;
+    const y = scrollY;
+    for (let j = N - 1; j >= 0; j--) {
+      if (gone[j] || shown[j] !== STEPS) continue;
+      if (y >= slotTop[j] - vh + low + beatH[j] && y + vh - low <= slotBot[j]) return beats[j];
+    }
+    return null;
+  };
 
   let pending = false;
   const schedule = () => { if (!pending) { pending = true; requestAnimationFrame(() => { pending = false; measure(); }); } };
