@@ -1,0 +1,29 @@
+<section class="zone" id="s6" aria-labelledby="h6">
+  <div class="slot s-intro"><div class="beat intro">
+    <p class="eyebrow"><span class="d">−2,500 m</span> · The Vents</p>
+    <h2 id="h6" tabindex="-1">The engine at the bottom.</h2>
+    <p class="lede">Everything above runs on what is down here: one Rust binary, the libraries that build its URLs, and a server that agents can talk to.</p>
+  </div></div>
+  <div class="slot"><article class="beat card">
+    <h3>One binary, built in Rust</h3>
+    <p>Install it, give it a secret, and request images with the operations written into the URL. No pre-generated thumbnails, no build step: the URL is the API.</p>
+    <p class="ex"><code>CRABCROP_SECRET=… crabcrop</code></p>
+    <a class="more" href="https://crabcrop.org/docs.html#start">Read the docs<span class="sr"> on getting started</span></a>
+  </article></div>
+  <div class="slot"><article class="beat card">
+    <h3>SDKs and loaders</h3>
+    <p>Build and sign the same URL from TypeScript, Python, or the Rust crate the server verifies with. Loaders drop it into your framework’s image component:</p>
+    <ul class="tags"><li>Next.js</li><li>Nuxt</li><li>Hydrogen</li><li>Astro</li><li>SvelteKit</li></ul>
+    <p class="ex"><code>npm install @crabcrop/url</code></p>
+    <a class="more" href="https://crabcrop.org/docs.html#sdks">Read the docs<span class="sr"> on SDKs and loaders</span></a>
+  </article></div>
+  <div class="slot"><article class="beat card">
+    <h3>MCP server for agents</h3>
+    <p>Coding agents sign, explain and inspect URLs through four tools over the same SDK: <code>sign_url</code>, <code>explain_url</code>, <code>fetch_meta</code> and <code>purge_result</code>.</p>
+    <p class="ex"><code>@crabcrop/mcp</code></p>
+    <a class="more" href="https://crabcrop.org/docs.html#mcp">Read the docs<span class="sr"> on the MCP server</span></a>
+  </article></div>
+  <div class="slot s-tale"><div class="beat tale" data-lights="src">
+    <p><em>There it is, in the glow of the geode: Snap’s print.</em> It is the last part of your URL, the source: <code>root:photos/<wbr>print.jpg</code>.</p>
+  </div></div>
+</section>

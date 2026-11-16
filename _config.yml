@@ -1,12 +1,14 @@
-# GitHub Pages builds this site with Jekyll. The dive's source (experience/)
-# and the design notes and tools (design/) live in the repo but are not part
-# of the site: of the dive, only its build, preview/dive/, is published, and
-# of the home preview, only the page, preview/home/. The rest keeps Jekyll's
-# own exclusions. The dive's media manifest stays next to the media it
-# describes, where its build reads it, but the page never fetches it: the
-# build writes it into the page's script.
+# GitHub Pages builds this site with Jekyll. The dive's source (experience/),
+# the source of the dive made in code (deep/) and the design notes and tools
+# (design/) live in the repo but are not part of the site: of the dive, only
+# its build, preview/dive/, is published; of the dive made in code, only its
+# build, preview/dive-gpu/; and of the home preview, only the page,
+# preview/home/. The rest keeps Jekyll's own exclusions. The dive's media
+# manifest stays next to the media it describes, where its build reads it,
+# but the page never fetches it: the build writes it into the page's script.
 exclude:
   - experience
+  - deep
   - design
   - preview/dive/media/manifest.json
   - Gemfile

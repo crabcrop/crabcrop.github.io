@@ -1,0 +1,36 @@
+<section class="zone" id="s2" aria-labelledby="h2">
+  <div class="slot s-intro"><div class="beat intro">
+    <p class="eyebrow"><span class="d">−15 m</span> · The Kelp Forest</p>
+    <h2 id="h2" tabindex="-1">51 filters, one chain.</h2>
+    <p class="lede">Resize, crop, fit-in and pad are their own path segments. The filters chain inside one <code>filters:</code> segment and run in the order written.</p>
+  </div></div>
+  <div class="slot"><article class="beat card">
+    <h3>Chained filters</h3>
+    <p>Sharpen, saturate, tone, blur, duotone and more, applied in the order you write them.</p>
+    <p class="ex"><code>filters:<wbr>sharpen(1.2):<wbr>saturation(1.1)</code></p>
+    <a class="more" href="https://crabcrop.org/docs.html#adjust">Read the docs<span class="sr"> on filters</span></a>
+  </article></div>
+  <div class="slot s-pick"><div class="beat pick" data-lights="look">
+    <fieldset data-choice="look">
+      <legend><span class="turn">Choice 2 of 5</span>Pick a look</legend>
+      <div class="opts">
+        <label class="opt"><input type="radio" name="look" value="0" checked><span class="nm">Crisp</span><code>sharpen(1.2):<wbr>saturation(1.1)</code></label>
+        <label class="opt"><input type="radio" name="look" value="1"><span class="nm">Deep sea</span><code>duotone(0d202e,<wbr>ffd88a)</code></label>
+        <label class="opt"><input type="radio" name="look" value="2"><span class="nm">Vintage</span><code>sepia</code></label>
+      </div>
+    </fieldset>
+    <p class="status" aria-live="polite" id="st-look">Sharpened a touch, with a little more color.</p>
+  </div></div>
+  <div class="slot"><article class="beat card">
+    <h3>Size, crop, fit and pad</h3>
+    <p>Resize to exact pixels, crop to a window that finds the subject, fit inside a box, or pad out to a shape. Each is its own path segment.</p>
+    <p class="ex"><code>crop:1200x630:smart · fit-in · pad</code></p>
+    <a class="more" href="https://crabcrop.org/docs.html#size">Read the docs<span class="sr"> on sizing</span></a>
+  </article></div>
+  <div class="slot"><article class="beat card">
+    <h3>Presets and purge</h3>
+    <p>Server-side preset names keep templates short. Purge one result, or a whole preset group, with signatures from their own subkey.</p>
+    <p class="ex"><code>preset:og-card · POST /purge-group</code></p>
+    <a class="more" href="https://crabcrop.org/docs.html#presets">Read the docs<span class="sr"> on presets</span></a>
+  </article></div>
+</section>

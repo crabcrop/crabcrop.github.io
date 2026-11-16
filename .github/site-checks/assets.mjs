@@ -1,29 +1,32 @@
 // Check that the site publishes no image its pages do not use, no file
-// of the dive that the dive does not use, no preview but the dive and
-// the home preview and no notes, and that its pages and the dive's
-// scripts use no local file the site does not have.
+// of the dive that the dive does not use, no preview but the dive, the
+// dive made in code and the home preview and no notes, and that its
+// pages and the dive's scripts use no local file the site does not have.
 //
 // GitHub Pages serves every tracked file that Jekyll does not exclude,
 // so a file nothing loads is dead weight anyone can fetch. The check
 // fails when
-//   - a published image outside preview/dive/ is referenced by no page,
+//   - a published image outside preview/dive/ and preview/dive-gpu/ is
+//     referenced by no page,
 //   - a published file under preview/dive/, of any type, is used by
 //     neither the dive's page, its stylesheets nor its scripts,
 //   - a page, or a script of the dive, references a local file that
 //     Pages does not publish,
-//   - a file under preview/ is published outside preview/dive/ and
-//     preview/home/,
+//   - a file under preview/ is published outside preview/dive/,
+//     preview/dive-gpu/ and preview/home/,
 //   - or a Markdown file is published.
 //
-// The site publishes two previews on purpose. preview/home/ is a
+// The site publishes three previews on purpose. preview/home/ is a
 // candidate for the next home page, written by hand (its notes are in
 // design/home/). It is plain HTML, so its images are held to the same
 // rule as the site's: each one has to be referenced. preview/dive/ is
 // the "All the Way Down" dive, built from experience/: its page, the
 // bundles the build writes next to it, and the media its scripts load.
-// Every file there has to be used, whatever its type. The index.html of
-// each preview is scanned like a page, so the site files it uses count
-// as used and must exist.
+// Every file there has to be used, whatever its type. preview/dive-gpu/
+// is the same dive drawn in real time by code, built from deep/: its one
+// script loads Snap's model and texture, so its images need no page
+// reference. The index.html of each preview is scanned like a page, so
+// the site files it uses count as used and must exist.
 //
 // Published means tracked (git ls-files) and not left out by Jekyll:
 // no path segment starts with ".", "_", "#" or ends with "~", and no
@@ -83,7 +86,14 @@ const PAGES = ["index.html", "docs.html"];
 // Every file of the dive has to be used by its page or its scripts.
 const DIVE = "preview/dive/";
 const DIVE_PAGE = `${DIVE}index.html`;
-const PREVIEWS = [DIVE, "preview/home/"];
+// The dive made in code: its one script loads its pictures, which need
+// no page reference.
+const DEEP = "preview/dive-gpu/";
+const PREVIEWS = [DIVE, DEEP, "preview/home/"];
+// The previews whose own scripts load their pictures.
+const SCRIPTED = [DIVE, DEEP];
+// A list for a message: "a and b", "a, b and c".
+const listed = (items) => (items.length < 3 ? items.join(" and ") : `${items.slice(0, -1).join(", ")} and ${items.at(-1)}`);
 const ORIGIN = "https://crabcrop.org/";
 const SITE_HOSTS = new Set(["crabcrop.org", "www.crabcrop.org"]);
 const IMAGE_SERVER = "images.crabcrop.org";
@@ -522,7 +532,7 @@ export function findProblems(files, read, size = () => 0) {
 
   const local = new Set([...used, ...refs.filter((r) => r.path !== null).map((r) => r.path)]);
   for (const r of refs) if (r.path) used.add(r.path);
-  const images = files.filter((f) => IMAGE.test(f) && !f.startsWith(DIVE)).sort();
+  const images = files.filter((f) => IMAGE.test(f) && !SCRIPTED.some((p) => f.startsWith(p))).sort();
   const unused = images.filter((f) => !used.has(f));
   for (const f of unused) problems.push(`${f} (${size(f).toLocaleString("en-US")} B) is published but no page references it`);
 
@@ -533,7 +543,7 @@ export function findProblems(files, read, size = () => 0) {
   }
 
   const strays = files.filter((f) => f.startsWith("preview/") && !PREVIEWS.some((p) => f.startsWith(p))).sort();
-  for (const f of strays) problems.push(`${f} is published, but the site serves no preview besides ${PREVIEWS.join(" and ")}`);
+  for (const f of strays) problems.push(`${f} is published, but the site serves no preview besides ${listed(PREVIEWS)}`);
   const notes = files.filter((f) => /\.(?:md|markdown)$/i.test(f)).sort();
   for (const f of notes) problems.push(`${f} is a notes file that Pages publishes`);
 
@@ -634,6 +644,10 @@ function fixtureSite() {
     "preview/home/index.html": '<!doctype html><title>Home</title><img src="media/patch.webp" alt="">\n',
     "preview/home/media/patch.webp": "",
     "preview/home/fonts/OFL.txt": "",
+    "preview/dive-gpu/index.html": '<!doctype html><title>Dive in code</title><script>fetch(new URL("snap.bin", document.baseURI)); load(["snap.avif", "snap.webp"]);</script>\n',
+    "preview/dive-gpu/snap.bin": "",
+    "preview/dive-gpu/snap.avif": "",
+    "preview/dive-gpu/snap.webp": "",
     [DIVE_PAGE]: DIVE_HTML,
     "preview/dive/assets/index-Aa1.js": DIVE_INDEX,
     "preview/dive/assets/world-Bb2.js": DIVE_WORLD,
@@ -728,7 +742,7 @@ const SELF_TESTS = [
   }, "preview/dive/index.html:13 references preview/dive/media/z0-1600.avif, which is not a published file (media/z0-1600.avif)"],
   ["a preview the site does not serve", (f) => {
     f["preview/old/index.html"] = "<!doctype html><title>Old</title>\n";
-  }, "preview/old/index.html is published, but the site serves no preview besides preview/dive/ and preview/home/"],
+  }, "preview/old/index.html is published, but the site serves no preview besides preview/dive/, preview/dive-gpu/ and preview/home/"],
   ["a notes file Pages publishes", (f) => {
     f["preview/dive/NOTES.md"] = "";
   }, "preview/dive/NOTES.md is a notes file that Pages publishes"],
@@ -783,11 +797,11 @@ export function checkAssets(site) {
     );
     return false;
   }
-  console.log(`ok   all ${r.images} published images outside ${DIVE} are referenced by ${r.pages.join(", ")}`);
+  console.log(`ok   all ${r.images} published images outside ${listed(SCRIPTED)} are referenced by ${r.pages.join(", ")}`);
   console.log(`ok   all ${r.dive} files of ${DIVE} besides its page are used by the page, its stylesheets or its ${r.scripts} scripts`);
   console.log(`ok   all ${r.local} local files the pages and the dive's scripts reference are published`);
   console.log(
-    `ok   ${PREVIEWS.map((p) => `${p} (${r.count(p)} files)`).join(" and ")} are the only previews published, and no notes file is published`,
+    `ok   ${listed(PREVIEWS.map((p) => `${p} (${r.count(p)} files)`))} are the only previews published, and no notes file is published`,
   );
   return tests.failures.length === 0;
 }
