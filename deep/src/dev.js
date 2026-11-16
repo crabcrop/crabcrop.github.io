@@ -11,7 +11,7 @@
 import { RenderTarget, UnsignedByteType } from 'three/webgpu';
 import { G } from './shaders.js';
 
-export function installDev({ S, engine, scene, camera, place, draw }) {
+export function installDev({ S, engine, scene, camera, place, draw, onFrame }) {
   const params = new URLSearchParams(location.search);
   let shown = null, target = null;
   const capture = async () => {
@@ -22,9 +22,10 @@ export function installDev({ S, engine, scene, camera, place, draw }) {
     engine.capture = null;
     const px = await r.readRenderTargetPixelsAsync(target, 0, 0, w, h);
     if (!shown) {
+      // (just above the scene's own canvas: the hands-on layer, the words and the bar over it)
       shown = document.createElement('canvas');
-      shown.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;z-index:1';
-      document.body.appendChild(shown);
+      shown.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;z-index:0';
+      document.getElementById('world').after(shown);
     }
     shown.width = w; shown.height = h;
     const img = new ImageData(w, h), row = w * 4, stride = px.length / h;
@@ -42,6 +43,8 @@ export function installDev({ S, engine, scene, camera, place, draw }) {
       S.p = S.pTo = p; S.time = time; G.time.value = time; S.dt = 0;
       S.lookX = S.lookXTo = yaw; S.lookY = S.lookYTo = pitch;
       place(p);
+      // (and what the page does each frame: the gauge, the hands-on layer)
+      if (onFrame) onFrame(p, 0);
       if (params.has('capture')) await capture();
       else { draw(); await engine.renderer.backend.device?.queue.onSubmittedWorkDone(); }
       return { calls: engine.calls, tris: engine.tris, pos: camera.position.toArray().map((v) => +v.toFixed(1)), size: [engine.width, engine.height], backend: api.backend };
@@ -52,6 +55,7 @@ export function installDev({ S, engine, scene, camera, place, draw }) {
       S.pTo = pTo; S.dt = dt; S.time += dt; G.time.value = S.time;
       S.p += (S.pTo - S.p) * (1 - Math.exp(-dt * 5.5));
       place(S.p);
+      if (onFrame) onFrame(S.p, dt);
       return S.p;
     },
   };

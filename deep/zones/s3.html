@@ -1,0 +1,52 @@
+<section class="zone" id="s3" aria-labelledby="h3">
+  <div class="slot s-intro"><div class="beat intro">
+    <p class="eyebrow"><span class="d">−30 m</span> · The Coral Reef</p>
+    <h2 id="h3" tabindex="-1">It sees what matters.</h2>
+    <p class="lede">Smart crops that keep faces whole, face detection, redaction and object removal.</p>
+  </div></div>
+  <div class="slot"><article class="beat card">
+    <h3>Smart crop, face safe</h3>
+    <p>Ask for any shape and the crop window moves to the subject. Faces stay whole, never cut at the edge.</p>
+    <p class="ex"><code>crop:1200x630:smart</code></p>
+    <a class="more" href="https://crabcrop.org/docs.html#size">Read the docs<span class="sr"> on smart crop</span></a>
+  </article></div>
+  <div class="slot s-pick"><div class="beat pick" data-lights="crop">
+    <fieldset data-choice="crop">
+      <legend><span class="turn">Choice 3 of 5</span>Pick a crop</legend>
+      <div class="opts">
+        <label class="opt"><input type="radio" name="crop" value="0" checked><span class="nm">Wide card</span><code>crop:1200x630:smart</code></label>
+        <label class="opt"><input type="radio" name="crop" value="1"><span class="nm">Square</span><code>crop:760x760:smart</code></label>
+        <label class="opt"><input type="radio" name="crop" value="2"><span class="nm">Whole picture</span><code>fit-in:1200x630</code></label>
+      </div>
+    </fieldset>
+    <p class="status" aria-live="polite" id="st-crop">1200 × 630, the window moved to the subject.</p>
+  </div></div>
+  <div class="slot"><article class="beat card">
+    <h3>Faces, redaction, removal</h3>
+    <p>A YuNet model finds every face: crop to them or blur them. Blur a whole class of thing, like people, before a picture goes out; if detection fails, so does the request. Mark a box, and an inpainting model fills it in.</p>
+    <p class="ex"><code>crop:760x760:face · blurfaces · blurclass(person) · remove_region(40,<wbr>120,<wbr>300,<wbr>200)</code></p>
+    <a class="more" href="https://crabcrop.org/docs.html#ai">Read the docs<span class="sr"> on faces, redaction and removal</span></a>
+  </article></div>
+  <div class="slot s-intro"><article class="beat clam" aria-labelledby="h3b">
+    <p class="eyebrow">At the reef’s end · The giant clam</p>
+    <h3 id="h3b">A studio in a shell.</h3>
+    <p>Studio light for product shots, clean cut-outs and sharper small pictures: each one more filter in the URL, run in process on a model you supply.</p>
+    <ul class="uses">
+      <li><code>studio(product,<wbr>bg:brand,<wbr>shadow:soft,<wbr>pad:10)</code><span>Cut out, on your brand color, with a soft shadow.</span></li>
+      <li><code>removebg</code><span>Only the subject stays, on transparency.</span></li>
+      <li><code>upscale(2)</code><span>Twice the size, with real detail.</span></li>
+    </ul>
+    <a class="more" href="https://crabcrop.org/docs.html#studio">Read the docs<span class="sr"> on studio mode</span></a>
+  </article></div>
+  <div class="slot s-pick"><div class="beat pick" data-lights="finish">
+    <fieldset data-choice="finish">
+      <legend><span class="turn">Choice 4 of 5</span>Pick a finish</legend>
+      <div class="opts">
+        <label class="opt"><input type="radio" name="finish" value="0" checked><span class="nm">None</span><code>nothing added</code></label>
+        <label class="opt"><input type="radio" name="finish" value="1"><span class="nm">Studio</span><code>studio(product,<wbr>bg:brand,<wbr>shadow:soft,<wbr>pad:10)</code></label>
+        <label class="opt"><input type="radio" name="finish" value="2"><span class="nm">Cut out</span><code>removebg</code></label>
+      </div>
+    </fieldset>
+    <p class="status" aria-live="polite" id="st-finish">Nothing added: the picture leaves as photographed.</p>
+  </div></div>
+</section>

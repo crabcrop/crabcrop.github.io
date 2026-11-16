@@ -61,6 +61,10 @@ export const G = {
   // submarine's (xyz, and a radius round each that nothing should enter); set by cast.js
   snapAt: uniform(new Vector4(0, -1000, 0, 0.45)),
   subAt: uniform(new Vector4(0, -1000, 0, 1.3)),
+  // the visitor's hand on the screen: x, y in -1..1 (y up, as the view's own), whether it counts
+  // now (a cursor that moved lately, or a tap: 0 to 1, eased), and the window's aspect. Things
+  // that shy from it (fish, worms, kelp) compare it with where they are on the screen.
+  hand: uniform(new Vector4(0, 0, 0, 1)),
   // the textures the page draws itself; the engine sets them before any material is made
   waterTex: null,      // r: caustics, ba: the surface's slope
   detailTex: null,     // rg: slope, b: height, a: mottle

@@ -314,6 +314,7 @@ p { text-wrap: pretty; }
     :root:not(.page) .fin > * + * { margin-top: 6px; }
   }
 }
+/*ZONES*/
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
@@ -325,6 +326,9 @@ p { text-wrap: pretty; }
 <body>
 <a class="skip" href="#words">Skip to the words</a>
 <canvas id="world" aria-hidden="true"></canvas>
+<div class="fx" id="fx"></div>
+<div class="dock" id="dock" aria-live="polite"></div>
+<aside class="note" id="note" aria-live="polite"><p></p></aside>
 
 <header class="bar" id="bar">
   <a class="home" href="https://crabcrop.org/" aria-label="crabcrop home"><svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="18" r="11" fill="#E8482F"/><circle cx="11" cy="13" r="4.5" fill="#FBF2DF"/><circle cx="24" cy="6" r="3.4" fill="#E8482F"/><circle cx="8" cy="6" r="3" fill="#E8482F"/></svg><span>crabcrop</span></a>
@@ -366,267 +370,21 @@ p { text-wrap: pretty; }
 
 <main id="words" tabindex="-1">
 
-<section class="zone" id="s0" aria-labelledby="h0">
-  <div class="slot s-hero"><div class="beat hero">
-    <p class="eyebrow"><span class="d">0 m</span> · The Marina</p>
-    <h1 id="h0" tabindex="-1">Blazing fast, <span class="nw">on-demand</span> images.</h1>
-    <p class="lede">Crabcrop resizes, crops, converts and filters your images straight from a signed URL. One Rust binary, no pre-generated thumbnails, no build step.</p>
-    <p class="lede">Dive with Snap, make five choices on the way down, and come back up with an image URL of your own.</p>
-    <p class="note" id="mode-note" hidden></p>
-    <div class="load dive-only" id="load"><span class="track" id="load-track" role="progressbar" aria-label="Loading the scene" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span class="fill" id="load-fill"></span></span><span class="pc" id="load-pc">0%</span><span id="load-label">Filling the sea</span></div>
-    <p class="hint dive-only">Scroll to dive</p>
-    <div class="go">
-      <a class="btn main" id="start" href="#s1">Dive <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2.5v10M3.5 8.5 8 13l4.5-4.5"/></svg></a>
-      <a class="btn" href="https://crabcrop.org/#install">Install</a>
-      <a class="btn" href="https://crabcrop.org/docs.html">Docs</a>
-    </div>
-    <p class="quiet js-only" id="page-link"><a href="?page">Read it as a page</a></p>
-  </div></div>
-  <div class="slot s-tale"><div class="beat tale">
-    <p><em>A gust snatches Snap’s favorite photo print from his claw, and it sinks.</em> He doesn’t hesitate: he dives, grabs the anchor chain and goes after it.</p>
-    <ol class="steps" aria-label="How it goes"><li>Scroll to dive</li><li>Make five choices</li><li>Copy your URL</li></ol>
-  </div></div>
-</section>
+<!--include:zones/s0.html-->
 
-<section class="zone" id="s1" aria-labelledby="h1">
-  <div class="slot s-intro"><div class="beat intro">
-    <p class="eyebrow"><span class="d">−5 m</span> · The Shallows</p>
-    <h2 id="h1" tabindex="-1">One URL does the whole job.</h2>
-    <p class="lede">A crabcrop URL reads left to right: a signature, then the operations, then the source. Each of your five choices is one part of it, and lights up in the bar above.</p>
-  </div></div>
-  <div class="slot"><article class="beat card" data-lights="sig">
-    <h3>Signed URLs, from any stack</h3>
-    <p>Every URL carries an HMAC-SHA256 signature over the operations and the source. Same inputs, same URL, from any of these:</p>
-    <ul class="tags"><li>TypeScript</li><li>Python</li><li>Rust</li><li>curl</li></ul>
-    <a class="more" href="https://crabcrop.org/docs.html#signing">Read the docs<span class="sr"> on signing</span></a>
-  </article></div>
-  <div class="slot"><article class="beat card">
-    <h3>All major formats, in and out</h3>
-    <p>JPEG, PNG, WebP, GIF, AVIF and JPEG XL. Name no format and the browser’s Accept header decides; on a tie, AVIF, then JPEG XL, then WebP.</p>
-    <p class="ex"><code>format(avif) · format(jxl) · format(webp)</code></p>
-    <a class="more" href="https://crabcrop.org/docs.html#format">Read the docs<span class="sr"> on formats</span></a>
-  </article></div>
-  <div class="slot s-pick"><div class="beat pick" data-lights="format">
-    <fieldset data-choice="format">
-      <legend><span class="turn">Choice 1 of 5</span>Pick a format</legend>
-      <div class="opts">
-        <label class="opt"><input type="radio" name="format" value="0" checked><span class="nm">Auto</span><code>no format named</code></label>
-        <label class="opt"><input type="radio" name="format" value="1"><span class="nm">AVIF</span><code>format(avif)</code></label>
-        <label class="opt"><input type="radio" name="format" value="2"><span class="nm">JPEG XL</span><code>format(jxl)</code></label>
-        <label class="opt"><input type="radio" name="format" value="3"><span class="nm">WebP</span><code>format(webp)</code></label>
-      </div>
-    </fieldset>
-    <p class="status" aria-live="polite" id="st-format">No format named: the browser’s Accept header decides.</p>
-  </div></div>
-  <div class="slot"><article class="beat card">
-    <h3>Sources beyond photos</h3>
-    <p>The source can be one frame of a video, one page of a PDF, an object in S3 or GCS, a local file, or a short <code>root:</code> reference.</p>
-    <p class="ex"><code>frame:50% · page:2 · root:photos/<wbr>print.jpg</code></p>
-    <a class="more" href="https://crabcrop.org/docs.html#sources">Read the docs<span class="sr"> on sources</span></a>
-  </article></div>
-</section>
+<!--include:zones/s1.html-->
 
-<section class="zone" id="s2" aria-labelledby="h2">
-  <div class="slot s-intro"><div class="beat intro">
-    <p class="eyebrow"><span class="d">−15 m</span> · The Kelp Forest</p>
-    <h2 id="h2" tabindex="-1">51 filters, one chain.</h2>
-    <p class="lede">Resize, crop, fit-in and pad are their own path segments. The filters chain inside one <code>filters:</code> segment and run in the order written.</p>
-  </div></div>
-  <div class="slot"><article class="beat card">
-    <h3>Chained filters</h3>
-    <p>Sharpen, saturate, tone, blur, duotone and more, applied in the order you write them.</p>
-    <p class="ex"><code>filters:<wbr>sharpen(1.2):<wbr>saturation(1.1)</code></p>
-    <a class="more" href="https://crabcrop.org/docs.html#adjust">Read the docs<span class="sr"> on filters</span></a>
-  </article></div>
-  <div class="slot s-pick"><div class="beat pick" data-lights="look">
-    <fieldset data-choice="look">
-      <legend><span class="turn">Choice 2 of 5</span>Pick a look</legend>
-      <div class="opts">
-        <label class="opt"><input type="radio" name="look" value="0" checked><span class="nm">Crisp</span><code>sharpen(1.2):<wbr>saturation(1.1)</code></label>
-        <label class="opt"><input type="radio" name="look" value="1"><span class="nm">Deep sea</span><code>duotone(0d202e,<wbr>ffd88a)</code></label>
-        <label class="opt"><input type="radio" name="look" value="2"><span class="nm">Vintage</span><code>sepia</code></label>
-      </div>
-    </fieldset>
-    <p class="status" aria-live="polite" id="st-look">Sharpened a touch, with a little more color.</p>
-  </div></div>
-  <div class="slot"><article class="beat card">
-    <h3>Size, crop, fit and pad</h3>
-    <p>Resize to exact pixels, crop to a window that finds the subject, fit inside a box, or pad out to a shape. Each is its own path segment.</p>
-    <p class="ex"><code>crop:1200x630:smart · fit-in · pad</code></p>
-    <a class="more" href="https://crabcrop.org/docs.html#size">Read the docs<span class="sr"> on sizing</span></a>
-  </article></div>
-  <div class="slot"><article class="beat card">
-    <h3>Presets and purge</h3>
-    <p>Server-side preset names keep templates short. Purge one result, or a whole preset group, with signatures from their own subkey.</p>
-    <p class="ex"><code>preset:og-card · POST /purge-group</code></p>
-    <a class="more" href="https://crabcrop.org/docs.html#presets">Read the docs<span class="sr"> on presets</span></a>
-  </article></div>
-</section>
+<!--include:zones/s2.html-->
 
-<section class="zone" id="s3" aria-labelledby="h3">
-  <div class="slot s-intro"><div class="beat intro">
-    <p class="eyebrow"><span class="d">−30 m</span> · The Coral Reef</p>
-    <h2 id="h3" tabindex="-1">It sees what matters.</h2>
-    <p class="lede">Smart crops that keep faces whole, face detection, redaction and object removal.</p>
-  </div></div>
-  <div class="slot"><article class="beat card">
-    <h3>Smart crop, face safe</h3>
-    <p>Ask for any shape and the crop window moves to the subject. Faces stay whole, never cut at the edge.</p>
-    <p class="ex"><code>crop:1200x630:smart</code></p>
-    <a class="more" href="https://crabcrop.org/docs.html#size">Read the docs<span class="sr"> on smart crop</span></a>
-  </article></div>
-  <div class="slot s-pick"><div class="beat pick" data-lights="crop">
-    <fieldset data-choice="crop">
-      <legend><span class="turn">Choice 3 of 5</span>Pick a crop</legend>
-      <div class="opts">
-        <label class="opt"><input type="radio" name="crop" value="0" checked><span class="nm">Wide card</span><code>crop:1200x630:smart</code></label>
-        <label class="opt"><input type="radio" name="crop" value="1"><span class="nm">Square</span><code>crop:760x760:smart</code></label>
-        <label class="opt"><input type="radio" name="crop" value="2"><span class="nm">Whole picture</span><code>fit-in:1200x630</code></label>
-      </div>
-    </fieldset>
-    <p class="status" aria-live="polite" id="st-crop">1200 × 630, the window moved to the subject.</p>
-  </div></div>
-  <div class="slot"><article class="beat card">
-    <h3>Faces, redaction, removal</h3>
-    <p>A YuNet model finds every face: crop to them or blur them. Blur a whole class of thing, like people, before a picture goes out; if detection fails, so does the request. Mark a box, and an inpainting model fills it in.</p>
-    <p class="ex"><code>crop:760x760:face · blurfaces · blurclass(person) · remove_region(40,<wbr>120,<wbr>300,<wbr>200)</code></p>
-    <a class="more" href="https://crabcrop.org/docs.html#ai">Read the docs<span class="sr"> on faces, redaction and removal</span></a>
-  </article></div>
-  <div class="slot s-intro"><article class="beat clam" aria-labelledby="h3b">
-    <p class="eyebrow">At the reef’s end · The giant clam</p>
-    <h3 id="h3b">A studio in a shell.</h3>
-    <p>Studio light for product shots, clean cut-outs and sharper small pictures: each one more filter in the URL, run in process on a model you supply.</p>
-    <ul class="uses">
-      <li><code>studio(product,<wbr>bg:brand,<wbr>shadow:soft,<wbr>pad:10)</code><span>Cut out, on your brand color, with a soft shadow.</span></li>
-      <li><code>removebg</code><span>Only the subject stays, on transparency.</span></li>
-      <li><code>upscale(2)</code><span>Twice the size, with real detail.</span></li>
-    </ul>
-    <a class="more" href="https://crabcrop.org/docs.html#studio">Read the docs<span class="sr"> on studio mode</span></a>
-  </article></div>
-  <div class="slot s-pick"><div class="beat pick" data-lights="finish">
-    <fieldset data-choice="finish">
-      <legend><span class="turn">Choice 4 of 5</span>Pick a finish</legend>
-      <div class="opts">
-        <label class="opt"><input type="radio" name="finish" value="0" checked><span class="nm">None</span><code>nothing added</code></label>
-        <label class="opt"><input type="radio" name="finish" value="1"><span class="nm">Studio</span><code>studio(product,<wbr>bg:brand,<wbr>shadow:soft,<wbr>pad:10)</code></label>
-        <label class="opt"><input type="radio" name="finish" value="2"><span class="nm">Cut out</span><code>removebg</code></label>
-      </div>
-    </fieldset>
-    <p class="status" aria-live="polite" id="st-finish">Nothing added: the picture leaves as photographed.</p>
-  </div></div>
-</section>
+<!--include:zones/s3.html-->
 
-<section class="zone" id="s4" aria-labelledby="h4">
-  <div class="slot s-intro"><div class="beat intro">
-    <p class="eyebrow"><span class="d">−60 m</span> · The Shipwreck</p>
-    <h2 id="h4" tabindex="-1">Signed, sealed, provable.</h2>
-    <p class="lede">Some links should stay unreadable, some pictures should prove where they came from, and some addresses should never be fetched at all.</p>
-  </div></div>
-  <div class="slot"><article class="beat card">
-    <h3>Sealed URLs</h3>
-    <p>For links that stay public but unreadable: the whole recipe, operations and source, sealed into one opaque token in the signature’s place. Only the server opens it, and it serves the same render.</p>
-    <p class="ex"><code>s1.&lt;token&gt;/<wbr>print.jpg</code></p>
-    <a class="more" href="https://crabcrop.org/docs.html#sealed">Read the docs<span class="sr"> on sealed URLs</span></a>
-  </article></div>
-  <div class="slot s-pick"><div class="beat pick" data-lights="seal">
-    <fieldset data-choice="seal">
-      <legend><span class="turn">Choice 5 of 5</span>Seal it, or keep it readable</legend>
-      <div class="opts">
-        <label class="opt"><input type="radio" name="seal" value="0" checked><span class="nm">Readable</span><code>crop:…/<wbr>root:…</code></label>
-        <label class="opt"><input type="radio" name="seal" value="1"><span class="nm">Sealed</span><code>s1.&lt;token&gt;</code></label>
-      </div>
-    </fieldset>
-    <p class="status" aria-live="polite" id="st-seal">Readable: the recipe stays in plain sight. It is the right default for most links.</p>
-  </div></div>
-  <div class="slot"><article class="beat card">
-    <h3>Provenance, checked and signed</h3>
-    <p>Meta reports the Content Credentials a source carries. With your own certificate, outputs are signed as served, the source recorded as an ingredient, so the chain survives the transform.</p>
-    <p class="ex"><code>CRABCROP_C2PA_CERT · CRABCROP_C2PA_KEY</code></p>
-    <a class="more" href="https://crabcrop.org/docs.html#provenance">Read the docs<span class="sr"> on provenance</span></a>
-  </article></div>
-  <div class="slot"><article class="beat card">
-    <h3>Private sources blocked by default</h3>
-    <p>The loader refuses sources on loopback, private and other non-public addresses, checked again on every redirect. Allowlisting a host is how you vouch for an internal one.</p>
-    <p class="ex"><code>403 source_forbidden · CRABCROP_ALLOWED_SOURCES</code></p>
-    <a class="more" href="https://crabcrop.org/docs.html#private-sources">Read the docs<span class="sr"> on private sources</span></a>
-  </article></div>
-</section>
+<!--include:zones/s4.html-->
 
-<section class="zone" id="s5" aria-labelledby="h5">
-  <div class="slot s-intro"><div class="beat intro">
-    <p class="eyebrow"><span class="d">−500 m</span> · The Twilight Zone</p>
-    <h2 id="h5" tabindex="-1">It reads the picture.</h2>
-    <p class="lede">Almost no sunlight reaches this far. What a picture holds, a meta answer names: tags with their scores, a line of alt text, the text in it, and a report on the URL itself.</p>
-  </div></div>
-  <div class="slot"><article class="beat card">
-    <h3>Metadata that describes the picture</h3>
-    <p>JSON meta for every render: size, format, provenance. Richer answers are opt-ins with their own models: CLIP tags and alt text, detections, moderation, embeddings, an aesthetic score, OCR text.</p>
-    <p class="ex"><code>Accept: application/json; detections=1</code></p>
-    <a class="more" href="https://crabcrop.org/docs.html#meta">Read the docs<span class="sr"> on metadata</span></a>
-  </article></div>
-  <div class="slot"><article class="beat card">
-    <h3>Text recognition</h3>
-    <p>Opt a meta request in and the answer reads the picture: the lines of text in reading order, each with its box and a confidence score. The image bytes stay exactly the same.</p>
-    <p class="ex"><code>Accept: application/json; ocr=1</code></p>
-    <a class="more" href="https://crabcrop.org/docs.html#meta">Read the docs<span class="sr"> on text recognition</span></a>
-  </article></div>
-  <div class="slot"><article class="beat card">
-    <h3>URLs that explain themselves</h3>
-    <p>Put <code>explain/</code> in front of the signature and the server answers with a report on the URL: the signature’s verdict, the source, every operation in plain words, and what will come out.</p>
-    <p class="ex"><code>GET /explain/&lt;signature&gt;/…</code></p>
-    <a class="more" href="https://crabcrop.org/docs.html#explain">Read the docs<span class="sr"> on explain</span></a>
-  </article></div>
-</section>
+<!--include:zones/s5.html-->
 
-<section class="zone" id="s6" aria-labelledby="h6">
-  <div class="slot s-intro"><div class="beat intro">
-    <p class="eyebrow"><span class="d">−2,500 m</span> · The Vents</p>
-    <h2 id="h6" tabindex="-1">The engine at the bottom.</h2>
-    <p class="lede">Everything above runs on what is down here: one Rust binary, the libraries that build its URLs, and a server that agents can talk to.</p>
-  </div></div>
-  <div class="slot"><article class="beat card">
-    <h3>One binary, built in Rust</h3>
-    <p>Install it, give it a secret, and request images with the operations written into the URL. No pre-generated thumbnails, no build step: the URL is the API.</p>
-    <p class="ex"><code>CRABCROP_SECRET=… crabcrop</code></p>
-    <a class="more" href="https://crabcrop.org/docs.html#start">Read the docs<span class="sr"> on getting started</span></a>
-  </article></div>
-  <div class="slot"><article class="beat card">
-    <h3>SDKs and loaders</h3>
-    <p>Build and sign the same URL from TypeScript, Python, or the Rust crate the server verifies with. Loaders drop it into your framework’s image component:</p>
-    <ul class="tags"><li>Next.js</li><li>Nuxt</li><li>Hydrogen</li><li>Astro</li><li>SvelteKit</li></ul>
-    <p class="ex"><code>npm install @crabcrop/url</code></p>
-    <a class="more" href="https://crabcrop.org/docs.html#sdks">Read the docs<span class="sr"> on SDKs and loaders</span></a>
-  </article></div>
-  <div class="slot"><article class="beat card">
-    <h3>MCP server for agents</h3>
-    <p>Coding agents sign, explain and inspect URLs through four tools over the same SDK: <code>sign_url</code>, <code>explain_url</code>, <code>fetch_meta</code> and <code>purge_result</code>.</p>
-    <p class="ex"><code>@crabcrop/mcp</code></p>
-    <a class="more" href="https://crabcrop.org/docs.html#mcp">Read the docs<span class="sr"> on the MCP server</span></a>
-  </article></div>
-  <div class="slot s-tale"><div class="beat tale" data-lights="src">
-    <p><em>There it is, in the glow of the geode: Snap’s print.</em> It is the last part of your URL, the source: <code>root:photos/<wbr>print.jpg</code>.</p>
-  </div></div>
-</section>
+<!--include:zones/s6.html-->
 
-<section class="zone" id="s7" aria-labelledby="h7">
-  <div class="slot s-tale"><div class="beat tale">
-    <p class="eyebrow"><span class="d">0 m</span> · Back to the Surface</p>
-    <p><em>Up, with the print.</em> Every choice you made on the way down is one part of your URL: the format, the look, the crop, the finish, and whether it is sealed.</p>
-  </div></div>
-  <div class="slot s-fin"><div class="beat fin">
-    <h2 id="h7" tabindex="-1">Your image, served.</h2>
-    <figure class="served js-only" hidden><canvas id="served" width="960" height="504" role="img" aria-label="The picture your URL serves: Snap, with the crop, finish and look you chose"></canvas></figure>
-    <p class="final"><code id="final-url">https://<wbr>img.example.com/<wbr>3843ad67974400e1c368394dfc3f33326429aabd37c9a15c232662d83a45079a/<wbr>crop:<wbr>1200x630:<wbr>smart/<wbr>filters:<wbr>sharpen(1.2):<wbr>saturation(1.1)/<wbr>root:<wbr>photos/<wbr>print.jpg</code></p>
-    <div class="go js-only">
-      <button class="btn main" id="copy-final" type="button">Copy your URL</button>
-      <a class="btn" id="again" href="#s0"><span id="again-label">Dive again</span> <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 13.5v-10M3.5 7.5 8 3l4.5 4.5"/></svg></a>
-    </div>
-    <p class="fine" id="final-note">Signed in your browser with the sample secret <code>demo-secret</code>, on a stand-in host. Sign the same path with your own secret and your crabcrop server serves the picture.</p>
-    <div class="cmd"><code id="install-cmd">curl --proto '=https' --tlsv1.2 -LsSf https://<wbr>github.com/<wbr>dayvson/<wbr>crabcrop/<wbr>releases/<wbr>latest/<wbr>download/<wbr>crabcrop-installer.sh | sh</code><button class="ib js-only" id="copy-install" type="button" aria-label="Copy the install command"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="5.5" y="5.5" width="8" height="8" rx="1.6"/><path d="M10.5 3.2v-.1a1.6 1.6 0 0 0-1.6-1.6H4.1a1.6 1.6 0 0 0-1.6 1.6v4.8a1.6 1.6 0 0 0 1.6 1.6h.1"/></svg><span>Copy</span></button></div>
-    <p class="links"><a href="https://crabcrop.org/#install">Install</a><a href="https://crabcrop.org/docs.html">Docs</a><a href="https://play.crabcrop.org">Playground</a><a href="https://github.com/dayvson/crabcrop">GitHub</a></p>
-    <p class="foot">Built on the shore, in Rust. MIT licensed. See you at low tide.</p>
-  </div></div>
-</section>
+<!--include:zones/s7.html-->
 
 </main>
 <p class="sr" id="say" role="status"></p>

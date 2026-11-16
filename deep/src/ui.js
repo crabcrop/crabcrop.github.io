@@ -61,6 +61,16 @@ export function createUI(opts = {}) {
     choices: { format: 0, look: 0, crop: 0, finish: 0, seal: 0 },
     statsOn: false,
     loading, ready, failed, frame, stats,
+    // pick option i of a choice from elsewhere (a curtain in the forest, the wax seal): its
+    // radio is checked as if clicked
+    choose(key, i) {
+      const input = words.querySelectorAll('fieldset[data-choice="' + key + '"] input[type="radio"]')[i];
+      if (!input || input.checked) return;
+      input.checked = true;
+      choose(key, i);
+    },
+    // the parts of the page that answer a choice (a zone's live specimens) register here
+    onChoice: [], onPreview: [],
   };
 
   const bar = $('bar'), urlEl = $('url'), finalEl = $('final-url'), finalNote = $('final-note');
@@ -130,6 +140,12 @@ export function createUI(opts = {}) {
     fs.querySelectorAll('input[type="radio"]').forEach((input, i) => {
       if (input.checked) ui.choices[key] = i;       // (a browser may have kept a choice across a reload)
       input.addEventListener('change', () => { if (input.checked) choose(key, i); });
+      // hovering or focusing an option shows it in the scene for as long as it lasts
+      const opt = input.closest('.opt') || input;
+      opt.addEventListener('pointerenter', (e) => { if (e.pointerType !== 'touch') preview(key, i); });
+      opt.addEventListener('pointerleave', () => preview(key, null));
+      input.addEventListener('focus', () => { if (input.matches(':focus-visible')) preview(key, i); });
+      input.addEventListener('blur', () => preview(key, null));
     });
     if (ui.choices[key]) status[key].textContent = NOTES[key][ui.choices[key]];
   }
@@ -141,7 +157,9 @@ export function createUI(opts = {}) {
     lit.add(fresh);
     render();
     if (opts.onChoice) opts.onChoice(key, i);
+    for (const f of ui.onChoice) f(key, i);
   }
+  function preview(key, i) { for (const f of ui.onPreview) f(key, i); }
 
   function render() {
     const c = ui.choices;

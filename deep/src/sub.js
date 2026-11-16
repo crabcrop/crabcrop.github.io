@@ -266,6 +266,7 @@ export function buildSub(q) {
     group, prop, lamp,
     seat: new Vector3(0, -0.12, -0.6),          // where Snap's middle goes
     door: new Vector3(0, 0.08, -1.2),           // where he climbs in from, in front of the open cockpit
+    pincer: new Vector3(0, -0.7, -0.8),         // between the claw's two fingers
     lampAt: new Vector3(0, 0.88, -0.14),        // the periscope's lamp
     turn(dt, thrust) { prop.rotation.z += dt * (2 + 14 * thrust); },
     // the canopy: 0 shut, 1 open (it may go a little past either way, for a bounce)

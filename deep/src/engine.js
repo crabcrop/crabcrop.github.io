@@ -116,6 +116,10 @@ export class Engine {
 
   // Wash the scene in a look for a moment: 1 crisp, 2 deep sea, 3 vintage.
   pulseLook(k) { this.lookK = k; this.lookAt = G.time.value; }
+  // Hold a look on the whole picture (k as above, amount 0 to 1: 0 lets it go): the kelp forest
+  // shows the picked look, and the one hovered while it is hovered. The stronger of this and a
+  // wash wins.
+  holdLook(k, amount) { this.holdK = k; this.holdA = amount; }
 
   drawQuad(mat, target) {
     this.quad.material = mat;
@@ -176,7 +180,8 @@ export class Engine {
     u.fScene.value = t.scene.texture; u.fShaft.value = t.shaft2.texture; u.fBloom.value = src.texture;
     u.exposure.value = exposure; u.fade.value = fade;
     const since = G.time.value - this.lookAt, w = since >= 0 && since < 3 ? (since < 0.25 ? since / 0.25 : 1 - (since - 0.25) / 2.75) : 0;
-    u.look.value.set(this.lookK, w * w * (3 - 2 * w), 0, 0);
+    const wash = w * w * (3 - 2 * w);
+    if ((this.holdA || 0) > wash) u.look.value.set(this.holdK, this.holdA, 0, 0); else u.look.value.set(this.lookK, wash, 0, 0);
     this.drawQuad(this.finalMat, this.capture);
   }
 }

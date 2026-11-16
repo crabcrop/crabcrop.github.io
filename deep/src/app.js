@@ -173,7 +173,7 @@ async function boot() {
   if (DEV) {
     await Promise.all(waits);
     const { installDev } = await import('./dev.js');
-    if (installDev({ S, engine, scene, camera, place, draw, resize })) return;
+    if (installDev({ S, engine, scene, camera, place, draw, resize, onFrame })) return;
   }
   if (params.has('bench')) {
     const { runBench, showReport } = await import('./bench.js');

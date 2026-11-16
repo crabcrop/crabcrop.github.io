@@ -1,0 +1,25 @@
+<section class="zone" id="s5" aria-labelledby="h5">
+  <div class="slot s-intro"><div class="beat intro">
+    <p class="eyebrow"><span class="d">−500 m</span> · The Twilight Zone</p>
+    <h2 id="h5" tabindex="-1">It reads the picture.</h2>
+    <p class="lede">Almost no sunlight reaches this far. What a picture holds, a meta answer names: tags with their scores, a line of alt text, the text in it, and a report on the URL itself.</p>
+  </div></div>
+  <div class="slot"><article class="beat card">
+    <h3>Metadata that describes the picture</h3>
+    <p>JSON meta for every render: size, format, provenance. Richer answers are opt-ins with their own models: CLIP tags and alt text, detections, moderation, embeddings, an aesthetic score, OCR text.</p>
+    <p class="ex"><code>Accept: application/json; detections=1</code></p>
+    <a class="more" href="https://crabcrop.org/docs.html#meta">Read the docs<span class="sr"> on metadata</span></a>
+  </article></div>
+  <div class="slot"><article class="beat card">
+    <h3>Text recognition</h3>
+    <p>Opt a meta request in and the answer reads the picture: the lines of text in reading order, each with its box and a confidence score. The image bytes stay exactly the same.</p>
+    <p class="ex"><code>Accept: application/json; ocr=1</code></p>
+    <a class="more" href="https://crabcrop.org/docs.html#meta">Read the docs<span class="sr"> on text recognition</span></a>
+  </article></div>
+  <div class="slot"><article class="beat card">
+    <h3>URLs that explain themselves</h3>
+    <p>Put <code>explain/</code> in front of the signature and the server answers with a report on the URL: the signature’s verdict, the source, every operation in plain words, and what will come out.</p>
+    <p class="ex"><code>GET /explain/&lt;signature&gt;/…</code></p>
+    <a class="more" href="https://crabcrop.org/docs.html#explain">Read the docs<span class="sr"> on explain</span></a>
+  </article></div>
+</section>
