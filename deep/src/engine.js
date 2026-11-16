@@ -85,7 +85,7 @@ export class Engine {
     this.u = {
       scene: slot(), blurSrc: slot(), add: slot(), src: slot(), fScene: slot(), fShaft: slot(), fBloom: slot(),
       invProj: uniform(new Matrix4()), camWorld: uniform(new Matrix4()), camPos: uniform(new Vector3()),
-      texel: uniform(new Vector2()), first: uniform(0),
+      texel: uniform(new Vector2()), first: uniform(0), size: uniform(new Vector2(1, 1)),
       exposure: uniform(1), bloom: uniform(this.q.bloom), look: uniform(new Vector4(0, 0, 0, 0)), fade: uniform(1),
     };
     this.shaftMat = pass(shaftPass(this.u, this.q.steps));
@@ -102,6 +102,7 @@ export class Engine {
     const W = Math.max(2, Math.round(w * ratio)), H = Math.max(2, Math.round(h * ratio));
     if (this.targets && W === this.width && H === this.height) return;
     this.width = W; this.height = H;
+    this.u.size.value.set(W, H);
     this.renderer.setPixelRatio(1);
     this.renderer.setSize(W, H, false);
     if (this.targets) for (const t of this.targets.all) t.dispose();
@@ -410,6 +411,18 @@ function finalPass(u) {
     const c = u.fScene.sample(q).rgb.add(u.fShaft.sample(q).rgb).toVar();
     const bl = u.fBloom.sample(q).rgb.div(u.bloom).toVar();
     c.assign(mix(c, bl, 0.07).add(bl.mul(0.035)).mul(u.exposure));
+    // at the waterline, the meniscus where the surface meets the lens: a thin dark edge that
+    // wobbles with the swell, a bright lip of light caught above it, and a little blur of
+    // the picture right along it (only while the eye is within a hand's breadth of the surface)
+    const near = float(1).sub(smoothstep(0.04, 0.3, abs(u.camPos.y))).toVar();
+    const vp = u.invProj.mul(vec4(q.x.mul(2).sub(1), float(1).sub(q.y.mul(2)), 0.5, 1.0));
+    const dir = normalize(u.camWorld.mul(vec4(normalize(vp.xyz.div(vp.w)), 0.0)).xyz);
+    const px = float(1.1).div(u.size.y);                                         // about one pixel, as a slope
+    const wob = sin(dir.x.mul(23.0).add(G.time.mul(1.7))).mul(1.8).add(sin(dir.x.mul(61.0).sub(G.time.mul(2.6))).mul(0.8)).mul(px);
+    const e = dir.y.sub(wob).div(px).toVar();                                    // pixels above the edge
+    const edge = exp(e.mul(e).mul(-0.35)).mul(near);
+    const lip = exp(e.sub(2.6).mul(e.sub(2.6)).mul(-0.5)).mul(near);
+    c.assign(c.mul(float(1).sub(edge.mul(0.55))).add(vec3(0.95, 0.92, 0.85).mul(lip).mul(0.35)));
     const d = q.sub(0.5);
     c.mulAssign(float(1).sub(dot(d, d).mul(0.5)));
     c.assign(curve(c));
