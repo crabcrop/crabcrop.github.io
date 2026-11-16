@@ -6,13 +6,11 @@ import { abs, float, max, smoothstep, texture, uv, vec3 } from 'three/tsl';
 import { startDive } from './app.js';
 import { createAudio } from './audio.js';
 import { buildCast } from './cast.js';
+import { buildFauna } from './fauna.js';
 import { createPrint } from './print.js';
+import { buildSets } from './sets.js';
 import { material } from './shaders.js';
 import { createUI, depthAt } from './ui.js';
-
-// what else lives in the dive: set pieces and creatures, each a part (see app.js)
-const EXTRA = [];
-export const addParts = (...parts) => EXTRA.push(...parts);
 
 const audio = createAudio();
 let dive = null, cast = null, sets = null, print = null, printDirty = true, printRead = false, frames = 0, zone = -1, lastP = 0;
@@ -87,13 +85,18 @@ if (new URLSearchParams(location.search).has('e2e')) window.__pTo = () => ui.pTo
 
 export function start() {
   if (ui.mode === 'page') return;
-  const parts = [...EXTRA.map((make) => (ctx) => { const part = make(ctx); if (part && part.geode) sets = part; return part; }), (ctx) => (cast = buildCast(ctx))];
+  // the set pieces first (the cast holds on to their chain), then the creatures, then the cast
+  const parts = [(ctx) => (sets = buildSets(ctx)), buildFauna, (ctx) => {
+    cast = buildCast(ctx);
+    // Snap holds the set's own chain, and looks at the clam and the geode as he passes
+    if (sets.chainAt) cast.chainAt = sets.chainAt;
+    if (sets.clam) cast.sights.push({ from: 3.6, to: 4.05, at: sets.clam.position });
+    if (sets.geode) cast.sights.push({ from: 6.7, to: 7.05, at: sets.geode.position });
+    return cast;
+  }];
   startDive({ parts, follow: () => ui.pTo, progress: (f, label) => ui.loading(f, label), onFrame, onFail: (why) => ui.failed(why) })
     .then((d) => {
       dive = d;
-      if (sets && sets.chainAt) cast.chainAt = sets.chainAt;
-      if (sets && sets.clam) cast.sights.push({ from: 3.6, to: 4.05, at: sets.clam.position });
-      if (sets && sets.geode) cast.sights.push({ from: 6.7, to: 7.05, at: sets.geode.position });
       print = createPrint(d.engine, cast.snap);
       cast.loading.then(() => { print.draw(ui.choices, 0); printDirty = false; hangPrint(d.scene); });
       // the pointer steers the lamp; a tap on Snap, and he reacts
@@ -106,5 +109,4 @@ export function start() {
     .catch((e) => { console.error('dive: ' + (e && e.stack || e)); ui.failed(String((e && e.message) || e).slice(0, 80)); });
 }
 
-// (the set pieces and creatures are added by the entry that bundles them; started on the next tick)
-setTimeout(start, 0);
+start();

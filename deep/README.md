@@ -58,8 +58,11 @@ with neither, or a visitor who prefers reduced motion, gets the page as plain te
   by depth. `src/terrain.js`, `src/rocks.js` (formations carved from distance fields by
   surface nets), `src/flora.js` (kelp and sea grass built leaf by leaf in the vertex shader;
   the reef's corals as instances), `src/sea.js` (open water and the surface from below).
-- `src/sets.js` and `src/fauna.js`: the pier, boat, chain, clam, wreck, vents and geode; fish,
-  manta, jellyfish, drifting particles and bubbles.
+- `src/sets.js`: the marina at both ends (the pier, the sailboats, the lighthouse, the buoy),
+  the anchor chain Snap rides, the Clam Studio, the wreck and its cabin, the vents, the geode
+  and the diving helmet. `src/fauna.js`: the crochet fish, the turtle, the octopus, the jellies,
+  the siphonophore, the anglerfish, the sea sheep and the tube worms, drifting specks and
+  bubbles.
 - `src/snap.js`: Snap from his model, with his rig ported to TSL (limbs, eye beads, lids,
   pincer). `src/sub.js`: his submarine, made in code. `src/cast.js`: where they are at each
   point of the dive, and the lamp. `src/print.js`: the visitor's image, a picture of Snap the

@@ -24,12 +24,12 @@
 //                    (metres) that fits there, square or wide.
 import { BufferAttribute, InstancedBufferAttribute, InstancedBufferGeometry, Mesh as ThreeMesh, Sphere, Vector3 } from 'three/webgpu';
 import {
-  abs, attribute, cameraPosition, clamp, cos, cross, dot, exp, float, fract, length, max, min, mix, normalize, pow,
+  abs, attribute, cameraPosition, clamp, cos, cross, dot, exp, float, floor, fract, fwidth, int, ivec3, length, max, min, mix, normalize, pow,
   select, sin, smoothstep, step, texture, varyingProperty, vec2, vec3, vec4,
 } from 'three/tsl';
-import { groundY } from './layout.js';
+import { centerX, groundY } from './layout.js';
 import { Mesh, TAU, blob, clamp as clampN, lerp, makeRng, noise3 } from './math.js';
-import { G, SIG, detail, material, sunAt, yarn } from './shaders.js';
+import { G, SIG, detail, hash3, material, sunAt, yarn } from './shaders.js';
 import { rockSurf } from './terrain.js';
 
 // ---- building blocks ----------------------------------------------------------------------
@@ -951,6 +951,156 @@ function buildClam(ctx, q) {
   return { position: V(stage[0], stage[1] + 0.14, stage[2]), normal };
 }
 
+// ---- the vents --------------------------------------------------------------------------------
+
+// The chimneys stand as rock already (rocks.js); here they get their fire: glowing cracks
+// over their surface, hottest at the mouth and among the coals at the foot, a glow at each
+// mouth, and smoke. The two biggest clusters light what is round them (glow slots 1 and 2).
+// [z, off, height, radius, seed] as in rocks.js
+const CHIMNEYS = [[-331, 6.5, 9, 1.5, 53], [-334, 9, 6, 1.2, 54], [-346, -7.5, 12, 1.8, 55], [-349, -10, 7, 1.3, 56], [-359, 8, 8.5, 1.5, 58], [-372, -6.5, 11, 1.7, 59], [-375, -9.5, 6.5, 1.2, 60]];
+function chimneyAxis([z, off, height, radius, seed]) {
+  const rng = makeRng(seed), x = centerX(z) + off, g = groundY(x, z);
+  for (let i = 0; i < 7; i++) { rng(); rng(); rng(); }
+  const lean = rng.range(-0.6, 0.6);
+  return { x, z, g, height, radius, lean, mouth: [x + lean, g + height + radius * 0.3, z - lean * 0.5] };
+}
+// Cracks: the edges between cells of a 2D cellular pattern (F2 - F1), in TSL.
+function cellEdge(p) {
+  const ip = floor(p).toVar(), fp = fract(p).toVar();
+  const f1 = float(8).toVar(), f2 = float(8).toVar();
+  for (let j = -1; j <= 1; j++) for (let i = -1; i <= 1; i++) {
+    const c = ip.add(vec2(i, j));
+    const h1 = hash3(ivec3(int(c.x), int(c.y), int(7))), h2 = hash3(ivec3(int(c.x), int(c.y), int(13)));
+    const d = length(vec2(i, j).add(vec2(h1, h2).mul(0.8).add(0.1)).sub(fp));
+    f2.assign(min(f2, max(f1, d)));
+    f1.assign(min(f1, d));
+  }
+  return f2.sub(f1);
+}
+function buildVents(ctx, q) {
+  const axes = CHIMNEYS.map(chimneyAxis);
+  // the chimneys' own surfaces, copied from their rock meshes, a hair proud of them
+  const pos = [], nrm = [], aux = [];
+  const meshes = [];
+  ctx.scene.traverse((o) => { if (o.isMesh && o.geometry.attributes.aux && o.geometry.boundingSphere && !o.geometry.isInstancedBufferGeometry) meshes.push(o); });
+  axes.forEach((A, ci) => {
+    const mesh = meshes.find((o) => { const c = o.geometry.boundingSphere.center; return Math.hypot(c.x - A.x, c.z - A.z) < 2.0 && o.geometry.boundingSphere.radius < 25; });
+    if (!mesh) return;
+    const g = mesh.geometry, P = g.attributes.position.array, N = g.attributes.normal.array, I = g.index.array;
+    const keep = new Uint8Array(P.length / 3), rel = new Float32Array(P.length / 3);
+    for (let v = 0; v < keep.length; v++) {
+      const x = P[v * 3], y = P[v * 3 + 1], z = P[v * 3 + 2];
+      const t = (y - A.g) / A.height;
+      const ax = A.x + A.lean * clampN(t, 0, 1), az = A.z - A.lean * 0.5 * clampN(t, 0, 1);
+      const env = A.radius * (1.15 + (0.34 - 1.15) * clampN(t, 0, 1)) + 1.0;
+      rel[v] = t;
+      keep[v] = y > A.g - 0.6 && Math.hypot(x - ax, z - az) < env ? 1 : 0;
+    }
+    for (let k = 0; k < I.length; k += 3) {
+      const a = I[k], b = I[k + 1], c = I[k + 2];
+      if (!(keep[a] && keep[b] && keep[c])) continue;
+      for (const v of [a, b, c]) {
+        pos.push(P[v * 3] + N[v * 3] * 0.025, P[v * 3 + 1] + N[v * 3 + 1] * 0.025, P[v * 3 + 2] + N[v * 3 + 2] * 0.025);
+        nrm.push(N[v * 3], N[v * 3 + 1], N[v * 3 + 2]);
+        aux.push(rel[v], ci, A.height, 0);
+      }
+    }
+  });
+  if (pos.length) {
+    const geo = new (Mesh)(true).build();
+    geo.setAttribute('position', toAttr(pos, 3)); geo.setAttribute('normal', toAttr(nrm, 3)); geo.setAttribute('aux', toAttr(aux, 4));
+    geo.deleteAttribute('uv'); geo.setIndex(null);
+    sphereOf(geo, 1);
+    addMesh(ctx, geo, material({
+      aux: true, additive: true, shadow: false,
+      raw: (f) => {
+        const t = f.aux.x;
+        // two planes of cracks, blended by which way the rock faces; wobbled by the relief texture
+        const wob = texture(G.detailTex, f.w.xz.mul(0.09).add(f.w.y.mul(0.05))).toVar();
+        const pa = vec2(f.w.x, f.w.y.mul(0.7)).mul(1.05).add(wob.rg.sub(0.5).mul(1.2)), pb = vec2(f.w.z, f.w.y.mul(0.7)).mul(1.05).add(wob.gr.sub(0.5).mul(1.2));
+        const ea = cellEdge(pa), eb = cellEdge(pb);
+        const wx = abs(f.n.z), wz = abs(f.n.x);
+        const e = ea.mul(wx).add(eb.mul(wz)).div(wx.add(wz).add(1e-3)).toVar();
+        // how wide a crack shows: wider where it is hotter, never thinner than a pixel can hold
+        const fw = max(fwidth(pa.x).add(fwidth(pa.y)), 0.004).toVar();
+        // hot toward the mouth and among the coals at the foot; between, only a crack here and there
+        const patch = smoothstep(0.48, 0.66, wob.a.add(wob.b.mul(0.35)).sub(0.12));
+        const heat = smoothstep(0.55, 1.02, t).mul(1.3).add(float(1).sub(smoothstep(0.0, 0.16, t)).mul(0.55)).add(patch.mul(0.35)).toVar();
+        const width = heat.mul(0.06).add(0.012).add(fw.mul(1.2));
+        const crack = float(1).sub(smoothstep(width.mul(0.35), width, e)).mul(float(1).sub(smoothstep(0.25, 0.7, fw))).toVar();
+        // the lip of the mouth glows all over
+        const lip = smoothstep(0.84, 1.02, t);
+        const flick = sin(G.time.mul(1.7).add(f.w.y.mul(1.3)).add(f.aux.y.mul(2.1))).mul(0.12).add(0.88);
+        const k = max(crack.mul(heat).mul(smoothstep(0.08, 0.3, heat)), lip.mul(0.9)).mul(flick).toVar();
+        const col = mix(vec3(0.9, 0.16, 0.03), vec3(1.0, 0.58, 0.16), smoothstep(0.4, 1.3, k.mul(heat)));
+        return { color: col.mul(k).mul(2.4).mul(exp(SIG.mul(f.dist).negate())), alpha: float(1.0) };
+      },
+    }), 130, { noShadow: true });
+  }
+  // a glow over each mouth
+  const mouths = [];
+  for (const A of axes) mouths.push(A.mouth[0], A.mouth[1] + 0.3, A.mouth[2]);
+  addMesh(ctx, halos(mouths, 2.4), material({
+    additive: true, shadow: false,
+    vertex: (v) => haloVertex(v, 2.4),
+    raw: (f) => { const d = length(vHalo); return { color: vec3(1.0, 0.42, 0.12).mul(exp(d.mul(d).mul(-6.0)).mul(0.5)).mul(exp(SIG.mul(f.dist).negate())), alpha: float(1.0) }; },
+  }), 130, { noShadow: true });
+  // smoke: soft puffs rising from each mouth, lit orange from below, greying as they climb
+  const per = Math.round(28 * Math.max(q.amount, 0.5)), list = [];
+  const rng = makeRng(4040);
+  axes.forEach((A, ci) => { for (let k = 0; k < per; k++) list.push(A.mouth[0], A.mouth[1], A.mouth[2], (k + rng()) / per, rng(), rng.range(0.7, 1.3), ci, A.height); });
+  const n = list.length / 8, geo = new InstancedBufferGeometry();
+  geo.setIndex([0, 1, 2, 0, 2, 3]);
+  geo.setAttribute('position', toAttr([-1, -1, 0, 1, -1, 0, 1, 1, 0, -1, 1, 0], 3));
+  geo.setAttribute('normal', toAttr([0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1], 3));
+  const sa = new Float32Array(n * 4), sb = new Float32Array(n * 4);
+  for (let i = 0; i < n; i++) for (let k = 0; k < 4; k++) { sa[i * 4 + k] = list[i * 8 + k]; sb[i * 4 + k] = list[i * 8 + 4 + k]; }
+  geo.setAttribute('sa', new InstancedBufferAttribute(sa, 4)); geo.setAttribute('sb', new InstancedBufferAttribute(sb, 4));
+  geo.instanceCount = n;
+  geo.boundingSphere = new Sphere(V(-3, -195, -353), 40);
+  const SA = attribute('sa', 'vec4'), SB = attribute('sb', 'vec4');
+  const vS = varyingProperty('vec4', 'v_set_smoke');
+  addMesh(ctx, geo, material({
+    transparent: true, shadow: false,
+    vertex: (v) => {
+      const age = fract(G.time.mul(0.045).mul(SB.y.mul(0.4).add(0.8)).add(SA.w)).toVar();
+      const rise = age.mul(age.mul(-0.35).add(1.0)).mul(14.0);
+      const sw = SB.x.mul(TAU);
+      const drift = vec3(sin(age.mul(5.0).add(sw)).mul(age).mul(0.9).add(age.mul(age).mul(2.2)), rise, cos(age.mul(4.0).add(sw)).mul(age).mul(0.8));
+      const at = SA.xyz.add(drift).toVar();
+      const size = mix(float(0.35), float(2.8), pow(age, 0.7)).mul(SB.y.mul(0.3).add(0.85));
+      const toCam = normalize(cameraPosition.sub(at)).toVar();
+      const right = normalize(cross(vec3(0, 1, 0), toCam)).toVar(), upv = cross(toCam, right);
+      const spin = sw.add(age.mul(1.5));
+      const cs = cos(spin), sn = sin(spin);
+      const qx = v.P.x.mul(cs).sub(v.P.y.mul(sn)), qy = v.P.x.mul(sn).add(v.P.y.mul(cs));
+      vS.assign(vec4(qx, qy, age, SB.x));
+      v.P.assign(at.add(right.mul(v.P.x.mul(size))).add(upv.mul(v.P.y.mul(size))));
+    },
+    raw: (f) => {
+      const uvp = vS.xy, age = vS.z;
+      const r2 = dot(uvp, uvp);
+      const tex = texture(G.detailTex, uvp.mul(0.22).add(vS.w)).b;
+      const puff = exp(r2.mul(-2.6)).mul(tex.mul(0.9).add(0.35)).toVar();
+      const a = puff.mul(smoothstep(0.0, 0.1, age)).mul(float(1).sub(smoothstep(0.45, 1.0, age))).mul(0.5);
+      const lit = float(1).sub(smoothstep(0.02, 0.28, age));
+      const col = mix(vec3(0.045, 0.04, 0.038), vec3(0.9, 0.36, 0.11), lit.mul(0.85));
+      return { color: col.mul(exp(SIG.mul(f.dist).negate())), alpha: min(a, 0.6) };
+    },
+  }), 130, { noShadow: true });
+  // the light of the two biggest clusters on what is round them
+  const glow = (slot, list2) => {
+    let x = 0, y = 0, z = 0;
+    for (const i of list2) { x += axes[i].x; y += axes[i].g + axes[i].height * 0.55; z += axes[i].z; }
+    x /= list2.length; y /= list2.length; z /= list2.length;
+    G.glowPos.array[slot].set(x + 2.0, y, z + 1.0, 15.0);
+    G.glowCol.array[slot].set(1.5, 0.52, 0.14, 0);
+  };
+  glow(1, [2, 3]);
+  glow(2, [5, 6]);
+  return axes;
+}
+
 // ---- the geode and the diving helmet --------------------------------------------------------
 
 // The geode at the end of the vents: split open, a rough tan rind outside, a band of white
@@ -1021,7 +1171,7 @@ function buildGeode(ctx, q) {
   const f1 = [cam[0] - c1[0], (cam[1] - c1[1]) * 0.55, cam[2] - c1[2]];
   geodeHalf(m, crystals, c1, frameTo(f1), R, 3.1, rng);
   // the other half, lying on its back to the right, its crystals to the sky
-  const c2 = [GEODE.x + 2.45, groundY(GEODE.x + 2.45, GEODE.z - 0.4) + R * 0.42, GEODE.z - 0.4];
+  const c2 = [GEODE.x + 2.45, groundY(GEODE.x + 2.45, GEODE.z - 0.4) + R * 0.86, GEODE.z - 0.4];
   geodeHalf(m, { n: Math.round(crystals.n * 0.6), list: crystals.list }, c2, frameTo([-0.45, 1.0, 0.55]), R * 0.94, 7.7, rng);
   const sh = material({
     aux: true, fade: [80, 98],
@@ -1032,16 +1182,16 @@ function buildGeode(ctx, q) {
       const rc = mix(vec3(0.70, 0.58, 0.42), vec3(0.50, 0.40, 0.29), smoothstep(0.4, 0.7, D.m)).mul(E.h.mul(0.3).add(0.8));
       // the agate: white and grey bands, following the rim
       const bands = sin(f.aux.y.mul(26.0).add(D.h.mul(3.0))).mul(0.5).add(0.5);
-      const ac = mix(vec3(0.93, 0.92, 0.88), vec3(0.62, 0.64, 0.66), bands.mul(smoothstep(0.15, 0.4, f.aux.y)));
+      const ac = mix(vec3(0.80, 0.79, 0.76), vec3(0.50, 0.52, 0.55), bands.mul(smoothstep(0.15, 0.4, f.aux.y)));
       // the hollow's wall: a crust of tiny crystals, glowing
-      const hc = vec3(0.92, 0.90, 0.86).mul(E.h.mul(0.3).add(0.8));
+      const hc = vec3(0.70, 0.68, 0.66).mul(E.h.mul(0.35).add(0.75));
       s.albedo = rc.mul(rind).add(ac.mul(band)).add(hc.mul(hollow));
       s.n = normalize(mix(s.n, D.n, rind.mul(0.8).add(0.3))).toVar();
       s.ao = mix(D.h.mul(0.4).add(0.65), float(1.0), band);
       s.spec = mix(float(0.05), float(0.5), hollow.add(band.mul(0.4))); s.gloss = mix(float(14.0), float(60.0), hollow);
       s.fluor = float(0.2);
       const deep = f.aux.z.mul(hollow);
-      s.emis = vec3(1.0, 0.86, 0.62).mul(deep.mul(deep).mul(1.6).add(hollow.mul(0.25))).add(vec3(0.9, 0.85, 0.75).mul(band).mul(0.12));
+      s.emis = vec3(1.0, 0.82, 0.55).mul(deep.mul(deep).mul(0.32).add(hollow.mul(0.05))).add(vec3(0.9, 0.85, 0.75).mul(band).mul(0.04));
     },
   });
   addMesh(ctx, sphereOf(m.build(), 0.5), sh, 98);
@@ -1095,23 +1245,23 @@ function buildGeode(ctx, q) {
       const along = f.aux.y, edge = abs(f.aux.x.sub(0.5)).mul(2.0);
       const near = float(1).sub(smoothstep(4.0, 16.0, f.dist));
       const vv = normalize(cameraPosition.sub(f.w)), fres = pow(float(1).sub(abs(dot(s.n, vv))), 2.0);
-      s.albedo = mix(vec3(0.86, 0.86, 0.84), vec3(1.0, 0.95, 0.86), along);
+      s.albedo = mix(vec3(0.62, 0.62, 0.62), vec3(0.82, 0.78, 0.72), along);
       s.spec = float(1.2); s.gloss = float(80.0); s.trans = float(0.6); s.fluor = float(0.1);
       const deep = vC.x;
-      s.emis = vec3(1.0, 0.84, 0.58).mul(deep.mul(deep).mul(1.4).add(0.25)).mul(along.mul(0.6).add(0.5))
-        .add(vec3(1.0, 0.95, 0.85).mul(smoothstep(0.82, 0.97, edge).mul(near).mul(0.5)))
-        .add(vec3(0.9, 0.9, 1.0).mul(fres.mul(0.35)));
+      s.emis = vec3(1.0, 0.84, 0.58).mul(deep.mul(deep).mul(0.45).add(0.05)).mul(along.mul(0.8).add(0.4))
+        .add(vec3(1.0, 0.95, 0.85).mul(smoothstep(0.82, 0.97, edge).mul(near).mul(0.22)))
+        .add(vec3(0.9, 0.9, 1.0).mul(fres.mul(0.1)));
     },
   }), 98);
   // the glow: light from the hollow (slot 3), and a soft haze in it
   const fl = Math.hypot(f1[0], f1[1], f1[2]), N = [f1[0] / fl, f1[1] / fl, f1[2] / fl];
-  const glowAt = [c1[0] + N[0] * 0.55, c1[1] + N[1] * 0.55, c1[2] + N[2] * 0.55];
+  const glowAt = [c1[0] + N[0] * 1.3, c1[1] + N[1] * 1.3 + 0.2, c1[2] + N[2] * 1.3];
   G.glowPos.array[3].set(glowAt[0], glowAt[1], glowAt[2], 9.0);
-  G.glowCol.array[3].set(1.7, 1.35, 0.9, 0);
+  G.glowCol.array[3].set(1.0, 0.8, 0.55, 0);
   addMesh(ctx, halos([c1[0] + N[0] * 0.1, c1[1] + N[1] * 0.1, c1[2] + N[2] * 0.1], 1.9), material({
     additive: true, shadow: false, fade: [70, 90],
     vertex: (v) => haloVertex(v, 1.9),
-    raw: (f) => { const d = length(vHalo); return { color: vec3(1.0, 0.82, 0.55).mul(exp(d.mul(d).mul(-5.0)).mul(0.5)).mul(exp(SIG.mul(f.dist).negate())), alpha: float(1.0) }; },
+    raw: (f) => { const d = length(vHalo); return { color: vec3(1.0, 0.82, 0.55).mul(exp(d.mul(d).mul(-5.0)).mul(0.12)).mul(exp(SIG.mul(f.dist).negate())), alpha: float(1.0) }; },
   }), 90, { noShadow: true });
   // where the picture goes: in the main half's hollow, set back from the cut face
   const size = 1.12;
@@ -1122,8 +1272,8 @@ const select3 = (cond) => vec3(0.0, 1.0, 0.0).mul(cond.select(1.0, 0.0)).add(vec
 // A brass diving helmet on the black sand by the geode: the dome with its three ports, the
 // breastplate and its bolts, a valve at the back.
 function buildHelmet(ctx) {
-  const m = new Mesh(true), x = GEODE.x + 2.2, z = GEODE.z + 1.4, gy = groundY(x, z);
-  const yaw = -0.55, tilt = 0.12, S = 1.15;
+  const m = new Mesh(true), x = GEODE.x + 3.3, z = GEODE.z - 1.6, gy = groundY(x, z);
+  const yaw = -0.75, tilt = 0.14, S = 1.0;
   const toW = (px, py, pz) => {
     const y1 = py * Math.cos(tilt) - pz * Math.sin(tilt), z1 = py * Math.sin(tilt) + pz * Math.cos(tilt);
     return [x + (px * Math.cos(yaw) + z1 * Math.sin(yaw)) * S, gy - 0.08 + y1 * S, z + (-px * Math.sin(yaw) + z1 * Math.cos(yaw)) * S];
@@ -1183,6 +1333,7 @@ export function buildSets(ctx) {
   const ring = buildAnchor(ctx, [ANCHOR.x, ANCHOR.z], [tw[0] / tl, tw[1] / tl], [Math.cos(fa), Math.sin(fa)]);
   const chain = buildChain(ctx, q, bow, ring, [ANCHOR.x, ANCHOR.z]);
   const clam = buildClam(ctx, q);
+  buildVents(ctx, q);
   const geode = buildGeode(ctx, q);
   buildHelmet(ctx);
   if (typeof DEV !== 'undefined' && DEV) console.log('sets ' + Math.round(performance.now() - t0) + ' ms');

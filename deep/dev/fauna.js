@@ -4,6 +4,7 @@
 import { startDive } from '../src/app.js';
 import { buildFauna, faunaParts } from '../src/fauna.js';
 import { G } from '../src/shaders.js';
+import { Sphere, Vector3 } from 'three/webgpu';
 import { clamp, smooth } from '../src/math.js';
 
 function devLights({ camera }) {
@@ -37,5 +38,23 @@ function lineup({ add }) {
     add(fishMesh(fishShape(FISH[shape], 2), fish, mat), 60);
   });
 }
-const extra = new URLSearchParams(location.search).has('lineup') ? [lineup] : [];
+// ?cast: the turtles, the octopus and the anglerfish side by side in front of the camera at p 1.6
+function castLineup({ add }) {
+  const { turtleShape, turtleMaterial, octopusShape, octopusMaterial, anglerShape, anglerMaterial, copies, solid, POSE } = faunaParts;
+  const sph = new Sphere(new Vector3(1.2, -5, -32), 12), at = (n, look, seed) => ({ cS: new Float32Array([n, seed, look, 0]) });
+  add(solid(copies(turtleShape(2), 1, at(0, 0, 0.3), sph), turtleMaterial()), 60);
+  add(solid(copies(turtleShape(2), 1, at(1, 1, 0.7), sph), turtleMaterial()), 60);
+  add(solid(copies(octopusShape(2), 1, at(3, 0, 0.6), sph), octopusMaterial()), 60);
+  add(solid(copies(anglerShape(2), 1, at(4, 0, 0.5), sph), anglerMaterial()), 60);
+  const yaw = new URLSearchParams(location.search).get('castyaw') || 0;
+  return {
+    update() {
+      const a = POSE.array, c = Math.cos(yaw * Math.PI / 180), s = Math.sin(yaw * Math.PI / 180);
+      const put = (n, x, y, z, size) => { a[n * 3].set(x, y, z, size); a[n * 3 + 1].set(c, 0, s, 0.4); a[n * 3 + 2].set(0, 1, 0, a[n * 3 + 2].w); };
+      put(0, -0.55, -5.0, -32.6, 0.9); put(1, 0.75, -5.25, -33.4, 0.9); put(3, 2.0, -5.7, -32.4, 0.8); put(4, -1.85, -5.35, -32.2, 0.8);
+      a[2].w = 0; a[5].w = 1;
+    },
+  };
+}
+const extra = [...(new URLSearchParams(location.search).has('lineup') ? [lineup] : []), ...(new URLSearchParams(location.search).has('cast') ? [castLineup] : [])];
 startDive({ parts: [buildFauna, devLights, ...extra] }).then((r) => { window.__dive = r; }).catch((e) => { console.error('dive: ' + (e && e.stack || e)); });

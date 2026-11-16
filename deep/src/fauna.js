@@ -312,7 +312,7 @@ function fishAt(t) {
   const cyc = t.div(fD.z).add(s.mul(13.0));
   const k = fract(cyc), hh = fract(sin(floor(cyc).mul(91.7).add(s.mul(437.1))).mul(4375.5));
   const bump = smoothstep(0.0, 0.1, k).mul(float(1.0).sub(smoothstep(0.1, 0.65, k))).mul(step(0.45, hh));
-  const dart = T.mul(0.8).add(out.mul(hh.sub(0.72).mul(3.0))).mul(bump.mul(L).mul(1.6));
+  const dart = T.mul(0.8).add(out.mul(hh.sub(0.72).mul(3.0))).mul(bump.mul(L).mul(1.1));
   return centre.add(out.mul(side)).add(vec3(0.0, up, 0.0)).add(wob).add(dart);
 }
 
@@ -393,30 +393,36 @@ const KINDS = {
 // turn, how far it rises and falls, seconds a lap (negative: the other way round), the fish's
 // length, how far they spread (along the loop, out, up), tail wags a second, seconds between darts.
 function groups() {
-  const S = (mesh, p, ahead, side, up, n, kinds, r, yaw, h, period, size, spread, wag = 1.6, dart = 7) => ({ mesh, p, ahead, side, up, n, kinds, r, yaw, h, period, size, spread, wag, dart });
+  const S = (mesh, p, ahead, side, up, n, kinds, r, yaw, h, period, size, spread, wag = 1.6, dart = 9) => ({ mesh, p, ahead, side, up, n, kinds, r, yaw, h, period, size, spread, wag, dart });
+  const small = [0.38, 0.5], spread = [1.2, 0.5, 0.3], r = [1.1, 0.9];
   return [
-    // the marina, round the posts
-    S('marina', 0.42, 7, -1.8, -0.9, 7, 'pastel', [1.4, 1.1], 0.3, 0.2, 24, [0.28, 0.36], [1.6, 0.7, 0.45]),
-    S('marina', 0.8, 7, 2.2, -0.4, 6, 'pastel', [1.3, 1.0], -0.4, 0.2, -22, [0.28, 0.36], [1.4, 0.7, 0.45]),
-    // the shallows: above the sand, against the bright water
-    S('shallows', 1.4, 8, -2.4, 1.1, 8, 'pastel', [1.6, 1.2], 0.2, 0.25, 26, [0.28, 0.38], [1.8, 0.8, 0.5]),
-    S('shallows', 1.62, 8, 2.6, 1.3, 8, 'pastel', [1.6, 1.2], -0.3, 0.25, -24, [0.28, 0.38], [1.8, 0.8, 0.5]),
-    S('shallows', 1.85, 8.5, -2.0, 1.4, 9, 'pastel', [1.8, 1.3], 0.6, 0.25, 28, [0.28, 0.38], [2.0, 0.9, 0.5]),
+    // the marina, round the posts and under the boats
+    S('marina', 0.12, 6, -1.6, -1.5, 6, 'pastel', r, 0.3, 0.15, 24, small, spread),
+    S('marina', 0.32, 6, 1.8, -1.3, 6, 'pastel', r, -0.4, 0.15, -22, small, spread),
+    S('marina', 0.55, 5.5, -2.0, -0.4, 6, 'pastel', r, 0.6, 0.15, 25, small, spread),
+    S('marina', 0.8, 5.5, 2.0, 0.1, 6, 'pastel', r, -0.2, 0.15, -23, small, spread),
+    // the shallows: over the sand, against the bright water
+    S('shallows', 1.36, 5.5, -2.2, 0.4, 7, 'pastel', r, 0.2, 0.2, 26, small, spread),
+    S('shallows', 1.5, 6, 2.3, 0.5, 6, 'pastel', r, -0.3, 0.2, -24, small, spread),
+    S('shallows', 1.64, 5.5, -2.0, 0.3, 7, 'pastel', r, 0.6, 0.2, 25, small, spread),
+    S('shallows', 1.78, 6, 2.4, 0.6, 6, 'pastel', r, -0.6, 0.2, -23, small, spread),
+    S('shallows', 1.92, 5.5, -2.2, 0.4, 7, 'pastel', r, 0.1, 0.2, 27, small, spread),
     // the kelp: a few at a time, between the stalks
-    S('kelp', 2.4, 7, 2.2, 0.6, 6, 'kelp', [1.4, 1.1], 0.1, 0.25, 26, [0.3, 0.4], [1.5, 0.7, 0.5], 1.4),
-    S('kelp', 2.65, 7, -2.4, 0.8, 6, 'kelp', [1.4, 1.1], 0.7, 0.25, -24, [0.3, 0.4], [1.5, 0.7, 0.5], 1.4),
-    S('kelp', 2.9, 7, 2.0, 0.4, 5, 'kelp', [1.3, 1.0], -0.5, 0.25, 22, [0.3, 0.4], [1.4, 0.7, 0.5], 1.4),
+    S('kelp', 2.38, 5.5, 2.0, 0.3, 5, 'kelp', r, 0.1, 0.2, 26, small, spread, 1.4),
+    S('kelp', 2.54, 5.5, -2.2, 0.5, 5, 'kelp', r, 0.7, 0.2, -24, small, spread, 1.4),
+    S('kelp', 2.7, 5.5, 2.2, 0.4, 5, 'kelp', r, -0.5, 0.2, 22, small, spread, 1.4),
+    S('kelp', 2.88, 5.5, -2.0, 0.3, 5, 'kelp', r, 0.3, 0.2, -25, small, spread, 1.4),
     // the reef: yellow ones, teal ones, striped ones, a puffer
-    S('reef', 3.36, 7, 2.0, 1.0, 5, 'reefY', [1.2, 1.0], 0.2, 0.2, 22, [0.3, 0.38], [1.4, 0.7, 0.5], 1.5),
-    S('reef', 3.48, 6.5, -2.4, 0.5, 4, 'reefT', [1.1, 0.9], -0.6, 0.2, -20, [0.26, 0.32], [1.2, 0.6, 0.4], 1.7),
-    S('reef', 3.62, 7, 2.3, 1.2, 5, 'reefY', [1.2, 1.0], 0.9, 0.2, 21, [0.3, 0.38], [1.4, 0.7, 0.5], 1.5),
-    S('reef', 3.72, 6, -2.0, 0.3, 1, 'puffer', [1.0, 0.8], 0.0, 0.15, -30, [0.42, 0.42], [0, 0, 0], 1.2, 0),
-    S('reef2', 3.82, 7, -2.2, 0.9, 4, 'striped', [1.3, 1.0], 0.4, 0.2, 23, [0.34, 0.4], [1.3, 0.6, 0.4], 1.5),
-    S('reef2', 3.92, 7, 2.2, 1.0, 5, 'reefY', [1.2, 1.0], -0.2, 0.2, -21, [0.3, 0.38], [1.4, 0.7, 0.5], 1.5),
-    S('reef2', 4.0, 7.5, -1.6, 0.6, 4, 'reefT', [1.1, 0.9], 0.3, 0.2, 20, [0.26, 0.32], [1.2, 0.6, 0.4], 1.7),
-    // the end: below the surface again
-    S('surface', 7.9, 7.5, -2.6, -2.0, 6, 'pastel', [1.6, 1.0], 0.0, 0.2, 26, [0.28, 0.36], [1.6, 0.7, 0.4]),
-    S('surface', 7.9, 8.5, 2.8, -2.4, 5, 'pastel', [1.4, 1.0], 0.5, 0.2, -24, [0.28, 0.36], [1.5, 0.7, 0.4]),
+    S('reef', 3.34, 5.5, 2.0, 0.4, 5, 'reefY', r, 0.2, 0.2, 22, [0.42, 0.52], spread, 1.5),
+    S('reef', 3.46, 5.5, -2.2, 0.2, 4, 'reefT', r, -0.6, 0.2, -20, small, spread, 1.7),
+    S('reef', 3.58, 5.5, 2.2, 0.5, 5, 'reefY', r, 0.9, 0.2, 21, [0.42, 0.52], spread, 1.5),
+    S('reef', 3.7, 5, -1.9, 0.1, 1, 'puffer', [0.9, 0.7], 0.0, 0.15, -30, [0.55, 0.55], [0, 0, 0], 1.2, 0),
+    S('reef2', 3.8, 5.5, -2.2, 0.4, 4, 'striped', r, 0.4, 0.2, 23, [0.44, 0.52], spread, 1.5),
+    S('reef2', 3.9, 5.5, 2.2, 0.5, 5, 'reefY', r, -0.2, 0.2, -21, [0.42, 0.52], spread, 1.5),
+    S('reef2', 4.0, 6, -1.8, 0.3, 4, 'reefT', r, 0.3, 0.2, 20, small, spread, 1.7),
+    // the end: just below the surface again
+    S('surface', 7.95, 7, -2.4, -1.6, 6, 'pastel', r, 0.0, 0.15, 26, small, spread),
+    S('surface', 7.95, 8.5, 2.6, -2.0, 5, 'pastel', r, 0.5, 0.15, -24, small, spread),
   ];
 }
 
@@ -427,8 +433,8 @@ function populate(rng, amt) {
     const n = g.n === 1 ? 1 : Math.max(3, Math.round(g.n * Math.sqrt(amt)));
     let at = inView(g.p, g.ahead, g.side, g.up);
     // keep the loop clear of the camera's way: step away from it until it is
-    const R = Math.max(g.r[0], g.r[1]) + g.spread[1] + 1.4;
-    for (let k = 0; k < 12 && offTrack(at[0], at[2], at[1]) < R; k++) at = inView(g.p, g.ahead, g.side * (1 + 0.15 * (k + 1)), g.up + 0.12 * (k + 1));
+    const R = Math.max(g.r[0], g.r[1]) + g.spread[1] * 0.5 + 1.3;
+    for (let k = 0; k < 16 && offTrack(at[0], at[2], at[1]) < R; k++) at = inView(g.p, g.ahead, g.side * (1 + 0.08 * (k + 1)), g.up);
     const w = TAU / g.period, phase = rng() * TAU, Rm = Math.max((g.r[0] + g.r[1]) / 2, 0.5);
     for (let i = 0; i < n; i++) {
       const [shape, pattern, body, second, fins] = rng.pick(KINDS[g.kinds]);
@@ -563,8 +569,8 @@ function turtleMaterial() {
       const n0 = s.n, F = normalize(vA), Up = normalize(vB), R = cross(F, Up);
       const shell = one(part, 0), eye = one(part, 4);
       // the reef's turtle is brown with cream seams; the one at the end, coral with teal skin
-      const shellCol = mix(vec3(0.55, 0.3, 0.2), vec3(0.95, 0.45, 0.32), look), seamCol = mix(vec3(0.9, 0.8, 0.62), vec3(0.98, 0.82, 0.62), look);
-      const skinCol = mix(vec3(0.86, 0.76, 0.58), vec3(0.42, 0.72, 0.7), look), bellyCol = mix(vec3(0.93, 0.83, 0.55), vec3(0.98, 0.86, 0.62), look);
+      const shellCol = mix(vec3(0.55, 0.3, 0.2), vec3(0.9, 0.34, 0.16), look), seamCol = mix(vec3(0.9, 0.8, 0.62), vec3(0.98, 0.8, 0.55), look);
+      const skinCol = mix(vec3(0.86, 0.76, 0.58), vec3(0.22, 0.62, 0.6), look), bellyCol = mix(vec3(0.93, 0.83, 0.55), vec3(0.98, 0.82, 0.5), look);
       const under = shell.mul(float(1.0).sub(smoothstep(-0.02, 0.01, lp.y)));
       const spots = smoothstep(0.35, 0.65, sin(lp.x.mul(53.0).add(lp.z.mul(17.0))).mul(sin(lp.z.mul(47.0).sub(lp.x.mul(13.0))))).mul(float(1.0).sub(shell)).mul(float(1.0).sub(eye));
       const skin = mix(skinCol, skinCol.mul(mix(vec3(0.55, 0.4, 0.3), vec3(0.6, 0.8, 0.75), look)), spots);
@@ -704,7 +710,9 @@ function anglerMaterial() {
       const teeth = float(1.0).sub(smoothstep(0.0, aa.mul(2.0).add(0.004), lp.y.sub(lipY).add(0.004).sub(tooth.mul(0.014)))).mul(step(lipY.sub(0.02), lp.y)).mul(front);
       s.albedo = mix(mix(s.albedo, vec3(0.05, 0.02, 0.06), gap), vec3(0.95, 0.94, 0.9), teeth.mul(gap));
       bead(s, n0, eye);
-      // the lure glows
+      // the lure lights the face below it, and glows
+      const toLure = length(lp.sub(vec3(LURE[0], LURE[1], LURE[2])));
+      s.emis = s.emis.add(s.albedo.mul(vec3(0.45, 1.0, 0.9)).mul(float(0.5).div(toLure.mul(toLure).mul(40.0).add(1.0)).add(0.035)).mul(float(1.0).sub(lure)));
       s.albedo = mix(s.albedo, vec3(0.7, 1.0, 0.95), lure);
       s.emis = s.emis.add(vec3(0.55, 1.0, 0.95).mul(lure).mul(5.0));
     },
@@ -831,7 +839,7 @@ function tentacleMaterial() {
         return J.c.add(mix(cord, coil, curly)).add(vec3(0.0, R.mul(-0.7).sub(ss.mul(len).mul(float(1.0).sub(conL.mul(0.08)))), 0.0)).add(sway);
       };
       const C0 = at(s).toVar(), T = normalize(at(s.add(0.01)).sub(C0)).toVar();
-      const r = R.mul(mix(float(0.055), float(0.045), curly)).mul(float(1.0).sub(s.mul(0.35))).mul(sqrt(min(float(1.0).sub(s).mul(25.0), 1.0)));
+      const r = R.mul(mix(float(0.075), float(0.06), curly)).mul(float(1.0).sub(s.mul(0.35))).mul(sqrt(min(float(1.0).sub(s).mul(25.0), 1.0)));
       const rg = ringAt(C0, T, tang, phi, r);
       v.P.assign(rg.p); v.N.assign(rg.n);
       vJ0.assign(vec4(jellyKeep(J.c, J.fade), s));
@@ -923,26 +931,26 @@ function wormMaterial() {
       const stem = (ss) => wA.xyz.add(vec3(sway.x.mul(ss).mul(ss).mul(H), ss.mul(H), sway.y.mul(ss).mul(ss).mul(H)));
       // the tube, flaring a little at its mouth
       const C0 = stem(s).toVar(), T0 = normalize(stem(s.add(0.02)).sub(C0)).toVar();
-      const rgT = ringAt(C0, T0, vec3(1.0, 0.0, 0.0), phi, float(0.05).mul(smoothstep(0.85, 1.0, s).mul(0.25).add(1.0)));
+      const rgT = ringAt(C0, T0, vec3(1.0, 0.0, 0.0), phi, float(0.075).mul(smoothstep(0.85, 1.0, s).mul(0.25).add(1.0)));
       // a plume tentacle: out from the rim, up, and over, waving
       const top = stem(float(1.0)), Tt = normalize(top.sub(stem(float(0.95))));
       const a = k.mul(TAU / 7).add(seed.mul(6.0)), o0 = vec3(cos(a), 0.0, sin(a));
       const out = normalize(o0.sub(Tt.mul(dot(o0, Tt))));
       const wave = sin(t.mul(1.4).add(k.mul(1.9)).add(seed.mul(9.0))).mul(0.25);
-      const pl = (ss) => top.add(out.mul(ss.mul(0.11).add(0.03).add(ss.mul(ss).mul(wave).mul(0.08)))).add(Tt.mul(ss.mul(0.09).sub(ss.mul(ss).mul(0.05)).add(0.01)));
+      const pl = (ss) => top.add(out.mul(ss.mul(0.15).add(0.05).add(ss.mul(ss).mul(wave).mul(0.1)))).add(Tt.mul(ss.mul(0.12).sub(ss.mul(ss).mul(0.06)).add(0.015)));
       const C1 = pl(s).toVar(), T1 = normalize(pl(s.add(0.05)).sub(C1)).toVar();
-      const rgP = ringAt(C1, T1, cross(out, Tt), phi, float(0.022).mul(float(1.0).sub(s.mul(0.4))).mul(sqrt(min(float(1.0).sub(s).mul(10.0), 1.0))));
+      const rgP = ringAt(C1, T1, cross(out, Tt), phi, float(0.032).mul(float(1.0).sub(s.mul(0.4))).mul(sqrt(min(float(1.0).sub(s).mul(10.0), 1.0))));
       const tent = step(0.5, plumeK).greaterThan(0.5), isP = step(0.5, plumeK).mul(step(0.5, wB.w)).greaterThan(0.5);
       v.P.assign(select(isP, rgP.p, select(tent, top, rgT.p)));
       v.N.assign(select(isP, rgP.n, rgT.n));
       vA.assign(select(isP, rgP.S, rgT.S)); vB.assign(select(isP, T1, T0));
-      vP.assign(vec3(cos(phi).mul(0.05), s.mul(select(isP, float(0.15), H)), sin(phi).mul(-0.05)).add(seed.mul(4.0)));
+      vP.assign(vec3(cos(phi).mul(0.075), s.mul(select(isP, float(0.2), H)), sin(phi).mul(-0.075)).add(seed.mul(4.0)));
       vK.assign(vec4(plumeK, s, 0.0, 0.0));
     },
     surface: (s, f) => {
       const A = normalize(vA), B = normalize(vB), red = vec3(0.86, 0.13, 0.11), white = vec3(0.95, 0.92, 0.86);
       const solidRed = max(step(0.5, vK.x), smoothstep(0.88, 0.92, vK.y));
-      knit(s, f, { color: mix(white, red, solidRed), color2: red, stripe: 3, scale: 40, p: vP, frame: [A, B, cross(A, B)], k: 1.3 });
+      knit(s, f, { color: mix(white, red, solidRed), color2: red, stripe: 3, scale: 32, p: vP, frame: [A, B, cross(A, B)], k: 1.3 });
     },
   });
 }
@@ -1132,12 +1140,12 @@ export function buildFauna(ctx) {
   // the creatures placed each frame: each one copy, in its slot, with a sphere round where it can be
   const slot = (n, look, seed) => ({ cS: new Float32Array([n, seed, look, 0]) });
   const turtleGeo = turtleShape(lod), turtleMat = turtleMaterial(), octGeo = octopusShape(lod), octMat = octopusMaterial();
-  const reefMid = [0.5, floorY(-156) + 7, -156], endAt = [-3, -3, -404];
+  const reefMid = [-6, floorY(-156) + 4.2, -156], endAt = [-3, -2, -403];
   add(solid(copies(turtleGeo, 1, slot(0, 0, 0.3), new Sphere(new Vector3(...reefMid), 30)), turtleMat), 110);
   add(solid(copies(turtleGeo, 1, slot(1, 1, 0.7), new Sphere(new Vector3(...endAt), 14)), turtleMat), 90);
   add(solid(copies(octGeo, 1, slot(2, 0, 0.1), new Sphere(new Vector3(...inView(4.72, 3.7, -1.2, 0)), 26)), octMat), 80);
   add(solid(copies(octGeo, 1, slot(3, 0, 0.6), new Sphere(new Vector3(...endAt), 14)), octMat), 80);
-  const anglerAt = inView(5.66, 4.6, 0.6, -0.4);
+  const anglerAt = inView(5.66, 4.0, 0.5, -0.3);
   add(solid(copies(anglerShape(lod), 1, slot(4, 0, 0.5), new Sphere(new Vector3(...anglerAt), 6)), anglerMaterial()), 90);
   add(solid(cards(1, slot(4, 0, 0.5), new Sphere(new Vector3(...anglerAt), 6)), lureGlowMaterial()), 90);
 
@@ -1147,7 +1155,7 @@ export function buildFauna(ctx) {
   const BELLS = [[[0.3, 0.82, 0.8], [0.62, 0.36, 0.78], 0], [[0.95, 0.5, 0.62], [0.56, 0.3, 0.7], 1], [[0.55, 0.84, 0.82], [0.93, 0.9, 0.86], 0], [[0.64, 0.4, 0.82], [0.95, 0.55, 0.75], 1]];
   const jboxes = [];
   spots.forEach(([x, y, z, near], i) => {
-    const R0 = near ? rng.range(0.2, 0.3) : rng.range(0.24, 0.42), [c1, c2, glow] = rng.pick(BELLS);
+    const R0 = near ? rng.range(0.3, 0.4) : rng.range(0.36, 0.56), [c1, c2, glow] = rng.pick(BELLS);
     ja.set([x, y, z, R0], i * 4);
     jb.set([rng(), rng.range(0.32, 0.55), rng.range(0.02, 0.05), rng.range(3.2, 5.0)], i * 4);
     jc.set([...c1, rng.range(0.85, 1.2)], i * 4);
@@ -1181,8 +1189,8 @@ export function buildFauna(ctx) {
       const cx = c.x + Math.cos(a) * dist, cz = c.z + Math.sin(a) * dist;
       if (offTrack(cx, cz) < 2.2) continue;
       for (let i = 0, nw = Math.max(3, Math.round(rng.range(5, 8) * Math.sqrt(amt))); i < nw; i++) {
-        const x = cx + rng.bell() * 0.35, z = cz + rng.bell() * 0.35;
-        worms.push([x, groundY(x, z) - 0.06, z, rng.range(0.35, 0.95), rng.bell() * 0.12, rng.bell() * 0.12, rng(), rng() < 0.72 ? 1 : 0]);
+        const x = cx + rng.bell() * 0.45, z = cz + rng.bell() * 0.45;
+        worms.push([x, groundY(x, z) - 0.06, z, rng.range(0.45, 1.0), rng.bell() * 0.12, rng.bell() * 0.12, rng(), rng() < 0.72 ? 1 : 0]);
       }
     }
   }
@@ -1278,10 +1286,10 @@ export function buildFauna(ctx) {
     frame(F, Math.max(-0.4, Math.min(0.4, lat * bank)));
     setSlot(n, P, F, Upv, size, phase, look);
   };
-  const reefTurtle = glide(0, (t, o) => { loop(o, reefMid, 2.6, 19, 84, 1.0, 0, t); o.y = floorY(o.z) + 6.3 + 0.5 * Math.sin(t * 0.3); }, 1.15, 0.3, 0, 0.8);
-  const endTurtle = glide(1, (t, o) => loop(o, [endAt[0] + 0.6, endAt[1], endAt[2] + 3.5], 3.8, 1.6, 46, 0.3, 0.35, t), 0.9, 0.7, 1, 0.6);
-  const endOctopus = glide(3, (t, o) => loop(o, [endAt[0] - 1.2, endAt[1] - 1.1, endAt[2] + 4.5], 1.6, 0.9, -38, 2.2, 0.25, t), 0.75, 0.6, 0, 0.2);
-  const angler = glide(4, (t, o) => loop(o, anglerAt, 1.3, 0.9, 34, 0, 0.3, t), 0.85, 0.5, 0, 0.3);
+  const reefTurtle = glide(0, (t, o) => { loop(o, reefMid, 1.5, 21, 84, 1.0, 0, t); o.y = floorY(o.z) + 4.2 + 0.4 * Math.sin(t * 0.3); }, 1.35, 0.3, 0, 0.8);
+  const endTurtle = glide(1, (t, o) => loop(o, [endAt[0] + 0.6, endAt[1], endAt[2]], 3.2, 1.2, 46, 0.3, 0.3, t), 0.95, 0.7, 1, 0.6);
+  const endOctopus = glide(3, (t, o) => loop(o, [endAt[0] - 1.8, endAt[1] - 0.9, endAt[2] + 2.5], 1.2, 0.8, -38, 2.2, 0.25, t), 0.85, 0.6, 0, 0.2);
+  const angler = glide(4, (t, o) => loop(o, anglerAt, 1.2, 0.8, 34, 0, 0.3, t), 1.25, 0.5, 0, 0.3);
 
   return {
     update(t, dt, p) {
@@ -1295,14 +1303,14 @@ export function buildFauna(ctx) {
       // the octopus at the wreck keeps to the left of the view from p 4.45 to 5, a few metres
       // ahead, bobbing and turned to the camera; at the edge of the drop-off it swims up and away
       const pv = Math.min(Math.max(p, 4.45), 5.0), away = smooth(4.85, 5.0, pv);
-      aheadTo(P, pv, 3.7, -1.15 - 2.35 * away, -0.35 + 1.85 * away);
+      aheadTo(P, pv, 3.8, -1.2 - 2.3 * away, -0.8 + 2.3 * away);
       P.y += 0.08 * Math.sin(t * 0.8);
       F.set(camera.position.x - P.x, (camera.position.y - P.y) * 0.3, camera.position.z - P.z).normalize();
       frame(F, 0.05 * Math.sin(t * 0.6));
-      setSlot(2, P, F, Upv, 1.35, 0.1, 0);
+      setSlot(2, P, F, Upv, 1.5, 0.1, 0);
     },
   };
 }
 
 // (for dev pages: the pieces, to look at one creature at a time)
-export const faunaParts = { FISH, COL, KINDS, fishShape, fishMaterial, fishMesh };
+export const faunaParts = { FISH, COL, KINDS, fishShape, fishMaterial, fishMesh, turtleShape, turtleMaterial, octopusShape, octopusMaterial, anglerShape, anglerMaterial, copies, solid, POSE };
