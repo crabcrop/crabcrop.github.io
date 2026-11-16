@@ -368,4 +368,56 @@ export function buildRocks(add, mat, looseMat, q) {
       add(mesh, 100);
     }
   }
+  // at the vents, close by the camera's way: black knobbly rocks, alone and in heaps, crusted
+  // teal at their feet (the rock's own look down here), on the black sand in the foreground;
+  // clear of the chimneys, the lava heaps and the geode
+  const knobbly = (res, seed) => {
+    const m = new Mesh(false);
+    orb(m, 0, 0, 0, (x, y, z) => 1 + 0.3 * fbm3(x * 1.6 + seed, y * 1.6, z * 1.6, 3) + 0.14 * noise3(x * 4.5, y * 4.5 + seed, z * 4.5) + 0.07 * noise3(x * 9, y * 9, z * 9 + seed), res);
+    return m.build();
+  };
+  const lumps = [knobbly(q.amount >= 1 ? 8 : 6, 2.3), knobbly(q.amount >= 1 ? 7 : 5, 6.1)];
+  const vents = FORMATIONS.filter(([k]) => k === chimney || k === pillows).map(([k, , z, off]) => [centerX(z) + off, z, k === chimney ? 3.2 : 5.0]);
+  const near = [[], []], o = [0, 0, 0, 0, 0], o2 = [0, 0, 0, 0, 0];
+  const heapAt = (x, z, s) => {
+    if (vents.some(([vx, vz, r]) => Math.hypot(x - vx, z - vz) < r + s) || CLEARINGS.some(([cx, cz, r]) => Math.hypot(x - cx, z - cz) < r + s + 0.6)) return;
+    // a heap: one big and a few small ones leaning on it
+    const heap = rng() < 0.45 ? 2 + Math.floor(rng() * 3) : 1;
+    for (let k = 0; k < heap; k++) {
+      const a = rng() * TAU, r = k ? s * rng.range(0.7, 1.2) : 0, ss = k ? s * rng.range(0.35, 0.6) : s;
+      const hx = x + Math.cos(a) * r, hz = z + Math.sin(a) * r;
+      near[rng() < 0.5 ? 0 : 1].push(hx, groundY(hx, hz) - ss * 0.2, hz, ss);
+    }
+  };
+  for (let p = 6.12; p < 6.98; p += 0.02 / Math.max(q.amount, 0.5)) {
+    pathAt(p, o); pathAt(p + 0.01, o2);
+    const dx = o2[0] - o[0], dz = o2[2] - o[2], l = Math.hypot(dx, dz) || 1;
+    for (const side of [-1, 1]) {
+      if (rng() < 0.35) continue;
+      const d = rng.range(1.4, 6.5);
+      heapAt(o[0] - (dz / l) * side * d + (dx / l) * rng.range(-1, 1), o[2] + (dx / l) * side * d + (dz / l) * rng.range(-1, 1), rng.range(0.22, 0.75) * (rng() < 0.2 ? 1.6 : 1));
+    }
+  }
+  // and in the foreground of the views where the camera looks over the plain: a few heaps in
+  // the lower third of the picture, five to eleven metres ahead
+  for (const p of [6.22, 6.3, 6.4, 6.5, 6.6, 6.7, 6.8]) {
+    pathAt(p, o);
+    const yaw = o[3] * Math.PI / 180, fx = Math.sin(yaw), fz = -Math.cos(yaw);
+    for (let i = 0; i < 3; i++) {
+      const ahead = rng.range(5.5, 11), side = rng.range(-1, 1) * ahead * 0.55;
+      heapAt(o[0] + fx * ahead + Math.cos(yaw) * side, o[2] + fz * ahead + Math.sin(yaw) * side, rng.range(0.35, 0.8));
+    }
+  }
+  near.forEach((list, j) => {
+    if (!list.length) return;
+    const places = [];
+    for (let i = 0; i < list.length; i += 4) {
+      const ss = list[i + 3];
+      quat.setFromAxisAngle(axis.set(rng.bell(), 1, rng.bell()).normalize(), rng() * TAU);
+      place(places, pos.set(list[i], list[i + 1], list[i + 2]), quat, scl.set(ss * rng.range(0.9, 1.25), ss * rng.range(0.75, 1.0), ss * rng.range(0.9, 1.2)));
+    }
+    const mesh = new ThreeMesh(instanced(lumps[j], places), looseMat);
+    mesh.matrixAutoUpdate = false;
+    add(mesh, 60);
+  });
 }

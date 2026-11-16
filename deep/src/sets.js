@@ -31,12 +31,12 @@
 import { BufferAttribute, InstancedBufferAttribute, InstancedBufferGeometry, Mesh as ThreeMesh, Sphere, Vector3 } from 'three/webgpu';
 import {
   abs, attribute, cameraPosition, clamp, cos, cross, dFdx, dFdy, dot, exp, float, floor, fract, fwidth, int, ivec3, length, max, min, mix, normalize, pow,
-  sign, sin, smoothstep, step, texture, varyingProperty, vec2, vec3, vec4,
+  reflect, select, sign, sin, smoothstep, step, texture, varyingProperty, vec2, vec3, vec4,
 } from 'three/tsl';
-import { centerX, groundY } from './layout.js';
+import { centerX, floorY, groundY } from './layout.js';
 import { Mesh, TAU, blob, clamp as clampN, lerp, makeRng, noise3 } from './math.js';
-import { G, SIG, detail, hash1, hash3, material, sunAt, yarn } from './shaders.js';
-import { rockSurf } from './terrain.js';
+import { G, SIG, detail, hash1, hash3, inWater, material, sunAt, yarn } from './shaders.js';
+import { rockSurf, rockyAt } from './terrain.js';
 
 // ---- building blocks ----------------------------------------------------------------------
 
@@ -516,12 +516,12 @@ function buildMarina(ctx, q, vp, opts) {
       if (lx < x0 - 0.1 || lx > x1 + 0.1) continue;
       for (const [lz, topY, isFront] of [[front + 0.05, 1.68, true], [back - 0.05, 0.98, false]]) {
         const px = X(lx + rng.range(-0.05, 0.05)), pz = Z(lz + rng.range(-0.04, 0.04));
-        const g = deep ? -4.4 + rng.range(-0.35, 0.35) : groundY(px, pz) - 0.8;
+        const g = deep ? shelfY(px, pz) - 0.4 : groundY(px, pz) - 0.8;
         const hw = rng.range(0.16, 0.19), tp = topY + rng.range(-0.06, 0.08);
         w.paint(WOOD.post.map((v) => v * rng.range(0.85, 1.12)));
         rbox(w, [px, (g + tp) / 2, pz], [1, 0, 0], [0, 1, 0], [0, 0, 1], [hw, (tp - g) / 2, hw * rng.range(0.92, 1.05)], 0.06, [1, Math.max(1, Math.round((tp - g) / 3.0)), 1],
           (lx2, ly, lz2, o) => { o[0] = lx2 + lz2 * 1.37 + i * 0.71; o[1] = ly; o[2] = 1; });
-        posts.push({ x: px, z: pz, hw, top: tp, front: isFront, left });
+        posts.push({ x: px, z: pz, hw, top: tp, front: isFront, left, foot: g });
         if (isFront) { r.paint(ROPE); lashing(r, [px, pz], hw, deckY + 0.12, 3); lashing(r, [px, pz], hw, tp - 0.25, 2); }
       }
     }
@@ -641,9 +641,14 @@ function buildMarina(ctx, q, vp, opts) {
     aux: true, fade, vertex: (v) => { tintIn(); bobTSL(v); },
     surface: (s, f) => {
       woodSurf(s, f, vT.rgb, vT2.w);
-      // under water, what faces down is lit by the sand below
-      const down = max(s.n.y.negate(), 0.0).mul(float(1).sub(smoothstep(-0.3, 0.0, f.w.y)));
-      s.emis = s.emis.add(s.albedo.mul(sunAt(f.w.y)).mul(down).mul(deep ? 0.1 : 0.16));
+      // under water the bare wood is weathered silver-grey, greener toward the foot; it is lit
+      // by the light the sand throws back up (most on what faces down: the boats' bottoms) and
+      // by the water's own light round it
+      const wet = smoothstep(-0.05, -0.7, f.w.y).toVar();
+      const grey = s.albedo.mul(0.4).add(mix(srgb(0.56, 0.51, 0.43), srgb(0.44, 0.45, 0.36), smoothstep(-1.5, -4.5, f.w.y)));
+      s.albedo = mix(s.albedo, grey, wet.mul(float(1).sub(vT2.w)).mul(0.85));
+      const down = max(s.n.y.negate(), 0.0).mul(smoothstep(0.04, -0.12, f.w.y));
+      s.emis = s.emis.add(s.albedo.mul(sunAt(f.w.y)).mul(down.mul(0.6).add(wet.mul(0.1))));
     },
   }), range);
   addMesh(ctx, sphereOf(finishBob(r, r.build()), 1), material({ aux: true, fade, vertex: (v) => { tintIn(); bobTSL(v); }, surface: (s, f) => ropeSurf(s, f, vT.rgb) }), range);
@@ -652,8 +657,143 @@ function buildMarina(ctx, q, vp, opts) {
   addMesh(ctx, sphereOf(finishBob(c, c.build()), 1), material({ aux: true, twoSided: true, fade, vertex: (v) => bobTSL(v), surface: (s, f) => canvasSurf(s, f, srgb(0.95, 0.91, 0.82)) }), range);
   if (bulbs) buildBulbs(ctx, bulbs);
   buildLighthouse(ctx, X(-34.2), Z(-94), deep);
+  if (deep) buildShelf(ctx, q, posts);
+  postMirror(ctx, posts);
   return { moored, dinghy, posts };
 }
+
+// The posts as the underside of the surface mirrors them: seen from just below the water, at a
+// slant the surface is a mirror, and each post goes on up into its own reflection instead of
+// stopping flat at the waterline. Each post's reflection (its part under water, turned over
+// above the surface) is laid onto the surface itself, along the line to the eye, so it is drawn
+// over the surface and under anything nearer; it fades out where the surface turns clear (the
+// bright window overhead) and with distance, and is not drawn at all from above the water.
+const vRef = varyingProperty('vec3', 'v_set_ref');
+function postMirror(ctx, posts) {
+  const m = new Mesh(true);
+  for (const p of posts) {
+    const h = Math.min(-p.foot, 6.0), hw = p.hw;
+    // a box from the waterline up, without its bottom (that lies in the surface itself)
+    const c = [[-hw, -hw], [hw, -hw], [hw, hw], [-hw, hw]];
+    for (let k = 0; k < 4; k++) {
+      const a = c[k], b = c[(k + 1) % 4], nx = (a[0] + b[0]) / (2 * hw), nz = (a[1] + b[1]) / (2 * hw), v0 = m.count;
+      for (const [q, y] of [[a, 0], [b, 0], [b, h], [a, h]]) m.vert(p.x + q[0], y, p.z + q[1], nx, 0, nz, 0, 0, y, k, 0, 0);
+      triFacing(m, v0, v0 + 1, v0 + 2, nx, 0, nz); triFacing(m, v0, v0 + 2, v0 + 3, nx, 0, nz);
+    }
+    const v0 = m.count;
+    for (const q of c) m.vert(p.x + q[0], h, p.z + q[1], 0, 1, 0, 0, 0, h, 4, 0, 0);
+    triFacing(m, v0, v0 + 1, v0 + 2, 0, 1, 0); triFacing(m, v0, v0 + 2, v0 + 3, 0, 1, 0);
+  }
+  const geo = sphereOf(m.build(), 1);
+  addMesh(ctx, geo, material({
+    aux: true, transparent: true, shadow: false,
+    vertex: (v) => {
+      // where the line from the eye to the reflected point crosses the surface, a little nearer
+      // (along the same line, so the picture is the same; only the depth test sees it in front)
+      const C = cameraPosition, V = v.P.toVar();
+      vRef.assign(V);
+      const t = C.y.div(min(C.y.sub(V.y), -1e-3)).clamp(0.0, 1.0);
+      const S = C.add(V.sub(C).mul(t.mul(0.975)));
+      v.P.assign(select(C.y.lessThan(-0.03), S, vec3(C.x, C.y.sub(5.0), C.z)));
+    },
+    raw: (f) => {
+      // the post's own wood, as the water shows it: weathered grey, lit from above, greener and
+      // dimmer the deeper the part it shows; through the water the whole way there and back
+      const V = vRef, Vb = vec3(V.x, V.y.negate(), V.z);
+      const g = texture(G.detailTex, vec2(V.x.add(V.z).mul(1.7), V.y.mul(0.2))).toVar();
+      const wood = mix(srgb(0.58, 0.53, 0.45), srgb(0.40, 0.45, 0.34), smoothstep(0.6, 3.0, V.y)).mul(g.b.mul(0.3).add(0.8));
+      const side = select(f.aux.y.lessThan(3.5), float(1.0), float(0.6));
+      const lit = wood.mul(sunAt(Vb.y).mul(0.34).add(G.amb.mul(0.3))).mul(side);
+      const col = inWater(lit, Vb);
+      const rd = normalize(V.sub(cameraPosition));
+      const mirror = float(1).sub(smoothstep(0.55, 0.68, rd.y)).mul(float(1).sub(smoothstep(18.0, 34.0, length(V.sub(cameraPosition)))));
+      return { color: col, alpha: mirror.mul(0.95) };
+    },
+  }), 45, { noShadow: true });
+}
+
+// At the end the marina stands on a shallow shelf of cream sand a few metres down, as in our
+// picture of it: rippled, a few stones and tufts of felt weed, the posts going down into it.
+// The camera comes up from the vents in front of it (x -3.5 to -4.2, z -383 to -392). The
+// shelf is one sheet of sand facing up, nothing under it, its front a gentle slope down to
+// z -393.5: from below the sheet faces away and is not drawn, so it hides nothing of the
+// bright surface overhead; only once the camera is within 9 m of the surface does the slope
+// face it (the stones and the weed show from then on too). It darkens toward its edges so
+// they melt into the deep.
+const SHELF = { x0: -41, x1: 35, z0: -393.5, z1: -452, y: -4.7, crest: -399.5, slope: 0.45 };
+function shelfY(x, z) {
+  const top = SHELF.y + 0.28 * noise3(x * 0.07 + 2.3, z * 0.07, 1.3) + 0.1 * noise3(x * 0.23, z * 0.23 + 1.7, 4.1);
+  // (the slope, its crest rounded over a metre)
+  const u = z - SHELF.crest, r = 0.5;
+  return top - SHELF.slope * (u > r ? u : u > -r ? (u + r) * (u + r) / (4 * r) : 0);
+}
+// Stones and weed on the shelf show only once the camera is near the surface (from below, they
+// would stand on nothing; from then on the slope's crest hides where they come in).
+const shelfShow = (v) => { if (!v.shadow) v.P.assign(v.P.sub(vec3(0.0, step(cameraPosition.y, -9.0).mul(1000.0), 0.0))); };
+function buildShelf(ctx, q, posts) {
+  const hi = q.amount >= 0.5, rng = makeRng(4242);
+  const m = new Mesh(true);
+  m.grid(hi ? 60 : 36, hi ? 36 : 22, (s, t, o) => {
+    const x = lerp(SHELF.x0, SHELF.x1, s), z = SHELF.z0 + (SHELF.z1 - SHELF.z0) * Math.pow(t, 1.35);
+    o[0] = x; o[1] = shelfY(x, z); o[2] = z;
+    o[3] = Math.max(smoothN(-399.8, -393.5, z) * 0.9, smoothN(30, 38, Math.abs(x + 3.02)));
+  });
+  addMesh(ctx, sphereOf(m.build(), 1), material({
+    aux: true, fade: [36, 64],
+    // (sand as on the shallows; where it sinks away at its edges it darkens into the deep)
+    surface: (s, f) => { rockSurf(s, f.w, f.w, float(0.0), float(1.0), f.dist); s.albedo = s.albedo.mul(float(1).sub(f.aux.x.mul(0.85))); },
+  }), 70);
+  // stones, half sunk in the sand, and tufts of felt weed by the posts
+  const st = new Mesh(true), k = new TMesh();
+  const spots = [[-9.5, -404.6, 0.42], [-12.8, -407.3, 0.3], [-1.9, -406.2, 0.26], [3.6, -404.1, 0.38], [6.4, -410.5, 0.5], [-15.5, -413, 0.55], [9.8, -406.8, 0.28], [-6.3, -411.4, 0.34], [13.5, -416, 0.6], [-20.5, -409, 0.45]];
+  for (const [x, z, r] of spots) {
+    const gy = shelfY(x, z), sq = rng.range(0.55, 0.8), v0 = st.count, i0 = st.i.length;
+    blob(st, x, gy + r * sq * 0.35, z, (dx, dy, dz) => r * (1 + 0.16 * noise3(dx * 2 + x, dy * 2, dz * 2 + z)) * (dy > 0 ? sq : 0.5), hi ? 6 : 4);
+    st.normals(v0, st.count, i0, null);
+  }
+  addMesh(ctx, sphereOf(st.build(), 0.5), material({ aux: true, fade: [36, 64], vertex: shelfShow, surface: (s, f) => rockSurf(s, f.w, f.w, float(1.0), float(0.8), f.dist) }), 70);
+  const tufts = [[-8.4, -403.4], [-13.2, -405.8], [2.7, -403.2], [5.6, -405.9], [-4.7, -408.5], [11.4, -409], [-17.6, -406.6], [0.6, -412.5]];
+  for (const [x, z] of tufts) {
+    const n = 3 + Math.floor(rng() * 3);
+    for (let i = 0; i < n; i++) {
+      const A = [x + rng.bell() * 0.35, 0, z + rng.bell() * 0.35];
+      A[1] = shelfY(A[0], A[2]) - 0.05;
+      k.paint(rng() < 0.5 ? [0.40, 0.52, 0.28] : [0.56, 0.58, 0.30], [0.70, 0.74, 0.44]);
+      feltBlade(k, rng, A, rng.range(0.7, 1.6), rng.range(0.09, 0.15), rng(), 1, 0.35, hi ? 10 : 6);
+    }
+  }
+  addMesh(ctx, sphereOf(k.build(), 1.5), weedMat([36, 64], shelfShow), 70);
+}
+
+// A felt blade or streamer: a ribbon from A, `len` long and `wid` wide, growing up (up = 1) or
+// hanging (up = -1), curling and twisting a little, wavy along its edges. aux: x how far along
+// (metres), y which edge (-1, 1), z a seed, w 1 (it sways). Paint k first.
+function feltBlade(k, rng, A, len, wid, seed, up = -1, curl = 0.6, n = 10) {
+  const v0 = k.count, twist = rng.range(-1.2, 1.2), lean = [rng.bell() * 0.4 + 0.25, rng.bell() * 0.3];
+  for (let i = 0; i <= n; i++) {
+    const t = i / n, s2 = t * len, ang = twist * t;
+    const cx = A[0] + lean[0] * s2 * t * curl + Math.sin(t * 5 + seed * 6) * 0.08 * s2, cy = A[1] + up * s2 * (1 - 0.25 * t * curl), cz = A[2] + lean[1] * s2 * t + Math.cos(t * 4 + seed * 5) * 0.08 * s2;
+    // (widest a third of the way, to a rounded point; the edges a little wavy)
+    const wd = wid * (0.45 + 0.75 * Math.sin(Math.PI * Math.min(t * 1.25 + 0.08, 1))) * (1 + 0.18 * Math.sin(t * 17 + seed * 4)) * (1 - 0.85 * t * t * t);
+    for (const sx of [-1, 1]) k.vert(cx + sx * wd * 0.5 * Math.cos(ang), cy, cz + sx * wd * 0.5 * Math.sin(ang), 0, 0, 1, 0, 0, s2, sx, seed, 1);
+  }
+  const i0 = k.i.length;
+  for (let i = 0; i < n; i++) { const a = v0 + i * 2; k.i.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); }
+  k.normals(v0, k.count, i0, null);
+}
+// Felt weed, swaying with the current, more toward its free end; a darker rib down its middle.
+const weedMat = (fade, more = null) => material({
+  aux: true, twoSided: true, fade,
+  vertex: (v) => {
+    tintIn();
+    if (more) more(v);
+    const ph = G.time.mul(0.7).add(v.aux.z.mul(20.0)).sub(v.aux.x.mul(0.9)).toVar(), kk = v.aux.x.mul(v.aux.x).mul(0.05).mul(v.aux.w);
+    v.P.assign(v.P.add(vec3(sin(ph).add(sin(ph.mul(2.1)).mul(0.3)), cos(ph.mul(0.7)).mul(0.15), cos(ph.mul(0.8)).mul(0.8)).mul(kk)));
+  },
+  surface: (s, f) => {
+    feltSurf(s, f, mix(vT.rgb, vT2.rgb, smoothstep(0.5, 3.0, f.aux.x)).mul(float(1).sub(exp(f.aux.y.mul(f.aux.y).mul(-40.0)).mul(0.25))));
+  },
+});
 
 // Little warm bulbs on a string: a lit bead each, and a soft halo.
 function buildBulbs(ctx, list) {
@@ -950,11 +1090,13 @@ function buildAnchor(ctx, foot, toward, facing) {
 
 // ---- the Clam Studio ----------------------------------------------------------------------------
 
-// The Clam Studio at the reef's far end, as in our pictures of it: a huge pearly pink scallop
-// open like a room, its lower valve a floor on the sand and the upper one standing behind it
-// as a wall; three crochet jellyfish hang in it as lamps, glowing, their curly tentacles
-// swaying; a pearl on a little mound of sand; a crochet starfish in front. It stands just to
-// the right of Snap's way, so he passes small beside it (p 3.75 to 3.85).
+// The Clam Studio at the reef's far end, as in our pictures of it: a huge pearly scallop open
+// like a room, its lower valve a deep dish on the sand and the upper one standing over it
+// as wall and ceiling; three crochet jellyfish hang in it as lamps (warm cream, teal, lilac),
+// glowing through their stitches and lighting the shell round them (glow slots 1 to 3, lent
+// by the vents while the camera is on the reef), their tentacles swaying; a pearl on a
+// little mound of sand; a crochet starfish in front. It stands just to the right of Snap's
+// way, so he passes small beside it (p 3.75 to 3.85).
 const CLAM = { x: 4.7, z: -170.4, face: [-0.42, 0.91], R: 2.3 };
 function buildClam(ctx, q) {
   const rng = makeRng(3131);
@@ -974,7 +1116,7 @@ function buildClam(ctx, q) {
       // the scalloped edge, the ribs fanning from the hinge, a shallow dish
       const th = u * SPAN / 2, ribs = Math.pow(Math.abs(Math.sin((u * 0.5 + 0.5) * RIBS * Math.PI)), 0.7);
       const rr = R * v * (1 + 0.04 * ribs * v);
-      const cup = 0.2 * R * (Math.pow(2 * v - 1, 2) * 0.8 + 0.6 * u * u * v) + 0.045 * R * ribs * Math.min(v * 3, 1);
+      const cup = 0.27 * R * (Math.pow(2 * v - 1, 2) * 0.75 + 0.7 * u * u * v) + 0.045 * R * ribs * Math.min(v * 3, 1);
       return [Math.sin(th) * rr, cup, Math.cos(th) * rr];
     };
     const place = (P, upper) => {
@@ -1002,7 +1144,7 @@ function buildClam(ctx, q) {
       }
       // the lip: a rounded rim along the scalloped edge
       const rim = [];
-      for (let i = 0; i <= NU; i++) { const u = i / NU * 2 - 1, L0 = local(u, 1), P = place([L0[0], L0[1] - 0.02, L0[2]], upper); rim.push([P[0], P[1], P[2], 0.032]); }
+      for (let i = 0; i <= NU; i++) { const u = i / NU * 2 - 1, L0 = local(u, 1), P = place([L0[0], L0[1] - 0.03, L0[2]], upper); rim.push([P[0], P[1], P[2], 0.05]); }
       sweep(sh, rim, 6, { aux: (k, j, x, y, z, o) => { o[0] = k / NU; o[1] = 1; o[2] = 0.5; o[3] = upper; } });
       // the ears either side of the hinge
       for (const sx of [-1, 1]) {
@@ -1013,7 +1155,7 @@ function buildClam(ctx, q) {
     return { hinge, gy, toW: (x, y, z) => place([x, y, z], 0), up: (x, y, z) => place([x, y, z], 1) };
   };
   const S = CLAM.R;
-  const left = shell(CLAM.x, CLAM.z, S, 1.74), right = left;      // (one clam: the lamps and the pearl in it)
+  const left = shell(CLAM.x, CLAM.z, S, 1.64), right = left;      // (one clam: the lamps and the pearl in it)
   addMesh(ctx, sphereOf(sh.build(), 0.5), material({
     aux: true, twoSided: true, fade: [82, 98],
     surface: (s, f) => {
@@ -1023,43 +1165,50 @@ function buildClam(ctx, q) {
       const vv = normalize(cameraPosition.sub(f.w)), ndv = abs(dot(s.n, vv)), fres = pow(float(1).sub(ndv), 2.0);
       const rib = cos(f.aux.x.mul(RIBS * TAU)).mul(0.5).add(0.5);
       const lines = sin(v.mul(70.0)).mul(0.5).add(0.5);
-      const pearl = mix(srgb(0.97, 0.52, 0.68), srgb(0.99, 0.76, 0.82), v.mul(0.55).add(rib.mul(0.3))).toVar();
-      const outer = mix(srgb(0.88, 0.44, 0.58), srgb(0.95, 0.66, 0.70), lines.mul(0.3).add(v.mul(0.4)));
-      s.albedo = mix(outer, pearl, inside).mul(rib.mul(0.08).add(0.94));
+      const pearl = mix(srgb(0.90, 0.64, 0.74), srgb(0.97, 0.82, 0.86), v.mul(0.55).add(rib.mul(0.3))).toVar();
+      const outer = mix(srgb(0.82, 0.52, 0.60), srgb(0.92, 0.70, 0.74), lines.mul(0.3).add(v.mul(0.4)));
+      s.albedo = mix(outer, pearl, inside).mul(rib.mul(0.1).add(0.9));
+      // (the room inside is half closed: less of the water's light reaches in toward the hinge)
+      s.ao = mix(float(1.0), smoothstep(0.0, 0.85, v).mul(0.5).add(0.5), inside);
       const D = detail(f.w, s.n, 2.0, 0.25);
       s.n = D.n;
       s.spec = mix(float(0.15), float(0.35), inside); s.gloss = mix(float(18.0), float(40.0), inside); s.fluor = float(0.8); s.trans = float(0.25);
       // the sheen: pink face-on, lilac and gold toward the edges of what the eye sees
       const irid = mix(mix(vec3(1.0, 0.72, 0.86), vec3(0.72, 0.70, 1.0), smoothstep(0.15, 0.55, fres)), vec3(1.0, 0.88, 0.62), smoothstep(0.55, 0.95, fres));
       s.emis = irid.mul(fres.mul(0.35).add(0.06)).mul(G.amb.mul(0.3).add(0.05)).mul(inside.mul(0.8).add(0.2))
-        .add(pearl.mul(vec3(0.5, 0.18, 0.28)).mul(inside.mul(0.75).add(0.25)));
+        .add(pearl.mul(vec3(0.1, 0.05, 0.08)).mul(inside.mul(0.75).add(0.25)));
     },
   }), 98);
 
-  // the jellyfish lamps in the left shell: crochet bells, glowing, hung on yarn from its upper rim
-  const jy = new TMesh(), lamps = [];
-  const JEL = [[-0.48, 0.6, 0.15, [0.98, 0.92, 0.80]], [-0.14, 0.76, 0.13, [1.0, 0.76, 0.70]], [0.2, 0.64, 0.14, [0.80, 0.70, 0.98]]];
-  JEL.forEach(([x0, h0, r0, col], k) => {
+  // the jellyfish lamps in the shell: crochet bells, glowing through their stitches, hung on
+  // yarn from its upper rim; long wavy tentacles and two curly arms below each
+  const jy = new TMesh(), lamps = [], lampCols = [], glows = [];
+  const JEL = [[-0.5, 0.62, 0.16, [1.0, 0.88, 0.66], [2.2, 1.5, 0.75]], [-0.14, 0.78, 0.14, [0.50, 0.93, 0.86], [0.5, 1.8, 1.55]], [0.22, 0.66, 0.15, [0.80, 0.64, 1.0], [1.4, 0.95, 2.2]]];
+  JEL.forEach(([x0, h0, r0, col, light], k) => {
     const x = x0 * S, hgt = h0 * S, r = r0 * S;
     const c = left.toW(x, hgt, S * 0.55);
-    jy.paint(col, col.map((v) => v * 0.86));
+    jy.paint(col, col.map((v) => v * 0.9));
     // the bell: a dome with a scalloped skirt; aux.w 1 = the bell, lit from inside
-    ball(jy, c[0], c[1], c[2], (dx, dy, dz) => r * (dy < -0.15 ? 0.25 + 0.75 * (1 + dy) : 1) * (dy > 0 ? 0.92 + 0.08 * dy : 1 + 0.06 * Math.sin(Math.atan2(dz, dx) * 8) * (dy < 0 ? 1 : 0)), 7, (dx, dy, dz, o) => { o[0] = dy; o[1] = 0; o[2] = k; o[3] = 1; });
-    // tentacles: curly strands of yarn hanging below
-    const nT = hiQ ? 7 : 5;
-    for (let t = 0; t < nT; t++) {
-      const a = (t / nT) * TAU + k, rr = r * 0.6, len = (0.55 + 0.35 * rng()) * S / 1.6, pts = [];
-      for (let i = 0; i <= 12; i++) {
-        const s2 = i / 12, curl = (0.05 + 0.04 * s2) * S / 1.6;
-        pts.push([c[0] + Math.cos(a) * rr * (1 - 0.3 * s2) + Math.cos(s2 * 14 + a * 3) * curl, c[1] - r * 0.15 - len * s2, c[2] + Math.sin(a) * rr * (1 - 0.3 * s2) + Math.sin(s2 * 14 + a * 3) * curl, 0.018 * (1 - 0.4 * s2)]);
+    ball(jy, c[0], c[1], c[2], (dx, dy, dz) => r * (dy < -0.15 ? 0.25 + 0.75 * (1 + dy) : 1) * (dy > 0 ? 0.92 + 0.08 * dy : 1 + 0.07 * Math.sin(Math.atan2(dz, dx) * 9) * (dy < 0 ? 1 : 0)), 8, (dx, dy, dz, o) => { o[0] = dy; o[1] = 0; o[2] = k; o[3] = 1; });
+    // tentacles: long wavy strands of yarn, and two arms curling round and round
+    jy.paint(col.map((v) => v * 0.92), col.map((v) => v * 0.8));
+    const nT = hiQ ? 8 : 5;
+    for (let t = 0; t < nT + 2; t++) {
+      const arm = t >= nT, a = (t / nT) * TAU + k * 0.7 + (arm ? 0.6 : 0), rr = r * (arm ? 0.25 : 0.7), len = (arm ? 0.45 : 0.6 + 0.4 * rng()) * S / 1.6, pts = [];
+      const n = arm ? 24 : 14;
+      for (let i = 0; i <= n; i++) {
+        const s2 = i / n, wav = arm ? (0.04 + 0.03 * s2) * S / 1.6 : (0.02 + 0.03 * s2) * S / 1.6, fq = arm ? 15 : 7;
+        pts.push([c[0] + Math.cos(a) * rr * (1 - 0.3 * s2) + Math.cos(s2 * fq + a * 3) * wav, c[1] - r * 0.12 - len * s2, c[2] + Math.sin(a) * rr * (1 - 0.3 * s2) + Math.sin(s2 * fq + a * 3) * wav, (arm ? 0.03 : 0.013) * (1 - 0.45 * s2)]);
       }
-      sweep(jy, pts, 4, { caps: true, aux: (kk, j, x2, y2, z2, o) => { o[0] = -1; o[1] = kk / 12 * len; o[2] = k; o[3] = 0; } });
+      sweep(jy, pts, arm ? 5 : 4, { caps: true, aux: (kk, j, x2, y2, z2, o) => { o[0] = -1; o[1] = kk / n * len; o[2] = k; o[3] = 0; } });
     }
     // the yarn it hangs from, up to the shell's rim
     const top = left.up(x * 0.8, 0.12, S * 0.97);
     jy.paint([0.9, 0.86, 0.78]);
     sweep(jy, [[c[0], c[1] + r * 0.9, c[2], 0.008], [lerp(c[0], top[0], 0.5), lerp(c[1] + r, top[1], 0.5) - 0.05, lerp(c[2], top[2], 0.5), 0.008], [top[0], top[1], top[2], 0.008]], 3, { aux: (kk, j, x2, y2, z2, o) => { o[0] = 0; o[1] = 0; o[2] = k; o[3] = 0; } });
-    lamps.push(c[0], c[1], c[2]);
+    lamps.push(c[0], c[1] - r * 0.1, c[2]);
+    lampCols.push(...toLinear(col).slice(0, 3));
+    glows.push([c[0], c[1] - r * 0.35, c[2], 2.9], [...light, 0]);
   });
   // the pearl on its mound of sand in the right shell, and the starfish in front of the left
   const pearlAt = right.toW(S * 0.42, 0.42, S * 0.5);
@@ -1081,9 +1230,10 @@ function buildClam(ctx, q) {
     for (let v = v0; v < jy.count; v++) { jy.p[v * 3] += star[0]; jy.p[v * 3 + 1] += gy + 0.05; jy.p[v * 3 + 2] += star[2]; jy.a[v * 4] = -3; jy.a[v * 4 + 3] = 0; }
     jy.normals(v0, jy.count, i0, null);
   }
-  addMesh(ctx, sphereOf(jy.build(), 1), yarnMat({
-    fade: [82, 98], scale: 30, stripe: 2,
+  addMesh(ctx, sphereOf(jy.build(), 1), material({
+    aux: true, fade: [82, 98],
     vertex: (v) => {
+      tintIn();
       // the tentacles sway, more toward their ends; the bells bob a little
       const ph = G.time.mul(0.9).add(v.aux.z.mul(2.3)).toVar();
       const tent = step(v.aux.x, -0.5).mul(step(-1.5, v.aux.x));
@@ -1091,9 +1241,12 @@ function buildClam(ctx, q) {
       v.P.assign(v.P.add(vec3(sin(ph.add(v.aux.y.mul(3.0))).mul(k), sin(ph.mul(0.7)).mul(0.03).mul(v.aux.w.add(tent)), cos(ph.mul(0.8).add(v.aux.y.mul(2.0))).mul(k))));
     },
     surface: (s, f) => {
-      // the bells glow from inside, most through the skirt
-      const bell = f.aux.w;
-      s.emis = s.emis.add(vT.rgb.mul(vec3(1.0, 0.82, 0.62)).mul(bell.mul(float(0.95).sub(f.aux.x.mul(0.4)))));
+      const Y = yarn(s, f, { color: vT.rgb, color2: vT2.rgb, stripe: 2, scale: 30, k: 1.2 });
+      // the bells glow from inside: through the gaps between the stitches, and most through the
+      // skirt; the tentacles a little
+      const bell = f.aux.w, tent = step(f.aux.x, -0.5).mul(step(-1.5, f.aux.x));
+      const through = float(1).sub(Y.h).mul(1.3).add(0.75).mul(float(1.0).sub(f.aux.x.mul(0.35)));
+      s.emis = s.emis.add(vT.rgb.mul(bell.mul(through).mul(1.5).add(tent.mul(0.3))));
     },
   }), 98);
   // the pearl
@@ -1109,14 +1262,19 @@ function buildClam(ctx, q) {
       },
     }), 98);
   }
-  // the lamps' light: a warm haze round each bell
-  addMesh(ctx, halos(lamps, 1.0), material({
-    additive: true, shadow: false, fade: [70, 90],
-    vertex: (v) => haloVertex(v, 1.0),
-    raw: (f) => { const d = length(vHalo); return { color: vec3(1.0, 0.78, 0.55).mul(exp(d.mul(d).mul(-5.0)).mul(0.42)).mul(exp(SIG.mul(f.dist).negate())), alpha: float(1.0) }; },
-  }), 90, { noShadow: true });
+  // the lamps' light: a haze of each one's own colour round its bell
+  {
+    const geo = halos(lamps, 1.3);
+    geo.setAttribute('hc', new InstancedBufferAttribute(new Float32Array(lampCols), 3));
+    const vHC = varyingProperty('vec3', 'v_set_hc');
+    addMesh(ctx, geo, material({
+      additive: true, shadow: false, fade: [70, 90],
+      vertex: (v) => { vHC.assign(attribute('hc', 'vec3')); haloVertex(v, 1.3); },
+      raw: (f) => { const d = length(vHalo); return { color: vHC.mul(exp(d.mul(d).mul(-4.0)).mul(0.85)).mul(exp(SIG.mul(f.dist).negate())), alpha: float(1.0) }; },
+    }), 90, { noShadow: true });
+  }
   const normal = V(ez[0] * 0.75, 0.66, ez[2] * 0.75).normalize();
-  return { position: V(pearlAt[0], pearlAt[1] + 0.26, pearlAt[2]), normal };
+  return { position: V(pearlAt[0], pearlAt[1] + 0.26, pearlAt[2]), normal, glows };
 }
 
 // ---- the wreck --------------------------------------------------------------------------------
@@ -1139,7 +1297,7 @@ function barnacle(m, P, n, rr, seed) {
   let a = [u[1] * n[2] - u[2] * n[1], u[2] * n[0] - u[0] * n[2], u[0] * n[1] - u[1] * n[0]];
   const al = Math.hypot(a[0], a[1], a[2]); a = a.map((v) => v / al);
   const bv = [n[1] * a[2] - n[2] * a[1], n[2] * a[0] - n[0] * a[2], n[0] * a[1] - n[1] * a[0]];
-  const h = rr * (0.8 + 0.5 * hashN(seed, 3));
+  const h = rr * (1.0 + 0.6 * hashN(seed, 3));
   // profile: [radius, height, dark]
   const prof = [[rr, -0.02, 0], [rr * 1.02, h * 0.35, 0], [rr * 0.78, h * 0.85, 0], [rr * 0.55, h, 0], [rr * 0.4, h * 0.92, 1], [rr * 0.12, h * 0.55, 1]];
   const sides = LO ? 6 : 8, base = m.count, i0 = m.i.length;
@@ -1165,7 +1323,7 @@ function buildWreck(ctx, q) {
   const Wd = (x, y, z) => { const x1 = x * ch - y * sh, y1 = x * sh + y * ch; return [P[0] * x1 + F[0] * z, y1, P[2] * x1 + F[2] * z]; };
   // wood, yarn (barnacles and the things on the desk), brass, rope, glass, felt
   const w = new TMesh(), y = new TMesh(), b = new TMesh(), r = new TMesh(), gl = new TMesh(), k = new TMesh();
-  const DARK = [0.45, 0.36, 0.28], DECK = [0.52, 0.42, 0.31], INNER = [0.46, 0.33, 0.22], RAW = [0.72, 0.58, 0.44];
+  const DARK = [0.50, 0.42, 0.34], DECK = [0.54, 0.45, 0.34], INNER = [0.46, 0.33, 0.22], RAW = [0.78, 0.64, 0.48];
   // (tint2.w marks wood that faces into the ship: in the cabin it is lit by the lantern)
   const paintIn = (c) => w.paint(c, [...c, 1]);
   // the hull's lines: t from the stern (0) to the bow (1)
@@ -1182,13 +1340,13 @@ function buildWreck(ctx, q) {
     const yk = keelAt(t), yt = topAt(t), yy = yk + (yt - yk) * v;
     const vv = clampN((yy - yk) / Math.max(deckAt(t) - yk, 0.3), 0, 1.4);
     const th = Math.min(vv, 1) * Math.PI / 2;
-    let x = hbAt(t) * Math.pow(Math.sin(th), 0.5);
+    let x = hbAt(t) * Math.pow(Math.sin(th), 0.5 + 0.85 * (1 - smoothN(0.0, 0.24, t)));
     if (vv > 1) x = hbAt(t) * (1 - 0.07 * (vv - 1));                     // tumblehome above the deck
     return [Math.max(x - inset, 0.02), yy];
   };
-  // the transom: rounded across and raked aft toward the top; the sides and decks end on it
+  // the transom: round across, raked aft toward the top; the sides and decks end on it
   const yk0 = keelAt(0), yt0 = topAt(0);
-  const tz = (yy, xx) => -L / 2 - 0.3 * Math.pow(clampN((yy - yk0) / (yt0 - yk0), 0, 1), 1.5) - 0.18 * (1 - Math.pow(clampN(xx / Math.max(hbAt(0), 0.1), -1, 1), 2));
+  const tz = (yy, xx) => -L / 2 - 0.55 * Math.pow(clampN((yy - yk0) / (yt0 - yk0), 0, 1), 1.5) - 0.42 * (1 - Math.pow(clampN(xx / Math.max(hbAt(0), 0.1), -1, 1), 2));
   const cab = { t: 0.135, floor: deckAt(0.135) + 0.02 };
   const cz = (cab.t - 0.5) * L;
   const tOf = (z) => z / L + 0.5;
@@ -1238,7 +1396,9 @@ function buildWreck(ctx, q) {
     }
     w.normals(base, w.count, i0, null);
   }
-  // round each hole: the planks' broken edges between the skin and the lining, and splinters
+  // round each hole: along its top and bottom the planks' long edges (fresh wood between the
+  // skin and the lining); where a plank is broken across, a ragged end of splinters of its own
+  // lengths, some bent out or in, its broken grain pale
   for (const side of [-1, 1]) {
     const m = mask[side > 0 ? 1 : 0];
     const cut = (i, j) => i >= 0 && i < NV && j >= 0 && j < NT && m[i * NT + j];
@@ -1247,26 +1407,63 @@ function buildWreck(ctx, q) {
       if (m[i * NT + j]) continue;
       for (const [di, dj] of [[0, 1], [0, -1], [1, 0], [-1, 0]]) {
         if (!cut(i + di, j + dj)) continue;
-        const e = dj === 1 ? [[i, j + 1], [i + 1, j + 1]] : dj === -1 ? [[i, j], [i + 1, j]] : di === 1 ? [[i + 1, j], [i + 1, j + 1]] : [[i, j], [i, j + 1]];
-        const A = hullAt(side, 0, ...e[0]), Bq = hullAt(side, 0, ...e[1]), Ai = hullAt(side, 1, ...e[0]), Bi = hullAt(side, 1, ...e[1]);
-        const c0 = hullAt(side, 0, i + 0.5, j + 0.5), c1 = hullAt(side, 0, i + 0.5 + di, j + 0.5 + dj);
-        const n = [c1[0] - c0[0], c1[1] - c0[1], c1[2] - c0[2]];
-        w.paint(RAW);
-        const v0 = w.count;
-        for (const Q of [A, Bq, Bi, Ai]) w.vert(Q[0], Q[1], Q[2], n[0], n[1], n[2], 0, 0, Q[1] * 2.0 + side, (j / NT - 0.5) * L, 0.85, 0);
-        triFacing(w, v0, v0 + 1, v0 + 2, n[0], n[1], n[2]); triFacing(w, v0, v0 + 2, v0 + 3, n[0], n[1], n[2]);
-        // a plank's broken end: a tooth or two of splintered wood into the hole
-        if (dj !== 0) {
-          w.paint(DARK);
-          for (const [v0a, v0b] of [[0.06, 0.48], [0.52, 0.94]]) {
-            if (hashN(i * 7 + j + v0a * 13, side + 4) > 0.7) continue;
-            const len = 0.15 + 0.4 * hashN(i + 3 * j + v0a * 5, side + 9), jj = e[0][1];
-            const a2 = hullAt(side, 0, i + v0a, jj), b2 = hullAt(side, 0, i + v0b, jj), tip = hullAt(side, 0, i + lerp(v0a, v0b, 0.3 + 0.4 * hashN(j, i + v0a)), jj + dj * len);
-            const v1 = w.count;
-            for (const Q of [a2, b2, tip]) w.vert(Q[0], Q[1], Q[2], out[0], out[1], out[2], 0, 0, i * 0.235 + 0.117, ((jj + dj * 0.5) / NT - 0.5) * L, 1, 2);
-            triFacing(w, v1, v1 + 1, v1 + 2, out[0], out[1], out[2]);
-          }
+        if (dj === 0) {
+          const e = di === 1 ? [[i + 1, j], [i + 1, j + 1]] : [[i, j], [i, j + 1]];
+          const A = hullAt(side, 0, ...e[0]), Bq = hullAt(side, 0, ...e[1]), Ai = hullAt(side, 1, ...e[0]), Bi = hullAt(side, 1, ...e[1]);
+          const c0 = hullAt(side, 0, i + 0.5, j + 0.5), c1 = hullAt(side, 0, i + 0.5 + di, j + 0.5);
+          const n = [c1[0] - c0[0], c1[1] - c0[1], c1[2] - c0[2]];
+          w.paint(RAW);
+          const v0 = w.count;
+          for (const Q of [A, Bq, Bi, Ai]) w.vert(Q[0], Q[1], Q[2], n[0], n[1], n[2], 0, 0, Q[1] * 2.0 + side, (j / NT - 0.5) * L, 0.85, 0);
+          triFacing(w, v0, v0 + 1, v0 + 2, n[0], n[1], n[2]); triFacing(w, v0, v0 + 2, v0 + 3, n[0], n[1], n[2]);
+          continue;
         }
+        // the broken end: five points across the plank, each splinter its own length
+        const jj = dj === 1 ? j + 1 : j, hs = (a) => hashN(i * 7.13 + jj * 3.71 + a * 1.37, side * 2.3 + 5.1);
+        const reach = 0.25 + 0.95 * hs(1), bend = hs(2) < 0.3 ? (hs(3) - 0.5) * 0.9 : 0;
+        const vs = [0, 0.18 + 0.1 * hs(4), 0.45 + 0.1 * hs(5), 0.7 + 0.1 * hs(6), 1];
+        const ext = [0.08 * hs(7), reach * (0.55 + 0.45 * hs(8)), reach * (0.1 + 0.3 * hs(9)), reach * (0.4 + 0.6 * hs(10)), 0.1 * hs(11)];
+        const at = (layer, k, e) => {
+          const Q = hullAt(side, layer, i + vs[k], jj + dj * e);
+          const b = bend * e * (L / NT);
+          return [Q[0] + out[0] * b, Q[1] + out[1] * b, Q[2] + out[2] * b];
+        };
+        for (const layer of [0, 1]) {
+          if (layer) paintIn(INNER); else w.paint(DARK);
+          const v0 = w.count, nrm = layer ? out.map((c) => -c) : out;
+          for (let kq = 0; kq < 5; kq++) for (const e of [0, ext[kq]]) {
+            const Q = at(layer, kq, e);
+            w.vert(Q[0], Q[1], Q[2], nrm[0], nrm[1], nrm[2], 0, 0, i * 0.235 + vs[kq] * 0.235, ((jj + dj * e) / NT - 0.5) * L, 1, 2);
+          }
+          for (let kq = 0; kq < 4; kq++) { const a = v0 + kq * 2; triFacing(w, a, a + 2, a + 1, nrm[0], nrm[1], nrm[2]); triFacing(w, a + 1, a + 2, a + 3, nrm[0], nrm[1], nrm[2]); }
+        }
+        // the splinters' broken grain, between the skin and the lining, round the jagged end
+        w.paint(RAW);
+        for (let kq = 0; kq < 4; kq++) {
+          const A = at(0, kq, ext[kq]), Bq = at(0, kq + 1, ext[kq + 1]), Ai = at(1, kq, ext[kq]), Bi = at(1, kq + 1, ext[kq + 1]);
+          const mid = at(0, kq, ext[kq] + 0.3), n = [(mid[0] - A[0]), (mid[1] - A[1]), (mid[2] - A[2])];
+          const v0 = w.count;
+          for (const Q of [A, Bq, Bi, Ai]) w.vert(Q[0], Q[1], Q[2], n[0], n[1], n[2], 0, 0, Q[1] * 2.0 + side, (jj / NT - 0.5) * L, 0.85, 0);
+          triFacing(w, v0, v0 + 1, v0 + 2, n[0], n[1], n[2]); triFacing(w, v0, v0 + 2, v0 + 3, n[0], n[1], n[2]);
+        }
+      }
+    }
+  }
+  // the ship's ribs where its side is breached amidships: bent timbers inside the planking,
+  // crossing the hole (two broken off), and the far side's showing through it, dark
+  {
+    const h = holes[1];
+    paintIn([0.30, 0.21, 0.14]);
+    for (let kr = -3; kr <= 3; kr++) {
+      const t = h.t + kr * (0.6 / L), broken = kr === -1 || kr === 2;
+      for (const sd of [h.side, -h.side]) {
+        const pts = [], top = (deckAt(t) - keelAt(t)) / (topAt(t) - keelAt(t));
+        const v1 = broken && sd === h.side ? (h.y - 0.25 - keelAt(t)) / (topAt(t) - keelAt(t)) : top * 0.98;
+        for (let kv = 0; kv <= 10; kv++) {
+          const v = lerp(0.04, v1, kv / 10), [x, yy] = sect(t, v, 0.22);
+          pts.push([...W(sd * x, yy, (t - 0.5) * L), 0.085]);
+        }
+        sweep(w, pts, 5, { caps: true, aux: (kk, j, x, y2, z, o) => { o[0] = j / 5 * 0.3; o[1] = kk * 0.3; o[2] = 0.45; o[3] = 1; } });
       }
     }
   }
@@ -1284,14 +1481,20 @@ function buildWreck(ctx, q) {
     flush();
   }
 
-  // ---- the transom: planked upright, a gallery of small arched windows lit from inside
+  // ---- the transom: planked, round across and raked, its top arched; a gallery of four small
+  // windows between carved rails and pilasters (two lit warm from the cabin, two dark), a
+  // carved shell on the crest of the taffrail and a scroll at each of its corners
+  const arch = (xx, hx) => 0.42 * Math.max(0, 1 - (xx / Math.max(hx, 0.1)) ** 2);
   {
-    const base = w.count, cols = 14, rows = 14;
+    const base = w.count, cols = 16, rows = 16;
+    const rowAt = (v, j, inset) => {
+      const [hx, yy0] = sect(0, v, inset), xx = hx * (j / cols * 2 - 1);
+      return [xx, yy0 + arch(xx, hx) * smoothN(0.82, 1.0, v), hx];
+    };
     w.paint(DARK);
     for (let i = 0; i <= rows; i++) for (let j = 0; j <= cols; j++) {
-      const v = i / rows, [hx, yy] = sect(0, v), xx = hx * (j / cols * 2 - 1);
-      const Pp = W(xx, yy, tz(yy, xx));
-      w.vert(Pp[0], Pp[1], Pp[2], 0, 1, 0, 0, 0, xx + 5.0, yy, 1, 2);
+      const [xx, yy] = rowAt(i / rows, j, 0), Pp = W(xx, yy, tz(yy, xx));
+      w.vert(Pp[0], Pp[1], Pp[2], 0, 1, 0, 0, 0, yy, xx + 5.0, 1, 2);
     }
     const i0 = w.i.length, Nb = Wd(0, 0, -1);
     for (let i = 0; i < rows; i++) for (let j = 0; j < cols; j++) { const a = base + i * (cols + 1) + j; triFacing(w, a, a + 1, a + cols + 1, Nb[0], Nb[1], Nb[2]); triFacing(w, a + 1, a + cols + 2, a + cols + 1, Nb[0], Nb[1], Nb[2]); }
@@ -1301,57 +1504,82 @@ function buildWreck(ctx, q) {
       const b2 = w.count, Nf = Wd(0, 0, 1);
       paintIn(INNER);
       for (let i = 0; i <= rows; i++) for (let j = 0; j <= cols; j++) {
-        const v = i / rows, [hx, yy] = sect(0, v, 0.14), xx = hx * (j / cols * 2 - 1);
-        const Pp = W(xx, yy, tz(yy, xx) + 0.05);
-        w.vert(Pp[0], Pp[1], Pp[2], 0, 1, 0, 0, 0, xx + 5.0, yy, 1, 2);
+        const [xx, yy] = rowAt(i / rows, j, 0.14), Pp = W(xx, yy, tz(yy, xx) + 0.05);
+        w.vert(Pp[0], Pp[1], Pp[2], 0, 1, 0, 0, 0, yy, xx + 5.0, 1, 2);
       }
       const i1 = w.i.length;
       for (let i = 0; i < rows; i++) for (let j = 0; j < cols; j++) { const a = b2 + i * (cols + 1) + j; triFacing(w, a, a + 1, a + cols + 1, Nf[0], Nf[1], Nf[2]); triFacing(w, a + 1, a + cols + 2, a + cols + 1, Nf[0], Nf[1], Nf[2]); }
       w.normals(b2, w.count, i1, null);
     }
-    // carved rails above and below the gallery, and the taffrail along the top
-    const wy = cab.floor + 1.55;
-    w.paint([0.25, 0.18, 0.12]);
-    for (const [yy, rad] of [[wy - 0.62, 0.075], [wy + 0.66, 0.085], [yt0 - 0.05, 0.1]]) {
-      const pts = [], hx = sect(0, (yy - yk0) / (yt0 - yk0))[0];
-      for (let j = 0; j <= 12; j++) { const xx = (j / 12 * 2 - 1) * (hx + 0.02); pts.push([...W(xx, yy, tz(yy, xx) - 0.06), rad]); }
+    // the carved rails under and over the gallery, following the transom's curve; the
+    // taffrail along its arched top
+    const wy = cab.floor + 1.55, CARVE = [0.58, 0.44, 0.24];
+    const rail = (yAt, rad, col) => {
+      w.paint(col);
+      const pts = [];
+      for (let j = 0; j <= 16; j++) {
+        const yy0 = yAt(0), hx = sect(0, clampN((yy0 - yk0) / (yt0 - yk0), 0, 1))[0] + 0.03, xx = (j / 16 * 2 - 1) * hx, yy = yAt(xx / hx);
+        pts.push([...W(xx, yy, tz(yy, xx) - 0.06), rad]);
+      }
       sweep(w, pts, 6, { caps: true, aux: (kk, j, x, y2, z, o) => { o[0] = j / 6; o[1] = kk * 0.4; o[2] = 1; o[3] = 1; } });
-    }
-    // the windows: arched, small, five across; lit warm from the cabin, or broken and dark;
-    // from inside, the same shapes show the water
+    };
+    rail(() => wy - 0.36, 0.07, CARVE); rail(() => wy - 0.47, 0.05, [0.25, 0.18, 0.12]);
+    rail(() => wy + 0.36, 0.07, CARVE);
+    rail((u) => yt0 + 0.42 * Math.max(0, 1 - u * u) - 0.04, 0.1, [0.25, 0.18, 0.12]);
+    // the windows: small, four across, square-topped with a rounded head; lit warm, or dark
     const outline = (cx, cy, wd, ht, n) => {
-      const pts = [], rr = wd / 2, straight = ht - rr;
+      const pts = [], rr = wd / 2, straight = ht - rr * 0.6;
       pts.push([cx - rr, cy - ht / 2]); pts.push([cx + rr, cy - ht / 2]);
-      for (let i = 0; i <= n; i++) { const a = (i / n) * Math.PI; pts.push([cx + Math.cos(a) * rr, cy - ht / 2 + straight + Math.sin(a) * rr]); }
+      for (let i = 0; i <= n; i++) { const a = (i / n) * Math.PI; pts.push([cx + Math.cos(a) * rr, cy - ht / 2 + straight + Math.sin(a) * rr * 0.6]); }
       return pts;
     };
-    [-1.86, -0.93, 0, 0.93, 1.86].forEach((wx, wi) => {
-      const lit = wi !== 0 && wi !== 3;
-      const ol = outline(wx, wy, 0.48, 0.74, 8);
-      for (const inside of [0, 1]) {
-        const g0 = gl.count, nn = inside ? Wd(0, 0, 1) : Nb;
-        gl.paint([1, 1, 1, inside ? 0 : lit ? 1 : 0.5]);
-        const cxy = [wx, wy - 0.05], Q0 = W(cxy[0], cxy[1], tz(cxy[1], cxy[0]) + (inside ? 0.075 : -0.025));
-        gl.vert(Q0[0], Q0[1], Q0[2], nn[0], nn[1], nn[2], 0, 0, 0, 0, 0, inside ? 1 : 0);
-        for (const [px, py] of ol) { const Q = W(px, py, tz(py, px) + (inside ? 0.075 : -0.025)); gl.vert(Q[0], Q[1], Q[2], nn[0], nn[1], nn[2], 0, 0, (px - wx) / 0.24, (py - wy) / 0.37, 0, inside ? 1 : 0); }
-        for (let i = 0; i < ol.length; i++) triFacing(gl, g0, g0 + 1 + i, g0 + 1 + ((i + 1) % ol.length), nn[0], nn[1], nn[2]);
-      }
-      // the frame round it, a mullion and a bar
+    const WX = [-1.42, -0.48, 0.48, 1.42];
+    WX.forEach((wx, wi) => {
+      const lit = wi === 1 || wi === 3;
+      const ol = outline(wx, wy, 0.34, 0.46, 6);
+      const g0 = gl.count;
+      gl.paint([1, 1, 1, lit ? 1 : 0.5]);
+      const Q0 = W(wx, wy - 0.03, tz(wy, wx) - 0.025);
+      gl.vert(Q0[0], Q0[1], Q0[2], Nb[0], Nb[1], Nb[2], 0, 0, 0, 0, 0, 0);
+      for (const [px, py] of ol) { const Q = W(px, py, tz(py, px) - 0.025); gl.vert(Q[0], Q[1], Q[2], Nb[0], Nb[1], Nb[2], 0, 0, (px - wx) / 0.17, (py - wy) / 0.23, 0, 0); }
+      for (let i = 0; i < ol.length; i++) triFacing(gl, g0, g0 + 1 + i, g0 + 1 + ((i + 1) % ol.length), Nb[0], Nb[1], Nb[2]);
+      // the frame round it, carved; a mullion and a bar
       w.paint([0.22, 0.16, 0.11]);
-      const fr = ol.map(([px, py]) => [...W(px, py, tz(py, px) - 0.05), 0.04]);
-      sweep(w, fr, 5, { closed: true, aux: (kk, j, x, y2, z, o) => { o[0] = j / 5; o[1] = kk * 0.2; o[2] = 1; o[3] = 1; } });
-      const ztop = wy + 0.37 - 0.02;
-      sweep(w, [[...W(wx, wy - 0.37, tz(wy, wx) - 0.04), 0.018], [...W(wx, ztop, tz(ztop, wx) - 0.04), 0.018]], 4, { aux: (kk, j, x, y2, z, o) => { o[0] = j / 4; o[1] = y2; o[2] = 1; o[3] = 1; } });
-      sweep(w, [[...W(wx - 0.24, wy + 0.02, tz(wy, wx - 0.24) - 0.04), 0.018], [...W(wx + 0.24, wy + 0.02, tz(wy, wx + 0.24) - 0.04), 0.018]], 4, { aux: (kk, j, x, y2, z, o) => { o[0] = j / 4; o[1] = kk; o[2] = 1; o[3] = 1; } });
+      sweep(w, ol.map(([px, py]) => [...W(px, py, tz(py, px) - 0.05), 0.04]), 5, { closed: true, aux: (kk, j, x, y2, z, o) => { o[0] = j / 5; o[1] = kk * 0.2; o[2] = 1; o[3] = 1; } });
+      const ztop = wy + 0.21;
+      sweep(w, [[...W(wx, wy - 0.23, tz(wy, wx) - 0.04), 0.014], [...W(wx, ztop, tz(ztop, wx) - 0.04), 0.014]], 4, { aux: (kk, j, x, y2, z, o) => { o[0] = j / 4; o[1] = y2; o[2] = 1; o[3] = 1; } });
+      sweep(w, [[...W(wx - 0.17, wy + 0.02, tz(wy, wx - 0.17) - 0.04), 0.014], [...W(wx + 0.17, wy + 0.02, tz(wy, wx + 0.17) - 0.04), 0.014]], 4, { aux: (kk, j, x, y2, z, o) => { o[0] = j / 4; o[1] = kk; o[2] = 1; o[3] = 1; } });
     });
-    // a stern lantern on the taffrail, cold
-    const sl = W(0, yt0 + 0.55, tz(yt0, 0) - 0.15);
-    sweep(b, [[sl[0], sl[1] - 0.32, sl[2], 0.1], [sl[0], sl[1] - 0.25, sl[2], 0.16], [sl[0], sl[1] - 0.2, sl[2], 0.12]], 10, { caps: true });
-    sweep(b, [[sl[0], sl[1] + 0.22, sl[2], 0.13], [sl[0], sl[1] + 0.32, sl[2], 0.08], [sl[0], sl[1] + 0.45, sl[2], 0.02]], 10, { caps: true });
-    gl.paint([1, 1, 1, 0]);
-    sweep(gl, [[sl[0], sl[1] - 0.2, sl[2], 0.11], [sl[0], sl[1], sl[2], 0.14], [sl[0], sl[1] + 0.22, sl[2], 0.11]], 10, { caps: true, aux: (kk, j, x, y2, z, o) => { o[0] = 0; o[1] = 0; o[2] = 0; o[3] = 3; } });
-    w.paint(DARK);
-    timber(w, W(0, yt0 - 0.1, tz(yt0, 0) - 0.12), W(0, yt0 + 0.25, tz(yt0, 0) - 0.15), 0.1, 0.1, Wd(0, 0, 1), 0.03);
+    // pilasters between the windows, half-round, carved, with a knob at each end
+    w.paint(CARVE);
+    for (const px of [-1.9, -0.95, 0, 0.95, 1.9]) {
+      const y0 = wy - 0.33, y1 = wy + 0.33;
+      sweep(w, [[...W(px, y0, tz(y0, px) - 0.07), 0.045], [...W(px, (y0 + y1) / 2, tz(wy, px) - 0.09), 0.055], [...W(px, y1, tz(y1, px) - 0.07), 0.045]], 6, { caps: true, aux: (kk, j, x, y2, z, o) => { o[0] = j / 6; o[1] = y2 * 2; o[2] = 1; o[3] = 1; } });
+    }
+    // the carved shell on the taffrail's crest: ribs fanning up from a boss
+    {
+      const c = [0, yt0 + 0.3], R0 = 0.5;
+      for (let kf = 0; kf <= 8; kf++) {
+        const a = Math.PI * (0.08 + 0.84 * kf / 8), pts = [];
+        for (let s2 = 0; s2 <= 4; s2++) {
+          const r2 = 0.08 + (R0 - 0.08) * s2 / 4, xx = c[0] + Math.cos(a) * r2, yy = c[1] + Math.sin(a) * r2 * 0.85;
+          pts.push([...W(xx, yy, tz(yy, xx) - 0.12 - 0.05 * Math.sin(Math.PI * s2 / 4)), 0.03 + 0.025 * s2 / 4]);
+        }
+        sweep(w, pts, 5, { caps: true, aux: (kk, j, x, y2, z, o) => { o[0] = j / 5; o[1] = kk * 0.3; o[2] = 1; o[3] = 1; } });
+      }
+      const boss = W(0, c[1], tz(c[1], 0) - 0.14);
+      ball(w, boss[0], boss[1], boss[2], () => 0.09, 4, (dx, dy, dz, o) => { o[0] = dx; o[1] = dy; o[2] = 1; o[3] = 1; });
+    }
+    // a scroll at each upper corner, rolled toward the middle
+    for (const sx of [-1, 1]) {
+      const hx = sect(0, 0.97)[0], cx = sx * (hx - 0.3), cy = yt0 - 0.35, pts = [];
+      for (let kq = 0; kq <= 22; kq++) {
+        const u = kq / 22, a = -Math.PI / 2 + sx * u * 1.6 * TAU, r2 = 0.3 * (1 - 0.8 * u);
+        const xx = cx - sx * Math.cos(a) * r2 * sx, yy = cy + Math.sin(a) * r2;
+        pts.push([...W(xx, yy, tz(yy, xx) - 0.09), 0.055 * (1 - 0.5 * u)]);
+      }
+      sweep(w, pts, 5, { caps: true, aux: (kk, j, x, y2, z, o) => { o[0] = j / 5; o[1] = kk * 0.1; o[2] = 1; o[3] = 1; } });
+    }
   }
 
   // ---- decks: the main deck runs the length (it is the cabin's floor under the castle), the
@@ -1493,24 +1721,38 @@ function buildWreck(ctx, q) {
   shrouds(0.74, [fore[0], fore[1] - 2.7, fore[2]], 3, false);
   shrouds(0.5, [main[0], main[1] - 0.6, main[2]], 3, true);
 
-  // ---- barnacles: crochet bobbles in clusters, on the hull low down and round the holes, on
-  // the rails and the masts' stumps, and on the cabin's beams
-  y.paint([0.86, 0.84, 0.78], [0.46, 0.42, 0.37]);
+  // ---- barnacles: raised crochet cones in close clusters, white, on the hull low down by the
+  // sand, along the wales, round the breach, on the stern; on the masts' stumps and the
+  // cabin's posts
+  y.paint([0.95, 0.93, 0.87], [0.86, 0.84, 0.78]);
+  const brng = makeRng(2469);
   const cluster = (Pp, n, sz, nrm) => {
     for (let kk = 0; kk < n; kk++) {
-      const o2 = [rng.bell() * sz * 3.2, rng.bell() * sz * 3.2, rng.bell() * sz * 3.2];
+      const o2 = [brng.bell() * sz * 3.0, brng.bell() * sz * 3.0, brng.bell() * sz * 3.0];
       const d = o2[0] * nrm[0] + o2[1] * nrm[1] + o2[2] * nrm[2];
-      barnacle(y, [Pp[0] + o2[0] - nrm[0] * d, Pp[1] + o2[1] - nrm[1] * d, Pp[2] + o2[2] - nrm[2] * d], nrm, sz * rng.range(0.6, 1.3), rng() * 9);
+      barnacle(y, [Pp[0] + o2[0] - nrm[0] * d, Pp[1] + o2[1] - nrm[1] * d, Pp[2] + o2[2] - nrm[2] * d], nrm, sz * brng.range(0.55, 1.3), brng() * 9);
     }
   };
-  for (let kk = 0; kk < (hi ? 30 : 18); kk++) {
-    const side = rng() < 0.7 ? -1 : 1, t = rng.range(0.05, 0.9), v = rng.range(0.12, 0.55);
+  const onHull = (side, t, v, n, sz) => {
     const i = Math.floor(v * NV), j = Math.floor(t * NT);
-    if (mask[side > 0 ? 1 : 0][i * NT + j]) continue;
-    const [x, yy] = sect(t, v), Pp = W(side * x, yy, (t - 0.5) * L);
-    cluster(Pp, 4 + Math.floor(rng() * 7), 0.075, Wd(side, 0.35, 0).map((vv) => vv / Math.hypot(1, 0.35)));
+    if (i < 0 || i >= NV || j < 0 || j >= NT || mask[side > 0 ? 1 : 0][i * NT + j]) return;
+    const [x, yy] = sect(t, v), Pp = W(side * (x + 0.01), yy, (t - 0.5) * L);
+    cluster(Pp, n, sz, Wd(side, 0.3, 0).map((vv) => vv / Math.hypot(1, 0.3)));
+  };
+  for (let kk = 0; kk < (hi ? 26 : 16); kk++) {
+    const side = brng() < 0.75 ? -1 : 1, t = brng.range(0.08, 0.92), band = brng();
+    // (low by the sand, along the wales, or anywhere between)
+    const v = band < 0.45 ? brng.range(0.18, 0.3) : band < 0.75 ? brng.range(0.5, 0.66) : brng.range(0.3, 0.5);
+    onHull(side, t, v, 6 + Math.floor(brng() * 8), 0.105);
   }
-  for (const Pp of [main, mizz]) cluster([Pp[0], Pp[1] - 0.5, Pp[2]], 6, 0.06, [P[0], 0.2, P[2]].map((vv) => vv / Math.hypot(1, 0.2)));
+  // round the breach
+  { const h = holes[1]; for (const [dt, dv] of [[-1.25, 0.3], [1.2, -0.2], [-0.5, -1.1], [0.6, 1.15], [1.35, 0.8]]) { const v = (h.y + dv * h.hy - keelAt(h.t)) / (topAt(h.t) - keelAt(h.t)); onHull(h.side, h.t + dt * h.ht, v, 7, 0.1); } }
+  // on the stern, by its corners and under the gallery
+  for (const [xx, yy] of [[-1.9, cab.floor + 0.45], [1.75, cab.floor + 0.6], [0.2, cab.floor + 0.9]]) {
+    const Pp = W(xx, yy, tz(yy, xx) - 0.02);
+    cluster(Pp, 8, 0.1, Wd(0, 0.2, -1).map((vv) => vv / Math.hypot(1, 0.2)));
+  }
+  for (const Pp of [main, mizz]) cluster([Pp[0], Pp[1] - 0.5, Pp[2]], 6, 0.07, [P[0], 0.2, P[2]].map((vv) => vv / Math.hypot(1, 0.2)));
   for (const Pp of posts) cluster(Pp, 3, 0.055, [-P[0], 0, -P[2]]);
 
   // ---- felt weed: long soft ribbons hanging from the yards, the shrouds and the rails, the
@@ -1518,7 +1760,7 @@ function buildWreck(ctx, q) {
   const ribbons = [];
   const ribbon = (A, len, wid, seed, up = -1, curl = 0.6) => {
     const v0 = k.count, n = hi ? 12 : 8, twist = rng.range(-1.2, 1.2), lean = [rng.bell() * 0.4 + 0.25, rng.bell() * 0.3];
-    k.paint(rng() < 0.5 ? [0.42, 0.53, 0.30] : [0.52, 0.60, 0.34], [0.66, 0.72, 0.46]);
+    k.paint(rng() < 0.5 ? [0.44, 0.53, 0.36] : [0.54, 0.60, 0.40], [0.68, 0.72, 0.52]);
     for (let i = 0; i <= n; i++) {
       const t = i / n, s = t * len, ang = twist * t;
       const cx = A[0] + lean[0] * s * t * curl + Math.sin(t * 5 + seed * 6) * 0.08 * s, cyy = A[1] + up * s * (1 - 0.25 * t * curl), czz = A[2] + lean[1] * s * t + Math.cos(t * 4 + seed * 5) * 0.08 * s;
@@ -1535,6 +1777,17 @@ function buildWreck(ctx, q) {
     for (let kk = 0; kk < 3; kk++) ribbon([Pp[0] + rng.bell() * 0.35, Pp[1] - rng() * 0.3, Pp[2] + rng.bell() * 0.35], rng.range(1.2, long), rng.range(0.16, 0.3), rng());
   }
   for (let kk = 0; kk < 8; kk++) { const t = rng.range(0.3, 0.84), sd = rng() < 0.6 ? -1 : 1; ribbon(W(sd * (sect(t, 1)[0] + 0.05), topAt(t), (t - 0.5) * L), rng.range(1.0, 2.4), rng.range(0.14, 0.24), rng(), -1, 0.3); }
+  // streamers down the hull from its wales, on the camera's side, and from the stern's rails
+  {
+    const srng = makeRng(2470);
+    for (let kk = 0; kk < (hi ? 12 : 7); kk++) {
+      const t = srng.range(0.06, 0.9), v = srng() < 0.5 ? 0.64 : 0.52, i = Math.floor(v * NV), j = Math.floor(t * NT);
+      if (mask[0][i * NT + j]) continue;
+      const [x, yy] = sect(t, v);
+      ribbon(W(-(x + 0.12), yy - 0.05, (t - 0.5) * L), srng.range(1.2, 2.6), srng.range(0.13, 0.22), srng(), -1, 0.25);
+    }
+    for (const xx of [-1.6, -0.2, 1.3]) { const yy = cab.floor + 1.2; ribbon(W(xx, yy, tz(yy, xx) - 0.12), srng.range(1.0, 1.8), srng.range(0.12, 0.2), srng(), -1, 0.2); }
+  }
 
   // ---- the cabin's furnishings
   // the desk: top, legs, drawers with brass knobs; against the port wall, facing the hole
@@ -1576,11 +1829,15 @@ function buildWreck(ctx, q) {
     rbox(w, c0, dX, dY, dZ, [0.3, 0.2, 0.4], 0.04, [1, 1, 1], (lx, ly, lz, o) => { o[0] = ly * 3 + lx; o[1] = lz; o[2] = 1; o[3] = 1; });
     const c1 = W(desk.x - 0.05, cab.floor + 0.42, desk.z + 1.35);
     sweep(w, [[c1[0] - dZ[0] * 0.4, c1[1], c1[2] - dZ[2] * 0.4, 0.3], [c1[0] + dZ[0] * 0.4, c1[1], c1[2] + dZ[2] * 0.4, 0.3]], 12, { caps: true, radius: (kk, j, ang) => (Math.sin(ang) > 0 ? 1 : 0.15), aux: (kk, j, x, yy, z, o) => { o[0] = j / 12; o[1] = kk * 0.8; o[2] = 1; o[3] = 1; } });
-    for (const sz of [-0.28, 0.28]) {
-      const bb = W(desk.x - 0.05, cab.floor + 0.42, desk.z + 1.35 + sz), ring = [];
-      for (let i = 0; i <= 12; i++) { const a = Math.PI * (i / 12); ring.push([bb[0] + dX[0] * Math.cos(a) * 0.32, bb[1] - 0.22 + Math.sin(a) * 0.3 + (i === 0 || i === 12 ? 0 : 0.22), bb[2] + dX[2] * Math.cos(a) * 0.32, 0.022]); }
-      sweep(b, ring, 5);
+    // (its bands flat straps hugging the box and the lid)
+    b.paint([0.72, 1, 1, 0]);
+    for (const sz of [-0.26, 0.26]) {
+      const at = (lx, ly) => W(desk.x - 0.05 + lx, cab.floor + ly, desk.z + 1.35 + sz), path = [[...at(0.31, 0.03), 1], [...at(0.31, 0.3), 1]];
+      for (let i = 0; i <= 10; i++) { const a = Math.PI * (i / 10); path.push([...at(Math.cos(a) * 0.31, 0.42 + Math.sin(a) * 0.31), 1]); }
+      path.push([...at(-0.31, 0.3), 1], [...at(-0.31, 0.03), 1]);
+      sweep(b, path, 8, { up: dZ, radius: (kk, j, ang) => 1 / Math.max(Math.abs(Math.cos(ang)) / 0.009, Math.abs(Math.sin(ang)) / 0.03) });
     }
+    b.paint([1, 1, 1, 0]);
     const lk = W(desk.x - 0.37, cab.floor + 0.36, desk.z + 1.35);
     rbox(b, lk, dX, dY, dZ, [0.02, 0.06, 0.05], 0.01);
   }
@@ -1627,23 +1884,56 @@ function buildWreck(ctx, q) {
     gl.paint([1, 1, 1, 0]);
     sweep(gl, [[...L0(0, -0.14, 0), 0.06], [...L0(0, -0.02, 0), 0.09], [...L0(0, 0.1, 0), 0.08], [...L0(0, 0.17, 0), 0.05]], 12, { caps: true, aux: (kk, j, x, yy, z, o) => { o[0] = 0; o[1] = kk / 3; o[2] = 0; o[3] = 2; } });
   }
-  // drifted sand in the cabin's corners, under the broken planks; felt weed growing in it
-  const heaps = [[2.0, -10.25, 0.55, 0.62, 0.36], [-2.05, -10.3, 0.48, 0.55, 0.28], [2.05, -5.62, 0.48, 0.4, 0.3], [0.3, -10.45, 0.55, 0.38, 0.2]];
+  // drifted sand in the cabin's corners, under the broken planks: low drifts banked against
+  // the wall, thinning out over the floor, combed into ripples; a few blades of felt kelp
+  // growing in them by the wall. [x, z, half length across, half length along, height, which
+  // way the wall is (+1 port, -1 starboard), kelp]
+  const heaps = [[2.15, -10.2, 0.7, 0.75, 0.32, 1, 1], [-2.15, -10.25, 0.62, 0.68, 0.26, -1, 1], [2.25, -5.5, 0.55, 0.5, 0.2, 1, 0], [0.3, -10.5, 0.75, 0.42, 0.18, 0, 0]];
   {
-    const sm = new Mesh(true);
-    for (const [xx, zz, rr, rz, hh] of heaps) {
-      const v0 = sm.count, i0 = sm.i.length;
-      blob(sm, 0, 0, 0, (dx, dy, dz) => (dy < 0 ? 0.05 : 1) * (1 + 0.12 * noise3(dx * 3 + xx, dy * 3, dz * 3 + zz)), 8);
-      for (let v = v0; v < sm.count; v++) {
-        const lx = sm.p[v * 3] * rr, ly = Math.max(sm.p[v * 3 + 1], -0.02) * hh, lz = sm.p[v * 3 + 2] * rz;
-        const Q2 = W(xx + lx, cab.floor - 0.03 + ly, zz + lz);
-        sm.p[v * 3] = Q2[0]; sm.p[v * 3 + 1] = Q2[1]; sm.p[v * 3 + 2] = Q2[2];
+    const sm = new Mesh(true), drng = makeRng(2471);
+    for (const [xx, zz, rr, rz, hh, wall, kelp] of heaps) {
+      const v0 = sm.count, i0 = sm.i.length, rings = 7, segs = 22;
+      const ht = (r, a) => {
+        const u = Math.cos(a) * r, lip = Math.pow(Math.max(0, 1 - r * r), 1.6);
+        return hh * lip * (1 + 0.55 * wall * u) * (1 + 0.15 * noise3(Math.cos(a) * r * 3 + xx, Math.sin(a) * r * 3 + zz, 1.7));
+      };
+      const c0 = W(xx, cab.floor - 0.02 + ht(0, 0), zz);
+      sm.vert(c0[0], c0[1], c0[2], 0, 1, 0, 0, 0, 0, 0, 0, 0);
+      for (let kr = 1; kr <= rings; kr++) for (let j = 0; j < segs; j++) {
+        const r = kr / rings, a = (j / segs) * TAU, wob = 1 + 0.18 * noise3(Math.cos(a) * 2 + xx, Math.sin(a) * 2 + zz, 4.2);
+        // (banked against the wall, never through it)
+        const lz = zz + Math.sin(a) * rz * r * wob, wallX = sect(tOf(lz), (cab.floor + 0.1 - keelAt(tOf(lz))) / (topAt(tOf(lz)) - keelAt(tOf(lz))), 0.24)[0];
+        const lx = clampN(xx + Math.cos(a) * rr * r * wob, -wallX, wallX);
+        const Q2 = W(lx, cab.floor - 0.02 + ht(r, a) - (kr === rings ? 0.02 : 0), lz);
+        sm.vert(Q2[0], Q2[1], Q2[2], 0, 1, 0, 0, 0, r, 0, 0, 0);
+      }
+      const up = Wd(0, 1, 0);
+      for (let j = 0; j < segs; j++) triFacing(sm, v0, v0 + 1 + j, v0 + 1 + ((j + 1) % segs), up[0], up[1], up[2]);
+      for (let kr = 1; kr < rings; kr++) for (let j = 0; j < segs; j++) {
+        const a = v0 + 1 + (kr - 1) * segs + j, b = v0 + 1 + (kr - 1) * segs + ((j + 1) % segs);
+        triFacing(sm, a, a + segs, b, up[0], up[1], up[2]); triFacing(sm, b, a + segs, b + segs, up[0], up[1], up[2]);
       }
       sm.normals(v0, sm.count, i0, null);
-      for (let kk = 0; kk < 3; kk++) ribbon(W(xx + rng.bell() * rr * 0.4, cab.floor + hh * 0.4, zz + rng.bell() * rz * 0.5), rng.range(0.6, 1.5), rng.range(0.1, 0.17), rng(), 1, 0.4);
+      // kelp by the wall, leaning against it, clear of the chest and the desk
+      if (kelp) for (let kk = 0; kk < 4; kk++) {
+        const A = W(xx + wall * rr * drng.range(0.15, 0.45), cab.floor + hh * 0.5, zz + drng.bell() * rz * 0.6);
+        k.paint(drng() < 0.5 ? [0.36, 0.46, 0.24] : [0.44, 0.50, 0.26], [0.62, 0.66, 0.38]);
+        feltBlade(k, drng, A, drng.range(0.55, 1.05), drng.range(0.08, 0.12), drng(), 1, 0.15, hi ? 9 : 6);
+      }
     }
     // (indoors: little of the water's light reaches it; the lantern's does)
-    addMesh(ctx, sphereOf(sm.build(), 0.5), material({ aux: true, fade: [100, 118], surface: (s, f) => { sandSurf(s, f, srgb(0.72, 0.66, 0.56)); s.ao = float(0.4); s.caustic = float(0.15); } }), 118);
+    addMesh(ctx, sphereOf(sm.build(), 0.5), material({
+      aux: true, fade: [100, 118],
+      surface: (s, f) => {
+        sandSurf(s, f, srgb(0.74, 0.68, 0.58));
+        // ripples combed across the drift, softening toward its thin edge
+        const ph = f.w.x.mul(11.0).add(f.w.z.mul(6.0)).add(texture(G.detailTex, f.w.xz.mul(0.6)).r.mul(7.0)).toVar();
+        const rip = float(1).sub(smoothstep(0.75, 1.0, f.aux.x)).mul(0.55);
+        s.n = normalize(s.n.add(vec3(0.18, 0.0, 0.1).mul(cos(ph)).mul(rip)));
+        s.albedo = s.albedo.mul(sin(ph).mul(0.08).mul(rip).add(0.97));
+        s.ao = float(0.45); s.caustic = float(0.15);
+      },
+    }), 118);
   }
 
   // ---- the meshes
@@ -1685,7 +1975,7 @@ function buildWreck(ctx, q) {
   // yarn: barnacles (their mouths dark), the envelope, the seal, the scroll
   addMesh(ctx, sphereOf(y.build(), 0.5), yarnMat({
     fade, scale: 46,
-    surface: (s, f) => { s.albedo = mix(s.albedo, vT2.rgb, f.aux.w); s.ao = s.ao.mul(mix(float(1), float(0.5), f.aux.w)); },
+    surface: (s, f) => { s.albedo = mix(s.albedo, s.albedo.mul(vec3(0.22, 0.2, 0.18)), f.aux.w); s.ao = s.ao.mul(mix(float(1), float(0.5), f.aux.w)); s.emis = s.emis.add(s.albedo.mul(0.05).mul(float(1).sub(f.aux.w))); },
   }), range);
   // felt: swaying with the current, more toward its free end
   addMesh(ctx, sphereOf(k.build(), 2), material({
@@ -1777,13 +2067,17 @@ function buildVents(ctx, q) {
       rel[v] = t;
       keep[v] = y > A.g - 0.6 && Math.hypot(x - ax, z - az) < env ? 1 : 0;
     }
+    // (how high each point is over the ground: what is buried is left out, and the glow fades
+    // to nothing where the rock goes into the sand, so no hard line is drawn along it)
+    const over = new Float32Array(P.length / 3);
+    for (let v = 0; v < over.length; v++) over[v] = P[v * 3 + 1] - groundY(P[v * 3], P[v * 3 + 2]);
     for (let k = 0; k < I.length; k += 3) {
       const a = I[k], b = I[k + 1], c = I[k + 2];
-      if (!(keep[a] && keep[b] && keep[c])) continue;
+      if (!(keep[a] && keep[b] && keep[c]) || Math.max(over[a], over[b], over[c]) < 0.06) continue;
       for (const v of [a, b, c]) {
-        pos.push(P[v * 3] + N[v * 3] * 0.025, P[v * 3 + 1] + N[v * 3 + 1] * 0.025, P[v * 3 + 2] + N[v * 3 + 2] * 0.025);
+        pos.push(P[v * 3] + N[v * 3] * 0.03, P[v * 3 + 1] + N[v * 3 + 1] * 0.03, P[v * 3 + 2] + N[v * 3 + 2] * 0.03);
         nrm.push(N[v * 3], N[v * 3 + 1], N[v * 3 + 2]);
-        aux.push(rel[v], ci, A.height, 0);
+        aux.push(rel[v], ci, A.height, over[v]);
       }
     }
   });
@@ -1796,18 +2090,25 @@ function buildVents(ctx, q) {
       aux: true, additive: true, shadow: false,
       raw: (f) => {
         const t = f.aux.x;
-        // two planes of cracks, blended by which way the rock faces; wobbled by the relief
-        // texture; big cells, so only a few long cracks cross each chimney
+        // three planes of cracks (side on, side on, from above), blended sharply by which way
+        // the rock faces, so a face never shows a plane edge-on (that drew combs of thin
+        // stripes); wobbled by the relief texture; big cells, so only a few long cracks cross
+        // each chimney
         const wob = texture(G.detailTex, f.w.xz.mul(0.06).add(f.w.y.mul(0.035))).toVar();
         const pa = vec2(f.w.x, f.w.y.mul(0.55)).mul(0.62).add(wob.rg.sub(0.5).mul(0.9)), pb = vec2(f.w.z, f.w.y.mul(0.55)).mul(0.62).add(wob.gr.sub(0.5).mul(0.9));
-        const ea = cellEdge(pa), eb = cellEdge(pb);
-        const wx = abs(f.n.z), wz = abs(f.n.x);
-        const e = ea.mul(wx).add(eb.mul(wz)).div(wx.add(wz).add(1e-3)).toVar();
-        // the pixel's size in the pattern; a crack is widened to at least that, and dimmed by as
-        // much, so a far crack is a faint soft line, not a row of sparks
-        const fw = max(fwidth(pa.x).add(fwidth(pa.y)), 1e-4).toVar();
+        const pc = vec2(f.w.x, f.w.z).mul(0.62).add(wob.rg.sub(0.5).mul(0.9));
+        const ea = cellEdge(pa), eb = cellEdge(pb), ec = cellEdge(pc);
+        const nn = pow(abs(f.n), vec3(4.0)).toVar();
+        const e = ea.mul(nn.z).add(eb.mul(nn.x)).add(ec.mul(nn.y)).div(nn.x.add(nn.y).add(nn.z).add(1e-4)).toVar();
+        // the pixel's size in the pattern (from the distance and how slanting the face is, not
+        // from screen derivatives, which come in two-pixel steps and dot a thin line); a crack
+        // is widened to at least three of them, and dimmed by as much, so a far or slanting
+        // crack is a faint soft band, not a row of sparks; seen edge-on, the rock's own outline
+        // has no cracks drawn on it at all
+        const ndv = abs(dot(f.n, normalize(cameraPosition.sub(f.w)))).toVar();
+        const fw = f.dist.mul(0.0011).div(max(ndv, 0.2)).toVar();
         const heat = smoothstep(0.42, 0.97, t).toVar();
-        const w0 = heat.mul(0.055).add(0.02), wp = max(w0, fw.mul(1.4)).toVar();
+        const w0 = heat.mul(0.06).add(0.025), wp = max(w0, fw.mul(3.0)).toVar();
         const er = e.div(wp).toVar();
         const core = exp(er.mul(er).mul(-2.2)).mul(w0.div(wp));
         const halo = exp(e.div(wp.mul(3.0).add(0.05)).negate()).mul(0.25);
@@ -1815,10 +2116,10 @@ function buildVents(ctx, q) {
         // the lip of the mouth hot all round; lava glowing among the rocks at the foot
         const lip = smoothstep(0.92, 1.0, t);
         const up = t.mul(f.aux.z).toVar();
-        const lava = exp(e.div(max(float(0.09), fw.mul(1.4))).mul(-1.6)).mul(smoothstep(0.3, 0.6, wob.b));
+        const lava = exp(e.div(max(float(0.11), fw.mul(3.0))).mul(-1.6)).mul(smoothstep(0.3, 0.6, wob.b));
         const foot = float(1).sub(smoothstep(0.15, 1.0, up)).mul(lava).toVar();
         const flick = sin(G.time.mul(1.7).add(f.w.y.mul(1.3)).add(f.aux.y.mul(2.1))).mul(0.1).add(0.9);
-        const k = max(max(crack, lip.mul(0.55)), foot.mul(0.75)).mul(flick).toVar();
+        const k = max(max(crack, lip.mul(0.55)), foot.mul(0.75)).mul(flick).mul(smoothstep(0.04, 0.4, f.aux.w)).mul(smoothstep(0.12, 0.4, ndv)).toVar();
         const col = mix(vec3(0.75, 0.10, 0.02), vec3(1.0, 0.42, 0.07), smoothstep(0.25, 0.9, k));
         return { color: col.mul(k).mul(2.0).mul(exp(SIG.mul(f.dist).negate())), alpha: float(1.0) };
       },
@@ -1891,79 +2192,27 @@ function buildVents(ctx, q) {
 
 // ---- the geode and the diving helmet --------------------------------------------------------
 
-// The geode at the end of the vents: a dark rough stone split open, a thin band of pale agate
-// on the cut face, and a hollow lined with crystal points, violet deep inside, teal, amber
-// toward the rim, glowing from within (glow slot 3) but never to white. The main half faces
-// the camera at p = 7; the back of its hollow is a flatter bed of small crystals, where the
-// picture lies. The other half lies beside it on its back. Built as shells round a centre:
-// aux.x is the kind (0 rind, 1 agate, 2 hollow).
-const GEODE = { x: -5.3, z: -389.2, r: 1.45 };
-// crystal colours (gc.w: 0 violet, 0.5 teal, 1 amber)
-const pickHue = (deep, rng) => {
-  const u = rng();
-  if (deep > 0.75) return u < 0.68 ? 0 : u < 0.92 ? 0.5 : 1;
-  if (deep > 0.4) return u < 0.32 ? 0 : u < 0.8 ? 0.5 : 1;
-  return u < 0.18 ? 0 : u < 0.5 ? 0.5 : 1;
-};
-function geodeHalf(m, crystals, c, Rot, R, seed, rng, bed = 0) {
-  const Ri = R * 0.85, NA = LO ? 9 : 14, NB = LO ? 28 : 44;
-  const lump = (dx, dy, dz) => 1 + 0.1 * noise3(dx * 2.1 + seed, dy * 2.1, dz * 2.1) + 0.05 * noise3(dx * 5 + seed, dy * 5, dz * 5) + 0.025 * noise3(dx * 11, dy * 11 + seed, dz * 11);
-  const toW = (x, y, z) => [c[0] + Rot[0] * x + Rot[3] * y + Rot[6] * z, c[1] + Rot[1] * x + Rot[4] * y + Rot[7] * z, c[2] + Rot[2] * x + Rot[5] * y + Rot[8] * z];
-  const rot = (x, y, z) => [Rot[0] * x + Rot[3] * y + Rot[6] * z, Rot[1] * x + Rot[4] * y + Rot[7] * z, Rot[2] * x + Rot[5] * y + Rot[8] * z];
-  // in its own frame the cut face is the plane z = 0 and the shell lies behind it (z < 0); the
-  // hollow's back is cut flat at z = -bed, if a bed is asked for
-  const dirAt = (al, be) => [Math.sin(al) * Math.cos(be), Math.sin(al) * Math.sin(be), -Math.cos(al)];
-  const hollowR = (d) => {
-    const r0 = Ri * (1 + 0.035 * noise3(d[0] * 5, d[1] * 5, d[2] * 5 + seed));
-    return bed > 0 ? Math.min(r0, bed / Math.max(-d[2], 1e-3)) : r0;
-  };
-  for (const [kind, outward] of [[0, 1], [2, -1]]) {
-    const base = m.count, i0 = m.i.length;
-    for (let i = 0; i <= NA; i++) for (let j = 0; j <= NB; j++) {
-      const al = (i / NA) * Math.PI / 2, be = (j / NB) * TAU, d = dirAt(al, be);
-      const rr = kind ? hollowR(d) : R * lump(d[0], d[1], d[2]);
-      const P = toW(d[0] * rr, d[1] * rr, d[2] * rr);
-      m.vert(P[0], P[1], P[2], 0, 1, 0, 0, 0, kind, rr / R, Math.cos(al), 0);
-    }
-    const W = NB + 1;
-    for (let i = 0; i < NA; i++) for (let j = 0; j < NB; j++) {
-      const a = base + i * W + j;
-      if (outward > 0) m.i.push(a, a + 1, a + W, a + 1, a + W + 1, a + W); else m.i.push(a, a + W, a + 1, a + 1, a + W, a + W + 1);
-    }
-    m.normals(base, m.count, i0, { cols: NB, rows: NA, base });
-  }
-  // the cut face: a ring from the hollow's rim to the rind's, banded agate
-  {
-    const base = m.count, N = rot(0, 0, 1);
-    for (let j = 0; j <= NB; j++) for (const t of [0, 0.35, 1]) {
-      const be = (j / NB) * TAU, d = dirAt(Math.PI / 2, be);
-      const ro = R * lump(d[0], d[1], d[2]), ri = hollowR(d);
-      const rr = lerp(ri, ro, t), P = toW(d[0] * rr, d[1] * rr, 0);
-      m.vert(P[0], P[1], P[2], N[0], N[1], N[2], 0, 0, 1, (rr - ri) / Math.max(ro - ri, 1e-3), 0, 0);
-    }
-    for (let j = 0; j < NB; j++) for (let t = 0; t < 2; t++) { const a = base + j * 3 + t; triFacing(m, a, a + 3, a + 1, N[0], N[1], N[2]); triFacing(m, a + 1, a + 3, a + 4, N[0], N[1], N[2]); }
-  }
-  // crystals: points on the hollow's wall growing toward its middle, bigger deeper in; on the
-  // bed, small and close, pointing out of the stone
-  for (let k = 0; k < crystals.n; k++) {
-    const al = Math.acos(1 - rng() * 0.97) * 0.99, be = rng() * TAU, d = dirAt(Math.min(al, Math.PI / 2 * 0.96), be);
-    const deep = Math.cos(al), r0 = hollowR(d), onBed = bed > 0 && r0 < Ri * 0.97;
-    const P = toW(d[0] * r0 * 0.99, d[1] * r0 * 0.99, d[2] * r0 * 0.99);
-    const len = onBed ? R * rng.range(0.02, 0.05) : R * (0.07 + 0.19 * rng() * (0.35 + 0.65 * deep)), wid = len * rng.range(onBed ? 0.5 : 0.36, onBed ? 0.75 : 0.58);
-    const jx = rng.range(-0.35, 0.35), jy = rng.range(-0.35, 0.35), jz = rng.range(-0.35, 0.35);
-    const n0 = onBed ? [jx * 0.8, jy * 0.8, 1] : [-d[0] + jx, -d[1] + jy, -d[2] + jz], nl = Math.hypot(n0[0], n0[1], n0[2]);
-    let ln = len;
-    if (bed > 0) {
-      // keep the picture's place clear: no point stands in front of where it lies
-      const tipAt = (l) => [d[0] * r0 * 0.99 + (n0[0] / nl) * l, d[1] * r0 * 0.99 + (n0[1] / nl) * l, d[2] * r0 * 0.99 + (n0[2] / nl) * l];
-      const over = (q) => Math.abs(q[0]) < 0.48 && Math.abs(q[1]) < 0.36 && q[2] > -(bed - 0.1);
-      while (ln > 0.02 && over(tipAt(ln))) ln *= 0.7;
-      if (over(tipAt(ln))) continue;
-    }
-    const Dw = rot(n0[0] / nl, n0[1] / nl, n0[2] / nl);
-    crystals.list.push(P[0], P[1], P[2], ln, Dw[0], Dw[1], Dw[2], ln === len ? wid : wid * Math.max(ln / len, 0.5), rng() * TAU, deep, rng(), pickHue(onBed ? 0.9 : deep, rng));
-  }
-}
+// The geode at the end of the vents, as in our pictures of it: a chunky beige stone split in
+// two, both halves fallen open on the black sand toward the camera at p = 7: a thick rough
+// rind, a pale band of agate, and deep hollows lined with white quartz points that glow warm
+// from inside (glow slot 3), the light pooling on the sand round it. The left half lies
+// tipped back a little, its hollow toward the camera; the right one has rolled further back,
+// and the picture lies on the bed of small crystals in its hollow. A small brass diving helmet
+// lies on the sand to the left; to the right the sand is left clear (the submarine parks there).
+const GEODE = { x: -4.13, z: -388.9, r: 1.0 };
+// The halves: where each lies, how far its cut face is tipped up (degrees above level), how far
+// it is turned toward +x (degrees), which side of the stone it was (so the two are mirror
+// images), and how deep the bed in its hollow is (0: none).
+const HALVES = [
+  { x: -5.04, z: -389.15, tilt: 36, turn: 30, side: 1, bed: 0 },
+  { x: -3.22, z: -388.78, tilt: 58, turn: -26, side: -1, bed: 0.42 },
+];
+const HELMET = { x: -6.38, z: -387.9, yaw: 0.3, roll: 0.1, s: 1.15 };
+// The stone's shape, the same for both halves: an egg a little flattened, lumpy; the hollow
+// inside it follows the outside, so the rind is thick all round.
+const egg = (x, y, z) => 1 / Math.sqrt(x * x + (y / 0.88) ** 2 + (z / 0.95) ** 2);
+const stoneLump = (x, y, z) => 1 + 0.11 * noise3(x * 1.6 + 3.1, y * 1.6 + 7.7, z * 1.6 + 1.3) + 0.055 * noise3(x * 3.7 + 9.2, y * 3.7, z * 3.7 + 4.4) + 0.022 * noise3(x * 9 + 1.7, y * 9 + 5.1, z * 9);
+const hollowLump = (x, y, z) => 0.83 + 0.05 * Math.max(-z, 0) + 0.04 * noise3(x * 2.8 + 5.5, y * 2.8, z * 2.8 + 8.8) + 0.025 * noise3(x * 7 + 2.2, y * 7 + 3.3, z * 7);
 // A rotation (columns x, y, z) that turns local +z toward f, keeping y roughly up.
 function frameTo(f) {
   const fl = Math.hypot(f[0], f[1], f[2]), Z = [f[0] / fl, f[1] / fl, f[2] / fl];
@@ -1972,60 +2221,190 @@ function frameTo(f) {
   const Y = [Z[1] * X[2] - Z[2] * X[1], Z[2] * X[0] - Z[0] * X[2], Z[0] * X[1] - Z[1] * X[0]];
   return [...X, ...Y, ...Z];
 }
-function buildGeode(ctx, q) {
-  const rng = makeRng(808);
-  const m = new Mesh(true), crystals = { n: Math.round(620 * Math.max(q.amount, 0.5)), list: [] };
-  const R = GEODE.r, gy = groundY(GEODE.x, GEODE.z), bed = R * 0.72;
-  // the main half: its hollow toward the camera at p = 7, tipped back a little
-  const cam = [-4.16, -205.06, -383.0];
-  const c1 = [GEODE.x, gy + R * 0.78, GEODE.z];
-  const f1 = [cam[0] - c1[0], (cam[1] - c1[1]) * 0.6, cam[2] - c1[2]];
-  geodeHalf(m, crystals, c1, frameTo(f1), R, 3.1, rng, bed);
-  // the other half, lying on its back to the right, its crystals to the sky
-  const c2 = [GEODE.x + 2.55, groundY(GEODE.x + 2.55, GEODE.z - 0.5) + R * 0.84, GEODE.z - 0.5];
-  geodeHalf(m, { n: Math.round(crystals.n * 0.55), list: crystals.list }, c2, frameTo([-0.5, 1.0, 0.6]), R * 0.94, 7.7, rng);
-  const sh = material({
-    aux: true, fade: [80, 98],
+// One half: its outside (aux.x 0), the cut face (1) and the hollow (2), built round its centre
+// c in a frame Rot whose +z is the cut face's normal (the shell lies at z < 0). aux.y: on the
+// cut face, 0 at the hollow's edge to 1 at the outside; in the hollow, 0 at its rim to 1 at its
+// deepest. Crystals go into cr.list (12 numbers each).
+function geodeHalf(m, cr, c, Rot, R, side, bed, hi, rng, n) {
+  const NA = hi ? 15 : 9, NB = hi ? 54 : 32;
+  const toW = (x, y, z) => [c[0] + Rot[0] * x + Rot[3] * y + Rot[6] * z, c[1] + Rot[1] * x + Rot[4] * y + Rot[7] * z, c[2] + Rot[2] * x + Rot[5] * y + Rot[8] * z];
+  const rot = (x, y, z) => [Rot[0] * x + Rot[3] * y + Rot[6] * z, Rot[1] * x + Rot[4] * y + Rot[7] * z, Rot[2] * x + Rot[5] * y + Rot[8] * z];
+  // (the stone's own direction for a direction of this half: the second half is the stone
+  // turned round, so their cut faces match)
+  const outR = (d) => R * egg(d[0], d[1], d[2]) * stoneLump(side * d[0], d[1], side * d[2]);
+  const inR = (d) => {
+    const r0 = R * egg(d[0], d[1], d[2]) * hollowLump(side * d[0], d[1], side * d[2]);
+    return bed > 0 && d[2] < -1e-3 ? Math.min(r0, bed / -d[2]) : r0;
+  };
+  // (from the pole, al = 0, to the cut face's rim, al = pi / 2; rows closer toward the rim)
+  const dirAt = (al, be, out) => { out[0] = Math.sin(al) * Math.cos(be); out[1] = Math.sin(al) * Math.sin(be); out[2] = -Math.cos(al); return out; };
+  const d = [0, 0, 0];
+  for (const kind of [0, 2]) {
+    const base = m.count, i0 = m.i.length;
+    for (let i = 0; i <= NA; i++) for (let j = 0; j <= NB; j++) {
+      const al = Math.pow(i / NA, 0.85) * Math.PI / 2, be = (j / NB) * TAU;
+      dirAt(al, be, d);
+      const rr = kind ? inR(d) : outR(d), P = toW(d[0] * rr, d[1] * rr, d[2] * rr);
+      // (the hollow's depth: 1 at its deepest, 0 at the rim)
+      m.vert(P[0], P[1], P[2], 0, 1, 0, 0, 0, kind, kind ? Math.min(1, -d[2] * rr / (R * 0.7)) : 0, n, 0);
+    }
+    const W = NB + 1;
+    for (let i = 0; i < NA; i++) for (let j = 0; j < NB; j++) {
+      const a = base + i * W + j;
+      if (kind === 0) m.i.push(a, a + 1, a + W, a + 1, a + W + 1, a + W); else m.i.push(a, a + W, a + 1, a + 1, a + W, a + W + 1);
+    }
+    m.normals(base, m.count, i0, { cols: NB, rows: NA, base });
+  }
+  // the cut face: rings from the hollow's rim out to the rind's, a little uneven, the outer
+  // edge rounded off
+  {
+    const base = m.count, N = rot(0, 0, 1), FR = [0, 0.08, 0.2, 0.32, 0.62, 0.9, 1];
+    for (let j = 0; j <= NB; j++) {
+      const be = (j / NB) * TAU;
+      dirAt(Math.PI / 2, be, d);
+      const ro = outR(d), ri = inR(d);
+      for (const t of FR) {
+        const rr = lerp(ri, ro, t), bump = 0.012 * noise3(d[0] * 6 + side * 3, d[1] * 6, t * 3) - (t > 0.95 ? 0.02 : 0);
+        const P = toW(d[0] * rr, d[1] * rr, bump);
+        m.vert(P[0], P[1], P[2], N[0], N[1], N[2], 0, 0, 1, t, n, 0);
+      }
+    }
+    const K = FR.length;
+    for (let j = 0; j < NB; j++) for (let t = 0; t < K - 1; t++) { const a = base + j * K + t; triFacing(m, a, a + K, a + 1, N[0], N[1], N[2]); triFacing(m, a + 1, a + K, a + K + 1, N[0], N[1], N[2]); }
+  }
+  // crystals: points on the hollow's wall growing toward its middle, bigger deeper in, small
+  // and close along the rim; on the bed, small and close, pointing out of the stone
+  for (let k = 0; k < cr.n; k++) {
+    const al = Math.acos(1 - rng() * 0.985), be = rng() * TAU;
+    dirAt(Math.min(al, Math.PI / 2 * 0.985), be, d);
+    const r0 = inR(d), deep = Math.min(1, -d[2] * r0 / (R * 0.7)), onBed = bed > 0 && -d[2] * r0 > bed - 0.03;
+    const P = toW(d[0] * r0 * 0.985, d[1] * r0 * 0.985, d[2] * r0 * 0.985);
+    const big = Math.pow(rng(), 1.4);
+    const len = onBed ? R * rng.range(0.025, 0.06) : R * (0.06 + 0.32 * big * (0.35 + 0.65 * deep)), wid = len * rng.range(onBed ? 0.4 : 0.22, onBed ? 0.6 : 0.36);
+    const jx = rng.range(-0.5, 0.5), jy = rng.range(-0.5, 0.5), jz = rng.range(-0.3, 0.3);
+    const n0 = onBed ? [jx * 0.7, jy * 0.7, 1] : [-d[0] + jx, -d[1] + jy, -d[2] * 0.6 + 0.35 + jz], nl = Math.hypot(n0[0], n0[1], n0[2]);
+    let ln = len;
+    if (bed > 0) {
+      // keep the picture's place clear: no point stands in front of where it lies
+      const tipAt = (l) => [d[0] * r0 * 0.985 + (n0[0] / nl) * l, d[1] * r0 * 0.985 + (n0[1] / nl) * l, d[2] * r0 * 0.985 + (n0[2] / nl) * l];
+      const over = (q) => Math.abs(q[0]) < 0.43 && Math.abs(q[1]) < 0.32 && q[2] > -(bed + 0.02);
+      while (ln > 0.015 && over(tipAt(ln))) ln *= 0.7;
+      if (over(tipAt(ln))) continue;
+    }
+    const Dw = rot(n0[0] / nl, n0[1] / nl, n0[2] / nl);
+    cr.list.push(P[0], P[1], P[2], ln, Dw[0], Dw[1], Dw[2], wid * Math.max(ln / len, 0.6), rng() * TAU, deep, rng(), rng() < 0.15 ? 1 : 0);
+  }
+  return { toW, rot };
+}
+// The sand the geode lies on: a round of black sand over the ground, pushed up a little round
+// each half, sinking into the ground at its edge; tan grains in it near the stone.
+function geodeBed(ctx, halves) {
+  const m = new Mesh(true), RB = 3.7, rings = LO ? 10 : 18, segs = LO ? 36 : 64;
+  const height = (x, z) => {
+    let h = 0.035;
+    for (const H of halves) {
+      const dd = Math.hypot(x - H.x, z - H.z) / H.R;
+      h += 0.075 * Math.exp(-(((dd - 0.82) / 0.22) ** 2));
+    }
+    const r = Math.hypot(x - GEODE.x, z - GEODE.z) / RB;
+    return groundY(x, z) + h + 0.012 * noise3(x * 3.1, z * 3.1, 2.2) - 0.16 * smoothN(0.82, 1.0, r);
+  };
+  const c0 = m.vert(GEODE.x, height(GEODE.x, GEODE.z), GEODE.z, 0, 1, 0, 0, 0, 0, rockyAt(GEODE.x, GEODE.z), 0.8, 0);
+  for (let k = 1; k <= rings; k++) for (let j = 0; j < segs; j++) {
+    const r = RB * Math.pow(k / rings, 1.25), a = (j / segs) * TAU, x = GEODE.x + Math.cos(a) * r, z = GEODE.z + Math.sin(a) * r;
+    const y = height(x, z);
+    m.vert(x, y, z, 0, 1, 0, 0, 0, r, rockyAt(x, z), clampN(0.62 + (y - floorY(z)) * 0.06, 0.4, 1), 0);
+  }
+  for (let j = 0; j < segs; j++) triFacing(m, c0, 1 + j, 1 + ((j + 1) % segs), 0, 1, 0);
+  for (let k = 1; k < rings; k++) for (let j = 0; j < segs; j++) {
+    const a = 1 + (k - 1) * segs + j, b = 1 + (k - 1) * segs + ((j + 1) % segs), cc = a + segs, dd = b + segs;
+    triFacing(m, a, cc, b, 0, 1, 0); triFacing(m, b, cc, dd, 0, 1, 0);
+  }
+  m.normals(0, m.count, 0, null);
+  addMesh(ctx, sphereOf(m.build(), 0.3), material({
+    aux: true, fade: [80, 98], shadow: false,
     surface: (s, f) => {
-      const kind = f.aux.x, rind = float(1).sub(step(0.5, kind)), band = step(0.5, kind).mul(float(1).sub(step(1.5, kind))), hollow = step(1.5, kind);
-      const D = detail(f.w, s.n, 1.6, 3.2), E = detail(f.w, s.n, 4.6, 2.4);
-      // the rind: dark and rough, charcoal with brown in its pits
-      const rc = mix(srgb(0.22, 0.20, 0.19), srgb(0.14, 0.13, 0.12), smoothstep(0.35, 0.7, D.m)).mul(E.h.mul(0.5).add(0.7));
-      // the agate: dark grey bands following the rim, a pale line where it meets the crystals
-      const bands = sin(f.aux.y.mul(34.0).add(D.h.mul(3.0))).mul(0.5).add(0.5);
-      const ac = mix(mix(srgb(0.25, 0.23, 0.28), srgb(0.17, 0.16, 0.19), bands), srgb(0.72, 0.68, 0.80), float(1).sub(smoothstep(0.06, 0.14, f.aux.y)));
-      // the hollow's wall: a crust of tiny crystals, deep violet
-      const hc = srgb(0.26, 0.18, 0.32).mul(E.h.mul(0.5).add(0.6));
-      s.albedo = rc.mul(rind).add(ac.mul(band)).add(hc.mul(hollow));
-      s.n = normalize(mix(s.n, normalize(D.n.add(E.n.sub(s.n).mul(0.6))), rind.mul(0.9).add(hollow.mul(0.5)))).toVar();
-      s.ao = mix(D.h.mul(0.45).add(0.6), float(1.0), band);
-      s.spec = mix(float(0.03), float(0.12), hollow); s.gloss = mix(float(14.0), float(40.0), hollow);
-      s.fluor = float(0.1);
-      const deep = f.aux.z.mul(hollow);
-      s.emis = vec3(0.17, 0.08, 0.26).mul(deep.mul(0.6).add(0.2)).mul(hollow)
-        .add(vec3(0.42, 0.32, 0.5).mul(band).mul(float(1).sub(smoothstep(0.0, 0.2, f.aux.y))).mul(0.25));
+      // the ground's own black sand (it melts into it at the edge), and near the stone tan
+      // grains in it, and a little grey dust
+      rockSurf(s, f.w, f.w, f.aux.y, f.aux.z, f.dist);
+      const k = float(1).sub(smoothstep(0.8, 3.0, f.aux.x)).toVar();
+      const dust = smoothstep(0.5, 0.75, texture(G.detailTex, f.w.xz.mul(0.55).add(0.2)).a).mul(float(1).sub(smoothstep(1.0, 2.2, f.aux.x))).toVar();
+      s.albedo = mix(s.albedo.mul(k.mul(1.3).add(1.0)), srgb(0.36, 0.31, 0.25), dust.mul(0.6));
     },
+  }), 98);
+}
+function buildGeode(ctx, q) {
+  const rng = makeRng(808), hi = q.amount >= 0.5;
+  const m = new Mesh(true), cr = { n: Math.round(190 * Math.max(q.amount, 0.5)), list: [] };
+  const R = GEODE.r, cores = [], halves = [];
+  let print = null;
+  HALVES.forEach((H, hk) => {
+    const tl = H.tilt * Math.PI / 180, tn = H.turn * Math.PI / 180;
+    const N = [Math.sin(tn) * Math.cos(tl), Math.sin(tl), Math.cos(tn) * Math.cos(tl)];
+    // it rests on its back, sunk a little into the sand
+    const c = [H.x, groundY(H.x, H.z) + R * 0.8, H.z];
+    const Rot = frameTo(N);
+    const g = geodeHalf(m, cr, c, Rot, R, H.side, H.bed, hi, rng, hk);
+    // the light inside: the middle of the hollow
+    cores.push(g.toW(0, 0, -R * 0.3));
+    halves.push({ x: H.x, z: H.z, R });
+    if (H.bed > 0) print = { at: g.toW(0, -0.02, -H.bed + 0.025), N };
   });
-  addMesh(ctx, sphereOf(m.build(), 0.5), sh, 98);
-  // the crystals: six-sided points, each a prism and a pyramid, flat-faced
+  addMesh(ctx, sphereOf(m.build(), 0.5), material({
+    aux: true, fade: [80, 98], shadow: false,
+    surface: (s, f) => {
+      const kind = f.aux.x, fr = f.aux.y;
+      const rind = float(1).sub(step(0.5, kind)), cut = step(0.5, kind).mul(float(1).sub(step(1.5, kind))), hollow = step(1.5, kind);
+      const D = detail(f.w, s.n, 2.4, 3.2), E = detail(f.w, s.n, 7.5, 2.2);
+      // the rind: beige-grey and rough, darker brown in its pits, paler on its knobs
+      const rc = mix(srgb(0.60, 0.54, 0.46), srgb(0.78, 0.72, 0.63), smoothstep(0.3, 0.75, D.m)).mul(E.h.mul(0.4).add(0.78)).toVar();
+      rc.assign(mix(rc, srgb(0.42, 0.34, 0.27), smoothstep(0.6, 0.8, E.m).mul(0.55)));
+      // the cut face: the rind's section (paler, finer), a thin dark line, the agate band in
+      // pale grey rings, white where it meets the crystals
+      const sect = mix(srgb(0.62, 0.57, 0.50), srgb(0.78, 0.73, 0.65), D.m).mul(E.h.mul(0.3).add(0.82)).toVar();
+      sect.assign(mix(sect, srgb(0.45, 0.40, 0.34), smoothstep(0.62, 0.78, E.m).mul(0.6)).mul(float(1).sub(smoothstep(0.8, 1.0, fr).mul(0.3))));
+      const rings = sin(fr.mul(70.0).add(D.h.mul(5.0))).mul(0.5).add(0.5);
+      const agate = mix(srgb(0.92, 0.92, 0.93), srgb(0.66, 0.67, 0.71), rings.mul(smoothstep(0.03, 0.12, fr)).mul(0.75));
+      const cc = mix(agate, sect, smoothstep(0.33, 0.39, fr)).toVar();
+      cc.assign(mix(cc, srgb(0.40, 0.36, 0.32), exp(fr.sub(0.36).mul(fr.sub(0.36)).mul(-2500.0)).mul(0.6)));
+      // the hollow's wall: a crust of tiny white crystals
+      const hc = srgb(0.52, 0.51, 0.54).mul(E.h.mul(0.6).add(0.45)).mul(D.h.mul(0.3).add(0.75));
+      s.albedo = rc.mul(rind).add(cc.mul(cut)).add(hc.mul(hollow));
+      s.n = normalize(mix(s.n, normalize(D.n.add(E.n).sub(s.n)), rind.mul(0.9).add(hollow.mul(0.75)).add(cut.mul(0.25)))).toVar();
+      s.ao = mix(D.h.mul(0.5).add(0.55), E.h.mul(0.3).add(0.7), cut).mul(mix(float(1.0), E.h.mul(0.5).add(0.5).mul(smoothstep(0.0, 0.45, fr).mul(0.5).add(0.5)), hollow));
+      s.spec = mix(float(0.04), float(0.6), hollow.add(cut.mul(float(1).sub(smoothstep(0.2, 0.3, fr))).mul(0.5)));
+      s.gloss = mix(float(12.0), float(60.0), hollow);
+      s.fluor = float(0.08); s.trans = hollow.mul(0.3);
+      // light from inside: the hollow glows warm, most deep in; the agate band lets a little
+      // through; the outside is lit a little by the sand the light falls on
+      const warm = vec3(1.0, 0.64, 0.32);
+      // (and a soft key light from the upper left, as in the pictures' studio, so the rock's
+      // roughness and its round back show in the dark)
+      const key = max(dot(s.n, vec3(-0.45, 0.75, 0.48)), 0.0).mul(0.75).add(0.08);
+      s.emis = warm.mul(fr.mul(fr).mul(fr).mul(0.85).add(0.02)).mul(E.h.mul(0.7).add(0.45)).mul(hollow)
+        .add(warm.mul(0.07).mul(float(1).sub(smoothstep(0.0, 0.3, fr))).mul(cut))
+        .add(s.albedo.mul(vec3(0.13, 0.115, 0.1)).mul(key).mul(rind.add(cut.mul(0.3))));
+    },
+  }), 98);
+  // the crystals: six-sided points, each a prism and a pyramid, rounded round their sides
   const cm = new Mesh(true);
   for (let k = 0; k < 6; k++) {
     const a0 = (k / 6) * TAU, a1 = ((k + 1) / 6) * TAU;
     const p0 = [Math.cos(a0), Math.sin(a0)], p1 = [Math.cos(a1), Math.sin(a1)];
     const nx = Math.cos((a0 + a1) / 2), ny = Math.sin((a0 + a1) / 2);
-    // the side: (x, y) round, z along (0 foot, 0.72 shoulder)
+    // the side: (x, y) round, z along (0 foot, 0.7 shoulder)
     const v0 = cm.count;
-    cm.vert(p0[0], p0[1], -0.1, nx, ny, 0, 0, 0, 0, 0, 1, 0); cm.vert(p1[0], p1[1], -0.1, nx, ny, 0, 0, 0, 1, 0, 1, 0);
-    cm.vert(p1[0], p1[1], 0.72, nx, ny, 0, 0, 0, 1, 0.72, 1, 0); cm.vert(p0[0], p0[1], 0.72, nx, ny, 0, 0, 0, 0, 0.72, 1, 0);
+    cm.vert(p0[0], p0[1], -0.15, p0[0], p0[1], 0, 0, 0, 0, 0, 1, 0); cm.vert(p1[0], p1[1], -0.15, p1[0], p1[1], 0, 0, 0, 1, 0, 1, 0);
+    cm.vert(p1[0], p1[1], 0.62, p1[0], p1[1], 0, 0, 0, 1, 0.62, 1, 0); cm.vert(p0[0], p0[1], 0.62, p0[0], p0[1], 0, 0, 0, 0, 0.62, 1, 0);
     triFacing(cm, v0, v0 + 1, v0 + 2, nx, ny, 0); triFacing(cm, v0, v0 + 2, v0 + 3, nx, ny, 0);
     // the point's facet
-    const tz = 1.0, fnx = nx * 0.68, fny = ny * 0.68, fnz = 0.73;
+    const fnx = nx * 0.68, fny = ny * 0.68, fnz = 0.73;
     const v1 = cm.count;
-    cm.vert(p0[0], p0[1], 0.72, fnx, fny, fnz, 0, 0, 0, 0.72, 2, 0); cm.vert(p1[0], p1[1], 0.72, fnx, fny, fnz, 0, 0, 1, 0.72, 2, 0); cm.vert(0, 0, tz, fnx, fny, fnz, 0, 0, 0.5, 1, 2, 0);
+    cm.vert(p0[0], p0[1], 0.62, fnx, fny, fnz, 0, 0, 0, 0.62, 2, 0); cm.vert(p1[0], p1[1], 0.62, fnx, fny, fnz, 0, 0, 1, 0.62, 2, 0); cm.vert(0, 0, 1, fnx, fny, fnz, 0, 0, 0.5, 1, 2, 0);
     triFacing(cm, v1, v1 + 1, v1 + 2, fnx, fny, fnz);
   }
   const base = cm.build();
-  const list = crystals.list, n = list.length / 12;
+  const list = cr.list, n = list.length / 12;
   const ia = new Float32Array(n * 4), ib = new Float32Array(n * 4), ic = new Float32Array(n * 4);
   let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9, z0 = 1e9, z1 = -1e9;
   for (let i = 0; i < n; i++) {
@@ -2041,7 +2420,7 @@ function buildGeode(ctx, q) {
   const GA = attribute('ga', 'vec4'), GB = attribute('gb', 'vec4'), GC = attribute('gc', 'vec4');
   const vC = varyingProperty('vec4', 'v_set_cry');
   addMesh(ctx, geo, material({
-    aux: true, fade: [80, 98],
+    aux: true, fade: [80, 98], shadow: false,
     vertex: (v) => {
       const Dd = GB.xyz, len = GA.w, wid = GB.w, spin = GC.x;
       const T0 = normalize(cross(Dd, select3(abs(Dd.y).lessThan(0.9)))).toVar();
@@ -2053,82 +2432,106 @@ function buildGeode(ctx, q) {
       vC.assign(vec4(GC.y, GC.z, GC.w, 0.0));
     },
     surface: (s, f) => {
-      // coloured quartz lit from inside the hollow: violet, teal or amber, brighter toward its
-      // point and deeper in; a pale edge on each facet
-      const along = f.aux.y, edge = abs(f.aux.x.sub(0.5)).mul(2.0);
-      const near = float(1).sub(smoothstep(4.0, 16.0, f.dist));
-      const vv = normalize(cameraPosition.sub(f.w)), fres = pow(float(1).sub(abs(dot(s.n, vv))), 2.0);
-      const hue = vC.z;
-      const col = mix(mix(vec3(0.46, 0.14, 0.88), vec3(0.04, 0.62, 0.60), smoothstep(0.2, 0.3, hue)), vec3(0.95, 0.42, 0.06), smoothstep(0.7, 0.8, hue)).toVar();
-      const deep = vC.x, tone = vC.y.mul(0.4).add(0.75);
-      // dark at the foot, glowing toward the point
-      s.albedo = col.mul(along.mul(0.25).add(0.08)); s.spec = float(0.35); s.gloss = float(60.0); s.trans = float(0.5); s.fluor = float(0.1);
-      s.emis = col.mul(deep.mul(deep).mul(0.4).add(0.22)).mul(along.mul(along).mul(1.1).add(0.12)).mul(tone)
-        .add(col.mul(0.5).add(0.5).mul(smoothstep(0.82, 0.97, edge).mul(near).mul(0.12)))
-        .add(vec3(0.7, 0.7, 0.9).mul(fres.mul(0.06)));
+      // clear and white quartz (a few a little violet), lit from inside the hollow: warm,
+      // brightest deep in and toward each point; a glassy glint at the edges of what is seen
+      const along = f.aux.y, deep = vC.x, tone = vC.y;
+      const vv = normalize(cameraPosition.sub(f.w)), fres = pow(float(1).sub(abs(dot(s.n, vv))), 2.5);
+      const white = mix(srgb(0.93, 0.92, 0.92), srgb(0.86, 0.82, 0.93), vC.z);
+      s.albedo = white.mul(tone.mul(0.25).add(0.65)).mul(along.mul(0.55).add(0.45));
+      s.spec = float(1.1); s.gloss = float(80.0); s.trans = float(0.7); s.fluor = float(0.05);
+      const warm = vec3(1.0, 0.64, 0.32);
+      const gl = vec3(G.glowPos.element(3).xyz).sub(f.w).normalize();
+      const glint = pow(max(dot(s.n, normalize(gl.add(vv))), 0.0), 40.0);
+      const key = max(dot(s.n, vec3(-0.45, 0.75, 0.48)), 0.0);
+      s.emis = warm.mul(deep.mul(deep).mul(deep).mul(1.2).add(0.03)).mul(along.mul(along).mul(0.8).add(0.2)).mul(tone.mul(0.6).add(0.5))
+        .add(vec3(1.0, 0.9, 0.75).mul(glint.mul(0.6))).add(vec3(0.85, 0.85, 0.95).mul(fres.mul(0.12))).add(s.albedo.mul(key.mul(0.16)));
     },
   }), 98);
-  // the glow: light from the hollow (slot 3), and a soft haze in it
-  const fl = Math.hypot(f1[0], f1[1], f1[2]), N = [f1[0] / fl, f1[1] / fl, f1[2] / fl];
-  const glowAt = [c1[0] + N[0] * 1.2, c1[1] + N[1] * 1.2 + 0.25, c1[2] + N[2] * 1.2];
-  G.glowPos.array[3].set(glowAt[0], glowAt[1], glowAt[2], 7.5);
-  G.glowCol.array[3].set(0.78, 0.6, 0.95, 0);
-  addMesh(ctx, halos([c1[0] + N[0] * 0.15, c1[1] + N[1] * 0.15, c1[2] + N[2] * 0.15], 1.7), material({
+  // the light inside each hollow: warm haze at its middle; on everything round it (slot 3),
+  // from just in front of where the two halves meet
+  const glowAt = [(cores[0][0] + cores[1][0]) / 2, (cores[0][1] + cores[1][1]) / 2 + 0.25, (cores[0][2] + cores[1][2]) / 2 + 0.75];
+  G.glowPos.array[3].set(glowAt[0], glowAt[1], glowAt[2], 4.2);
+  G.glowCol.array[3].set(1.85, 1.45, 1.0, 0);
+  addMesh(ctx, halos([...cores[0], ...cores[1]], 0.85), material({
     additive: true, shadow: false, fade: [70, 90],
-    vertex: (v) => haloVertex(v, 1.7),
-    raw: (f) => { const d = length(vHalo); return { color: vec3(0.55, 0.42, 0.85).mul(exp(d.mul(d).mul(-5.0)).mul(0.12)).mul(exp(SIG.mul(f.dist).negate())), alpha: float(1.0) }; },
+    vertex: (v) => haloVertex(v, 0.85),
+    raw: (f) => { const d = length(vHalo); return { color: vec3(1.0, 0.66, 0.36).mul(exp(d.mul(d).mul(-5.0)).mul(0.22)).mul(exp(SIG.mul(f.dist).negate())), alpha: float(1.0) }; },
   }), 90, { noShadow: true });
-  // where the picture goes: on the bed at the back of the main half's hollow
-  const deepAt = bed - 0.09;
-  return { position: V(c1[0] - N[0] * deepAt, c1[1] - N[1] * deepAt, c1[2] - N[2] * deepAt), normal: V(N[0], N[1], N[2]), size: 1.0 };
+  geodeBed(ctx, halves);
+  // where the picture goes: on the bed in the right half's hollow, facing out of it
+  return { position: V(...print.at), normal: V(...print.N), size: 0.75 };
 }
 const select3 = (cond) => vec3(0.0, 1.0, 0.0).mul(cond.select(1.0, 0.0)).add(vec3(1.0, 0.0, 0.0).mul(cond.select(0.0, 1.0)));
 
-// A brass diving helmet on the black sand in front of the geode, where the crystals light it:
-// the dome with its three ports, the breastplate and its bolts, a valve at the back.
+// A small brass diving helmet lying on the black sand left of the geode, polished, its round
+// front port turned to the camera: the breastplate and its bolts, the neck ring, the dome with
+// three ports (glass in thick brass rims), a valve at the back. The brass mirrors the geode's
+// light.
 function buildHelmet(ctx) {
-  const m = new Mesh(true), x = GEODE.x + 1.45, z = GEODE.z + 1.15, gy = groundY(x, z);
-  const yaw = 0.15, tilt = 0.22, S = 1.0;
-  const toW = (px, py, pz) => {
-    const y1 = py * Math.cos(tilt) - pz * Math.sin(tilt), z1 = py * Math.sin(tilt) + pz * Math.cos(tilt);
-    return [x + (px * Math.cos(yaw) + z1 * Math.sin(yaw)) * S, gy - 0.08 + y1 * S, z + (-px * Math.sin(yaw) + z1 * Math.cos(yaw)) * S];
+  const m = new Mesh(true), H = HELMET, gy = groundY(H.x, H.z), S = H.s;
+  const cy = Math.cos(H.yaw), sy = Math.sin(H.yaw), cr = Math.cos(H.roll), sr = Math.sin(H.roll);
+  // local: y up, z out of the front port; rolled onto its side a little, turned, set down
+  const dirW = (px, py, pz) => { const x1 = px * cr - py * sr, y1 = px * sr + py * cr; return [x1 * cy + pz * sy, y1, -x1 * sy + pz * cy]; };
+  const toW = (px, py, pz) => { const D = dirW(px * S, py * S, pz * S); return [H.x + D[0], gy - 0.05 + D[1], H.z + D[2]]; };
+  const place = (from) => {
+    for (let v = from; v < m.count; v++) {
+      const P = toW(m.p[v * 3], m.p[v * 3 + 1], m.p[v * 3 + 2]), N = dirW(m.n[v * 3], m.n[v * 3 + 1], m.n[v * 3 + 2]);
+      m.p[v * 3] = P[0]; m.p[v * 3 + 1] = P[1]; m.p[v * 3 + 2] = P[2]; m.n[v * 3] = N[0]; m.n[v * 3 + 1] = N[1]; m.n[v * 3 + 2] = N[2];
+    }
   };
   const K = (kind) => (k, j, px, py, pz, o) => { o[0] = kind; };
-  const place = (from) => { for (let v = from; v < m.count; v++) { const P = toW(m.p[v * 3], m.p[v * 3 + 1], m.p[v * 3 + 2]); const N = toW(m.n[v * 3], m.n[v * 3 + 1], m.n[v * 3 + 2]).map((vv, e) => (vv - toW(0, 0, 0)[e]) / S); m.p[v * 3] = P[0]; m.p[v * 3 + 1] = P[1]; m.p[v * 3 + 2] = P[2]; m.n[v * 3] = N[0]; m.n[v * 3 + 1] = N[1]; m.n[v * 3 + 2] = N[2]; } };
-  const v0 = m.count;
-  // the breastplate: a broad bell
-  sweep(m, [[0, 0.0, 0, 0.62], [0, 0.12, 0, 0.6], [0, 0.26, 0, 0.5], [0, 0.36, 0, 0.36], [0, 0.4, 0, 0.3]], 24, { up: [1, 0, 0], aux: K(0) });
-  // the dome
-  blob(m, 0, 0.72, 0, (dx, dy, dz) => 0.38 * (dy < -0.5 ? 1.0 : 1.0) * (1 + 0.06 * Math.max(dy, 0)), 10, (dx, dy, dz, o) => { o[0] = 0; });
-  // the ports: a thick brass ring and a glass in each, front and sides; a little one on top
-  for (const [dx, dy, dz, rr] of [[0, 0, 1, 0.17], [1, 0, 0.15, 0.12], [-1, 0, 0.15, 0.12], [0, 0.85, 0.5, 0.08]]) {
-    const l = Math.hypot(dx, dy, dz), d = [dx / l, dy / l, dz / l], c = [d[0] * 0.38, 0.72 + d[1] * 0.38, d[2] * 0.38];
-    const ring = [];
+  // the breastplate: a low bell, wider across the shoulders, its rim rolled
+  sweep(m, [[0, 0.0, 0, 0.245], [0, 0.025, 0, 0.255], [0, 0.06, 0, 0.24], [0, 0.11, 0, 0.205], [0, 0.15, 0, 0.175], [0, 0.175, 0, 0.16]], 28, { up: [1, 0, 0], aux: K(0) });
+  sweep(m, (() => { const r = []; for (let i = 0; i < 28; i++) { const a = (i / 28) * TAU; r.push([Math.cos(a) * 0.245, 0.01, Math.sin(a) * 0.245, 0.016]); } return r; })(), 6, { closed: true, up: [0, 1, 0], aux: K(2) });
+  disc(m, 0, 0.015, 0, 0.245, 28, -1, [2, 0, 0, 0]);
+  for (let v = 0; v < m.count; v++) { m.p[v * 3] *= 1.18; m.p[v * 3 + 2] *= 0.9; const nx = m.n[v * 3] / 1.18, nz = m.n[v * 3 + 2] / 0.9, l = Math.hypot(nx, m.n[v * 3 + 1], nz); m.n[v * 3] = nx / l; m.n[v * 3 + 1] /= l; m.n[v * 3 + 2] = nz / l; }
+  // the neck ring and the dome
+  sweep(m, (() => { const r = []; for (let i = 0; i < 24; i++) { const a = (i / 24) * TAU; r.push([Math.cos(a) * 0.162, 0.185, Math.sin(a) * 0.162, 0.024]); } return r; })(), 6, { closed: true, up: [0, 1, 0], aux: K(2) });
+  ball(m, 0, 0.345, 0, (dx, dy, dz) => (dy < -0.6 ? 0.16 : 0.172), 9, (dx, dy, dz, o) => { o[0] = 0; });
+  // the ports: a thick brass rim and a glass in each, front and sides; a little one on top
+  for (const [dx, dy, dz, rr] of [[0, 0.05, 1, 0.075], [1, 0.05, 0.1, 0.05], [-1, 0.05, 0.1, 0.05], [0, 0.9, 0.45, 0.035]]) {
+    const l = Math.hypot(dx, dy, dz), d = [dx / l, dy / l, dz / l], c = [d[0] * 0.172, 0.345 + d[1] * 0.172, d[2] * 0.172];
     const u = Math.abs(d[1]) < 0.9 ? [0, 1, 0] : [1, 0, 0];
     let a = [u[1] * d[2] - u[2] * d[1], u[2] * d[0] - u[0] * d[2], u[0] * d[1] - u[1] * d[0]]; const al = Math.hypot(...a); a = a.map((vv) => vv / al);
     const bv = [d[1] * a[2] - d[2] * a[1], d[2] * a[0] - d[0] * a[2], d[0] * a[1] - d[1] * a[0]];
-    for (let i = 0; i < 18; i++) { const t = (i / 18) * TAU; ring.push([c[0] + (a[0] * Math.cos(t) + bv[0] * Math.sin(t)) * rr + d[0] * 0.04, c[1] + (a[1] * Math.cos(t) + bv[1] * Math.sin(t)) * rr + d[1] * 0.04, c[2] + (a[2] * Math.cos(t) + bv[2] * Math.sin(t)) * rr + d[2] * 0.04, 0.035]); }
-    sweep(m, ring, 6, { closed: true, up: d, aux: K(0) });
-    const g0 = m.count;
-    m.vert(c[0] + d[0] * 0.03, c[1] + d[1] * 0.03, c[2] + d[2] * 0.03, d[0], d[1], d[2], 0, 0, 1, 0, 0, 0);
-    for (let i = 0; i <= 18; i++) { const t = (i / 18) * TAU; m.vert(c[0] + (a[0] * Math.cos(t) + bv[0] * Math.sin(t)) * rr, c[1] + (a[1] * Math.cos(t) + bv[1] * Math.sin(t)) * rr, c[2] + (a[2] * Math.cos(t) + bv[2] * Math.sin(t)) * rr, d[0], d[1], d[2], 0, 0, 1, 0, 0, 0); }
-    for (let i = 0; i < 18; i++) triFacing(m, g0, g0 + 1 + i, g0 + 2 + i, d[0], d[1], d[2]);
-    if (rr > 0.15) for (const off of [-0.07, 0, 0.07]) {      // the grille across the front port
-      sweep(m, [[c[0] + a[0] * 0.17 + bv[0] * off + d[0] * 0.05, c[1] + a[1] * 0.17 + bv[1] * off + d[1] * 0.05, c[2] + a[2] * 0.17 + bv[2] * off + d[2] * 0.05, 0.013], [c[0] - a[0] * 0.17 + bv[0] * off + d[0] * 0.05, c[1] - a[1] * 0.17 + bv[1] * off + d[1] * 0.05, c[2] - a[2] * 0.17 + bv[2] * off + d[2] * 0.05, 0.013]], 5, { aux: K(0) });
+    const ring = [];
+    for (let i = 0; i < 18; i++) { const t = (i / 18) * TAU; ring.push([c[0] + (a[0] * Math.cos(t) + bv[0] * Math.sin(t)) * rr + d[0] * 0.02, c[1] + (a[1] * Math.cos(t) + bv[1] * Math.sin(t)) * rr + d[1] * 0.02, c[2] + (a[2] * Math.cos(t) + bv[2] * Math.sin(t)) * rr + d[2] * 0.02, rr * 0.28]); }
+    sweep(m, ring, 7, { closed: true, up: d, aux: K(2) });
+    // the glass: a low dome in the rim
+    const g0 = m.count, gc = [c[0] + d[0] * 0.03, c[1] + d[1] * 0.03, c[2] + d[2] * 0.03];
+    m.vert(gc[0], gc[1], gc[2], d[0], d[1], d[2], 0, 0, 1, 0, 0, 0);
+    for (let i = 0; i <= 18; i++) {
+      const t = (i / 18) * TAU, ox = a[0] * Math.cos(t) + bv[0] * Math.sin(t), oy = a[1] * Math.cos(t) + bv[1] * Math.sin(t), oz = a[2] * Math.cos(t) + bv[2] * Math.sin(t);
+      m.vert(c[0] + ox * rr + d[0] * 0.012, c[1] + oy * rr + d[1] * 0.012, c[2] + oz * rr + d[2] * 0.012, d[0] + ox * 0.5, d[1] + oy * 0.5, d[2] + oz * 0.5, 0, 0, 1, 1, 0, 0);
     }
+    for (let i = 0; i < 18; i++) triFacing(m, g0, g0 + 1 + i, g0 + 2 + i, d[0], d[1], d[2]);
   }
-  // bolts round the breastplate, a valve at the back
-  for (let i = 0; i < 10; i++) { const t = (i / 10) * TAU; ball(m, Math.cos(t) * 0.55, 0.13, Math.sin(t) * 0.55, () => 0.04, 2); }
-  sweep(m, [[0, 0.8, -0.36, 0.05], [0, 0.84, -0.5, 0.05]], 8, { caps: true, aux: K(0) });
-  place(v0);
+  // bolts round the breastplate, studs on the neck ring, the valve at the back
+  for (let i = 0; i < 10; i++) { const t = (i / 10) * TAU + 0.3; ball(m, Math.cos(t) * 0.27, 0.045, Math.sin(t) * 0.215, () => 0.02, 2, (dx, dy, dz, o) => { o[0] = 2; }); }
+  for (let i = 0; i < 6; i++) { const t = (i / 6) * TAU; ball(m, Math.cos(t) * 0.185, 0.2, Math.sin(t) * 0.185, () => 0.016, 2, (dx, dy, dz, o) => { o[0] = 2; }); }
+  sweep(m, [[0, 0.39, -0.155, 0.03], [0, 0.41, -0.255, 0.03], [0, 0.41, -0.295, 0.042]], 8, { caps: true, aux: K(2) });
+  place(0);
+  // where the geode's light comes from, as the helmet sees it
+  const gl = [G.glowPos.array[3].x, G.glowPos.array[3].y, G.glowPos.array[3].z];
   addMesh(ctx, sphereOf(m.build(), 0.3), material({
-    aux: true, fade: [80, 98],
+    aux: true, fade: [80, 98], shadow: false,
     surface: (s, f) => {
-      const glass = step(0.5, f.aux.x);
-      brassSurf(s, f, 0.3);
-      s.albedo = mix(s.albedo, srgb(0.2, 0.24, 0.26), glass);
-      s.emis = s.emis.add(s.albedo.mul(vec3(0.10, 0.07, 0.05)).mul(float(1).sub(glass)));
-      s.spec = mix(s.spec, float(1.4), glass); s.gloss = mix(s.gloss, float(90.0), glass);
+      const glass = step(0.5, f.aux.x).mul(float(1).sub(step(1.5, f.aux.x))), dark = step(1.5, f.aux.x);
+      const D = detail(f.w, s.n, 9.0, 0.3);
+      // polished brass, a little patina in places; the rims and bolts a shade darker
+      const pat = smoothstep(0.6, 0.85, D.m).mul(0.35);
+      const brass = mix(srgb(0.86, 0.66, 0.36), srgb(0.40, 0.46, 0.36), pat).mul(float(1).sub(dark.mul(0.25)));
+      s.albedo = mix(brass, srgb(0.05, 0.07, 0.08), glass);
+      s.n = normalize(mix(D.n, s.n, glass)).toVar();
+      s.spec = mix(float(1.4), float(2.0), glass); s.gloss = mix(float(70.0), float(140.0), glass); s.fluor = float(0.05);
+      // it mirrors what is round it: the warm glow of the geode, the lit sand below, the dark water above
+      const vv = normalize(cameraPosition.sub(f.w)).toVar(), r = reflect(vv.negate(), s.n).toVar();
+      const toG = normalize(vec3(...gl).sub(f.w)).toVar();
+      const rg = max(dot(r, toG), 0.0).toVar();
+      const env = vec3(0.02, 0.02, 0.03).add(vec3(1.0, 0.68, 0.36).mul(pow(rg, 5.0).mul(1.4).add(pow(rg, 60.0).mul(4.0))))
+        .add(vec3(0.16, 0.11, 0.06).mul(smoothstep(0.05, -0.5, r.y)));
+      const fres = pow(float(1).sub(max(dot(s.n, vv), 0.0)), 5.0);
+      s.emis = mix(brass.mul(env).mul(float(0.75).add(fres.mul(0.25))), vec3(1.0, 0.8, 0.55).mul(pow(rg, 90.0).mul(2.5)).add(vec3(0.03, 0.05, 0.06).mul(fres.mul(2.0).add(0.2))), glass);
     },
   }), 98);
 }
@@ -2156,6 +2559,8 @@ export function buildSets(ctx) {
   const chain = buildChain(ctx, q, bow, ring, [ANCHOR.x, ANCHOR.z]);
   mark('chain');
   const clam = buildClam(ctx, q);
+  const clamGlows = clam.glows;
+  delete clam.glows;
   mark('clam');
   const wreck = buildWreck(ctx, q);
   mark('wreck');
@@ -2165,8 +2570,23 @@ export function buildSets(ctx) {
   buildHelmet(ctx);
   mark('geode');
   if (typeof DEV !== 'undefined' && DEV) console.log('sets ' + Math.round(performance.now() - t0) + ' ms (' + lap.join(', ') + ')');
+  // the glow slots 1 to 3 are the vents' and the geode's; while the camera is on the reef (where
+  // nothing of theirs can be seen) they are lent to the clam's three lamps
+  const deepGlows = [1, 2, 3].map((i) => [G.glowPos.array[i].toArray(), G.glowCol.array[i].toArray()]);
+  let lent = -1;
+  const lend = (reef) => {
+    lent = reef;
+    for (let i = 0; i < 3; i++) {
+      G.glowPos.array[i + 1].fromArray(reef ? clamGlows[i * 2] : deepGlows[i][0]);
+      G.glowCol.array[i + 1].fromArray(reef ? clamGlows[i * 2 + 1] : deepGlows[i][1]);
+    }
+  };
   return {
-    update(t) { chain.setTime(t); },
+    update(t, dt, p) {
+      chain.setTime(t);
+      const reef = p < 4.15 ? 1 : 0;
+      if (reef !== lent) lend(reef);
+    },
     chainAt: chain.chainAt,
     clam, geode, wreck,
   };

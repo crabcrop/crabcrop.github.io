@@ -15,11 +15,11 @@
 // times over with its own place, size and colour.
 import { BufferAttribute, InstancedBufferAttribute, InstancedBufferGeometry, Mesh as ThreeMesh, Quaternion, Sphere, Vector3 } from 'three/webgpu';
 import {
-  Discard, If, abs, attribute, cameraPosition, clamp as clampN, cos, cross, dot, float, floor, fract, length, max, mix, normalize, pow, select, sin, smoothstep, sqrt, step,
+  abs, attribute, cameraPosition, clamp as clampN, cos, cross, dot, float, floor, fract, length, max, mix, normalize, pow, select, sin, smoothstep, sqrt, step,
   texture, varyingProperty, vec2, vec3, vec4,
 } from 'three/tsl';
-import { CLEARINGS, centerX, cleared, groundY, halfWidth, offTrack, pathAt } from './layout.js';
-import { Mesh, TAU, clamp, fbm2, fbm3, lathe, makeRng, noise2, noise3, smooth, tube } from './math.js';
+import { CLEARINGS, TRACK, centerX, cleared, groundY, halfWidth, offTrack, pathAt } from './layout.js';
+import { Mesh, TAU, blob, clamp, fbm2, fbm3, lathe, makeRng, noise2, noise3, smooth, tube } from './math.js';
 import { orb, perches } from './rocks.js';
 import { G, detail, material, shadow1, sunAt, yarn } from './shaders.js';
 import { instanced, place } from './world.js';
@@ -71,12 +71,18 @@ const stemAt = (base, hh, seed, calm) => {
   return base.add(vec3(sway.x.add(bend.x), hh, sway.y.add(bend.y)));
 };
 // a stalk's radius at its foot, and a float's radius
-const stalkR = (ps) => mix(float(0.21), float(0.3), fract(ps.mul(7.31)));
-const floatR = (seed, h) => mix(float(0.44), float(0.62), fract(seed.mul(3.71))).mul(float(1.0).sub(h.mul(0.25)));
+const stalkR = (ps) => mix(float(0.27), float(0.37), fract(ps.mul(7.31)));
+const floatR = (seed, h) => mix(float(0.42), float(0.58), fract(seed.mul(3.71))).mul(float(1.0).sub(h.mul(0.2)));
+// From the shallows the forest is not seen yet: it comes out of the blue as the camera nears
+// it, so the shallows' water behind their sea grass stays open. [near, far] for `fade`.
+const kelpFade = (a, b) => {
+  const k = smoothstep(-40.0, -62.0, cameraPosition.z);
+  return [mix(float(22.0), float(a), k), mix(float(40.0), float(b), k)];
+};
 
 // The kelp's blades: felt ribbons, in the colours of the picture.
 const KELP = [[0.96, 0.62, 0.18], [0.96, 0.46, 0.16], [0.92, 0.46, 0.56], [0.18, 0.62, 0.62], [0.58, 0.36, 0.74], [0.64, 0.60, 0.24], [0.84, 0.64, 0.24]].map(lin);
-const KELP_W = [0.17, 0.08, 0.12, 0.12, 0.11, 0.2, 0.2];
+const KELP_W = [0.22, 0.1, 0.16, 0.14, 0.1, 0.12, 0.16];
 const pickKelp = (r) => { let a = 0; for (let i = 0; i < KELP_W.length; i++) { a += KELP_W[i]; if (r < a) return i; } return KELP_W.length - 1; };
 const palette = (k, list) => {
   let c = vec3(...list[list.length - 1]);
@@ -86,7 +92,7 @@ const palette = (k, list) => {
 const vBlade = varyingProperty('vec4', 'v_kelp');
 
 const kelpBladeMat = () => material({
-  twoSided: true, fade: [56, 72],
+  twoSided: true, fade: kelpFade(50, 66),
   vertex: (v) => {
     const t = v.P.y.toVar(), u = v.P.x.toVar(), seed = ic.x, h = ib.x, L = ib.z;
     const calm = calmAt(v, ia.xyz).toVar();
@@ -94,7 +100,7 @@ const kelpBladeMat = () => material({
     const D = vec3(cos(ib.y), 0.0, sin(ib.y)).toVar(), U = vec3(0.0, 1.0, 0.0), W0 = vec3(D.z.negate(), 0.0, D.x).toVar();
     const rf = floatR(seed, h);
     // it leaves its float on the far side from the stalk
-    const A = S.add(D.mul(stalkR(ic.w).mul(float(1).sub(h.mul(0.35))).add(rf.mul(1.35)))).toVar();
+    const A = S.add(D.mul(stalkR(ic.w).mul(float(1).sub(h.mul(0.28))).add(rf.mul(1.3)))).toVar();
     const C = cameraPosition;
     // far away, fewer blades: each folds away into its float at its own distance, gradually
     const far = v.shadow ? float(0.0) : smoothstep(26.0, 60.0, length(A.sub(C)));
@@ -102,19 +108,22 @@ const kelpBladeMat = () => material({
     const keep = float(1.0).sub(smoothstep(float(0.92).sub(thr), float(1.06).sub(thr), far.mul(0.72))).toVar();
     // out and up from the float, then over and down; streaming with the water
     const ph = G.time.mul(seed.mul(0.25).add(0.45)).add(seed.mul(30.0)).add(S.x.mul(0.2)).add(S.z.mul(0.13)).toVar();
-    const c1 = D.mul(0.24).add(U.mul(0.34)).toVar();
-    const c2 = D.mul(0.42).add(U.mul(float(0.3).sub(ic.y.mul(1.25)))).toVar();
+    const c1 = D.mul(0.2).add(U.mul(0.3)).toVar();
+    const c2 = D.mul(0.36).add(U.mul(float(0.3).sub(ic.y.mul(1.25)))).toVar();
     c2.addAssign(vec3(0.16, 0.0, 0.11).mul(sin(ph.mul(0.6))).add(U.mul(sin(ph).mul(0.04))).mul(calm));
     const omt = float(1.0).sub(t);
     const Q = c1.mul(omt.mul(t).mul(2.0)).add(c2.mul(t.mul(t))).mul(L.mul(keep));
     const T = normalize(c1.mul(omt.sub(t).mul(2.0)).add(c2.mul(t.mul(2.0)))).toVar();
-    const B = A.add(Q).toVar();
+    // a long ribbon snakes from side to side down its length, the waves running down it
+    const snake = sin(t.mul(L).mul(mix(float(2.9), float(4.1), fract(seed.mul(5.3)))).add(seed.mul(40.0)).sub(G.time.mul(calm).mul(0.7)))
+      .mul(smoothstep(0.04, 0.4, t).mul(0.13).add(t.mul(0.07))).mul(keep);
+    const B = A.add(Q).add(W0.mul(snake)).toVar();
     if (!v.shadow) {
       // out of the way: two metres round the lens, and the corridor from the lens to Snap
       const pc = normalize(A.sub(C));
       const yc = dot(B.sub(C), pc).toVar();
       const latc = dot(B.sub(C), B.sub(C)).sub(yc.mul(yc));
-      B.addAssign(pc.mul(smax(yc, float(2.1), 0.7).sub(yc).mul(float(1).sub(smoothstep(4.4, 12.0, latc)))));
+      B.addAssign(pc.mul(smax(yc, float(2.6), 0.7).sub(yc).mul(float(1).sub(smoothstep(6.0, 15.0, latc)))));
       const ax = G.snapAt.xyz.sub(C).toVar(), L2 = max(dot(ax, ax), 1e-3).toVar();
       // (only once Snap's place is known: until then G.snapAt sits a kilometre down)
       B.addAssign(capsulePush(B, C, ax, L2, sideOf(A, C, ax, L2), 1.35, 0.95).mul(step(-900.0, G.snapAt.y)));
@@ -122,13 +131,15 @@ const kelpBladeMat = () => material({
     const N0 = normalize(cross(W0, T)).toVar();
     const tw = seed.sub(0.5).mul(2.2).mul(t).add(sin(ph.add(t.mul(2.4))).mul(0.25).mul(calm)).toVar();
     const W = W0.mul(cos(tw)).add(N0.mul(sin(tw))).toVar(), Nn = N0.mul(cos(tw)).sub(W0.mul(sin(tw))).toVar();
-    // a narrow stem at the float, wide, then a long point; ruffled at the edges, a little cupped
-    const near = v.shadow ? float(1.0) : smoothstep(1.7, 2.6, length(A.sub(C)));
-    const wd = ib.w.mul(smoothstep(0.0, 0.1, t).mul(0.7).add(0.3)).mul(float(1.0).sub(pow(t, 5.0).mul(0.92))).mul(keep).mul(near).toVar();
-    const rp = t.mul(L).mul(2.6).add(seed.mul(50.0)).sub(G.time.mul(calm).mul(0.8)).toVar(), edge = pow(abs(u), 1.5).toVar();
-    const P = B.add(W.mul(u.mul(wd))).add(Nn.mul(sin(rp).mul(0.22).mul(wd).mul(edge).add(u.mul(u).sub(0.4).mul(0.12).mul(wd))));
+    // a narrow stem at the float, then a long ribbon of even width with a rounded end; its
+    // edges ruffled, a little cupped
+    const near = v.shadow ? float(1.0) : smoothstep(2.3, 3.4, length(A.sub(C)));
+    const tip = sqrt(max(float(1).sub(pow(max(t.sub(0.8), 0.0).mul(5.0), 2.0)), 0.0));
+    const wd = ib.w.mul(smoothstep(0.0, 0.12, t).mul(0.62).add(0.38)).mul(sin(t.mul(3.0)).mul(0.14).add(0.92)).mul(tip.mul(0.9).add(0.1)).mul(keep).mul(near).toVar();
+    const rp = t.mul(L).mul(3.3).add(seed.mul(50.0)).sub(G.time.mul(calm).mul(0.8)).toVar(), edge = pow(abs(u), 1.5).toVar();
+    const P = B.add(W.mul(u.mul(wd))).add(Nn.mul(sin(rp).mul(0.26).mul(wd).mul(edge).add(u.mul(u).sub(0.4).mul(0.12).mul(wd))));
     v.P.assign(P);
-    v.N.assign(normalize(Nn.add(W.mul(u).mul(0.3)).sub(T.mul(cos(rp)).mul(0.45).mul(edge))));
+    v.N.assign(normalize(Nn.add(W.mul(u).mul(0.3)).sub(T.mul(cos(rp)).mul(0.5).mul(edge))));
     v.aux.assign(vec4(t, u, ic.z.add(seed.mul(0.9)), L));
     vBlade.assign(vec4(ib.w, ic.w, 0.0, 0.0));
   },
@@ -138,33 +149,38 @@ const kelpBladeMat = () => material({
     // felt: a soft mottle, a midrib and veins running out to the edges, darker near the float
     const q = vec2(u.mul(vBlade.x), t.mul(L));
     const m = texture(G.detailTex, q.mul(1.3).add(vBlade.y)).toVar();
-    const sv = abs(fract(t.mul(L).mul(2.3).sub(abs(u).mul(0.9))).sub(0.5)).mul(2.0);
-    const vein = float(1).sub(smoothstep(0.0, 0.14, sv)).mul(smoothstep(0.08, 0.22, abs(u))).mul(float(1).sub(smoothstep(0.7, 0.92, abs(u))));
+    const sv = abs(fract(t.mul(L).mul(1.9).sub(abs(u).mul(0.7))).sub(0.5)).mul(2.0);
+    const vein = float(1).sub(smoothstep(0.0, 0.12, sv)).mul(smoothstep(0.1, 0.25, abs(u))).mul(float(1).sub(smoothstep(0.66, 0.9, abs(u))));
     const mid = float(1).sub(smoothstep(0.03, 0.1, abs(u)));
-    // (the veins darker and redder, as in the picture's amber blade)
-    s.albedo = col.mul(m.a.mul(0.24).add(0.88)).mul(mix(vec3(1.0), vec3(0.78, 0.5, 0.5), max(vein, mid).mul(0.55))).mul(smoothstep(0.0, 0.25, t).mul(0.25).add(0.75));
+    // (the veins darker and redder, as in the picture's amber blade; the felt thicker and
+    // a little darker at the rim)
+    const rim = smoothstep(0.82, 1.0, abs(u));
+    s.albedo = col.mul(m.a.mul(0.24).add(0.88)).mul(mix(vec3(1.0), vec3(0.74, 0.46, 0.46), max(vein, mid).mul(0.5))).mul(smoothstep(0.0, 0.2, t).mul(0.25).add(0.75)).mul(float(1).sub(rim.mul(0.2)));
     s.n = normalize(s.n.add(vec3(m.r.sub(0.5), 0.0, m.g.sub(0.5)).mul(0.25)));
     s.ao = smoothstep(0.0, 0.3, t).mul(0.3).add(0.7);
-    s.spec = float(0.02); s.gloss = float(6.0); s.fluor = float(0.95);
+    s.spec = float(0.02); s.gloss = float(6.0); s.fluor = float(0.9);
     const sh = shadow1(f.w.add(G.sunDir.mul(0.3))).toVar();
-    s.shade = sh; s.trans = float(0.75);
-    // felt is thin: the light comes through it, most of all looking toward the sun
+    s.shade = sh; s.trans = float(0.85);
+    // felt is thin: seen against the light it glows in its own colour, like stained glass,
+    // most of all looking up into the sun's column, and where the sun reaches it
     const vv = normalize(f.w.sub(cameraPosition));
-    const toward = pow(max(dot(vv, G.sunDir), 0.0), 3.0);
-    // (and seen from below, against the light above, it glows like stained glass)
-    const below = smoothstep(-0.1, 0.6, vv.y);
-    s.emis = s.emis.add(sunAt(f.w.y).mul(sh.mul(0.8).add(0.2)).mul(toward.mul(0.45).add(below.mul(0.16)).add(0.06)).mul(s.albedo).mul(s.albedo).mul(1.3));
+    const toward = pow(max(dot(vv, G.sunDir), 0.0), 2.0);
+    const below = smoothstep(-0.2, 0.55, vv.y);
+    const back = toward.mul(0.75).add(below.mul(0.6)).add(0.1).mul(float(1).sub(rim.mul(0.35)));
+    s.emis = s.emis.add(sunAt(f.w.y).mul(sh.mul(0.85).add(0.15)).mul(back).mul(s.albedo).mul(s.albedo.mul(0.6).add(0.4)).mul(0.95));
     const graze = pow(float(1.0).sub(abs(dot(s.n, vv))), 3.0);
-    s.emis = s.emis.add(G.amb.mul(0.18).mul(graze).mul(s.albedo));
+    s.emis = s.emis.add(G.amb.mul(0.16).mul(graze).mul(s.albedo));
   },
 });
-// The stalks: knitted, olive and ochre in long sections.
+// The stalks: knitted in two colours, olive and ochre, not in bands but in long runs: an
+// ochre stripe up one side that wanders round the stalk, widening and narrowing. Close to
+// the lens a stalk goes soft, as the near stalks in the picture are out of focus.
 const kelpStalkMat = () => material({
-  fade: [62, 76],
+  fade: kelpFade(54, 72),
   vertex: (v) => {
     const p0 = v.P.toVar();
     const calm = calmAt(v, ia.xyz);
-    const r = stalkR(ic.w).mul(float(1).sub(p0.y.mul(0.35))).toVar();
+    const r = stalkR(ic.w).mul(float(1).sub(p0.y.mul(0.28))).toVar();
     const C = stemAt(ia.xyz, p0.y.mul(ia.w), ic.w, calm);
     v.N.assign(vec3(p0.x, 0.0, p0.z));
     v.P.assign(C.add(vec3(p0.x, 0.0, p0.z).mul(r)));
@@ -172,15 +188,24 @@ const kelpStalkMat = () => material({
     v.aux.assign(vec4(ia.x.add(p0.x.mul(r)), ia.y.add(p0.y.mul(ia.w)), ia.z.add(p0.z.mul(r)), ic.w));
   },
   surface: (s, f) => {
-    const k = fract(f.aux.w.mul(5.3)).mul(0.14).add(0.93);
-    yarn(s, f, { color: linV(0.80, 0.56, 0.20).mul(k), color2: linV(0.90, 0.68, 0.26).mul(k), stripe: 14, scale: 16, p: f.aux.xyz, k: 1.4 });
+    const ps = f.aux.w, y = f.aux.y;
+    const k = fract(ps.mul(5.3)).mul(0.14).add(0.93);
+    // (the way round the stalk is its unbent normal; the stripe's middle wanders with height)
+    const a = y.mul(0.19).add(ps.mul(31.0)).add(sin(y.mul(0.47).add(ps.mul(17.0))).mul(1.1)).toVar();
+    const side = f.n.x.mul(cos(a)).add(f.n.z.mul(sin(a)));
+    const wide = sin(y.mul(0.31).add(ps.mul(11.0))).mul(0.5).add(sin(y.mul(0.83).add(ps.mul(5.0))).mul(0.25));
+    const two = smoothstep(-0.08, 0.08, side.sub(wide));
+    const col = mix(linV(0.50, 0.49, 0.22), linV(0.84, 0.62, 0.22), two).mul(k);
+    const near = float(1).sub(smoothstep(3.5, 9.0, f.dist));
+    yarn(s, f, { color: col, scale: 16, p: f.aux.xyz, k: mix(float(1.4), float(0.35), near), fuzz: mix(float(1.0), float(0.4), near) });
+    s.albedo = s.albedo.mul(float(1).sub(near.mul(0.22)));
     s.shade = shadow1(f.w.add(G.sunDir.mul(0.2)));
     s.fluor = float(0.7);
   },
 });
 // The floats: big yarn balls where each blade leaves the stalk.
 const kelpFloatMat = () => material({
-  fade: [50, 64],
+  fade: kelpFade(48, 62),
   vertex: (v) => {
     const h = ib.x, calm = calmAt(v, ia.xyz);
     const S = stemAt(ia.xyz, h.mul(ia.w), ic.w, calm);
@@ -339,77 +364,192 @@ function scatter(add, geo, mat, list, range, run = 40) {
     add(mesh, range);
   }
 }
-const FELT = [[0.56, 0.62, 0.66], [0.48, 0.54, 0.60], [0.66, 0.64, 0.60], [0.76, 0.70, 0.60], [0.46, 0.58, 0.58], [0.62, 0.66, 0.70]].map(lin);
+const FELT = [[0.54, 0.53, 0.52], [0.47, 0.47, 0.48], [0.60, 0.57, 0.53], [0.64, 0.58, 0.50], [0.46, 0.48, 0.48], [0.56, 0.55, 0.55]].map(lin);
+
+// A fishing net caught on a stalk: knotted cord in diamonds, wrapped round the stalk and
+// hanging down one side, with a float and a few loose ends. Built round the stalk's axis
+// (x and z from it, y the height above its foot) and moved with the stalk in the vertex step.
+function netShape(rng, r0, h0, q) {
+  const m = new Mesh(true), hi = q.amount >= 1;
+  const th0 = rng() * TAU, hang = th0 + 2.6;
+  // the net as a sheet: s along its top rope (which winds most of the way round the stalk,
+  // climbing), t down from it; it bellies out and swings to one side as it hangs
+  const at = (s, t, o) => {
+    const top = th0 + s * 4.4, k = smooth(0, 1, t);
+    const th = top + (hang + (s - 0.5) * 1.6 - top) * k * 0.55 + 0.25 * Math.sin(s * 9 + t * 4);
+    const R = r0 + 0.04 + t * (0.25 + 0.4 * s) + 0.06 * Math.sin(s * 13 + t * 7) * t;
+    o[0] = Math.cos(th) * R; o[2] = Math.sin(th) * R;
+    o[1] = Math.max(h0 + 0.5 * s - 0.15 * Math.sin(s * Math.PI) - t * (1.35 + 0.45 * Math.sin(s * 2.7 + 0.5)) + 0.08 * Math.sin(s * 17) * t, 0.12);
+  };
+  const o = [0, 0, 0];
+  const cord = (pts, r, kind) => { const v0 = m.count; tube(m, pts.map((p) => [p[0], p[1], p[2], r]), hi ? 4 : 3); for (let v = v0; v < m.count; v++) { m.a[v * 4] = kind; m.a[v * 4 + 1] = (pts.length * 0.37) % 1; } };
+  // the two families of cords that make the diamonds (s - a t and s + a t constant)
+  const A = 0.62, step = hi ? 1 / 10 : 1 / 7, nt = hi ? 16 : 10;
+  for (const dir of [-1, 1]) {
+    for (let c = -A; c <= 1 + A; c += step) {
+      const pts = [];
+      for (let i = 0; i <= nt; i++) {
+        const t = i / nt, s = c + dir * A * t;
+        if (s < 0 || s > 1) { if (pts.length > 1) break; pts.length = 0; continue; }
+        at(s, t, o); pts.push([o[0], o[1], o[2]]);
+      }
+      if (pts.length > 1) cord(pts, 0.022, 0);
+    }
+  }
+  // the head rope, thicker, and loose ends hanging below
+  const head = [];
+  for (let i = 0; i <= 24; i++) { at(i / 24, 0, o); head.push([o[0], o[1] + 0.01, o[2]]); }
+  cord(head, 0.034, 0);
+  for (let k = 0; k < 4; k++) {
+    const s = 0.15 + 0.22 * k + rng.range(-0.05, 0.05), pts = [];
+    at(s, 1, o);
+    const L = rng.range(0.3, 0.7);
+    for (let i = 0; i <= 5; i++) pts.push([o[0] + Math.sin(i * 0.9 + k) * 0.04 * i, Math.max(o[1] - L * i / 5, 0.1), o[2] + Math.cos(i * 0.7 + k) * 0.04 * i]);
+    cord(pts, 0.02, 0);
+  }
+  // a float tied on at one end of the head rope
+  at(1, 0.08, o);
+  const v0 = m.count;
+  blob(m, o[0] * 1.4, o[1] - 0.15, o[2] * 1.4, () => 0.17, hi ? 6 : 4);
+  for (let v = v0; v < m.count; v++) { m.a[v * 4] = 1; m.a[v * 4 + 1] = 0; }
+  const g = m.build();
+  g.computeBoundingSphere();
+  return g;
+}
+const netMat = (foot, ps) => material({
+  aux: true, fade: kelpFade(34, 44),
+  vertex: (v) => {
+    const F = vec3(foot[0], foot[1], foot[2]);
+    const S = stemAt(F, v.P.y, float(ps), calmAt(v, F));
+    v.P.assign(S.add(vec3(v.P.x, 0.0, v.P.z)));
+  },
+  surface: (s, f) => {
+    // worn cotton cord, cream and tan; the float red-orange yarn
+    const fl = step(0.5, f.aux.x);
+    const cordC = mix(linV(0.80, 0.72, 0.58), linV(0.66, 0.56, 0.44), f.aux.y);
+    yarn(s, f, { color: mix(cordC, linV(0.86, 0.36, 0.22), fl), scale: 40, k: 0.8 });
+    s.fluor = float(0.6); s.trans = float(0.3);
+  },
+});
+
+// A place beside the camera's way at p: `side` metres to its right (negative: left) and
+// `ahead` metres on along it.
+function beside(p, side, ahead, out) {
+  const o = [0, 0, 0, 0, 0], o2 = [0, 0, 0, 0, 0];
+  pathAt(p, o); pathAt(p + 0.01, o2);
+  const dx = o2[0] - o[0], dz = o2[2] - o[2], l = Math.hypot(dx, dz) || 1;
+  out[0] = o[0] - (dz / l) * side + (dx / l) * ahead; out[1] = o[2] + (dx / l) * side + (dz / l) * ahead;
+  return out;
+}
 
 function buildKelp(add, q) {
   const rng = makeRng(4242);
   const lvl = q.amount >= 1 ? 1 : q.amount >= 0.5 ? 0.72 : 0.5;
-  const plants = Math.round(58 * lvl);
+  // fewer, thicker stalks than a real forest, as in the picture: groves either side of a
+  // sand path down the middle, where the sun comes down
+  const plants = Math.round(36 * lvl);
   const blades = [], stalks = [], feet = [];
-  for (let n = 0, tries = 0; n < plants && tries < plants * 40; tries++) {
-    const z = -50 - rng() * 78, edge = Math.min((-50 - z) / 9, (z + 128) / 9, 1);
+  const crowded = (x, z, r) => { for (let i = 0; i < feet.length; i += 2) if ((feet[i] - x) ** 2 + (feet[i + 1] - z) ** 2 < r * r) return true; return false; };
+  // a plant: its foot, how tall, its seed; blades: how many floats up it, and which way they
+  // may face (out: the way from the camera's path, or null for any)
+  const plant = (x, z, H, ps, out, few) => {
+    const g = groundY(x, z);
+    feet.push(x, z);
+    stalks.push(x, g, z, H, 0, 0, 0, 0, 0, 0, 0, ps);
+    // a float and a blade every three metres or so up the stalk, turning round it, and one or
+    // two that stream up from the top; most in the plant's own colour
+    const own = pickKelp(rng()), count = few ? 2 : Math.max(2, Math.round(H / rng.range(2.9, 3.7)));
+    let ang = out === null ? rng() * TAU : out;
+    for (let b = 0; b <= count; b++) {
+      const top = b === count;
+      const h = top ? 1 : few ? rng.range(0.6, 0.85) : clamp(0.24 + 0.74 * (b + rng.range(-0.25, 0.25)) / count, 0.16, 0.95);
+      ang = out === null ? ang + rng.range(1.6, 2.9) : out + rng.range(-1.2, 1.2);
+      const col = rng() < 0.7 ? own : pickKelp(rng());
+      const len = top ? rng.range(3.6, 5.0) : rng.range(4.6, 7.0) * (0.75 + 0.3 * h);
+      // (a blade hangs no lower than a little above the sand)
+      let droop = top ? rng.range(-0.3, 0.05) : rng.range(0.55, 1.0);
+      if (!top) droop = Math.min(droop, ((h * H - 0.5) / len + 0.3) / 1.25);
+      blades.push(x, g, z, H, h, ang, len, rng.range(0.3, 0.44), rng(), droop, col, ps);
+    }
+  };
+  for (let n = 0, tries = 0; n < plants && tries < plants * 60; tries++) {
+    const z = -61 - rng() * 67, edge = Math.min((-61 - z) / 12, (z + 128) / 9, 1);
     if (rng() > edge) continue;                          // thinner at both ends of the forest
     const x = centerX(z) + rng.bell() * 2.2 * (halfWidth(z) + 4);
     const d = offTrack(x, z);
-    if (d < 4.2 || Math.abs(x - centerX(z)) > halfWidth(z) + 12) continue;
+    if (d < 4.4 || Math.abs(x - centerX(z)) > halfWidth(z) + 12) continue;
     // (fewer near the camera on the left, where the words are)
     if (x < centerX(z) - 1 && d < 12 && rng() < 0.55) continue;
     // in groves, with clearings between
     if (noise2(x * 0.1 + 3.3, z * 0.1) < -0.2 + 0.3 * rng()) continue;
-    // not too close to another stalk
-    let crowd = false;
-    for (let i = 0; i < feet.length; i += 2) if ((feet[i] - x) ** 2 + (feet[i + 1] - z) ** 2 < 5.2 * 5.2) { crowd = true; break; }
-    if (crowd) continue;
-    feet.push(x, z);
-    const g = groundY(x, z), H = (-g - rng.range(0.3, 2.5)) * rng.range(0.88, 1), ps = rng();
+    if (crowded(x, z, 6.2)) continue;
+    // (the first plants at the forest's edge are young and shorter)
+    const g = groundY(x, z), H = (-g - rng.range(0.3, 2.5)) * rng.range(0.88, 1) * (0.55 + 0.45 * smooth(-61, -74, z));
     if (H < 4) continue;
-    stalks.push(x, g, z, H, 0, 0, 0, 0, 0, 0, 0, ps);
-    // a float and a blade every metre and a half or two up the stalk, turning round it, and
-    // two that stream up from the top; most in the plant's own colour
-    const own = pickKelp(rng()), count = Math.max(2, Math.round(H / rng.range(2.8, 3.6)));
-    let ang = rng() * TAU;
-    for (let b = 0; b <= count; b++) {
-      const top = b === count;
-      const h = top ? 1 : clamp(0.2 + 0.78 * (b + rng.range(-0.25, 0.25)) / count, 0.12, 0.97);
-      ang += rng.range(1.6, 2.9);
-      const col = rng() < 0.7 ? own : pickKelp(rng());
-      const len = top ? rng.range(3.2, 4.4) : rng.range(4.0, 6.2) * (0.8 + 0.3 * h);
-      const droop = top ? rng.range(-0.3, 0.05) : rng.range(0.55, 1.0);
-      blades.push(x, g, z, H, h, ang, len, rng.range(0.48, 0.72), rng(), droop, col, ps);
-    }
+    // (near the camera's way the blades hang to the far side, out of the way)
+    let out = null;
+    if (d < 8.5) { let bi = 0, bd = 1e9; for (let i = 0; i < 801 * 3; i += 3) { const dd = (TRACK[i] - x) ** 2 + (TRACK[i + 2] - z) ** 2; if (dd < bd) { bd = dd; bi = i; } } out = Math.atan2(z - TRACK[bi + 2], x - TRACK[bi]); }
+    plant(x, z, H, rng(), out, false);
     n++;
   }
-  const rows = q.amount >= 1 ? 16 : q.amount >= 0.5 ? 12 : 9;
-  cells(add, strip(rows, 4), kelpBladeMat(), blades, 24, 76, 7);
+  // a few close to the camera's way, at the edges of the view where it looks (p, the angle
+  // from straight ahead in degrees, how far), framing it as the soft near stalks frame the
+  // picture; their blades face away from the way
+  const o = [0, 0, 0, 0, 0];
+  // (and the one with the net caught on it, on the right a little way off)
+  let netOn = -1;
+  for (const [p, deg, dist, net] of [[2.8, 40, 6.1], [2.8, -41, 6.6], [2.62, -41, 6.4], [2.4, 28, 8.8, true]]) {
+    pathAt(p, o);
+    const yaw = o[3] * Math.PI / 180, a = deg * Math.PI / 180;
+    const x = o[0] + (Math.sin(yaw) * Math.cos(a) + Math.cos(yaw) * Math.sin(a)) * dist, z = o[2] + (-Math.cos(yaw) * Math.cos(a) + Math.sin(yaw) * Math.sin(a)) * dist;
+    if (crowded(x, z, net ? 2.4 : 3.2) || offTrack(x, z) < 2.4) continue;
+    const g = groundY(x, z);
+    if (net) netOn = stalks.length;
+    plant(x, z, (-g - rng.range(0.6, 1.6)) * rng.range(0.9, 1), rng(), Math.atan2(z - o[2], x - o[0]), true);
+  }
+  const rows = q.amount >= 1 ? 20 : q.amount >= 0.5 ? 14 : 10;
+  cells(add, strip(rows, 4), kelpBladeMat(), blades, 24, 76, 8);
   const bm = new Mesh(false);
-  orb(bm, 0, 0, 0, () => 1, q.amount >= 1 ? 5 : 4);
+  orb(bm, 0, 0, 0, () => 1, q.amount >= 1 ? 6 : 4);
   const bg = bm.build();
   cells(add, { position: bg.getAttribute('position'), normal: bg.getAttribute('normal'), uv: bg.getAttribute('uv'), index: bg.index }, kelpFloatMat(), blades, 24, 64, 2);
-  cells(add, stalk(q.amount >= 1 ? 18 : 12, q.amount >= 0.5 ? 8 : 6), kelpStalkMat(), stalks, 28, 78, 2);
+  cells(add, stalk(q.amount >= 1 ? 18 : 12, q.amount >= 0.5 ? 12 : 8), kelpStalkMat(), stalks, 28, 78, 2);
+  // a net caught on one stalk on the right, where the camera passes
+  if (netOn >= 0) {
+    {
+      const [x, g, z, H, , , , , , , , ps] = stalks.slice(netOn, netOn + 12);
+      const r0 = 0.27 + 0.1 * ((ps * 7.31) % 1);
+      const mesh = new ThreeMesh(netShape(makeRng(77), r0 * (1 - 0.28 * 4.3 / H), 4.3, q), netMat([x, g, z], ps));
+      mesh.geometry.boundingSphere.center.set(x, g + 3, z);
+      mesh.geometry.boundingSphere.radius = 3;
+      mesh.matrixAutoUpdate = false;
+      add(mesh, 46);
+    }
+  }
   // felted boulders: a few at each stalk's foot, and a border along the sand down the middle
   const stones = [], srng = makeRng(5150);
   const stone = (x, z, r, flat) => {
-    const c = srng.pick(FELT), k = srng.range(0.88, 1.1);
+    const c = srng.pick(FELT), k = srng.range(0.86, 1.08);
     stones.push(x, groundY(x, z) - r * flat * 0.3, z, 2 * r * srng.range(0.9, 1.25), 2 * r * flat, 2 * r * srng.range(0.85, 1.15), srng() * TAU, c[0] * k, c[1] * k, c[2] * k);
   };
   for (let i = 0; i < feet.length; i += 2) {
-    const n = 1 + Math.floor(srng() * 3 * Math.max(lvl, 0.6));
+    const n = 2 + Math.floor(srng() * 3 * Math.max(lvl, 0.6));
     for (let k = 0; k < n; k++) {
-      const a = srng() * TAU, d = srng.range(0.45, 1.3), x = feet[i] + Math.cos(a) * d, z = feet[i + 1] + Math.sin(a) * d;
-      if (offTrack(x, z) < 2.6) continue;
-      stone(x, z, srng.range(0.3, 0.75), srng.range(0.55, 0.8));
+      const a = srng() * TAU, d = srng.range(0.55, 1.5), x = feet[i] + Math.cos(a) * d, z = feet[i + 1] + Math.sin(a) * d;
+      if (offTrack(x, z) < 2.4) continue;
+      stone(x, z, srng.range(0.45, 0.95), srng.range(0.62, 0.86));
     }
   }
-  for (let z = -54; z > -126; z -= srng.range(1.6, 3.2) / lvl) {
+  for (let z = -61; z > -126; z -= srng.range(1.8, 3.4) / lvl) {
     for (const side of [-1, 1]) {
-      if (srng() < 0.35) continue;
-      const x = centerX(z) + side * srng.range(2.4, 7.0);
+      if (srng() < 0.3) continue;
+      const x = centerX(z) + side * srng.range(2.6, 7.0);
       const d = offTrack(x, z);
-      if (d < 2.5 || d > 7.5) continue;
-      stone(x, z, srng.range(0.25, 0.6) * (0.7 + 0.12 * d), srng.range(0.5, 0.75));
+      if (d < 2.6 || d > 7.5) continue;
+      stone(x, z, srng.range(0.34, 0.7) * (0.75 + 0.1 * d), srng.range(0.58, 0.8));
     }
   }
-  scatter(add, stoneShape(3.7, q.amount >= 1 ? 7 : 5), feltMat(), stones, 70, 40);
+  scatter(add, stoneShape(3.7, q.amount >= 1 ? 7 : 5), feltMat(kelpFade(60, 74)), stones, 70, 40);
   return { plants: stalks.length / 12, blades: blades.length / 12, stones: stones.length / 10 };
 }
 
@@ -494,51 +634,60 @@ function finish(m, f) {
 }
 const SHAPES = {
   // hyperbolic crochet: cups whose edges grow faster than they can lie flat, so they fold
-  // into deep, rounded waves; two or three of them nested, the inner ones higher
+  // into many deep, rounded waves that go up and down and in and out, more of them the
+  // further out; two nested, the inner one higher, each edge rolled over into a round cord
   ruffle(rng, lod) {
-    const m = new Mesh(true), layers = 3, cols = lod ? 48 : 30, rows = lod ? 6 : 4, k0 = 5 + Math.floor(rng() * 2);
+    const m = new Mesh(true), layers = 2, k0 = (lod ? 9 : 7) + Math.floor(rng() * 2), rows = lod ? 5 : 4;
     for (let L = 0; L < layers; L++) {
-      const f = L / 2;
-      const R = (0.62 - 0.26 * f) * rng.range(0.92, 1.08), k = k0 + L, ph = rng() * TAU, y0 = 0.17 * L, H = rng.range(0.36, 0.46) * (1 - 0.2 * f);
-      const amp = rng.range(0.22, 0.27), tone = L === 1 ? 1 : 0;
+      const R = (L ? 0.44 : 0.66) * rng.range(0.93, 1.07), k = k0 + 2 * L, ph = rng() * TAU, ph2 = rng() * TAU, y0 = 0.2 * L, H = rng.range(0.36, 0.46) * (L ? 0.85 : 1);
+      // (enough columns that a wave's crest stays round: nine to a wave near by, six far off)
+      const cols = (lod ? 9 : 7) * k, amp = rng.range(0.15, 0.18) * (L ? 1.12 : 1), tone = L;
       const at = (s, t, o) => {
-        const ang = s * TAU, e = Math.pow(t, 1.3);
-        const fold = Math.sin(ang * k + ph) * amp * R * e;
-        const rr = (0.05 + R * Math.pow(t, 0.8)) * (1 + 0.05 * Math.cos(ang * k + ph) * e);
-        o[0] = Math.cos(ang) * rr; o[2] = Math.sin(ang) * rr; o[1] = y0 + 0.04 + H * Math.pow(t, 1.15) + fold;
+        const ang = s * TAU, e = t * t * (3 - 2 * t) * Math.pow(t, 0.5);
+        // (a wave and a little of its second harmonic, so the folds are round and uneven)
+        const w = Math.sin(ang * k + ph) + 0.12 * Math.sin(ang * k * 2 + ph2) * t, c = Math.cos(ang * k + ph);
+        const rr = (0.05 + R * Math.pow(t, 0.8)) * (1 + 0.08 * c * e);
+        o[0] = Math.cos(ang) * rr; o[2] = Math.sin(ang) * rr; o[1] = y0 + 0.04 + H * Math.pow(t, 1.2) + w * amp * R * e;
       };
-      m.grid(cols, rows, (s, t, o) => { at(s, t, o); o[3] = t; o[4] = tone; }, true, true);
-      // the edge rolls over, as a crochet edge does: a round cord all along the rim
-      if (lod) {
-        const pts = [], o = [0, 0, 0];
-        for (let i = 0; i <= cols; i++) { at(i / cols, 1, o); pts.push([o[0], o[1], o[2], 0.026]); }
-        const v0 = m.count;
-        tube(m, pts, 4, [1, tone, 0]);
-        for (let v = v0; v < m.count; v++) { m.a[v * 4] = 1; m.a[v * 4 + 1] = tone; }
-      }
+      // (rows closer together toward the rim, where it folds)
+      m.grid(cols, rows, (s, u, o) => { const t = 1 - Math.pow(1 - u, 1.5); at(s, t, o); o[3] = t; o[4] = tone; }, true, true);
+      if (!lod) continue;
+      const pts = [], o = [0, 0, 0];
+      for (let i = 0; i <= cols; i++) { at(i / cols, 1, o); pts.push([o[0], o[1], o[2], 0.026]); }
+      const v0 = m.count;
+      tube(m, pts, 3, [1, tone, 0]);
+      for (let v = v0; v < m.count; v++) { m.a[v * 4] = 1; m.a[v * 4 + 1] = tone; }
     }
-    return finish(m, (x, y, z, t, tone, ny, o) => { o[0] = 0.012 * t; o[1] = 1; o[2] = 0.4 + 0.6 * t; o[3] = tone; });
+    return finish(m, (x, y, z, t, tone, ny, o) => { o[0] = 0.012 * t; o[1] = 1; o[2] = 0.45 + 0.55 * t; o[3] = tone; });
   },
   // a brain coral: a dome of coiled cord, its grooves winding over it
   brain(rng, lod) {
     const m = new Mesh(true), sd = rng() * 9, K = rng.range(3.6, 4.4), sq = rng.range(0.78, 0.95);
     const groove = (x, y, z) => { const v = Math.sin(fbm3(x * 1.1 + sd, y * 1.1, z * 1.1, 2) * K * Math.PI * 2); return 1 - smooth(0.0, 0.7, Math.abs(v)); };
-    orb(m, 0, 0, 0, (x, y, z) => 0.5 * (1 - 0.13 * groove(x, y, z)) * (1 + 0.05 * noise3(x * 1.7 + sd, y * 1.7, z * 1.7)), lod ? 15 : 8,
+    orb(m, 0, 0, 0, (x, y, z) => 0.5 * (1 - 0.13 * groove(x, y, z)) * (1 + 0.05 * noise3(x * 1.7 + sd, y * 1.7, z * 1.7)), lod ? 13 : 8,
       (x, y, z, o) => { o[0] = groove(x, y, z); });
     for (let v = 0; v < m.count; v++) { const y = m.p[v * 3 + 1]; m.p[v * 3 + 1] = y < 0 ? y * 0.2 : y * sq; }
     m.normals(0, m.count, 0, null);
     return finish(m, (x, y, z, g, _, ny, o) => { o[0] = 0; o[1] = 3; o[2] = 0.45 + 0.55 * clamp(y / 0.35, 0, 1); o[3] = g; });
   },
-  // tube corals: a bunch of chunky tubes, open at the top, the lip and the inside a second colour
+  // tube corals: a bunch of round tubes, flaring a little toward the top, each mouth rolled
+  // over into a thick round lip; the lip and the inside a second colour
   tubes(rng, lod) {
-    const m = new Mesh(true), n = 3 + Math.floor(rng() * 4), sides = lod ? 14 : 8;
+    const m = new Mesh(true), n = 3 + Math.floor(rng() * 3), sides = lod ? 18 : 9, lipN = lod ? 6 : 2;
     for (let i = 0; i < n; i++) {
-      const a = rng() * TAU, d = i ? rng.range(0.2, 0.36) : 0, h = rng.range(0.5, 1.0) * (i ? 0.8 : 1), r = rng.range(0.13, 0.19), fl = rng.range(1.0, 1.35), lean = rng.range(0.05, 0.25);
-      const g = m.count;
-      lathe(m, 0, 0, 0, [[r * 0.85, -0.08], [r, h * 0.4], [r * (0.55 + 0.45 * fl), h * 0.82], [r * fl, h], [r * fl * 1.1, h + 0.035], [r * fl * 0.92, h + 0.05], [r * fl * 0.78, h * 0.86], [r * 0.62, h * 0.45]], sides, null, [h, 0, 0]);
+      const a = rng() * TAU, d = i ? rng.range(0.2, 0.34) : 0, h = rng.range(0.5, 1.0) * (i ? 0.8 : 1), r = rng.range(0.13, 0.18), fl = rng.range(1.05, 1.3), lean = rng.range(0.05, 0.25);
+      const g = m.count, rl = r * 0.26, rt = r * fl;
+      // up the outside, round the lip (a half circle), and down the inside
+      const prof = [[r * 0.85, -0.08], [r, h * 0.35], [r * (0.6 + 0.4 * fl), h * 0.75], [rt - rl * 0.3, h - rl * 1.4]];
+      // (three quarters of a circle round the lip's middle: out, over the top, and in)
+      for (let j = 0; j <= lipN; j++) { const q = -Math.PI / 2 + (j / lipN) * Math.PI * 1.5; prof.push([rt + rl * Math.cos(q), h + rl * Math.sin(q)]); }
+      prof.push([rt - rl * 1.3, h - rl * 1.4], [r * 0.7, h * 0.55], [r * 0.6, h * 0.2]);
+      lathe(m, 0, 0, 0, prof, sides, null, [h, 0, 0]);
       for (let v = g; v < m.count; v++) { const y = m.p[v * 3 + 1]; m.p[v * 3] += Math.cos(a) * (d + lean * y * y / h); m.p[v * 3 + 2] += Math.sin(a) * (d + lean * y * y / h); }
     }
-    return finish(m, (x, y, z, t, h, ny, o) => { o[0] = 0.01 * clamp(y, 0, 1); o[1] = 1; o[2] = t > 0.62 ? 0.3 : 0.5 + 0.5 * clamp(y / h, 0, 1); o[3] = t > 0.4 ? 1 : 0; });
+    // (t: how far along the profile: the lip starts at its fourth point, the inside after it)
+    const lip0 = 3 / (lipN + 7), in0 = (lipN + 4) / (lipN + 7);
+    return finish(m, (x, y, z, t, h, ny, o) => { o[0] = 0.01 * clamp(y, 0, 1); o[1] = 1; o[2] = t > in0 ? 0.3 : 0.5 + 0.5 * clamp(y / h, 0, 1); o[3] = t > lip0 - 0.01 ? 1 : 0; });
   },
   // finger corals: chunky branches, forking twice, with round tips
   fingers(rng, lod) {
@@ -556,15 +705,60 @@ const SHAPES = {
     grow(0, -0.06, 0, 0, 1, 0, 0.32, 0.085, 0);
     return finish(m, (x, y, z, s, depth, ny, o) => { o[0] = 0.006 * y; o[1] = 0; o[2] = 0.5 + 0.5 * clamp(y / 0.7, 0, 1); o[3] = 0; });
   },
-  // a sea fan of crochet lace: upright, a little cupped and waved, its rim scalloped
+  // a sea fan of crochet filigree: from a short trunk, cords branch and fork out across a
+  // fan, joined here and there by finer cords into an open web of uneven cells; upright, a
+  // little cupped and waved, a cord round its rim. (cords, not a sheet with holes: nothing to
+  // shimmer as it moves)
   lace(rng, lod) {
-    const m = new Mesh(true), cols = lod ? 26 : 14, rows = lod ? 10 : 6, span = rng.range(2.0, 2.7), wv = rng() * TAU, cup = rng.range(0.1, 0.22);
-    m.grid(cols, rows, (s, t, o) => {
-      const a = (s - 0.5) * span, r = 0.05 + 0.95 * t;
-      o[0] = Math.sin(a) * r * 0.62; o[1] = Math.cos(a) * r * 0.92 - 0.04; o[2] = 0.07 * Math.sin(s * 6 + wv) * t + cup * (s - 0.5) * (s - 0.5) * 4 * t;
-      o[3] = s; o[4] = t;
-    }, false, false);
-    return finish(m, (x, y, z, s, t, ny, o) => { o[0] = 0.035 * t * t; o[1] = 2; o[2] = s; o[3] = t; });
+    const m = new Mesh(true), sides = lod ? 4 : 3, k = lod ? 1.15 : 1.6, span = rng.range(1.9, 2.4), wv = rng() * TAU, cup = rng.range(0.08, 0.16);
+    // the fan's plane: a = angle across (-span/2..span/2), r = 0..1 out from the trunk
+    const P = (a, r) => [Math.sin(a) * (0.06 + 0.94 * r) * 0.66, 0.1 + Math.cos(a) * (0.06 + 0.94 * r) * 0.86, 0.06 * Math.sin(a * 3 + wv) * r + cup * a * a * r];
+    const cord = (list, rad, t0, t1) => {
+      const v0 = m.count;
+      tube(m, list.map(([a, r]) => [...P(a, r), rad * k]), sides);
+      for (let v = v0; v < m.count; v++) { const tt = m.a[v * 4]; m.a[v * 4] = t0 + (t1 - t0) * tt; }
+    };
+    tube(m, [[0, -0.06, 0, 0.045 * k], [0, 0.05, 0, 0.04 * k], [0, 0.12, 0, 0.034 * k]], sides);
+    // spokes: five from the trunk, forking at a third and two thirds of the way out
+    const spokes = [];
+    const n0 = 5;
+    for (let i = 0; i < n0; i++) spokes.push({ a: (i / (n0 - 1) - 0.5) * span * 0.5, w: rng() * 9 });
+    const levels = [[0.04, 0.34], [0.34, 0.64], [0.64, 1.0]], RING = lod ? [0.32, 0.55, 0.78] : [0.45, 0.76];
+    let cur = spokes, spread = 0.5;
+    const tips = [];
+    levels.forEach(([r0, r1], li) => {
+      const next = [];
+      spread = [0.5, 0.78, 1.0][li];
+      cur.forEach((sp, i) => {
+        const kids = li === 0 || (li === 2 && !lod) ? [sp] : [{ a: sp.a - 0.07 * span / (li + 1), w: sp.w + 1.3 }, { a: sp.a + 0.07 * span / (li + 1), w: sp.w + 2.1 }];
+        for (const kd of kids) {
+          // (spread out with the fan, and wander a little)
+          const aEnd = kd.a * ([1.2, 1.1, 1.05][li]) + rng.range(-0.02, 0.02) * span;
+          const pts = [];
+          const nj = lod ? 3 : 2;
+          for (let j = 0; j <= nj; j++) { const t = j / nj, r = r0 + (r1 - r0) * t; pts.push([sp.a + (aEnd - sp.a) * t + 0.035 * Math.sin(r * 17 + kd.w), r]); }
+          cord(pts, 0.021 - 0.004 * li, r0, r1);
+          next.push({ a: aEnd, w: kd.w, end: pts[pts.length - 1] });
+        }
+      });
+      cur = next;
+      if (li === 2) for (const sp of cur) tips.push(sp.end);
+    });
+    // the web: short cords from spoke to spoke, at uneven heights
+    for (const r of RING) {
+      const lv = r < 0.34 ? 0 : r < 0.64 ? 1 : 2, n = lv === 0 ? n0 : lv === 1 ? n0 * 2 : n0 * (lod ? 4 : 2), sa = span * [0.28, 0.36, 0.41][lv];
+      for (let i = 0; i < n - 1; i++) {
+        if (rng() < 0.22) continue;
+        const a0 = -sa + (2 * sa * i) / (n - 1), a1 = -sa + (2 * sa * (i + 1)) / (n - 1), rr = r + rng.range(-0.05, 0.05), sag = rng.range(-0.06, 0.04);
+        cord([[a0, rr], [(a0 + a1) / 2, rr + sag], [a1, rr + rng.range(-0.05, 0.05)]], 0.013, r, r);
+      }
+    }
+    // a scalloped cord round the rim, through the tips
+    tips.sort((p, q) => p[0] - q[0]);
+    const rim = [];
+    for (let i = 0; i < tips.length; i++) { rim.push(tips[i]); if (i < tips.length - 1) rim.push([(tips[i][0] + tips[i + 1][0]) / 2, Math.min(tips[i][1], tips[i + 1][1]) - 0.035]); }
+    cord(rim, 0.016, 1, 1);
+    return finish(m, (x, y, z, t, _, ny, o) => { o[0] = 0.03 * t * t; o[1] = 0; o[2] = 0.75 + 0.25 * t; o[3] = t; });
   },
   // an anemone: a short column under a crown of thick yarn arms that curl out
   anemone(rng, lod) {
@@ -622,25 +816,21 @@ const reefMat = (fade = [55, 68]) => material({
   },
   surface: (s, f) => {
     const kind = f.aux.y.toVar();
-    const lace = step(1.5, kind).mul(step(kind, 2.5)).toVar(), brain = step(2.5, kind);
+    const brain = step(2.5, kind);
     const tone = step(0.5, kind).mul(step(kind, 1.5)).mul(step(0.5, f.aux.w));
     const base = mix(vTint.rgb, vTint2.rgb, tone).toVar();
-    s.ao = mix(f.aux.z, float(1.0), lace).mul(float(1).sub(brain.mul(f.aux.w).mul(0.45)));
-    // chunky stitches, scaled with each piece (they are laid on its own shape)
-    yarn(s, f, { color: base.mul(float(1).sub(brain.mul(f.aux.w).mul(0.45))), scale: 20, k: 1.3, fuzz: 0.45 });
-    s.fluor = float(0.8); s.trans = mix(float(0.2), float(0.5), lace);
+    s.ao = f.aux.z.mul(float(1).sub(brain.mul(f.aux.w).mul(0.45)));
+    // chunky stitches, scaled with each piece (they are laid on its own shape); softer close
+    // to the lens, as the near corals in the pictures are a little out of focus
+    const near = float(1).sub(smoothstep(3.0, 9.0, f.dist));
+    const col = base.mul(float(1).sub(brain.mul(f.aux.w).mul(0.45))).toVar();
+    yarn(s, f, { color: col, scale: 26, k: mix(float(0.85), float(0.35), near), fuzz: 0.45 });
+    // (the stitches' light and dark held closer together than wool's own, and closer still
+    // near the lens: what moves past is soft, not a field of sparkling detail)
+    s.albedo = mix(s.albedo, col.mul(0.86), near.mul(0.3).add(0.45));
+    s.fluor = float(0.8); s.trans = float(0.2);
     // (in the shade a crochet colour still holds a little of itself)
     s.emis = s.emis.add(base.mul(base).mul(G.amb).mul(0.12));
-    // lace: diamond holes in staggered rows, more of them toward the rim; a solid border and
-    // scalloped edge
-    const t = f.aux.w, u = f.aux.z;
-    const rowN = float(12.0), cv = t.mul(rowN).toVar(), row = floor(cv);
-    const cu = u.mul(t.mul(18.0).add(4.0)).add(row.mul(0.5)).toVar();
-    const fu = fract(cu).sub(0.5), fv = fract(cv).sub(0.5);
-    const d = length(vec2(fu, fv.mul(1.15))).add(abs(fu).add(abs(fv)).mul(0.25));
-    const rim = float(0.965).sub(abs(sin(u.mul(Math.PI * 9.0))).mul(0.05));
-    const hole = step(d, float(0.46)).mul(step(0.1, t)).mul(step(t, rim.sub(0.035))).max(step(rim, t));
-    If(lace.mul(hole).greaterThan(0.5), () => { Discard(); });
   },
 });
 // Stone, shell and glass: smooth, with a sheen; glass shows the water's light through it.
@@ -757,14 +947,18 @@ function buildReef(add, q) {
     // fans turn their face to the way the camera comes; the rest any way
     const yaw = shape === 'lace' ? Math.atan2(faceX, faceZ) + rng.range(-0.35, 0.35) : rng() * TAU;
     // full detail only close to the camera's way; two shapes of the commonest kinds
-    const fine = lod && lvl >= 0.5 && offTrack(x, z) < (lvl >= 1 ? 5.4 : 4.2) ? 1 : 0, v = fine && VARIANTS[shape] > 1 && rng() < 0.5 ? 'b' : '';
+    const fine = lvl >= 0.5 && offTrack(x, z) < (lvl >= 1 ? 6.5 + 0.8 * s : 5.5) ? 1 : 0, v = fine && VARIANTS[shape] > 1 && rng() < 0.5 ? 'b' : '';
     pl.put(shape + v + fine, x, y - 0.04 * s, z, s, gn[0] * 0.6, gn[1], gn[2] * 0.6, yaw, C[pair[0]], C[pair[1]], 0, rng.range(0.85, 1.1));
     return true;
   };
   // the way through the reef: clusters on both sides of it, big and close to the camera's
-  // way, framing a path of white sand; smaller and fewer further out
+  // way, framing a path of white sand; smaller and fewer further out. Near the lens, fewer
+  // and bigger pieces, and no fans (their web would flicker past): the fans stand further back
   const TALL = { ruffle: 0.8, brain: 0.7, tubes: 1.05, anemone: 0.65, fingers: 0.9, lace: 0.95, pillars: 1.0 };
-  const FRONT = ['brain', 'anemone', 'tubes', 'ruffle', 'anemone', 'tubes'];
+  const FRONT = ['brain', 'anemone', 'tubes', 'ruffle', 'brain', 'tubes'];
+  const pick = (r, table) => { for (const [k, w] of table) { if (r < w) return k; r -= w; } return table[0][0]; };
+  const BACK = [['ruffle', 0.42], ['brain', 0.16], ['lace', 0.14], ['pillars', 0.12], ['fingers', 0.08], ['tubes', 0.08]];
+  const MID = [['brain', 0.3], ['tubes', 0.22], ['anemone', 0.18], ['ruffle', 0.25], ['fingers', 0.05]];
   let travelled = 0;
   pathAt(2.98, o2);
   for (let p = 2.98; p < 4.12; p += 0.002) {
@@ -772,60 +966,82 @@ function buildReef(add, q) {
     travelled += Math.hypot(o[0] - o2[0], o[2] - o2[2]);
     const dx = o[0] - o2[0], dz = o[2] - o2[2], dl = Math.hypot(dx, dz) || 1;
     o2[0] = o[0]; o2[1] = o[1]; o2[2] = o[2];
-    if (travelled < 2.3 / Math.sqrt(Math.max(lvl, 0.4))) continue;
+    if (travelled < 3.6 / Math.sqrt(Math.max(lvl, 0.4))) continue;
     travelled = 0;
     const fx = dx / dl, fz = dz / dl, rx = -fz, rz = fx;      // ahead, and to the right
     for (const side of [-1, 1]) {
-      // a cluster: one or two big pieces at the back, smaller ones in front of them
-      const d0 = rng.range(2.9, 4.4), ax = o[0] + rx * side * d0 + fx * rng.range(-1, 1), az = o[2] + rz * side * d0 + fz * rng.range(-1, 1);
-      const n = 3 + Math.floor(rng() * 3);
+      // a cluster: one or two big pieces at the back, one smaller in front of them (fewer on
+      // the left, where the words are)
+      const d0 = rng.range(3.7, 5.2) + (side < 0 ? 1.6 : 0), ax = o[0] + rx * side * d0 + fx * rng.range(-1, 1), az = o[2] + rz * side * d0 + fz * rng.range(-1, 1);
+      const n = side < 0 ? 1 + Math.floor(rng() * 2) : 2 + Math.floor(rng() * 2);
       for (let i = 0; i < n; i++) {
-        const back = i < 2, w = back ? rng.range(0.8, 2.6) : rng.range(-0.5, 0.5);
+        const back = i < 2, w = back ? rng.range(0.9, 2.8) : rng.range(-0.5, 0.5);
         const x = ax + rx * side * w + fx * rng.range(-1.6, 1.6), z = az + rz * side * w + fz * rng.range(-1.6, 1.6);
-        let shape;
-        if (back) { const r = rng(); shape = r < 0.36 ? 'ruffle' : r < 0.6 ? 'lace' : r < 0.76 ? 'pillars' : r < 0.88 ? 'fingers' : 'brain'; }
-        else { const r = rng(); shape = r < 0.3 ? 'brain' : r < 0.5 ? 'tubes' : r < 0.68 ? 'anemone' : r < 0.88 ? 'ruffle' : 'fingers'; }
-        const s = (back ? rng.range(1.8, 2.7) : rng.range(1.2, 1.9)) * (shape === 'lace' ? 1.3 : shape === 'anemone' ? 0.9 : shape === 'pillars' ? 1.25 : 1);
+        let shape = back ? pick(rng(), BACK) : pick(rng(), MID);
+        if (shape === 'lace' && offTrack(x, z) < 7.5) shape = 'ruffle';
+        const s = (back ? rng.range(2.0, 3.0) : rng.range(1.4, 2.0)) * (shape === 'lace' ? 1.2 : shape === 'anemone' ? 0.9 : shape === 'pillars' ? 1.2 : 1);
         piece(shape, 1, x, z, s, TALL[shape], -rx * side, -rz * side);
       }
       // the front row, low, close to the path, for a phone's narrower view
-      if (rng() < 0.8) {
-        const d = rng.range(1.5, 2.4), shape = rng.pick(FRONT);
-        piece(shape, 1, o[0] + rx * side * d + fx * rng.range(-1, 1), o[2] + rz * side * d + fz * rng.range(-1, 1), rng.range(0.8, 1.2) * (shape === 'anemone' ? 0.7 : 1), 0.7, -rx * side, -rz * side);
+      if (rng() < (side < 0 ? 0.3 : 0.55)) {
+        const d = rng.range(1.6, 2.4), shape = rng.pick(FRONT);
+        piece(shape, 1, o[0] + rx * side * d + fx * rng.range(-1, 1), o[2] + rz * side * d + fz * rng.range(-1, 1), rng.range(0.9, 1.3) * (shape === 'anemone' ? 0.7 : 1), 0.7, -rx * side, -rz * side);
       }
       // further out: smaller clusters, plainer shapes
-      if (rng() < 0.75) {
+      if (rng() < 0.7) {
         const d = rng.range(7, 15), bx = o[0] + rx * side * d + fx * rng.range(-2, 2), bz = o[2] + rz * side * d + fz * rng.range(-2, 2);
         for (let i = 0, m = 2 + Math.floor(rng() * 2); i < m; i++) {
-          const r = rng(), shape = r < 0.35 ? 'ruffle' : r < 0.55 ? 'brain' : r < 0.72 ? 'lace' : r < 0.86 ? 'tubes' : 'pillars';
-          piece(shape, 0, bx + rng.range(-2, 2), bz + rng.range(-2, 2), rng.range(1.4, 2.4), 1, -rx * side, -rz * side);
+          const shape = pick(rng(), [['ruffle', 0.4], ['brain', 0.25], ['lace', 0.15], ['tubes', 0.12], ['pillars', 0.08]]);
+          piece(shape, 0, bx + rng.range(-2, 2), bz + rng.range(-2, 2), rng.range(1.5, 2.5), 1, -rx * side, -rz * side);
         }
       }
       // and far out, scattered
       if (rng() < 0.5) {
-        const d = rng.range(15, 30), r = rng(), shape = r < 0.4 ? 'ruffle' : r < 0.7 ? 'brain' : r < 0.85 ? 'lace' : 'fingers';
-        piece(shape, 0, o[0] + rx * side * d + fx * rng.range(-3, 3), o[2] + rz * side * d + fz * rng.range(-3, 3), rng.range(1.5, 2.6), 1, -rx * side, -rz * side);
+        const d = rng.range(15, 30), shape = pick(rng(), [['ruffle', 0.45], ['brain', 0.35], ['lace', 0.1], ['fingers', 0.1]]);
+        piece(shape, 0, o[0] + rx * side * d + fx * rng.range(-3, 3), o[2] + rz * side * d + fz * rng.range(-3, 3), rng.range(1.6, 2.7), 1, -rx * side, -rz * side);
       }
     }
   }
   // on the reef's rocks (the arch, the outcrops): fans, tubes and ruffles crusting them
   for (let i = 0; i < perches.length; i += 6) {
     const z = perches[i + 2];
-    if (!((z < -118 && z > -200) || (z < -250 && z > -305)) || rng() > 0.3 * Math.max(lvl, 0.5)) continue;
+    const spurTop = z < -262 && z > -300 && perches[i] > 16 && perches[i + 1] > -66;
+    if (!((z < -118 && z > -200) || (z < -250 && z > -305)) || rng() > (spurTop ? 0.5 : 0.21) * Math.max(lvl, 0.5)) continue;
     const x = perches[i], y = perches[i + 1], r = rng();
     if (y < -80) continue;                       // (none on the spur's face down in the dark)
-    const shape = r < 0.3 ? 'lace' : r < 0.5 ? 'tubes' : r < 0.75 ? 'ruffle' : r < 0.9 ? 'fingers' : 'brain';
-    const s = rng.range(0.8, 1.5) * (shape === 'lace' ? 1.25 : 1);
+    const shape = r < 0.18 ? 'lace' : r < 0.42 ? 'tubes' : r < 0.74 ? 'ruffle' : r < 0.88 ? 'fingers' : 'brain';
+    const s = rng.range(0.9, 1.6) * (shape === 'lace' ? 1.2 : 1);
     if (offSight(x, y + s * 0.5, z) < 0.8 + 0.5 * s || offTrack(x, z, y + s * 0.5) < 1.0 + 0.5 * s || !clearOf(x, z, 0.62 * s)) continue;
     const pair = rng.pick(PAIRS[shape]);
-    pl.put(shape + (lvl >= 0.5 && offTrack(x, z) < 5.4 ? 1 : 0), x, y - 0.05 * s, z, s, perches[i + 3] * 0.7, perches[i + 4] + 0.6, perches[i + 5] * 0.7, rng() * TAU, C[pair[0]], C[pair[1]], 0, rng.range(0.85, 1.1));
+    pl.put(shape + (lvl >= 0.5 && offTrack(x, z) < 6.5 + 0.8 * s ? 1 : 0), x, y - 0.05 * s, z, s, perches[i + 3] * 0.7, perches[i + 4] + 0.6, perches[i + 5] * 0.7, rng() * TAU, C[pair[0]], C[pair[1]], 0, rng.range(0.85, 1.1));
   }
-  // the ledge round the wreck, and the edge of the drop: sparser, then thick along the lip
-  for (let i = 0, n = Math.round(190 * Math.max(lvl, 0.4)); i < n; i++) {
-    const lip = i < n * 0.55, z = lip ? rng.range(-252, -267.5) : rng.range(-200, -252);
-    const x = centerX(z) + rng.range(-1, 1) * (lip ? 16 : halfWidth(z) + 4);
-    const r = rng(), shape = r < 0.3 ? 'ruffle' : r < 0.45 ? 'lace' : r < 0.6 ? 'brain' : r < 0.75 ? 'fingers' : r < 0.88 ? 'tubes' : 'pillars';
-    piece(shape, lip ? 1 : 0, x, z, rng.range(1.2, lip ? 2.4 : 1.9), TALL[shape], 0, 1);
+  // the ledge round the wreck: sparse
+  for (let i = 0, n = Math.round(85 * Math.max(lvl, 0.4)); i < n; i++) {
+    const z = rng.range(-200, -262), x = centerX(z) + rng.range(-1, 1) * (halfWidth(z) + 4);
+    const shape = pick(rng(), [['ruffle', 0.3], ['brain', 0.2], ['fingers', 0.15], ['tubes', 0.13], ['lace', 0.12], ['pillars', 0.1]]);
+    piece(shape, 0, x, z, rng.range(1.2, 1.9), TALL[shape], 0, 1);
+  }
+  // the lip of the shelf, where the reef ends at the drop: a band of corals thick along the
+  // very edge, low where the camera goes over it (so that the edge, and the dark water below
+  // it, show past them), taller to either side; and a few on the first of the fall, leaning
+  // out over it
+  pathAt(5.04, o);
+  const crossX = o[0], EDGE = -268.3;
+  for (let i = 0, n = Math.round(125 * Math.max(lvl, 0.4)); i < n; i++) {
+    const z = EDGE + Math.pow(rng(), 1.7) * 6, x = centerX(z) + rng.range(-1, 1) * 20;
+    const low = Math.abs(x - crossX) < 8;
+    const shape = low ? pick(rng(), [['brain', 0.28], ['ruffle', 0.3], ['anemone', 0.2], ['tubes', 0.22]])
+      : pick(rng(), [['ruffle', 0.36], ['brain', 0.16], ['lace', 0.14], ['fingers', 0.14], ['tubes', 0.12], ['pillars', 0.08]]);
+    piece(shape, 1, x, z, low ? rng.range(0.7, 1.25) : rng.range(1.2, 2.2), TALL[shape], 0, 1);
+  }
+  for (let i = 0, n = Math.round(30 * Math.max(lvl, 0.4)); i < n; i++) {
+    const z = rng.range(EDGE - 1.1, EDGE - 0.2), x = centerX(z) + rng.range(-1, 1) * 18, r = rng();
+    const shape = r < 0.4 ? 'ruffle' : r < 0.65 ? 'fingers' : r < 0.85 ? 'tubes' : 'brain';
+    const sz = rng.range(0.7, 1.3), y = groundY(x, z);
+    if (!clearOf(x, z, 0.62 * sz) || offSight(x, y, z) < 0.6 + 0.66 * sz || offTrack(x, z, y) < 1.2 + 0.5 * sz) continue;
+    groundN(x, z, gn);
+    const pair = rng.pick(PAIRS[shape]);
+    pl.put(shape + (lvl >= 0.5 ? 1 : 0), x, y - 0.06 * sz, z, sz, gn[0], gn[1], gn[2], rng() * TAU, C[pair[0]], C[pair[1]], 0, rng.range(0.85, 1.1));
   }
   const lods = { 1: new Map(), 0: new Map() };
   const geo = (key) => {
@@ -899,8 +1115,19 @@ function buildShallows(add, q) {
   const GLASS = [[0.30, 0.70, 0.66], [0.40, 0.62, 0.82], [0.55, 0.80, 0.60]].map(lin);
   const SHELL = [[0.98, 0.88, 0.76], [0.98, 0.74, 0.70], [0.94, 0.80, 0.62]].map(lin);
   // the bottle's and the coil's places, kept for them
-  const bottleAt = at(1.5, 1, 2.7, 5.2, [0, 0]), coilAt = at(1.9, 1, 4.2, 6.4, [0, 0]);
-  taken.push(bottleAt[0], bottleAt[1], 0.9, coilAt[0], coilAt[1], 1.2);
+  const bottleAt = at(1.5, 1, 2.7, 5.2, [0, 0]), coilAt = at(1.9, 1, 4.2, 6.4, [0, 0]), buoyAt = at(1.5, 1, 0.95, 4.5, [0, 0]);
+  taken.push(bottleAt[0], bottleAt[1], 0.9, coilAt[0], coilAt[1], 1.2, buoyAt[0], buoyAt[1], 0.75);
+  // a close still life at the start of the sand, for a phone's narrow view (and the foot of the
+  // wide one): knitted balls, starfish and a shell either side of the way, below Snap, and a
+  // knitted buoy on its loose rope (below)
+  for (const [side, d, ahead, shape, sz, pair] of [
+    [-1, 1.2, 4.1, 'knitball', 0.8, 2], [-1, 1.75, 4.7, 'knitball', 0.62, 0], [-1, 0.85, 5.1, 'starfish', 0.8, 0], [-1, 2.1, 3.7, 'starfish', 0.62, 2],
+    [1, 2.0, 3.9, 'shell', 0.72, 0], [1, 1.9, 5.6, 'knitball', 0.58, 3], [-1, 1.5, 3.3, 'shell', 0.6, 1],
+  ]) {
+    at(1.5, side, d, ahead, P);
+    if (shape === 'shell') { const c = SHELL[pair]; lie('shell', P[0], P[1], sz, c, c, 0, 0.3); }
+    else { const pr = PAIRS[shape][pair]; lie(shape, P[0], P[1], sz, C[pr[0]], C[pr[1]], 0, shape === 'starfish' ? 0.36 : sz * 0.5); }
+  }
   // groups on both sides where the camera looks over the sand (p 1.34 to 2.1): some close to
   // the way, for a phone's narrow view, some further out
   for (let p = 1.34; p < 2.1; p += 0.045) {
@@ -980,6 +1207,31 @@ function buildShallows(add, q) {
       y.n[v * 3] = nx * ct - ny * st; y.n[v * 3 + 1] = nx * st + ny * ct;
       // aux: red, and the stripes come from the yarn's second colour by row along its length
       y.a[v * 4] = 0.80; y.a[v * 4 + 1] = 0.16; y.a[v * 4 + 2] = 0.10; y.a[v * 4 + 3] = 1;
+    }
+  }
+  {
+    // a second knitted buoy, lying on its side on the sand, half cream and half red, its rope
+    // trailing away from it in a loose S
+    const [bx, bz] = buoyAt, by = groundY(bx, bz), rr = 0.042, yaw = rng() * TAU, ca = Math.cos(yaw), sa = Math.sin(yaw);
+    const pts = [];
+    for (let i = 0; i <= 16; i++) {
+      const t = i / 16, ax = 0.3 + t * 1.7, az = Math.sin(t * 5.2) * 0.3 * t;
+      const ex = bx + ax * ca - az * sa, ez = bz + ax * sa + az * ca;
+      pts.push([ex, groundY(ex, ez) + rr * 0.8 + 0.05 * Math.max(0, 1 - t * 5), ez, rr]);
+    }
+    const v0 = rope.count, acc = [0];
+    for (let i = 1; i < pts.length; i++) acc.push(acc[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1], pts[i][2] - pts[i - 1][2]));
+    tube(rope, pts, q.amount >= 1 ? 7 : 5);
+    for (let v = v0; v < rope.count; v++) { rope.a[v * 4] = rope.u[v * 2]; rope.a[v * 4 + 1] = acc[Math.round(rope.u[v * 2 + 1] * (pts.length - 1))]; }
+    const v1 = y.count, RX = 0.2, RL = 0.3;
+    orb(y, 0, 0, 0, (dx, dy, dz) => 1 / Math.sqrt((dx / RL) ** 2 + (dy / RX) ** 2 + (dz / RX) ** 2), q.amount >= 1 ? 9 : 6);
+    for (let v = v1; v < y.count; v++) {
+      const px = y.p[v * 3], py = y.p[v * 3 + 1], pz = y.p[v * 3 + 2], nx = y.n[v * 3], nz = y.n[v * 3 + 2];
+      // its long axis along x, turned by yaw, resting on the sand
+      y.p[v * 3] = bx + px * ca - pz * sa; y.p[v * 3 + 1] = by + RX * 0.85 + py; y.p[v * 3 + 2] = bz + px * sa + pz * ca;
+      y.n[v * 3] = nx * ca - nz * sa; y.n[v * 3 + 2] = nx * sa + nz * ca;
+      const red = px > 0.02 || Math.abs(px + 0.12) < 0.035;
+      y.a[v * 4] = red ? 0.80 : 0.92; y.a[v * 4 + 1] = red ? 0.30 : 0.86; y.a[v * 4 + 2] = red ? 0.18 : 0.74; y.a[v * 4 + 3] = 0;
     }
   }
   const mk = (m, mat, range) => { const geo = m.build(); geo.computeBoundingSphere(); const mesh = new ThreeMesh(geo, mat); mesh.matrixAutoUpdate = false; add(mesh, range); };
