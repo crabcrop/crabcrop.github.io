@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.googletagmanager.com 'sha256-JOJJSXuPIsj/UiWkC5Tba1DCiOuf7Zmi212F4r+CtKs=' 'sha256-ocTPkQU4j485zLuyACmC0LZbNBjBP/mVET2aWj1LkcU='; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://images.crabcrop.org https://*.google-analytics.com https://*.googletagmanager.com; connect-src 'self' https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.googletagmanager.com 'sha256-JOJJSXuPIsj/UiWkC5Tba1DCiOuf7Zmi212F4r+CtKs=' 'sha256-0DRRmjg8O7GB0x6qDAvm7vWyV/A36S0asqtWX4X3BAA='; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://images.crabcrop.org https://*.google-analytics.com https://*.googletagmanager.com; connect-src 'self' https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>crabcrop: Blazing Fast On-Demand Image Service</title>
 <meta name="description" content="Crabcrop is a Rust-built, lightning-fast on-demand image API supporting all major formats in and out, with over 50 filters and AI features like background removal. It resizes, crops, converts, and filters your images straight from a signed URL. One binary, no pre-generated thumbnails, no build step.">
@@ -281,6 +281,21 @@ $$(".tabs").forEach(tabs=>{
     select(list[(next+list.length)%list.length], true);
   });
 });
+
+/* animated cards: while a card is off-screen, its <picture> shows the still
+   frame of its reduced-motion <source>, so the animation stops. Near the
+   screen the source asks for reduced motion again: a visitor who asked for
+   it sees the still as before, everyone else the animation. Every card
+   starts on its still, so lazy loading fetches the animations only of the
+   cards that come near the screen */
+const REDUCED = "(prefers-reduced-motion: reduce)";
+const stills = new Map($$(`picture > source[media="${REDUCED}"]`).map(s=>[s.parentElement, s]));
+if(stills.size && "IntersectionObserver" in window){
+  const seen = new IntersectionObserver(entries=>entries.forEach(e=>{
+    stills.get(e.target).media = e.isIntersecting ? REDUCED : "all";
+  }), {rootMargin: "200px"});
+  stills.forEach((source, picture)=>{ source.media = "all"; seen.observe(picture); });
+}
 </script>
 <script src="thumbhash.js"></script>
 </body>
