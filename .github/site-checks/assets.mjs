@@ -8,12 +8,12 @@
 //   - a published image is referenced by no page,
 //   - a page references a local file that Pages does not publish,
 //   - a file under preview/ is published outside preview/dive/,
-//     preview/deep/ and preview/home/,
+//     preview/dive-gpu/ and preview/home/,
 //   - or a Markdown file is published.
 //
 // The site publishes three previews on purpose. preview/dive/ is the
 // "All the Way Down" dive, built from experience/. Its own scripts load
-// its media, so its images need no page reference. preview/deep/ is the
+// its media, so its images need no page reference. preview/dive-gpu/ is the
 // same dive drawn in real time by code, built from deep/: its one script
 // loads Snap's model and texture, so they need no page reference either.
 // preview/home/ is a
@@ -53,7 +53,7 @@ const PAGES = ["index.html", "docs.html"];
 // The previews the site publishes. Nothing else may sit under preview/.
 // The dive's scripts load its media, so its images need no reference.
 const DIVE = "preview/dive/";
-const DEEP = "preview/deep/";
+const DEEP = "preview/dive-gpu/";
 const PREVIEWS = [DIVE, DEEP, "preview/home/"];
 // The previews whose own scripts load their pictures.
 const SCRIPTED = [DIVE, DEEP];

@@ -14,7 +14,7 @@ own 3D model (`media/`). The scenes follow the current dive's pictures (see
 kelp, the reef and its Clam Studio, the wreck and its cabin, the twilight, the vents and the
 geode, and the marina again.
 
-Published at `/preview/deep/` (not linked from the site, `noindex`). The brief it is held to
+Published at `/preview/dive-gpu/` (not linked from the site, `noindex`). The brief it is held to
 is [PROMPT.md](PROMPT.md).
 
 | | The painted dive (`preview/dive/`) | This dive |
@@ -26,7 +26,7 @@ is [PROMPT.md](PROMPT.md).
 
 ```
 npm ci
-node build.mjs --publish     # ../preview/deep/index.html, and Snap's files beside it
+node build.mjs --publish     # ../preview/dive-gpu/index.html, and Snap's files beside it
 node build.mjs               # the same into out/ (not tracked), to look at locally
 node build.mjs --dev         # out/dev.html: with the tools below
 ```

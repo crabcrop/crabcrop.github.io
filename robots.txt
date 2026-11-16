@@ -1,5 +1,5 @@
 # crabcrop.org is two pages, / (index.html) and /docs.html, plus the
-# files they load, and three previews, /preview/dive/, /preview/deep/
+# files they load, and three previews, /preview/dive/, /preview/dive-gpu/
 # and /preview/home/, each carrying its own noindex. Crawlers may read
 # all of it.
 #

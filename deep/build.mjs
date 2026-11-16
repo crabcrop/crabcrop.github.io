@@ -1,7 +1,7 @@
 // Bundle the dive into one self-contained HTML file.
 //
 //   node build.mjs              the page, minified, to out/index.html (not tracked)
-//   node build.mjs --publish    the same, to ../preview/deep/index.html: the published preview
+//   node build.mjs --publish    the same, to ../preview/dive-gpu/index.html: the published preview
 //   node build.mjs --readable   not minified (easier to debug)
 //   node build.mjs --dev        out/dev.html: the page plus the tools in src/dev.js
 //                               (fixed camera poses, the scripted descent, the benchmark)
@@ -27,7 +27,7 @@ const dev = process.argv.includes('--dev');
 const arg = (name) => { const a = process.argv.find((x) => x.startsWith(`--${name}=`)); return a ? a.slice(name.length + 3) : null; };
 const entry = arg('entry') ? resolve(arg('entry')) : join(here, 'src', 'main.js');
 const publish = process.argv.includes('--publish') && !dev;
-const outFile = arg('out') ? resolve(arg('out')) : publish ? join(here, '..', 'preview', 'deep', 'index.html') : join(here, 'out', dev ? 'dev.html' : 'index.html');
+const outFile = arg('out') ? resolve(arg('out')) : publish ? join(here, '..', 'preview', 'dive-gpu', 'index.html') : join(here, 'out', dev ? 'dev.html' : 'index.html');
 const outDir = dirname(outFile);
 
 // Shader text: drop comments and collapse whitespace, keeping the newline a # directive needs.
