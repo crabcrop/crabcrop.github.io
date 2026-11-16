@@ -188,7 +188,7 @@ export function blob(mesh, cx, cy, cz, f, res = 12, tag = null) {
     const w = res + 1;
     for (let r = 0; r < res; r++) for (let c = 0; c < res; c++) {
       const a = ids[r * w + c], b = ids[r * w + c + 1], d = ids[(r + 1) * w + c], e = ids[(r + 1) * w + c + 1];
-      mesh.i.push(a, d, b, b, d, e);
+      mesh.i.push(a, b, d, b, e, d);      // (counter-clockwise seen from outside: the faces face out)
     }
   }
   mesh.normals(start, mesh.count, i0, null);
