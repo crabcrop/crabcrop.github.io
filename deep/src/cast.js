@@ -110,6 +110,7 @@ export function buildCast(ctx) {
       A.lerp(B, 1 - come);
       A.y += Math.sin(t * 0.9) * 0.06;
       A.y = Math.max(A.y, groundY(A.x, A.z) + 0.95);        // (never in the ground)
+      A.y = Math.min(A.y, -1.0);                             // (nor through the surface: it would be cut by it)
       follow(st.subPos, A, 3);
       sub.group.visible = come > 0.001;
       sub.group.position.copy(st.subPos);
@@ -133,9 +134,12 @@ export function buildCast(ctx) {
       A.y = Math.max(A.y, groundY(A.x, A.z) + 0.45);
       const board = smooth(SNAP_BOARDS[0], SNAP_BOARDS[1], p);
       if (board > 0) {
+        // in through the front of the bubble: first to just before the glass, then into his
+        // seat (never over the top, where the hull's rings are)
         B.copy(sub.seat).applyMatrix4(sub.group.matrixWorld);
-        A.lerp(B, board);
-        A.y += Math.sin(board * Math.PI) * 0.35;           // a little hop up and in
+        HELD.copy(sub.seat); HELD.z -= 0.95; HELD.applyMatrix4(sub.group.matrixWorld);
+        const a1 = smooth(0, 0.6, board), a2 = smooth(0.55, 1, board);
+        A.lerp(HELD, a1).lerp(B, a2);
       }
       if (board >= 1) A.copy(B);
       // on the chain: he holds it at the point nearest where he would be, and slides along
@@ -144,7 +148,7 @@ export function buildCast(ctx) {
       let hang = false;
       if (onChain > 0) {
         const [s0, gap] = nearestOnChain(A);
-        if (gap < 6) {
+        if (gap < 8) {
           st.s = jump || st.s < 0 ? s0 : st.s + (s0 - st.s) * (1 - Math.exp(-dt * 3));
           cast.chainAt(st.s, ON);
           GRIP.set(ON[0], ON[1], ON[2]);

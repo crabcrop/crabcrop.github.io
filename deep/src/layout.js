@@ -98,7 +98,9 @@ const STOPS = [
   // the vents, and the geode at the end
   P(6.25, -314, -2.0, 4.6, true, 8, -8), P(6.5, -338, -4.0, 4.0, true, 12, -5), P(6.75, -362, 3.0, 3.6, true, -10, -4), P(7.0, -383, 0.5, 3.2, true, -2, -8),
   // straight up, and the surface again
-  P(7.15, -387, 0.5, -172, false, 0, 34), P(7.35, -388, 0.5, -96, false, 0, 52), P(7.55, -388, 0.5, -30, false, 0, 44), P(7.75, -390, 0.5, -5.5, false, 0, 24), P(8.0, -396, 0.5, 0.0, false, 0, -3),
+  P(7.15, -387, 0.5, -172, false, 0, 34), P(7.35, -388, 0.5, -96, false, 0, 52), P(7.55, -388, 0.5, -30, false, 0, 44), P(7.72, -390, 0.5, -6.5, false, 0, 22),
+  // at the waterline again for the last stretch: the marina at sunset above, the cast below
+  P(7.85, -393, 0.5, 0.0, false, 0, 1), P(8.0, -396, 0.5, 0.0, false, 0, -3),
 ];
 for (const s of STOPS) {
   s.x = centerX(s.z) + s.off;
@@ -120,9 +122,9 @@ export function pathAt(p, out) {
   out[0] = f(a.x, b.x, a0.x, b1.x);
   out[1] = f(a.wy, b.wy, a0.wy, b1.wy);
   out[2] = f(a.z, b.z, a0.z, b1.z);
-  // (at the start the camera sits on the waterline until it goes under: the curve would lift
-  // it a few centimetres, and from above the water the view's lower half is lost)
-  if (p < 0.3 && out[1] > 0) out[1] = 0;
+  // (at the start and the end the camera sits on the waterline: the curve would lift it a
+  // little, and from above the water the view's lower half is lost)
+  if ((p < 0.3 || p > 7.84) && out[1] > 0) out[1] = 0;
   out[3] = f(a.yaw, b.yaw, a0.yaw, b1.yaw);
   out[4] = f(a.pitch, b.pitch, a0.pitch, b1.pitch);
   return out;

@@ -191,9 +191,14 @@ function snapMaterial(map, U) {
       const edge = float(1).sub(smoothstep(0.0, 0.08, abs(e.y.sub(lineT)))).mul(select(top.greaterThan(0.02), float(1), float(0)))
         .add(float(1).sub(smoothstep(0.0, 0.08, abs(e.y.sub(lineB)))).mul(select(bot.greaterThan(0.02), float(1), float(0)))).mul(on).mul(front);
       const yarn = U.lid.mul(sin(e.x.mul(34.0)).mul(sin(e.y.mul(34.0).add(e.x.mul(9.0)))).mul(0.12).add(0.88));
+      // round each black bead a ring of white felt, as amigurumi eyes have, so that from far
+      // they read as eyes looking somewhere and not as holes (painted on the ball, so it turns
+      // with the bead toward what he watches)
+      const ring = smoothstep(0.2, 0.28, e.z).mul(float(1).sub(smoothstep(0.66, 0.72, e.z))).mul(on).mul(float(1).sub(lid)).toVar();
+      col.assign(mix(col, vec3(0.94, 0.91, 0.85), ring));
       col.assign(mix(col, yarn, lid).mul(float(1).sub(min(edge, 1.0).mul(0.45))));
       s.albedo = col.mul(0.92);
-      const bead = dark.mul(float(1).sub(lid));
+      const bead = dark.mul(float(1).sub(lid)).mul(float(1).sub(ring));
       s.spec = mix(float(0.05), float(1.4), bead); s.gloss = mix(float(10.0), float(90.0), bead);
       s.fluor = float(0.6); s.trans = float(0.12);
       s.caustic = float(0.3);                 // (the caustics' sharp lines would flicker across him)
