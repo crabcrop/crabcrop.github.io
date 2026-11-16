@@ -20,7 +20,7 @@ is [PROMPT.md](PROMPT.md).
 | | The painted dive (`preview/dive/`) | This dive |
 |---|---|---|
 | Files | about 270 images and videos, 44 MB | one HTML file, and Snap's model (214 KB) and texture (79 to 186 KB) |
-| A visit downloads | 9.6 MB on desktop, 5.5 to 7.2 MB on a phone | about 0.5 to 0.65 MB |
+| A visit downloads | 9.6 MB on desktop, 5.5 to 7.2 MB on a phone | about 0.6 to 0.7 MB (the page is 318 KB compressed) |
 
 ## Build
 
