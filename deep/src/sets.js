@@ -25,7 +25,7 @@
 import { BufferAttribute, InstancedBufferAttribute, InstancedBufferGeometry, Mesh as ThreeMesh, Sphere, Vector3 } from 'three/webgpu';
 import {
   abs, attribute, cameraPosition, clamp, cos, cross, dot, exp, float, fract, length, max, min, mix, normalize, pow,
-  sin, smoothstep, step, texture, varyingProperty, vec2, vec3, vec4,
+  select, sin, smoothstep, step, texture, varyingProperty, vec2, vec3, vec4,
 } from 'three/tsl';
 import { groundY } from './layout.js';
 import { Mesh, TAU, blob, clamp as clampN, lerp, makeRng, noise3 } from './math.js';
@@ -951,6 +951,222 @@ function buildClam(ctx, q) {
   return { position: V(stage[0], stage[1] + 0.14, stage[2]), normal };
 }
 
+// ---- the geode and the diving helmet --------------------------------------------------------
+
+// The geode at the end of the vents: split open, a rough tan rind outside, a band of white
+// agate on the cut face, and a hollow lined with crystals that glow from inside (glow slot 3).
+// The main half faces the camera at p = 7 with the picture in its hollow; the other half lies
+// beside it. Built as shells round a centre: aux.x is the kind (0 rind, 1 agate, 2 hollow).
+const GEODE = { x: -4.4, z: -388.7, r: 1.3 };
+function geodeHalf(m, crystals, c, Rot, R, seed, rng) {
+  const Ri = R * 0.74, NA = 12, NB = 40;
+  const lump = (dx, dy, dz) => 1 + 0.07 * noise3(dx * 2.3 + seed, dy * 2.3, dz * 2.3) + 0.035 * noise3(dx * 6 + seed, dy * 6, dz * 6);
+  const toW = (x, y, z) => [c[0] + Rot[0] * x + Rot[3] * y + Rot[6] * z, c[1] + Rot[1] * x + Rot[4] * y + Rot[7] * z, c[2] + Rot[2] * x + Rot[5] * y + Rot[8] * z];
+  const rot = (x, y, z) => [Rot[0] * x + Rot[3] * y + Rot[6] * z, Rot[1] * x + Rot[4] * y + Rot[7] * z, Rot[2] * x + Rot[5] * y + Rot[8] * z];
+  // in its own frame the cut face is the plane z = 0 and the shell lies behind it (z < 0)
+  const dirAt = (al, be) => [Math.sin(al) * Math.cos(be), Math.sin(al) * Math.sin(be), -Math.cos(al)];
+  for (const [kind, rad, outward] of [[0, R, 1], [2, Ri, -1]]) {
+    const base = m.count, i0 = m.i.length;
+    for (let i = 0; i <= NA; i++) for (let j = 0; j <= NB; j++) {
+      const al = (i / NA) * Math.PI / 2, be = (j / NB) * TAU, d = dirAt(al, be);
+      const rr = rad * (kind ? 1 + 0.03 * noise3(d[0] * 5, d[1] * 5, d[2] * 5 + seed) : lump(d[0], d[1], d[2]));
+      const P = toW(d[0] * rr, d[1] * rr, d[2] * rr);
+      m.vert(P[0], P[1], P[2], 0, 1, 0, 0, 0, kind, rr / R, Math.cos(al), 0);
+    }
+    const W = NB + 1;
+    for (let i = 0; i < NA; i++) for (let j = 0; j < NB; j++) {
+      const a = base + i * W + j;
+      if (outward > 0) m.i.push(a, a + 1, a + W, a + 1, a + W + 1, a + W); else m.i.push(a, a + W, a + 1, a + 1, a + W, a + W + 1);
+    }
+    m.normals(base, m.count, i0, { cols: NB, rows: NA, base });
+  }
+  // the cut face: an annulus from the hollow's rim to the rind's, banded
+  {
+    const base = m.count, N = rot(0, 0, 1);
+    for (let j = 0; j <= NB; j++) for (const t of [0, 0.5, 1]) {
+      const be = (j / NB) * TAU, d = dirAt(Math.PI / 2, be);
+      const ro = R * lump(d[0], d[1], d[2]), ri = Ri * (1 + 0.03 * noise3(d[0] * 5, d[1] * 5, d[2] * 5 + seed));
+      const rr = lerp(ri, ro, t), P = toW(d[0] * rr, d[1] * rr, 0);
+      m.vert(P[0], P[1], P[2], N[0], N[1], N[2], 0, 0, 1, (rr - ri) / Math.max(ro - ri, 1e-3), 0, 0);
+    }
+    for (let j = 0; j < NB; j++) for (let t = 0; t < 2; t++) { const a = base + j * 3 + t; triFacing(m, a, a + 3, a + 1, N[0], N[1], N[2]); triFacing(m, a + 1, a + 3, a + 4, N[0], N[1], N[2]); }
+  }
+  // crystals: points on the hollow's wall, growing toward the centre; bigger deeper in
+  for (let k = 0; k < crystals.n; k++) {
+    const al = Math.acos(1 - rng() * 0.98) * 0.98, be = rng() * TAU, d = dirAt(Math.min(al, Math.PI / 2 * 0.97), be);
+    const deepness = Math.cos(al);
+    const len = R * (0.07 + 0.2 * rng() * (0.35 + 0.65 * deepness)), wid = len * rng.range(0.32, 0.5);
+    const P = toW(d[0] * Ri * 1.02, d[1] * Ri * 1.02, d[2] * Ri * 1.02);
+    const jx = rng.range(-0.35, 0.35), jy = rng.range(-0.35, 0.35), jz = rng.range(-0.35, 0.35);
+    const n0 = [-d[0] + jx, -d[1] + jy, -d[2] + jz], nl = Math.hypot(n0[0], n0[1], n0[2]);
+    const Dw = rot(n0[0] / nl, n0[1] / nl, n0[2] / nl);
+    crystals.list.push(P[0], P[1], P[2], len, Dw[0], Dw[1], Dw[2], wid, rng() * TAU, deepness, rng(), 0);
+  }
+}
+// A rotation (columns x, y, z) that turns local +z toward f, keeping y roughly up.
+function frameTo(f) {
+  const fl = Math.hypot(f[0], f[1], f[2]), Z = [f[0] / fl, f[1] / fl, f[2] / fl];
+  let X = [Z[2], 0, -Z[0]];
+  const xl = Math.hypot(X[0], X[1], X[2]) || 1; X = X.map((v) => v / xl);
+  const Y = [Z[1] * X[2] - Z[2] * X[1], Z[2] * X[0] - Z[0] * X[2], Z[0] * X[1] - Z[1] * X[0]];
+  return [...X, ...Y, ...Z];
+}
+function buildGeode(ctx, q) {
+  const rng = makeRng(808);
+  const m = new Mesh(true), crystals = { n: Math.round(330 * Math.max(q.amount, 0.5)), list: [] };
+  const R = GEODE.r, gy = groundY(GEODE.x, GEODE.z);
+  // the main half: its hollow toward the camera at p = 7, tipped back a little
+  const cam = [-4.16, -205.27, -383.0];
+  const c1 = [GEODE.x, gy + R * 0.82, GEODE.z];
+  const f1 = [cam[0] - c1[0], (cam[1] - c1[1]) * 0.55, cam[2] - c1[2]];
+  geodeHalf(m, crystals, c1, frameTo(f1), R, 3.1, rng);
+  // the other half, lying on its back to the right, its crystals to the sky
+  const c2 = [GEODE.x + 2.45, groundY(GEODE.x + 2.45, GEODE.z - 0.4) + R * 0.42, GEODE.z - 0.4];
+  geodeHalf(m, { n: Math.round(crystals.n * 0.6), list: crystals.list }, c2, frameTo([-0.45, 1.0, 0.55]), R * 0.94, 7.7, rng);
+  const sh = material({
+    aux: true, fade: [80, 98],
+    surface: (s, f) => {
+      const kind = f.aux.x, rind = float(1).sub(step(0.5, kind)), band = step(0.5, kind).mul(float(1).sub(step(1.5, kind))), hollow = step(1.5, kind);
+      const D = detail(f.w, s.n, 1.8, 2.6), E = detail(f.w, s.n, 5.0, 2.0);
+      // the rind: warm tan, lumpy, with darker pits
+      const rc = mix(vec3(0.70, 0.58, 0.42), vec3(0.50, 0.40, 0.29), smoothstep(0.4, 0.7, D.m)).mul(E.h.mul(0.3).add(0.8));
+      // the agate: white and grey bands, following the rim
+      const bands = sin(f.aux.y.mul(26.0).add(D.h.mul(3.0))).mul(0.5).add(0.5);
+      const ac = mix(vec3(0.93, 0.92, 0.88), vec3(0.62, 0.64, 0.66), bands.mul(smoothstep(0.15, 0.4, f.aux.y)));
+      // the hollow's wall: a crust of tiny crystals, glowing
+      const hc = vec3(0.92, 0.90, 0.86).mul(E.h.mul(0.3).add(0.8));
+      s.albedo = rc.mul(rind).add(ac.mul(band)).add(hc.mul(hollow));
+      s.n = normalize(mix(s.n, D.n, rind.mul(0.8).add(0.3))).toVar();
+      s.ao = mix(D.h.mul(0.4).add(0.65), float(1.0), band);
+      s.spec = mix(float(0.05), float(0.5), hollow.add(band.mul(0.4))); s.gloss = mix(float(14.0), float(60.0), hollow);
+      s.fluor = float(0.2);
+      const deep = f.aux.z.mul(hollow);
+      s.emis = vec3(1.0, 0.86, 0.62).mul(deep.mul(deep).mul(1.6).add(hollow.mul(0.25))).add(vec3(0.9, 0.85, 0.75).mul(band).mul(0.12));
+    },
+  });
+  addMesh(ctx, sphereOf(m.build(), 0.5), sh, 98);
+  // the crystals: six-sided points, each a prism and a pyramid, flat-faced
+  const cm = new Mesh(true);
+  for (let k = 0; k < 6; k++) {
+    const a0 = (k / 6) * TAU, a1 = ((k + 1) / 6) * TAU;
+    const p0 = [Math.cos(a0), Math.sin(a0)], p1 = [Math.cos(a1), Math.sin(a1)];
+    const nx = Math.cos((a0 + a1) / 2), ny = Math.sin((a0 + a1) / 2);
+    // the side: (x, y) round, z along (0 foot, 0.72 shoulder)
+    const v0 = cm.count;
+    cm.vert(p0[0], p0[1], -0.1, nx, ny, 0, 0, 0, 0, 0, 1, 0); cm.vert(p1[0], p1[1], -0.1, nx, ny, 0, 0, 0, 1, 0, 1, 0);
+    cm.vert(p1[0], p1[1], 0.72, nx, ny, 0, 0, 0, 1, 0.72, 1, 0); cm.vert(p0[0], p0[1], 0.72, nx, ny, 0, 0, 0, 0, 0.72, 1, 0);
+    triFacing(cm, v0, v0 + 1, v0 + 2, nx, ny, 0); triFacing(cm, v0, v0 + 2, v0 + 3, nx, ny, 0);
+    // the point's facet
+    const tz = 1.0, fnx = nx * 0.68, fny = ny * 0.68, fnz = 0.73;
+    const v1 = cm.count;
+    cm.vert(p0[0], p0[1], 0.72, fnx, fny, fnz, 0, 0, 0, 0.72, 2, 0); cm.vert(p1[0], p1[1], 0.72, fnx, fny, fnz, 0, 0, 1, 0.72, 2, 0); cm.vert(0, 0, tz, fnx, fny, fnz, 0, 0, 0.5, 1, 2, 0);
+    triFacing(cm, v1, v1 + 1, v1 + 2, fnx, fny, fnz);
+  }
+  const base = cm.build();
+  const list = crystals.list, n = list.length / 12;
+  const ia = new Float32Array(n * 4), ib = new Float32Array(n * 4), ic = new Float32Array(n * 4);
+  let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9, z0 = 1e9, z1 = -1e9;
+  for (let i = 0; i < n; i++) {
+    for (let k = 0; k < 4; k++) { ia[i * 4 + k] = list[i * 12 + k]; ib[i * 4 + k] = list[i * 12 + 4 + k]; ic[i * 4 + k] = list[i * 12 + 8 + k]; }
+    x0 = Math.min(x0, ia[i * 4]); x1 = Math.max(x1, ia[i * 4]); y0 = Math.min(y0, ia[i * 4 + 1]); y1 = Math.max(y1, ia[i * 4 + 1]); z0 = Math.min(z0, ia[i * 4 + 2]); z1 = Math.max(z1, ia[i * 4 + 2]);
+  }
+  const geo = new InstancedBufferGeometry();
+  geo.setIndex(base.index);
+  for (const k of ['position', 'normal', 'aux']) geo.setAttribute(k, base.getAttribute(k));
+  geo.setAttribute('ga', new InstancedBufferAttribute(ia, 4)); geo.setAttribute('gb', new InstancedBufferAttribute(ib, 4)); geo.setAttribute('gc', new InstancedBufferAttribute(ic, 4));
+  geo.instanceCount = n;
+  geo.boundingSphere = new Sphere(V((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2), Math.hypot(x1 - x0, y1 - y0, z1 - z0) / 2 + 0.6);
+  const GA = attribute('ga', 'vec4'), GB = attribute('gb', 'vec4'), GC = attribute('gc', 'vec4');
+  const vC = varyingProperty('vec4', 'v_set_cry');
+  addMesh(ctx, geo, material({
+    aux: true, fade: [80, 98],
+    vertex: (v) => {
+      const D = GB.xyz, len = GA.w, wid = GB.w, spin = GC.x;
+      const T0 = normalize(cross(D, select3(abs(D.y).lessThan(0.9)))).toVar();
+      const T1 = cross(D, T0).toVar();
+      const ca = cos(spin), sa = sin(spin);
+      const U = T0.mul(ca).add(T1.mul(sa)).toVar(), W = T1.mul(ca).sub(T0.mul(sa)).toVar();
+      v.P.assign(GA.xyz.add(U.mul(v.P.x.mul(wid))).add(W.mul(v.P.y.mul(wid))).add(D.mul(v.P.z.mul(len))));
+      v.N.assign(normalize(U.mul(v.N.x).add(W.mul(v.N.y)).add(D.mul(v.N.z.mul(wid.div(len))))));
+      vC.assign(vec4(GC.y, GC.z, len, 0.0));
+    },
+    surface: (s, f) => {
+      // clear quartz, a little milky, lit from inside the hollow: bright toward its point
+      const along = f.aux.y, edge = abs(f.aux.x.sub(0.5)).mul(2.0);
+      const near = float(1).sub(smoothstep(4.0, 16.0, f.dist));
+      const vv = normalize(cameraPosition.sub(f.w)), fres = pow(float(1).sub(abs(dot(s.n, vv))), 2.0);
+      s.albedo = mix(vec3(0.86, 0.86, 0.84), vec3(1.0, 0.95, 0.86), along);
+      s.spec = float(1.2); s.gloss = float(80.0); s.trans = float(0.6); s.fluor = float(0.1);
+      const deep = vC.x;
+      s.emis = vec3(1.0, 0.84, 0.58).mul(deep.mul(deep).mul(1.4).add(0.25)).mul(along.mul(0.6).add(0.5))
+        .add(vec3(1.0, 0.95, 0.85).mul(smoothstep(0.82, 0.97, edge).mul(near).mul(0.5)))
+        .add(vec3(0.9, 0.9, 1.0).mul(fres.mul(0.35)));
+    },
+  }), 98);
+  // the glow: light from the hollow (slot 3), and a soft haze in it
+  const fl = Math.hypot(f1[0], f1[1], f1[2]), N = [f1[0] / fl, f1[1] / fl, f1[2] / fl];
+  const glowAt = [c1[0] + N[0] * 0.55, c1[1] + N[1] * 0.55, c1[2] + N[2] * 0.55];
+  G.glowPos.array[3].set(glowAt[0], glowAt[1], glowAt[2], 9.0);
+  G.glowCol.array[3].set(1.7, 1.35, 0.9, 0);
+  addMesh(ctx, halos([c1[0] + N[0] * 0.1, c1[1] + N[1] * 0.1, c1[2] + N[2] * 0.1], 1.9), material({
+    additive: true, shadow: false, fade: [70, 90],
+    vertex: (v) => haloVertex(v, 1.9),
+    raw: (f) => { const d = length(vHalo); return { color: vec3(1.0, 0.82, 0.55).mul(exp(d.mul(d).mul(-5.0)).mul(0.5)).mul(exp(SIG.mul(f.dist).negate())), alpha: float(1.0) }; },
+  }), 90, { noShadow: true });
+  // where the picture goes: in the main half's hollow, set back from the cut face
+  const size = 1.12;
+  return { position: V(c1[0] - N[0] * 0.16, c1[1] - N[1] * 0.16, c1[2] - N[2] * 0.16), normal: V(N[0], N[1], N[2]), size };
+}
+const select3 = (cond) => vec3(0.0, 1.0, 0.0).mul(cond.select(1.0, 0.0)).add(vec3(1.0, 0.0, 0.0).mul(cond.select(0.0, 1.0)));
+
+// A brass diving helmet on the black sand by the geode: the dome with its three ports, the
+// breastplate and its bolts, a valve at the back.
+function buildHelmet(ctx) {
+  const m = new Mesh(true), x = GEODE.x + 2.2, z = GEODE.z + 1.4, gy = groundY(x, z);
+  const yaw = -0.55, tilt = 0.12, S = 1.15;
+  const toW = (px, py, pz) => {
+    const y1 = py * Math.cos(tilt) - pz * Math.sin(tilt), z1 = py * Math.sin(tilt) + pz * Math.cos(tilt);
+    return [x + (px * Math.cos(yaw) + z1 * Math.sin(yaw)) * S, gy - 0.08 + y1 * S, z + (-px * Math.sin(yaw) + z1 * Math.cos(yaw)) * S];
+  };
+  const K = (kind) => (k, j, px, py, pz, o) => { o[0] = kind; };
+  const place = (from) => { for (let v = from; v < m.count; v++) { const P = toW(m.p[v * 3], m.p[v * 3 + 1], m.p[v * 3 + 2]); const N = toW(m.n[v * 3], m.n[v * 3 + 1], m.n[v * 3 + 2]).map((vv, e) => (vv - toW(0, 0, 0)[e]) / S); m.p[v * 3] = P[0]; m.p[v * 3 + 1] = P[1]; m.p[v * 3 + 2] = P[2]; m.n[v * 3] = N[0]; m.n[v * 3 + 1] = N[1]; m.n[v * 3 + 2] = N[2]; } };
+  const v0 = m.count;
+  // the breastplate: a broad bell
+  sweep(m, [[0, 0.0, 0, 0.62], [0, 0.12, 0, 0.6], [0, 0.26, 0, 0.5], [0, 0.36, 0, 0.36], [0, 0.4, 0, 0.3]], 24, { up: [1, 0, 0], aux: K(0) });
+  // the dome
+  blob(m, 0, 0.72, 0, (dx, dy, dz) => 0.38 * (dy < -0.5 ? 1.0 : 1.0) * (1 + 0.06 * Math.max(dy, 0)), 10, (dx, dy, dz, o) => { o[0] = 0; });
+  // the ports: a thick brass ring and a glass in each, front and sides; a little one on top
+  for (const [dx, dy, dz, rr] of [[0, 0, 1, 0.17], [1, 0, 0.15, 0.12], [-1, 0, 0.15, 0.12], [0, 0.85, 0.5, 0.08]]) {
+    const l = Math.hypot(dx, dy, dz), d = [dx / l, dy / l, dz / l], c = [d[0] * 0.38, 0.72 + d[1] * 0.38, d[2] * 0.38];
+    const ring = [];
+    const u = Math.abs(d[1]) < 0.9 ? [0, 1, 0] : [1, 0, 0];
+    let a = [u[1] * d[2] - u[2] * d[1], u[2] * d[0] - u[0] * d[2], u[0] * d[1] - u[1] * d[0]]; const al = Math.hypot(...a); a = a.map((vv) => vv / al);
+    const bv = [d[1] * a[2] - d[2] * a[1], d[2] * a[0] - d[0] * a[2], d[0] * a[1] - d[1] * a[0]];
+    for (let i = 0; i < 18; i++) { const t = (i / 18) * TAU; ring.push([c[0] + (a[0] * Math.cos(t) + bv[0] * Math.sin(t)) * rr + d[0] * 0.04, c[1] + (a[1] * Math.cos(t) + bv[1] * Math.sin(t)) * rr + d[1] * 0.04, c[2] + (a[2] * Math.cos(t) + bv[2] * Math.sin(t)) * rr + d[2] * 0.04, 0.035]); }
+    sweep(m, ring, 6, { closed: true, up: d, aux: K(0) });
+    const g0 = m.count;
+    m.vert(c[0] + d[0] * 0.03, c[1] + d[1] * 0.03, c[2] + d[2] * 0.03, d[0], d[1], d[2], 0, 0, 1, 0, 0, 0);
+    for (let i = 0; i <= 18; i++) { const t = (i / 18) * TAU; m.vert(c[0] + (a[0] * Math.cos(t) + bv[0] * Math.sin(t)) * rr, c[1] + (a[1] * Math.cos(t) + bv[1] * Math.sin(t)) * rr, c[2] + (a[2] * Math.cos(t) + bv[2] * Math.sin(t)) * rr, d[0], d[1], d[2], 0, 0, 1, 0, 0, 0); }
+    for (let i = 0; i < 18; i++) triFacing(m, g0, g0 + 1 + i, g0 + 2 + i, d[0], d[1], d[2]);
+    if (rr > 0.15) for (const off of [-0.07, 0, 0.07]) {      // the grille across the front port
+      sweep(m, [[c[0] + a[0] * 0.17 + bv[0] * off + d[0] * 0.05, c[1] + a[1] * 0.17 + bv[1] * off + d[1] * 0.05, c[2] + a[2] * 0.17 + bv[2] * off + d[2] * 0.05, 0.013], [c[0] - a[0] * 0.17 + bv[0] * off + d[0] * 0.05, c[1] - a[1] * 0.17 + bv[1] * off + d[1] * 0.05, c[2] - a[2] * 0.17 + bv[2] * off + d[2] * 0.05, 0.013]], 5, { aux: K(0) });
+    }
+  }
+  // bolts round the breastplate, a valve at the back
+  for (let i = 0; i < 10; i++) { const t = (i / 10) * TAU; blob(m, Math.cos(t) * 0.55, 0.13, Math.sin(t) * 0.55, () => 0.04, 2); }
+  sweep(m, [[0, 0.8, -0.36, 0.05], [0, 0.84, -0.5, 0.05]], 8, { caps: true, aux: K(0) });
+  place(v0);
+  addMesh(ctx, sphereOf(m.build(), 0.3), material({
+    aux: true, fade: [80, 98],
+    surface: (s, f) => {
+      const glass = step(0.5, f.aux.x);
+      brassSurf(s, f, 0.35);
+      s.albedo = mix(s.albedo, vec3(0.05, 0.07, 0.08), glass);
+      s.spec = mix(s.spec, float(1.4), glass); s.gloss = mix(s.gloss, float(90.0), glass);
+    },
+  }), 98);
+}
+
 // ---- all of it ----------------------------------------------------------------------------------
 
 export function buildSets(ctx) {
@@ -967,7 +1183,8 @@ export function buildSets(ctx) {
   const ring = buildAnchor(ctx, [ANCHOR.x, ANCHOR.z], [tw[0] / tl, tw[1] / tl], [Math.cos(fa), Math.sin(fa)]);
   const chain = buildChain(ctx, q, bow, ring, [ANCHOR.x, ANCHOR.z]);
   const clam = buildClam(ctx, q);
-  const geode = { position: V(-4.4, -206.6, -389.4), normal: V(0, 0.15, 1).normalize(), size: 1.2 };
+  const geode = buildGeode(ctx, q);
+  buildHelmet(ctx);
   if (typeof DEV !== 'undefined' && DEV) console.log('sets ' + Math.round(performance.now() - t0) + ' ms');
   return {
     update(t) { chain.setTime(t); },

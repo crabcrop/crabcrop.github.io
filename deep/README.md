@@ -1,10 +1,18 @@
 # The dive, made in code
 
-"All the Way Down", drawn in real time: the visitor scrolls, and dives with Snap from a
-marina to the vents and back up, building a crabcrop URL on the way. Nothing in the world is
-a picture, a model, a video or a sound file: the sea, the light, the rock, the plants, the
-creatures, the submarine and the music are all made by the page when it loads. The one
-exception is Snap himself, who keeps his own 3D model (`media/`).
+"All the Way Down", the dive at `/preview/dive/`, rebuilt so that its scenes are drawn in
+real time by code instead of played back from 44 MB of generated pictures and videos. The
+same eight scenes, the same story, the same cast and the same five choices, in the same
+handmade crochet world: the visitor scrolls, and dives with Snap from the marina to the vents
+and back up, building a crabcrop URL on the way.
+
+Nothing in it is a picture, a model, a video or a sound file: the sea, the light, the sand,
+the crochet kelp and corals, the creatures, the boats, the wreck, the submarine and the
+music are made by the page when it loads. The one exception is Snap himself, who keeps his
+own 3D model (`media/`). The scenes follow the current dive's pictures (see
+`preview/dive/media/z0` to `z7`): the marina at sunset from the waterline, the shallows, the
+kelp, the reef and its Clam Studio, the wreck and its cabin, the twilight, the vents and the
+geode, and the marina again.
 
 Published at `/preview/deep/` (not linked from the site, `noindex`). The brief it is held to
 is [PROMPT.md](PROMPT.md).
@@ -81,11 +89,12 @@ hardware: frame times come from `?bench` on real devices.
 
 ## Credit
 
-The approach, and several of its techniques (the closed-form scattering, the per-channel
+The scenes, the story, the cast and the look are the dive's own. Some rendering techniques (the closed-form scattering, the per-channel
 extinction and its constants, the shadow-mapped shafts, the leaves built in the vertex
-shader, the unthresholded bloom veil, the adaptive resolution), follow
+shader, the unthresholded bloom veil, the adaptive resolution) follow
 [Abyssal Garden](https://github.com/Noniv/abyssal-garden) by Maksymilian Dendura, a
-real-time underwater scene made entirely in code, under the MIT License:
+real-time underwater scene made entirely in code; none of its code or scenes are used. Its
+licence, the MIT License:
 
 > Copyright (c) 2026 Maksymilian Dendura
 >
