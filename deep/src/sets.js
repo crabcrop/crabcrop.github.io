@@ -4,18 +4,23 @@
 //   the marina      twice: where the dive starts (z0) and where it comes up again (z7). Seen from
 //                   the waterline: two wooden piers with posts and rope, string lights, crochet
 //                   fenders, the buoy on its coil of rope, a dinghy between them, sailboats with
-//                   planked and painted hulls, a striped lighthouse. At the start, one of the
-//                   sailboats rides to an anchor: its chain hangs down to an anchor stood in the
-//                   sand, and Snap rides down that chain. At the end there is no sea floor near:
-//                   the posts and the islet's rock end a few metres down.
-//   the clam        the Clam Studio at the reef's far end: a huge pearly pink scallop open like a
-//                   room, crochet jellyfish lamps, a pearl
+//                   planked and painted hulls, a striped lighthouse. Under water the posts are
+//                   weathered grey wood, and from just below the surface each goes on up into its
+//                   own reflection. At the start, one of the sailboats rides to an anchor: its
+//                   chain hangs down to an anchor stood in the sand, and Snap rides down that
+//                   chain. At the end the piers stand on a shallow shelf of rippled sand, with
+//                   stones and weed, that cannot be seen from the deep below it.
+//   the clam        the Clam Studio at the reef's far end: a huge pearly scallop open like a room,
+//                   three crochet jellyfish lamps lighting it (glow slots 1 to 3, lent by the vents
+//                   while the camera is on the reef), a pearl
 //   the wreck       an old wooden sailing ship lying on the ledge, planked, broken, rigged and
-//                   weedy, and its captain's cabin: plank walls, brass portholes, broken planks
+//                   weedy, its round carved stern, white crochet barnacles, ribs inside its
+//                   breach; and its captain's cabin: plank walls, brass portholes, broken planks
 //                   open onto the water, a desk with an envelope, and a lantern (glow slot 0)
 //   the vents       the chimneys' glowing cracks, lava at their feet, their smoke (glow slots 1, 2)
-//   the geode       a dark stone split open, lined with glowing crystals (glow slot 3): where the
-//                   print lies; a brass diving helmet on the sand before it
+//   the geode       a beige stone split in two, both halves fallen open on the black sand, white
+//                   quartz glowing warm inside (glow slot 3): the print lies in the right half; a
+//                   small brass diving helmet on the sand to its left
 //
 // buildSets(ctx) returns { update(t, dt, p), chainAt(s, out), clam, geode, wreck }:
 //   chainAt(s, out)  s is 0 at the boat's bow roller and 1 at the anchor's ring; writes the point
@@ -25,9 +30,10 @@
 //                    clam opens (unit vector out of its mouth).
 //   wreck            { lantern, envelope, cabin, cabinFacing }: the lantern, the desk's top, the
 //                    cabin's middle, and the way out through the hole in its side.
-//   geode            { position, normal, size }: the spot in the geode's hollow where the picture
-//                    goes, the way it faces (toward the camera at p = 7), and the widest picture
-//                    (metres) that fits there, square or wide.
+//   geode            { position, normal, size }: the spot on the bed in the geode's hollow where
+//                    the picture lies, the way it faces (out of the hollow, up and toward the
+//                    camera at p = 7), and the widest picture (metres) that fits there, square or
+//                    wide.
 import { BufferAttribute, InstancedBufferAttribute, InstancedBufferGeometry, Mesh as ThreeMesh, Sphere, Vector3 } from 'three/webgpu';
 import {
   abs, attribute, cameraPosition, clamp, cos, cross, dFdx, dFdy, dot, exp, float, floor, fract, fwidth, int, ivec3, length, max, min, mix, normalize, pow,
@@ -882,9 +888,16 @@ function buildLighthouse(ctx, x, z, deep) {
   // the island
   const isl = new Mesh(true), cy = deep ? -2.2 : -5;
   blob(isl, x, cy, z, (dx, dy, dz) => (dy > 0 ? 7.0 : 7.6) * (1 + 0.18 * noise3(dx * 2.2 + 4, dy * 2.2, dz * 2.2) + 0.08 * noise3(dx * 6, dy * 6, dz * 6 + 2)), 16);
-  // (at the end there is no sea floor below: the rock ends a few metres down, rounded)
+  // (at the end there is no sea floor below it: the rock ends just under the water, open
+  // underneath, so seen from the deep, where the camera comes up, it is not a dark blot against
+  // the bright surface; from the waterline the water hides the rest)
   for (let v = 0; v < isl.count; v++) { const yy = isl.p[v * 3 + 1] - cy; isl.p[v * 3 + 1] = cy + (yy > 0 ? yy * (deep ? 0.62 : 0.9) : yy * (deep ? 0.28 : 1.3)); }
   isl.normals(0, isl.count, 0, null);
+  if (deep) {
+    const keep = [];
+    for (let k = 0; k < isl.i.length; k += 3) { const a = isl.i[k], b = isl.i[k + 1], c = isl.i[k + 2]; if (Math.max(isl.p[a * 3 + 1], isl.p[b * 3 + 1], isl.p[c * 3 + 1]) > -0.6) keep.push(a, b, c); }
+    isl.i = keep;
+  }
   addMesh(ctx, sphereOf(isl.build(), 1), material({
     aux: true, fade: [175, 200],
     surface: (s, f) => {

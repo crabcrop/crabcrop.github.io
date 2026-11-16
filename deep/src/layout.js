@@ -154,7 +154,7 @@ export function offTrack(x, z, y) {
 
 // Where the set pieces stand (sets.js), kept clear of plants: [x, z, radius]. The clam, the
 // wreck (two circles along its length), the geode's halves and the helmet, the anchor.
-export const CLEARINGS = [[4.7, -170.4, 3.6], [3.9, -236.5, 5.0], [4.7, -248.5, 5.0], [-5.3, -389.2, 2.4], [-2.75, -389.7, 2.0], [-3.85, -388.05, 1.3], [4.35, -24.5, 1.6]];
+export const CLEARINGS = [[4.7, -170.4, 3.6], [3.9, -236.5, 5.0], [4.7, -248.5, 5.0], [-4.13, -388.9, 2.5], [-6.38, -387.9, 0.8], [-0.6, -389.3, 1.7], [4.35, -24.5, 1.6]];
 export const cleared = (x, z) => CLEARINGS.some(([cx, cz, r]) => (x - cx) * (x - cx) + (z - cz) * (z - cz) < r * r);
 
 // ---- the water -------------------------------------------------------------------------
