@@ -42,6 +42,10 @@ import { G, SIG, material, scatter, skyAt, sunAt, sunFoot, yarn } from './shader
 const U = { pix: uniform(0.002), right: uniform(new Vector3(1, 0, 0)), up: uniform(new Vector3(0, 1, 0)) };
 const UP = vec3(0.0, 1.0, 0.0);
 const one = (x, k) => float(1.0).sub(step(0.5, abs(x.sub(k))));      // 1 where x is k
+// Colours are written as they look in the pictures (sRGB) and turned into the linear values the
+// light works in (the final pass only gamma-encodes them).
+const toLin = (x) => Math.pow(x, 2.2);
+const lin = (r, g, b) => vec3(toLin(r), toLin(g), toLin(b));
 
 // ---- yarn on a creature ----------------------------------------------------------------------
 
@@ -191,16 +195,9 @@ function pillow(m, cols, rows, dir, part, f) {
     orient(m, i0, base, () => [dir[0] * sg, dir[1] * sg, dir[2] * sg]);
   }
 }
-// A closed round shape round (x, y, z), its triangles (and normals) facing out. (math.js's
-// blob() winds them inward: as it is, only its far side's inside would be drawn.)
-function lump(m, x, y, z, f, res, tag) {
-  const i0 = m.i.length, base = m.count;
-  blob(m, x, y, z, f, res, tag);
-  orient(m, i0, base, (px, py, pz) => [px - x, py - y, pz - z]);
-}
 // A bead, a ball, an egg: a blob with aux (centre, part).
 function ball(m, x, y, z, rx, ry, rz, res, part) {
-  lump(m, x, y, z, (dx, dy, dz) => 1 / Math.hypot(dx / rx, dy / ry, dz / rz), res, (dx, dy, dz, o) => { o[0] = x; o[1] = y; o[2] = z; o[3] = part; });
+  blob(m, x, y, z, (dx, dy, dz) => 1 / Math.hypot(dx / rx, dy / ry, dz / rz), res, (dx, dy, dz, o) => { o[0] = x; o[1] = y; o[2] = z; o[3] = part; });
 }
 // The rings of tubes the vertex shader builds round a centreline: n tubes of `rings` rings,
 // `sides` round. aux = (along 0..1, round 0..1, which tube, tag(tube)).
@@ -301,7 +298,7 @@ function siphonAt(p, tanV, aspect, o) {
 // submarine, in profile, heading left; it drifts slowly toward the middle.
 function anglerAt(p, tanV, aspect, o) {
   const pc = clampN(p, ANGLER[0], ANGLER[1]), u = (pc - ANGLER[0]) / (ANGLER[1] - ANGLER[0]), wide = aspect >= 1, c = camAt(pc, _cA);
-  onScreen(o.c, c, 5.6, wide ? 0.64 - 0.1 * u : 0.32 - 0.12 * u, wide ? 0.26 : -0.42, tanV, aspect);
+  onScreen(o.c, c, 5.6, wide ? 0.6 - 0.08 * u : 0.32 - 0.12 * u, wide ? 0.26 : -0.42, tanV, aspect);
   dirOf(o.f, -c.R[0] - 0.22 * c.L[0], 0, -c.R[2] - 0.22 * c.L[2]);
   return o;
 }
@@ -317,8 +314,10 @@ function reefTurtleAt(p, tanV, aspect, o) {
 // view, side on, a little toward the visitor; the octopus lower and further right.
 function endingAt(p, tanV, aspect, turtle, octo) {
   const c = camAt(clampN(p, ENDING[0], ENDING[1]), _cA), wide = aspect >= 1;
-  onScreen(turtle.c, c, wide ? 5.2 : 6.0, wide ? -0.17 : -0.4, wide ? -0.5 : -0.62, tanV, aspect);
-  onScreen(octo.c, c, wide ? 5.8 : 6.5, wide ? 0.62 : 0.45, wide ? -0.64 : -0.74, tanV, aspect);
+  // (`d` ahead, at nx across the screen, at a depth below the submarine, which stays a metre down)
+  const put = (o, d, nx, y) => { inViewAt(o.c, c, 0, nx * d * tanV * aspect, 0); o.c[0] += c.L[0] * d; o.c[1] = y; o.c[2] += c.L[2] * d; };
+  put(turtle, wide ? 5.6 : 6.2, wide ? -0.24 : -0.42, wide ? -2.35 : -3.3);
+  put(octo, wide ? 6.2 : 6.8, wide ? 0.62 : 0.45, wide ? -2.8 : -3.8);
   dirOf(turtle.f, c.R[0] + 0.3 * c.L[0], 0, c.R[2] + 0.3 * c.L[2]);
   dirOf(octo.f, c.R[0] + 0.45 * c.L[0], 0, c.R[2] + 0.45 * c.L[2]);
 }
@@ -509,7 +508,7 @@ function fishMaterial() {
       const st = knit(s, f, { color: col, color2: mix(col, B, stripes), stripe: max(vC1.w, 1.0), scale: 40, p: vLoc, frame: [Up, F, cross(F, Up)], k: 1.0 });
       // a ring of pale felt round each eye, and the bead in it
       const ring = eyeRing(f.obj, vEye.x, vEye.y, vEye.z, vEye.w).mul(body);
-      s.albedo = mix(s.albedo, vec3(0.97, 0.95, 0.9).mul(st.h.mul(0.25).add(0.75)), ring);
+      s.albedo = mix(s.albedo, lin(0.97, 0.95, 0.9).mul(st.h.mul(0.25).add(0.75)), ring);
       bead(s, n0, eye);
       // dissolving: what would be seen through the fish is the water beyond it
       const vv = normalize(f.w.sub(cameraPosition));
@@ -630,7 +629,7 @@ function populate(rng, amt, avoid) {
       let m = meshes.get(key);
       if (!m) meshes.set(key, (m = { shape, fish: [] }));
       const L = lerp(g.size[0], g.size[1], rng()) * (shape === 'long' ? 1.12 : 1), kk = rng.range(0.92, 1.06);
-      const c = (name) => COL[name].map((x) => Math.min(x * kk, 1));
+      const c = (name) => COL[name].map((x) => toLin(Math.min(x * kk, 1)));
       m.fish.push({
         A: [at[0], at[1], at[2], w], B: [g.r[0], g.r[1], g.yaw, g.h],
         C: [slot[0], slot[1], slot[2], L],
@@ -700,7 +699,7 @@ function patches(q, k) {
 const T_EYE = [0.665, 0.115, 0.098, 0.034];
 function turtleShape(lod) {
   const m = new Mesh(true), res = [7, 9, 11][lod];
-  lump(m, 0, 0, 0, (dx, dy, dz) => 1 / Math.hypot(dx / 0.45, dy / (dy > 0 ? 0.28 : 0.1), dz / 0.37), res, (dx, dy, dz, o) => { o[3] = 0; });
+  blob(m, 0, 0, 0, (dx, dy, dz) => 1 / Math.hypot(dx / 0.45, dy / (dy > 0 ? 0.28 : 0.1), dz / 0.37), res, (dx, dy, dz, o) => { o[3] = 0; });
   tube(m, [[0.3, -0.01, 0, 0.1], [0.4, 0.015, 0, 0.096], [0.48, 0.04, 0, 0.1]], 8, [0, 0, 1]);
   ball(m, 0.585, 0.065, 0, 0.17, 0.145, 0.14, Math.max(res - 2, 4), 1);
   tube(m, [[-0.4, -0.02, 0, 0.05], [-0.5, -0.035, 0, 0.028], [-0.56, -0.04, 0, 0.008]], 6, [0, 0, 1]);
@@ -771,9 +770,9 @@ function turtleMaterial() {
       const shell = one(part, 0), eye = one(part, 4), flip = one(part, 2).add(one(part, 3));
       // the reef's turtle is brown with cream seams and cream skin in brown patches; the one at
       // the end, coral with teal skin
-      const shellCol = mix(vec3(0.58, 0.27, 0.12), vec3(0.86, 0.38, 0.22), look), seamCol = mix(vec3(0.96, 0.87, 0.66), vec3(0.98, 0.88, 0.68), look);
-      const skinCol = mix(vec3(0.9, 0.82, 0.66), vec3(0.45, 0.7, 0.68), look), spotCol = mix(vec3(0.5, 0.26, 0.12), vec3(0.18, 0.44, 0.46), look);
-      const bellyCol = mix(vec3(0.93, 0.83, 0.58), vec3(0.98, 0.84, 0.6), look);
+      const shellCol = mix(lin(0.6, 0.36, 0.22), lin(0.88, 0.48, 0.38), look), seamCol = mix(lin(0.96, 0.89, 0.74), lin(0.98, 0.9, 0.76), look);
+      const skinCol = mix(lin(0.9, 0.84, 0.72), lin(0.56, 0.72, 0.74), look), spotCol = mix(lin(0.56, 0.36, 0.24), lin(0.3, 0.5, 0.54), look);
+      const bellyCol = mix(lin(0.94, 0.86, 0.68), lin(0.98, 0.88, 0.72), look);
       const under = shell.mul(float(1.0).sub(smoothstep(-0.02, 0.01, lp.y)));
       // the skin's patches: on the flippers, and on top of the head
       const onHead = one(part, 1).mul(smoothstep(0.42, 0.5, lp.x)).mul(smoothstep(0.08, 0.14, lp.y));
@@ -787,7 +786,7 @@ function turtleMaterial() {
       const seam = sh.seam.mul(shell).mul(float(1.0).sub(under));
       s.albedo = mix(s.albedo, seamCol.mul(st.h.mul(0.4).add(0.6)), seam);
       const ring = eyeRing(lp, T_EYE[0], T_EYE[1], T_EYE[2], float(T_EYE[3])).mul(one(part, 1));
-      s.albedo = mix(s.albedo, vec3(0.96, 0.93, 0.86), ring);
+      s.albedo = mix(s.albedo, lin(0.96, 0.93, 0.86), ring);
       bead(s, n0, eye);
       glint(s, lp, T_EYE[0], T_EYE[1], T_EYE[2], T_EYE[3], eye);
     },
@@ -800,7 +799,7 @@ function turtleMaterial() {
 // sized. aux.w: 0 head, 2 tentacles (built in the shader: aux = along, round, which), 4 eyes.
 function octopusShape(lod) {
   const m = new Mesh(true), res = [7, 9, 11][lod];
-  lump(m, 0, 0.4, 0, (dx, dy, dz) => 1 / Math.hypot(dx / 0.26, dy / (dy < 0 ? 0.25 : 0.28), dz / 0.26), res, (dx, dy, dz, o) => { o[3] = 0; });
+  blob(m, 0, 0.4, 0, (dx, dy, dz) => 1 / Math.hypot(dx / 0.26, dy / (dy < 0 ? 0.25 : 0.28), dz / 0.26), res, (dx, dy, dz, o) => { o[3] = 0; });
   for (const side of [1, -1]) ball(m, 0.232, 0.395, side * 0.105, 0.046, 0.046, 0.046, 3, 4);
   tubes(m, 8, [10, 14, 18][lod], [6, 7, 8][lod], () => 2);
   return m.build();
@@ -852,7 +851,7 @@ function octopusMaterial() {
       const part = f.aux.w, lp = f.obj, n0 = s.n;
       const A = normalize(vA), B = normalize(vB);
       const eye = one(part, 4);
-      knit(s, f, { color: vec3(0.78, 0.44, 0.6), scale: 30, p: vP, frame: [A, B, cross(A, B)], k: 1.4 });
+      knit(s, f, { color: lin(0.84, 0.54, 0.66), scale: 30, p: vP, frame: [A, B, cross(A, B)], k: 1.4 });
       // the smile: a short dark arc of stitches under the eyes
       const aa = fwidth(lp.y).add(fwidth(lp.z)).add(1e-4);
       const smile = float(1.0).sub(smoothstep(0.009, aa.add(0.009), abs(lp.y.sub(lp.z.mul(lp.z).mul(3.2).add(0.315))))).mul(step(abs(lp.z), 0.058)).mul(step(0.15, lp.x)).mul(one(part, 0));
@@ -869,7 +868,7 @@ function octopusMaterial() {
 const LURE = [0.5, 0.26, 0];
 function anglerShape(lod) {
   const m = new Mesh(true), res = [6, 8, 10][lod];
-  lump(m, 0, 0, 0, (dx, dy, dz) => 1 / Math.hypot(dx / (dx > 0 ? 0.3 : 0.26), dy / (dy > 0 ? 0.25 : 0.23), dz / 0.22), res, (dx, dy, dz, o) => { o[3] = 0; });
+  blob(m, 0, 0, 0, (dx, dy, dz) => 1 / Math.hypot(dx / (dx > 0 ? 0.3 : 0.26), dy / (dy > 0 ? 0.25 : 0.23), dz / 0.22), res, (dx, dy, dz, o) => { o[3] = 0; });
   for (const side of [1, -1]) {
     ball(m, 0.17, 0.115, side * 0.16, 0.05, 0.05, 0.05, 3, 4);
     pillow(m, 4, 3, [0, 0.3, side], 1, (s, t, o) => {
@@ -905,7 +904,7 @@ function anglerShape(lod) {
 // (the lure sways on its stalk: the same turn in both materials)
 const lureSway = (t, phase) => sin(t.mul(0.9).add(phase)).mul(0.14);
 const STALK = vec3(0.13, 0.24, 0.0);
-const LURE_COL = vec3(0.55, 1.0, 0.92);
+const LURE_COL = lin(0.55, 1.0, 0.92);
 // (and nothing glowing is drawn beyond about 44 m: it fades out before it is switched off)
 const far = (d, a, b) => float(1.0).sub(smoothstep(a, b, d));
 function anglerMaterial() {
@@ -929,7 +928,7 @@ function anglerMaterial() {
     surface: (s, f) => {
       const part = f.aux.w, lp = f.obj, n0 = s.n, F = normalize(vA), Up = normalize(vB);
       const fins = one(part, 1), stalk = one(part, 3), eye = one(part, 4), lure = one(part, 6);
-      knit(s, f, { color: mix(mix(vec3(0.17, 0.18, 0.3), vec3(0.56, 0.24, 0.64), fins), vec3(0.2, 0.18, 0.26), stalk), scale: 30, p: vP, frame: [F, Up, cross(F, Up)], k: 1.3 });
+      knit(s, f, { color: mix(mix(lin(0.26, 0.3, 0.42), lin(0.56, 0.3, 0.66), fins), lin(0.3, 0.27, 0.38), stalk), scale: 30, p: vP, frame: [F, Up, cross(F, Up)], k: 1.3 });
       // the mouth: a wide dark grin from the front back along each side, with a row of white teeth
       const aa = fwidth(lp.y).add(fwidth(lp.x)).add(1e-4);
       const front = smoothstep(0.02, 0.1, lp.x).mul(one(part, 0));
@@ -937,17 +936,19 @@ function anglerMaterial() {
       const gap = float(1.0).sub(smoothstep(0.022, aa.add(0.026), abs(lp.y.sub(lipY)))).mul(front);
       const tooth = abs(fract(lp.x.mul(22.0).add(lp.z.mul(14.0))).sub(0.5)).mul(2.0);
       const teeth = float(1.0).sub(smoothstep(0.0, aa.mul(2.0).add(0.004), lp.y.sub(lipY).add(0.016).sub(tooth.mul(0.024)))).mul(front);
-      s.albedo = mix(mix(s.albedo, vec3(0.03, 0.01, 0.04), gap), vec3(0.95, 0.94, 0.9), teeth.mul(gap));
+      s.albedo = mix(mix(s.albedo, vec3(0.003, 0.001, 0.004), gap), lin(0.95, 0.94, 0.9), teeth.mul(gap));
       bead(s, n0, eye);
       glint(s, lp, 0.17, 0.115, 0.16, 0.05, eye);
       // the lure's light on it: on what faces it, and in a rim round its edge
       const toL = vL.sub(f.w), dl = length(toL), ld = toL.div(dl);
       const facing = max(dot(s.n, ld).add(0.1), 0.0).div(1.1);
       const vv = normalize(cameraPosition.sub(f.w)), rim = pow(float(1.0).sub(abs(dot(s.n, vv))), 2.5);
-      const lit = facing.mul(facing).mul(float(1.4).div(dl.mul(dl).mul(14.0).add(1.0))).add(rim.mul(pow(facing, 0.7)).mul(0.8)).add(0.02);
+      const lit = facing.mul(facing).mul(float(1.4).div(dl.mul(dl).mul(14.0).add(1.0))).add(0.02);
       const fade = far(f.dist, 34.0, 48.0);
-      s.emis = s.emis.add(s.albedo.mul(1.8).add(0.012).mul(LURE_COL).mul(lit).mul(float(1.0).sub(lure)).mul(fade));
-      s.albedo = mix(s.albedo, vec3(0.7, 1.0, 0.95), lure);
+      // (the lit side as the lure's light on its dark wool; the rim a glow of its own, so the
+      // outline reads against the dark water and the rock)
+      s.emis = s.emis.add(s.albedo.mul(2.6).add(0.01).mul(lit).add(rim.mul(pow(facing, 0.8)).mul(0.16)).mul(LURE_COL).mul(float(1.0).sub(lure)).mul(fade));
+      s.albedo = mix(s.albedo, lin(0.7, 1.0, 0.95), lure);
       s.emis = s.emis.add(LURE_COL.mul(lure).mul(5.0).mul(fade));
     },
   });
@@ -968,7 +969,7 @@ function lureGlowMaterial() {
     raw: (f) => {
       const r2 = dot(f.aux.xy, f.aux.xy);
       const m = exp(r2.mul(-5.0)).mul(float(1.0).sub(smoothstep(0.55, 1.0, r2)));
-      return { color: vec3(0.35, 1.0, 0.9).mul(m).mul(0.85).mul(vK.rgb), alpha: float(1.0) };
+      return { color: lin(0.35, 1.0, 0.9).mul(m).mul(0.85).mul(vK.rgb), alpha: float(1.0) };
     },
   });
 }
@@ -1027,7 +1028,7 @@ function gullMaterial() {
       const part = f.aux.w, n0 = s.n, lp = f.obj;
       const wing = one(part, 1), beak = one(part, 2), tail = one(part, 3), eye = one(part, 4);
       const tips = smoothstep(0.4, 0.45, abs(lp.z)).mul(wing);
-      const col = mix(mix(mix(vec3(0.96, 0.95, 0.92), vec3(0.6, 0.63, 0.68), max(wing, tail.mul(0.7))), vec3(0.14, 0.14, 0.16), tips), vec3(0.98, 0.72, 0.16), beak);
+      const col = mix(mix(mix(lin(0.96, 0.95, 0.92), lin(0.62, 0.65, 0.7), max(wing, tail.mul(0.7))), lin(0.16, 0.16, 0.18), tips), lin(0.98, 0.72, 0.18), beak);
       const F = normalize(vA), Up = normalize(vB);
       knit(s, f, { color: col, scale: 70, p: vP, frame: [F, Up, cross(F, Up)], k: 0.9, fuzz: 1.5 });
       bead(s, n0, eye);
@@ -1042,7 +1043,7 @@ function gullMaterial() {
 // bell's stripes) and, in .w, how brightly it glows and which glow (0 teal, 1 pink).
 const jA = attribute('jA', 'vec4'), jB = attribute('jB', 'vec4'), jC = attribute('jC', 'vec4'), jD = attribute('jD', 'vec4');
 const vJ0 = varyingProperty('vec4', 'v_j0'), vJ1 = varyingProperty('vec4', 'v_j1'), vJ2 = varyingProperty('vec4', 'v_j2');
-const TEAL = vec3(0.25, 1.0, 0.88), PINK = vec3(1.0, 0.36, 0.78);
+const TEAL = lin(0.25, 1.0, 0.88), PINK = lin(1.0, 0.36, 0.78);
 const glowOf = (k) => mix(TEAL, PINK, k);
 // How long a jelly hangs below its bell's middle, and how far its tentacles may sway, in radii;
 // how far it keeps from the submarine (beyond the submarine's own keep-clear radius: about the
@@ -1213,11 +1214,11 @@ function siphonoMaterial() {
       // pink loops, teal where the glowing middle cord lights their inner side, and in a few
       // stretches teal loops
       const stretch = smoothstep(0.6, 0.85, sin(along.mul(TAU * 6.0)).mul(0.5).add(0.5));
-      const loops = mix(vec3(0.98, 0.42, 0.74), vec3(0.3, 0.95, 0.86), stretch);
-      knit(s, f, { color: mix(loops, vec3(0.45, 1.0, 0.92), core), scale: 46, p: vP, frame: [A, B, cross(A, B)], k: 1.1 });
+      const loops = mix(lin(0.98, 0.42, 0.74), lin(0.3, 0.95, 0.86), stretch);
+      knit(s, f, { color: mix(loops, lin(0.45, 1.0, 0.92), core), scale: 46, p: vP, frame: [A, B, cross(A, B)], k: 1.1 });
       const inward = max(dot(s.n, normalize(vJ2.xyz)), 0.0).mul(float(1.0).sub(core));
       const ends = smoothstep(0.0, 0.04, along).mul(float(1.0).sub(smoothstep(0.96, 1.0, along)));
-      const glow = loops.mul(0.75).add(TEAL.mul(inward.mul(1.6))).mul(float(1.0).sub(core)).add(vec3(0.4, 1.0, 0.9).mul(core).mul(3.0));
+      const glow = loops.mul(0.75).add(TEAL.mul(inward.mul(1.6))).mul(float(1.0).sub(core)).add(lin(0.4, 1.0, 0.9).mul(core).mul(3.0));
       s.emis = s.emis.add(glow.mul(ends).mul(vJ0.rgb.mul(0.4).add(0.6)));
     },
   });
@@ -1272,7 +1273,7 @@ function wormMaterial() {
       vK.assign(vec4(plumeK, s, 0.0, 0.0));
     },
     surface: (s, f) => {
-      const A = normalize(vA), B = normalize(vB), red = vec3(0.86, 0.13, 0.11), white = vec3(0.95, 0.92, 0.86);
+      const A = normalize(vA), B = normalize(vB), red = lin(0.84, 0.16, 0.13), white = lin(0.95, 0.92, 0.87);
       const solidRed = max(step(0.5, vK.x), smoothstep(0.88, 0.92, vK.y));
       knit(s, f, { color: mix(white, red, solidRed), color2: red, stripe: 3, scale: 32, p: vP, frame: [A, B, cross(A, B)], k: 1.3 });
       ventFill(s, f);
@@ -1314,7 +1315,7 @@ function sheepMaterial() {
     },
     surface: (s, f) => {
       const n0 = s.n, F = normalize(vA);
-      knit(s, f, { color: vec3(0.99, 0.93, 0.8), scale: 46, p: vP, frame: [F, UP, cross(F, UP)], k: 1.6, fuzz: 2.4 });
+      knit(s, f, { color: lin(0.97, 0.92, 0.82), scale: 46, p: vP, frame: [F, UP, cross(F, UP)], k: 1.6, fuzz: 2.4 });
       ventFill(s, f);
       bead(s, n0, one(f.aux.w, 4));
     },
@@ -1344,11 +1345,11 @@ function speckMaterial(B, deep) {
       let col;
       if (deep) {
         const blink = pow(sin(t.mul(s.mul(0.7).add(0.3)).add(s.mul(91.0))).mul(0.5).add(0.5), 4.0).mul(0.9).add(0.3);
-        const hue = mix(vec3(1.0, 0.68, 0.3), vec3(0.28, 0.92, 0.8), step(0.7, fract(s.mul(7.3))));
+        const hue = mix(lin(1.0, 0.72, 0.36), lin(0.3, 0.92, 0.8), step(0.7, fract(s.mul(7.3))));
         col = hue.mul(blink).mul(smoothstep(60.0, 100.0, w.y.negate())).mul(1.2).add(lampAt(w).mul(hue).mul(0.3));
       } else {
         const toward = pow(max(dot(rel.div(d), G.sunDir), 0.0), 4.0).mul(2.5).add(0.3);
-        col = sunAt(w.y).mul(causticAt(w).mul(2.2).add(0.12)).mul(toward).add(skyAt(w, UP).mul(0.45)).add(lampAt(w)).add(glowsAt(w)).mul(vec3(0.8, 0.8, 0.74)).mul(0.5)
+        col = sunAt(w.y).mul(causticAt(w).mul(2.2).add(0.12)).mul(toward).add(skyAt(w, UP).mul(0.45)).add(lampAt(w)).add(glowsAt(w)).mul(lin(0.86, 0.86, 0.8)).mul(0.6)
           .mul(float(1.0).sub(smoothstep(50.0, 85.0, w.y.negate())));
       }
       vSnow.assign(vec4(col.mul(exp(SIG.mul(d).negate())).mul(dim.mul(fade)), 0.0));
@@ -1627,8 +1628,8 @@ export function buildFauna(ctx) {
       const [c1, c2, glow] = rng.pick(BELLS);
       ja.set([x, y, z, R0], i * 4);
       jb.set([rng(), rng.range(0.32, 0.55), rng.range(0.35, 0.55), Lt], i * 4);
-      jc.set([...c1, rng.range(0.85, 1.2)], i * 4);
-      jd.set([...c2, glow], i * 4);
+      jc.set([...c1.map(toLin), rng.range(0.85, 1.2)], i * 4);
+      jd.set([...c2.map(toLin), glow], i * 4);
       boxes.push([x - 4, x + 4, y - jLow(R0, Lt) - 4, y + 4, z - 4, z + 4]);
     });
     const sph = sphereOf(boxes), attrs = { jA: new InstancedBufferAttribute(ja, 4), jB: new InstancedBufferAttribute(jb, 4), jC: new InstancedBufferAttribute(jc, 4), jD: new InstancedBufferAttribute(jd, 4) };
@@ -1871,5 +1872,5 @@ export function buildFauna(ctx) {
 // (for dev pages: the pieces, to look at one creature at a time, and the placements to check)
 export const faunaParts = {
   FISH, COL, KINDS, fishShape, fishMaterial, fishMesh, eyeOf, turtleShape, turtleMaterial, octopusShape, octopusMaterial, anglerShape, anglerMaterial, lureGlowMaterial,
-  gullShape, gullMaterial, copies, cards, solid, POSE, SI, jellySpots, castTrack, populate, camAt, subAt, snapAt, siphonAt, anglerAt, reefTurtleAt, endingAt, SCREENS, rectOf,
+  gullShape, gullMaterial, copies, cards, solid, POSE, SI, toLin, jellySpots, castTrack, populate, camAt, subAt, snapAt, siphonAt, anglerAt, reefTurtleAt, endingAt, SCREENS, rectOf,
 };

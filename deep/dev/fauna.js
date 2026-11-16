@@ -35,13 +35,13 @@ function devLights({ camera }) {
 
 // ?lineup: one of each fish, side on, a few metres in front of the camera at p 1.6 (time 20)
 function lineup({ add }) {
-  const { FISH, COL, KINDS, fishShape, fishMaterial, fishMesh, eyeOf } = faunaParts, mat = fishMaterial();
+  const { FISH, COL, KINDS, fishShape, fishMaterial, fishMesh, eyeOf, toLin } = faunaParts, mat = fishMaterial();
   const all = [...KINDS.pastel, ...KINDS.reefY, ...KINDS.reefT, ...KINDS.striped, ...KINDS.puffer, ...KINDS.kelp.slice(0, 2)];
   all.forEach(([shape, pattern, body, second, fins], i) => {
     const x = 0.05 + (i % 5) * 0.62 - 0.9, y = -4.25 - Math.floor(i / 5) * 0.48, z = -31.6, L = shape === 'puffer' ? 0.36 : 0.32;
     // (a school of one on a loop so wide it is a straight line across the view)
     const fish = [{ A: [x, y, z + 1000, 0.0003], B: [1000, 1000, 0, 0], C: [0, 0, 0, L], D: [(0.37 * i) % 1, 1.4, -Math.PI / 2 - 0.006, pattern],
-      E: [...COL[body], 2], F: [...COL[second], 0.5], G: [...COL[fins], 0], H: eyeOf(FISH[shape]) }];
+      E: [...COL[body].map(toLin), 2], F: [...COL[second].map(toLin), 0.5], G: [...COL[fins].map(toLin), 0], H: eyeOf(FISH[shape]) }];
     add(fishMesh(fishShape(FISH[shape], 2), fish, mat), 60);
   });
 }
