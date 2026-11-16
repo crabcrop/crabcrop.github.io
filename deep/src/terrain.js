@@ -51,11 +51,11 @@ export function rockSurf(s, p, w, rocky, open, dist) {
 
 // Loose rock: all rock, darker toward its foot.
 export function rockMaterial() {
-  return material({ instanced: true, surface: (s, f) => rockSurf(s, f.w, f.w, float(1.0), smoothstep(-0.6, 0.5, f.n.y).mul(0.5).add(0.5), f.dist) });
+  return material({ instanced: true, fade: [80, 98], surface: (s, f) => rockSurf(s, f.w, f.w, float(1.0), smoothstep(-0.6, 0.5, f.n.y).mul(0.5).add(0.5), f.dist) });
 }
 
 export function terrainMaterial() {
-  return material({ aux: true, surface: (s, f) => rockSurf(s, f.w, f.w, f.aux.x, f.aux.y, f.dist) });
+  return material({ aux: true, fade: [132, 158], surface: (s, f) => rockSurf(s, f.w, f.w, f.aux.x, f.aux.y, f.dist) });
 }
 
 // How rocky the ground is at a place: the zone's own share, and all rock up the walls.
@@ -96,7 +96,7 @@ export function buildTerrain(add, q, onProgress) {
     geo.boundingSphere = new Sphere(new Vector3(centerX((zA + zB) / 2), (minY + maxY) / 2, (zA + zB) / 2), Math.hypot(halfW, (maxY - minY) / 2, (zA - zB) / 2) + 2);
     const mesh = new ThreeMesh(geo, mat);
     mesh.matrixAutoUpdate = false;
-    add(mesh, 150);
+    add(mesh, 160);
     slices.push(mesh);
     if (onProgress) onProgress(r1 / (rowsZ.length - 1));
   }

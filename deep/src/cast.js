@@ -15,12 +15,14 @@ const SLOT = {
   wide: { snap: [2.8, 1.05, -0.28], sub: [4.3, 1.3, -0.35] },
   tall: { snap: [3.3, 0.0, 0.55], sub: [4.7, 0.0, 0.7] },
 };
-// The story's beats along p: the submarine comes, Snap gets in.
-const SUB_COMES = [3.82, 4.08], SNAP_BOARDS = [4.08, 4.26];
+// The story's beats along p: Snap rides the anchor chain down from the boat and lets go
+// over the shallows; the submarine comes; Snap gets in.
+const CHAIN_LEAVES = [1.18, 1.42], SUB_COMES = [3.82, 4.08], SNAP_BOARDS = [4.08, 4.26];
 
 const R = new Vector3(), U = new Vector3(), F = new Vector3(), A = new Vector3(), B = new Vector3(), C = new Vector3();
 const UP = new Vector3(0, 1, 0), M = new Vector3(), Z = new Vector3(0, 0, 1);
 const qa = new Quaternion(), qb = new Quaternion();
+const ON = [0, 0, 0, 0, 0, 0], GRIP = new Vector3(), ALONG = new Vector3(), MID = new Vector3();
 
 export function buildCast(ctx) {
   const { scene, camera, q } = ctx;
@@ -29,13 +31,28 @@ export function buildCast(ctx) {
   const loading = snap.load(Math.max(innerWidth, innerHeight) * (devicePixelRatio || 1) < 1400).catch((e) => console.warn('dive: Snap did not load: ' + e.message));
   const st = {
     pos: new Vector3(), last: new Vector3(), subPos: new Vector3(), placed: false,
-    aimX: 0, aimY: 0, idle: 0, lastP: -1, wave: 0, poked: -1e9, t: 0,
+    aimX: 0, aimY: 0, idle: 0, lastP: -1, wave: 0, poked: -1e9, t: 0, s: -1,
   };
   const ndc = new Vector3();
   const slot = (o, out) => out.copy(camera.position).addScaledVector(F, o[0]).addScaledVector(R, o[1]).addScaledVector(U, o[2]);
 
+  // The point of the chain nearest a place: the chain's s (0 at the boat, 1 at the anchor).
+  const nearestOnChain = (want) => {
+    let best = 0, bd = 1e9;
+    for (let i = 0; i <= 40; i++) {
+      cast.chainAt(i / 40, ON);
+      const d = (ON[0] - want.x) ** 2 + (ON[1] - want.y) ** 2 + (ON[2] - want.z) ** 2;
+      if (d < bd) { bd = d; best = i / 40; }
+    }
+    return [best, Math.sqrt(bd)];
+  };
+
   const cast = {
     snap, sub, loading,
+    chainAt: null,                 // set when the chain exists: chainAt(s, out) writes x, y, z and its direction
+    // things worth a look on the way: { from, to, at } (p range, a Vector3); he glances at
+    // one while the camera passes it, and back at the visitor between glances
+    sights: [],
     // the pointer steers the lamp: x and y from -1 to 1
     aim(x, y) { st.aimX = x; st.aimY = y; },
     // a tap or click at (x, y) in -1..1 (y up): if it is on Snap, he reacts. Returns whether it was.
@@ -85,8 +102,27 @@ export function buildCast(ctx) {
         A.y += Math.sin(board * Math.PI) * 0.35;           // a little hop up and in
       }
       if (board >= 1) A.copy(B);
+      // on the chain: he holds it at the point nearest where he would be, and slides along
+      // it as the camera goes down; then lets go and swims to his place
+      const onChain = cast.chainAt ? 1 - smooth(CHAIN_LEAVES[0], CHAIN_LEAVES[1], p) : 0;
+      let hang = false;
+      if (onChain > 0) {
+        const [s0, gap] = nearestOnChain(A);
+        if (gap < 6) {
+          st.s = jump || st.s < 0 ? s0 : st.s + (s0 - st.s) * (1 - Math.exp(-dt * 3));
+          cast.chainAt(st.s, ON);
+          GRIP.set(ON[0], ON[1], ON[2]);
+          ALONG.set(ON[3], ON[4], ON[5]).normalize();
+          if (ALONG.y < 0) ALONG.negate();            // his up runs up the chain, toward the boat
+          // the grip is in his raised claw: his middle hangs below and in front of it
+          MID.copy(snap.centreFromGrip ?? Z).multiplyScalar(snap.height);
+          hang = onChain > 0.5;
+          B.copy(GRIP);
+          A.lerp(B, onChain);
+        }
+      }
       st.last.copy(st.pos);
-      follow(st.pos, A, board >= 1 ? 30 : 4.5);
+      follow(st.pos, A, board >= 1 ? 30 : hang ? 12 : 4.5);
       snap.group.position.copy(st.pos);
       // how he moves: paddling harder the faster he goes, leaning into it
       const speed = dt > 0 ? M.copy(st.pos).sub(st.last).length() / dt : 0;
@@ -107,13 +143,28 @@ export function buildCast(ctx) {
       snap.life.wave = pk ? Math.sin(pk * Math.PI) : 0;
       snap.life.hello = st.wave;
       snap.life.squint = Math.max(st.wave * 0.8, pk > 0.4 ? Math.sin((pk - 0.4) / 0.6 * Math.PI) : 0);
-      // he turns to face the visitor, his body a little toward where he goes
+      // he turns to face the visitor, his body a little toward where he goes; on the chain,
+      // his up runs along it
       C.copy(camera.position).sub(st.pos);
       C.y *= 0.3; C.normalize();
       qa.setFromUnitVectors(Z, C);
       qb.setFromAxisAngle(UP, -0.35 + snap.life.swing * 0.15);
       snap.group.quaternion.copy(qa).multiply(qb);
+      if (hang) {
+        qa.setFromUnitVectors(UP, ALONG);
+        snap.group.quaternion.premultiply(qa);
+        // hold the chain with the raised claw: move him so that claw sits on it
+        snap.group.updateMatrixWorld(true);
+        snap.gripWorld(B);
+        st.pos.sub(B).add(GRIP);
+        snap.group.position.copy(st.pos);
+        snap.life.kick = 0.12;
+      }
       snap.target.copy(camera.position);
+      for (let i = 0; i < cast.sights.length; i++) {
+        const g = cast.sights[i];
+        if (p > g.from && p < g.to && Math.sin(t * 0.7 + i) > -0.2) { snap.target.copy(g.at); break; }
+      }
       snap.U.cabin.value = inSub ? 0.16 * smooth(40, 90, depth) : 0;
       snap.live(t, dt);
 

@@ -39,8 +39,8 @@ const stemAt = (base, hh, seed) => {
 // kelp, 1 grass), the plant's seed.
 const ia = attribute('ia', 'vec4'), ib = attribute('ib', 'vec4'), ic = attribute('ic', 'vec4');
 
-const bladeMat = () => material({
-  twoSided: true,
+const bladeMat = (fade) => material({
+  twoSided: true, fade,
   vertex: (v) => {
     const t = v.P.y.toVar(), u = v.P.x.toVar(), seed = ic.x, kind = ic.z;
     const S = stemAt(ia.xyz, ib.x.mul(ia.w), ic.w).toVar();
@@ -82,6 +82,7 @@ const bladeMat = () => material({
   },
 });
 const stalkMat = () => material({
+  fade: [62, 76],
   vertex: (v) => {
     const p0 = v.P.toVar();
     const C = stemAt(ia.xyz, p0.y.mul(ia.w), ic.w);
@@ -164,7 +165,7 @@ function buildKelp(add, q) {
     }
     n++;
   }
-  cells(add, strip(q.amount >= 1 ? 6 : q.amount >= 0.5 ? 5 : 4), bladeMat(), blades, 14, 78);
+  cells(add, strip(q.amount >= 1 ? 6 : q.amount >= 0.5 ? 5 : 4), bladeMat([62, 76]), blades, 14, 78);
   cells(add, stalk(14), stalkMat(), stalks, 28, 78);
   return { plants: stalks.length / 12, blades: blades.length / 12 };
 }
@@ -182,7 +183,7 @@ function buildGrass(add, q) {
     list.push(x, groundY(x, z) - 0.03, z, 0, 0, rng() * TAU, rng.range(0.3, 0.75) * (0.7 + 2.2 * m), rng.range(0.022, 0.04) / Math.sqrt(q.amount), s, rng.range(0.1, 0.9), 1, rng());
     n++;
   }
-  cells(add, strip(3), bladeMat(), list, 12, 46);
+  cells(add, strip(3), bladeMat([34, 45]), list, 12, 46);
   return list.length / 12;
 }
 
@@ -295,7 +296,7 @@ const SHAPES = {
 const tint = attribute('tint', 'vec4');
 const vTint = varyingProperty('vec4', 'v_tint');
 const reefMat = () => material({
-  aux: true, instanced: true,
+  aux: true, instanced: true, fade: [55, 68],
   vertex: (v) => {
     vTint.assign(tint);
     // what is soft gives with the water, more toward its ends

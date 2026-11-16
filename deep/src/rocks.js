@@ -270,13 +270,13 @@ export function buildRocks(add, mat, looseMat, q) {
     const [rock, box] = kind(...args);
     const mesh = new ThreeMesh(carve(rock, box, q.amount >= 1 ? h : h * 1.25), mat);
     mesh.matrixAutoUpdate = false;
-    add(mesh, 130);
+    add(mesh, 160);
   }
   {
     const [rock, box] = spire(SPIRE.x, SPIRE.z, SPIRE.bottom, SPIRE.top, SPIRE.radius, 71);
     const mesh = new ThreeMesh(carve(rock, box, q.amount >= 1 ? 1.0 : 1.3), mat);
     mesh.matrixAutoUpdate = false;
-    add(mesh, 150);
+    add(mesh, 160);
   }
 
   // boulders: two sizes of the same lumpy stone, in stretches of the valley

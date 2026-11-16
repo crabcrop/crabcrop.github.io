@@ -235,7 +235,9 @@ const placeN = (N) => normalize(vec3(dot(attribute('i0', 'vec4').xyz, N), dot(at
 //                  for twoSided), aux and dist.
 //   raw(f)         instead of a lit surface, the colour itself (vec3)
 // Options: aux (the geometry has an `aux` attribute), instanced, twoSided, side,
-// transparent, additive, depthWrite, depthTest, shadow (false: casts none).
+// transparent, additive, depthWrite, depthTest, shadow (false: casts none), and fade:
+// [near, far] in metres, over which the surface melts into the open water behind it, so it
+// is gone before the world stops drawing it (give add() a range of at least far).
 export function material(o) {
   const m = new NodeMaterial();
   m.lights = false;
@@ -289,6 +291,7 @@ export function material(o) {
       alpha = s.alpha;
       if (G.debug) col = vec3(shadow4(w.add(s.n.mul(0.14)).add(G.sunDir.mul(0.05)))).mul(caustic(w, float(1.0)).add(0.2));
     }
+    if (o.fade) col = mix(col, scatter(w.sub(cameraPosition).div(dist), float(300.0)), smoothstep(o.fade[0], o.fade[1], dist));
     return vec4(col, blended ? alpha : dist);
   })();
   // the twin for the shadow map: the same shape, depth only

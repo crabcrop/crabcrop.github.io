@@ -18,7 +18,10 @@ import { buildTerrain, rockMaterial } from './terrain.js';
 import { createPace } from './pace.js';
 import { cull, makeWorld } from './world.js';
 
-export async function startDive({ parts = [] } = {}) {
+// Options besides parts: follow() returns where the page says the camera should be (else
+// the scroll decides, evenly over the page); progress(fraction, label) is told how the
+// building goes; onFrame(p, dt) runs every frame after the camera is placed.
+export async function startDive({ parts = [], follow = null, progress = null, onFrame = null } = {}) {
 const canvas = document.getElementById('world');
 const params = new URLSearchParams(location.search);
 const level = pickLevel();
@@ -83,11 +86,13 @@ function frame(now) {
   S.time += dt;
   G.time.value = S.time;
   // ease toward where the scroll is, quickly but without a jerk
+  if (follow) S.pTo = follow();
   const k = 1 - Math.exp(-dt * 5.5);
   S.p += (S.pTo - S.p) * k;
   S.lookX += (S.lookXTo - S.lookX) * k * 0.7;
   S.lookY += (S.lookYTo - S.lookY) * k * 0.7;
   place(S.p);
+  if (onFrame) onFrame(S.p, dt);
   draw();
 }
 
@@ -104,22 +109,30 @@ addEventListener('keydown', (e) => {
   document.body.appendChild(statsBox);
 });
 
+const told = (f, label) => { if (progress) progress(f, label); };
 async function boot() {
+  told(0.05, 'Waking the graphics card');
   await engine.init();
   resize();
   S.parts.sea = buildSea(scene);
+  told(0.15, 'Filling the sea');
   await pause();
   let t0 = performance.now();
   S.parts.terrain = buildTerrain(add, engine.q);
+  told(0.35, 'Laying the sea floor');
   await pause();
   buildRocks(add, S.parts.terrain.material, rockMaterial(), engine.q);
+  told(0.5, 'Raising the rocks');
   if (DEV) console.log('ground and rocks ' + Math.round(performance.now() - t0) + ' ms');
   await pause();
   t0 = performance.now();
   S.parts.flora = buildFlora(add, engine.q);
+  told(0.62, 'Growing the kelp and the reef');
   if (DEV) console.log('flora ' + Math.round(performance.now() - t0) + ' ms ' + JSON.stringify(S.parts.flora));
   await pause();
-  for (const make of parts) {
+  for (let i = 0; i < parts.length; i++) {
+    const make = parts[i];
+    told(0.62 + 0.28 * (i / Math.max(parts.length, 1)), 'Bringing everyone in');
     const t1 = performance.now();
     const part = make({ add, scene, engine, q: engine.q, camera });
     if (part && part.update) live.push(part);
@@ -127,18 +140,21 @@ async function boot() {
     if (DEV) console.log((make.name || 'part') + ' ' + Math.round(performance.now() - t1) + ' ms');
     await pause();
   }
+  told(0.92, 'Casting the shadows');
   engine.bakeShadow(scene);
   addEventListener('resize', resize);
-  addEventListener('scroll', () => {
+  if (!follow) addEventListener('scroll', () => {
     const max = document.documentElement.scrollHeight - innerHeight;
     S.pTo = max > 0 ? clamp(scrollY / max, 0, 1) * P_MAX : 0;
   }, { passive: true });
+  if (follow) { S.pTo = S.p = follow(); }
   addEventListener('pointermove', (e) => {
     if (e.pointerType === 'touch') return;
     S.lookXTo = (e.clientX / innerWidth - 0.5) * 16;
     S.lookYTo = -(e.clientY / innerHeight - 0.5) * 9;
   }, { passive: true });
-  place(0);
+  place(S.p);
+  told(1, 'Ready');
   if (DEV) {
     await Promise.all(waits);
     const { installDev } = await import('./dev.js');
@@ -153,5 +169,5 @@ async function boot() {
   requestAnimationFrame(frame);
 }
 await boot();
-return { S, engine, scene, camera };
+return { S, engine, scene, camera, place, draw };
 }

@@ -264,6 +264,14 @@ export class Snap {
     this.ready = true;
   }
 
+  // Where the point in his raised claw (his rig's origin, where a chain runs) is in the world.
+  gripWorld(out) {
+    out.set(0, 0, 0);
+    if (!this.mesh) return out.copy(this.group.position);
+    this.mesh.updateWorldMatrix(true, false);
+    return out.applyMatrix4(this.mesh.matrixWorld);
+  }
+
   // One frame of life: t seconds, dt the frame's length. (mesh: another copy of him that
   // shares his shape and pose, whose eyes should find the target: the photograph's.)
   live(t, dt, mesh = this.mesh) {
