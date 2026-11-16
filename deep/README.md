@@ -53,26 +53,40 @@ with neither, or a visitor who prefers reduced motion, gets the page as plain te
   caustics and the surface's slope every frame), one sun shadow map drawn once, the scene
   into a half-float target whose alpha keeps each pixel's distance, light shafts marched
   through the shadow map on half the pixels, a depth-aware blur, a wide bloom veil, and the
-  final grade with the visitor's chosen look.
+  final grade with the visitor's chosen look (held on the whole picture in the kelp forest), the
+  climb's lines (the painted dive's bands of every zone's colour and falling streaks, drawn
+  behind whatever is within a few metres) and the heat wavering round the hand at the vents.
 - `src/layout.js`: the valley, the camera's path through the eight zones, the water's colour
   by depth. `src/terrain.js`, `src/rocks.js` (formations carved from distance fields by
   surface nets), `src/flora.js` (kelp and sea grass built leaf by leaf in the vertex shader;
   the reef's corals as instances), `src/sea.js` (open water and the surface from below).
 - `src/sets.js`: the marina at both ends (the pier, the sailboats, the lighthouse, the buoy),
-  the anchor chain Snap rides, the Clam Studio, the wreck and its cabin, the vents, the geode
-  and the diving helmet. `src/fauna.js`: the crochet fish, the turtle, the octopus, the jellies,
+  the mooring's chain Snap rides (hung from a knitted buoy beside where he starts to the
+  anchor's ring: `layout.js` holds its line, which the camera rides beside him), the Clam
+  Studio, the wreck and its cabin, the vents, the geode and the diving helmet. `src/fauna.js`: the crochet fish, the turtle, the octopus, the jellies,
   the siphonophore, the anglerfish, the sea sheep and the tube worms, drifting specks and
   bubbles.
 - `src/snap.js`: Snap from his model, with his rig ported to TSL (limbs, eye beads, lids,
-  pincer). `src/sub.js`: his brass submarine, made in code after the painted one. `src/cast.js`:
-  where they are at each point of the dive (the gust that takes his print, the chain, the
-  wreck's cabin, the pickup), and the lamp. `src/feltprint.js`: his print, the little felt
+  pincer). `src/sub.js`: his brass submarine, made in code after the painted one, its glass a
+  canopy that lifts, shuts and locks. `src/cast.js`: where they are at each point of the dive
+  (the gust that takes his print, the ride down the chain, the wreck's cabin, the boarding, the
+  homecoming on the submarine's back), his reactions and card visits, and the lamp. Both follow
+  their places relative to the camera, so a fast scroll never leaves them behind. `src/feltprint.js`: his print, the little felt
   picture, drawn on a canvas at load. `src/print.js`: the visitor's image, that print
   photographed by the page itself with the chosen crop, finish and look.
 - `src/pace.js`: keeps the frame rate by trading resolution first, in small steps, and
   remembers where it settled. `src/app.js`: builds the world and runs the loop.
-- `src/ui.js`, `src/audio.js`, `template.html`: the page around the scene; all of its sound is
+- `src/ui.js`, `src/audio.js`, `template.html`: the page around the scene (each choice with
+  "Your turn" and "Your URL so far", the loop back to the top); all of its sound is
   synthesized.
+- The hands-on layer, the painted dive's interactions on the 3D scene: `src/stage.js` projects
+  things of the scene onto the screen every frame and keeps the painted dive's rules for the
+  visitor's hand (a cursor counts for 2.5 s after it moves, a tap for 1.4 s); its cues (a verb on
+  a sun badge, tied to things by yarn), rings, the dock and Snap's story notes look as they did
+  there (`zones/core.css`). Each zone has a module, `src/zones/<id>.js`, with its scene pieces and
+  page pieces (the reef's crop frame on the turtle, face boxes, the cuttlefish's blur, the can to
+  erase; the climb's print and ticket; ...), its words in `zones/<id>.html` and its styles in
+  `zones/<id>.css`, which the build puts into the page.
 
 No frame allocates in the dive's own code: buffers, vectors and matrices are made once, and
 motion lives in the vertex shaders wherever it can.
