@@ -41,6 +41,10 @@ import { rockSurf } from './terrain.js';
 // ---- building blocks ----------------------------------------------------------------------
 
 const V = (x = 0, y = 0, z = 0) => new Vector3(x, y, z);
+// Colours are written here as they look in a picture (sRGB) and used linear, as the shaders
+// light them: raised to 2.2. (tint.w and tint2.w are flags and stay as they are.)
+const toLinear = (c) => [Math.pow(c[0], 2.2), Math.pow(c[1], 2.2), Math.pow(c[2], 2.2), c.length === 4 ? c[3] : 0];
+const srgb = (r, g, b) => vec3(Math.pow(r, 2.2), Math.pow(g, 2.2), Math.pow(b, 2.2));
 let LO = false;              // the low detail level: fewer sides and segments everywhere
 const toAttr = (a, n = 4) => new BufferAttribute(new Float32Array(a), n);
 // A mesh under construction whose vertices also carry two colours (tint, tint2), set with
@@ -52,7 +56,7 @@ class TMesh extends Mesh {
     this.t.push(c[0], c[1], c[2], c[3]); this.t2.push(d[0], d[1], d[2], d[3]);
     return super.vert(px, py, pz, nx, ny, nz, u, v, a0, a1, a2, a3);
   }
-  paint(c1, c2 = c1) { this.c1 = c1.length === 4 ? c1 : [...c1, 0]; this.c2 = c2.length === 4 ? c2 : [...c2, 0]; return this; }
+  paint(c1, c2 = c1) { this.c1 = toLinear(c1); this.c2 = toLinear(c2); return this; }
   build() { const g = super.build(); g.setAttribute('tint', toAttr(this.t)); g.setAttribute('tint2', toAttr(this.t2)); return g; }
 }
 
@@ -313,7 +317,7 @@ function ropeSurf(s, f, col) {
 function brassSurf(s, f, tarnish = 0.25) {
   const D = detail(f.w, s.n, 3.0, 0.8);
   const t = smoothstep(0.35, 0.75, D.m.add(float(tarnish).sub(0.25))).toVar();
-  s.albedo = mix(vec3(0.70, 0.47, 0.17), vec3(0.28, 0.34, 0.24), t.mul(0.55));
+  s.albedo = mix(srgb(0.80, 0.60, 0.30), srgb(0.42, 0.48, 0.36), t.mul(0.55));
   s.n = D.n;
   s.spec = mix(float(1.1), float(0.25), t); s.gloss = mix(float(55.0), float(14.0), t); s.fluor = float(0.25);
   // metal mirrors its surroundings: a little of the water's light from the side it faces
@@ -645,7 +649,7 @@ function buildMarina(ctx, q, vp, opts) {
   addMesh(ctx, sphereOf(finishBob(r, r.build()), 1), material({ aux: true, fade, vertex: (v) => { tintIn(); bobTSL(v); }, surface: (s, f) => ropeSurf(s, f, vT.rgb) }), range);
   addMesh(ctx, sphereOf(finishBob(y, y.build()), 1), yarnMat({ fade, vertex: (v) => bobTSL(v), scale: 26, stripe: 3 }), range);
   addMesh(ctx, sphereOf(b.build(), 0.5), material({ aux: true, fade, surface: (s, f) => brassSurf(s, f) }), range);
-  addMesh(ctx, sphereOf(finishBob(c, c.build()), 1), material({ aux: true, twoSided: true, fade, vertex: (v) => bobTSL(v), surface: (s, f) => canvasSurf(s, f, vec3(0.93, 0.87, 0.74)) }), range);
+  addMesh(ctx, sphereOf(finishBob(c, c.build()), 1), material({ aux: true, twoSided: true, fade, vertex: (v) => bobTSL(v), surface: (s, f) => canvasSurf(s, f, srgb(0.95, 0.91, 0.82)) }), range);
   if (bulbs) buildBulbs(ctx, bulbs);
   buildLighthouse(ctx, X(-34.2), Z(-94), deep);
   return { moored, dinghy, posts };
@@ -655,7 +659,7 @@ function buildMarina(ctx, q, vp, opts) {
 function buildBulbs(ctx, list) {
   const m = new Mesh(true);
   for (let i = 0; i < list.length; i += 3) ball(m, list[i], list[i + 1], list[i + 2], () => 0.045, 3);
-  addMesh(ctx, sphereOf(m.build(), 0.5), material({ aux: true, shadow: false, surface: (s) => { s.albedo = vec3(0.9, 0.8, 0.6); s.emis = vec3(3.2, 2.2, 1.0); } }), 140);
+  addMesh(ctx, sphereOf(m.build(), 0.5), material({ aux: true, shadow: false, surface: (s) => { s.albedo = srgb(0.95, 0.9, 0.8); s.emis = vec3(3.2, 2.2, 1.0); } }), 140);
   addMesh(ctx, halos(list, 0.32), material({
     additive: true, shadow: false,
     vertex: (v) => haloVertex(v, 0.32),
@@ -721,15 +725,15 @@ function buildLighthouse(ctx, x, z, deep) {
     surface: (s, f) => {
       const k = f.aux.x, hh = f.aux.y, round = fract(f.aux.z.sub(0.5 - face).add(1.0));
       const band = step(0.5, fract(hh.div(3.2)));
-      const paint = mix(vec3(0.94, 0.91, 0.85), vec3(0.82, 0.25, 0.21), band);
+      const paint = mix(srgb(0.96, 0.94, 0.89), srgb(0.84, 0.30, 0.25), band);
       const facing = float(1).sub(smoothstep(0.02, 0.03, abs(round.sub(0.5))));
       const win = facing.mul(float(1).sub(smoothstep(0.1, 0.13, abs(fract(hh.div(4.6)).sub(0.5))))).mul(step(3.0, hh)).mul(step(hh, 16.5));
       const door = float(1).sub(smoothstep(0.03, 0.04, abs(round.sub(0.5)))).mul(step(hh, 1.9));
       const kT = float(1).sub(step(0.5, k)), kR = step(0.5, k).mul(float(1).sub(step(1.5, k))), kC = step(1.5, k).mul(float(1).sub(step(2.5, k))), kG = step(2.5, k);
-      const col = mix(paint, vec3(0.13, 0.11, 0.11), max(win, door).mul(kT)).toVar();
-      col.assign(mix(col, vec3(0.17, 0.18, 0.19), kR));
-      col.assign(mix(col, vec3(0.64, 0.17, 0.15), kC));
-      col.assign(mix(col, vec3(1.0, 0.92, 0.65), kG));
+      const col = mix(paint, srgb(0.2, 0.17, 0.17), max(win, door).mul(kT)).toVar();
+      col.assign(mix(col, srgb(0.24, 0.25, 0.27), kR));
+      col.assign(mix(col, srgb(0.72, 0.24, 0.21), kC));
+      col.assign(mix(col, srgb(1.0, 0.96, 0.82), kG));
       s.albedo = col;
       s.spec = mix(float(0.06), float(0.6), kG); s.gloss = float(30.0); s.fluor = float(0.3);
       s.emis = vec3(2.6, 1.9, 0.9).mul(kG);
@@ -745,9 +749,9 @@ function buildLighthouse(ctx, x, z, deep) {
     aux: true, fade: [175, 200],
     surface: (s, f) => {
       rockSurf(s, f.w, f.w, clamp(smoothstep(0.6, 1.4, f.w.y).sub(smoothstep(0.55, 0.85, f.n.y).mul(0.5)).add(0.3), 0.0, 1.0), float(1.0), f.dist);
-      s.albedo = mix(s.albedo, vec3(0.40, 0.52, 0.24), smoothstep(0.3, 2.6, f.w.y).mul(smoothstep(0.7, 0.9, f.n.y)).mul(0.85));
+      s.albedo = mix(s.albedo, srgb(0.52, 0.64, 0.36), smoothstep(0.3, 2.6, f.w.y).mul(smoothstep(0.7, 0.9, f.n.y)).mul(0.85));
       // under the water the rock is dark with weed, so from far off it sinks into the blue
-      s.albedo = mix(s.albedo, vec3(0.05, 0.09, 0.08), smoothstep(-0.2, -1.5, f.w.y));
+      s.albedo = mix(s.albedo, srgb(0.1, 0.16, 0.15), smoothstep(-0.2, -1.5, f.w.y));
     },
   }), 200);
 }
@@ -799,8 +803,8 @@ function rustSurf(s, f) {
   const near = float(1).sub(smoothstep(3.0, 16.0, f.dist)).toVar();
   const D = detail(f.w, s.n, 1.6, 2.0), E = detail(f.w, s.n, 4.4, 1.6);
   const flake = smoothstep(0.42, 0.6, D.m.add(E.h.mul(0.35)).sub(0.1)).toVar();
-  const col = mix(vec3(0.74, 0.33, 0.13), vec3(0.42, 0.17, 0.07), flake).toVar();
-  col.assign(mix(col, vec3(0.86, 0.46, 0.20), smoothstep(0.62, 0.78, E.m).mul(0.5)));
+  const col = mix(srgb(0.80, 0.45, 0.24), srgb(0.55, 0.28, 0.14), flake).toVar();
+  col.assign(mix(col, srgb(0.90, 0.58, 0.32), smoothstep(0.62, 0.78, E.m).mul(0.5)));
   s.albedo = col.mul(E.h.mul(0.25).mul(near).add(0.9));
   s.n = normalize(s.n.add(D.n.sub(s.n).mul(0.7)).add(E.n.sub(s.n).mul(near.mul(0.6)))).toVar();
   s.ao = D.h.mul(0.4).add(0.68).min(1.0);
@@ -1019,8 +1023,8 @@ function buildClam(ctx, q) {
       const vv = normalize(cameraPosition.sub(f.w)), ndv = abs(dot(s.n, vv)), fres = pow(float(1).sub(ndv), 2.0);
       const rib = cos(f.aux.x.mul(RIBS * TAU)).mul(0.5).add(0.5);
       const lines = sin(v.mul(70.0)).mul(0.5).add(0.5);
-      const pearl = mix(vec3(0.95, 0.36, 0.58), vec3(0.98, 0.66, 0.74), v.mul(0.55).add(rib.mul(0.3))).toVar();
-      const outer = mix(vec3(0.78, 0.26, 0.42), vec3(0.90, 0.50, 0.56), lines.mul(0.3).add(v.mul(0.4)));
+      const pearl = mix(srgb(0.97, 0.52, 0.68), srgb(0.99, 0.76, 0.82), v.mul(0.55).add(rib.mul(0.3))).toVar();
+      const outer = mix(srgb(0.88, 0.44, 0.58), srgb(0.95, 0.66, 0.70), lines.mul(0.3).add(v.mul(0.4)));
       s.albedo = mix(outer, pearl, inside).mul(rib.mul(0.08).add(0.94));
       const D = detail(f.w, s.n, 2.0, 0.25);
       s.n = D.n;
@@ -1028,7 +1032,7 @@ function buildClam(ctx, q) {
       // the sheen: pink face-on, lilac and gold toward the edges of what the eye sees
       const irid = mix(mix(vec3(1.0, 0.72, 0.86), vec3(0.72, 0.70, 1.0), smoothstep(0.15, 0.55, fres)), vec3(1.0, 0.88, 0.62), smoothstep(0.55, 0.95, fres));
       s.emis = irid.mul(fres.mul(0.35).add(0.06)).mul(G.amb.mul(0.3).add(0.05)).mul(inside.mul(0.8).add(0.2))
-        .add(pearl.mul(vec3(0.34, 0.12, 0.2)).mul(inside.mul(0.75).add(0.25)));
+        .add(pearl.mul(vec3(0.5, 0.18, 0.28)).mul(inside.mul(0.75).add(0.25)));
     },
   }), 98);
 
@@ -1100,7 +1104,7 @@ function buildClam(ctx, q) {
       aux: true, fade: [82, 98],
       surface: (s, f) => {
         const vv = normalize(cameraPosition.sub(f.w)), fres = pow(float(1).sub(abs(dot(s.n, vv))), 2.0);
-        s.albedo = vec3(0.97, 0.86, 0.86); s.spec = float(0.9); s.gloss = float(70.0); s.fluor = float(0.8);
+        s.albedo = srgb(0.98, 0.93, 0.93); s.spec = float(0.9); s.gloss = float(70.0); s.fluor = float(0.8);
         s.emis = mix(vec3(0.78, 0.6, 0.62), vec3(0.8, 0.72, 0.92), fres).mul(fres.mul(0.3).add(0.36));
       },
     }), 98);
@@ -1161,7 +1165,7 @@ function buildWreck(ctx, q) {
   const Wd = (x, y, z) => { const x1 = x * ch - y * sh, y1 = x * sh + y * ch; return [P[0] * x1 + F[0] * z, y1, P[2] * x1 + F[2] * z]; };
   // wood, yarn (barnacles and the things on the desk), brass, rope, glass, felt
   const w = new TMesh(), y = new TMesh(), b = new TMesh(), r = new TMesh(), gl = new TMesh(), k = new TMesh();
-  const DARK = [0.31, 0.225, 0.16], DECK = [0.42, 0.31, 0.21], INNER = [0.44, 0.31, 0.20], RAW = [0.62, 0.47, 0.32];
+  const DARK = [0.45, 0.36, 0.28], DECK = [0.52, 0.42, 0.31], INNER = [0.46, 0.33, 0.22], RAW = [0.72, 0.58, 0.44];
   // (tint2.w marks wood that faces into the ship: in the cabin it is lit by the lantern)
   const paintIn = (c) => w.paint(c, [...c, 1]);
   // the hull's lines: t from the stern (0) to the bow (1)
@@ -1267,7 +1271,7 @@ function buildWreck(ctx, q) {
     }
   }
   // the wales: thick timbers along the sides, following the sheer
-  w.paint([0.24, 0.17, 0.12]);
+  w.paint([0.34, 0.26, 0.19]);
   for (const side of [-1, 1]) for (const v of [0.52, 0.64]) {
     let run = [];
     const flush = () => { if (run.length > 1) sweep(w, run, 6, { caps: true, aux: (kk, j, x, yy, z, o) => { o[0] = j / 6 * 0.3; o[1] = kk * 0.6; o[2] = 1; o[3] = 1; } }); run = []; };
@@ -1434,7 +1438,7 @@ function buildWreck(ctx, q) {
   }
   // masts, broken; yards askew; tops; the bowsprit
   const mast = (t, h, r0, broken, foot) => {
-    w.paint([0.36, 0.27, 0.19]);
+    w.paint([0.50, 0.40, 0.30]);
     const base = W(0, foot, (t - 0.5) * L), top = W(0.18 * rng.bell(), deckAt(t) + h, (t - 0.5) * L + 0.3 * rng.bell());
     const pts = [[...base, r0], [...W(0, (foot + deckAt(t) + h) * 0.5, (t - 0.5) * L), r0 * 0.9], [...top, r0 * 0.78]];
     sweep(w, pts, 9, { caps: !broken, aux: (kk, j, x, yy, z, o) => { o[0] = j / 9 * 0.5; o[1] = yy; o[2] = 1; o[3] = 1; } });
@@ -1514,7 +1518,7 @@ function buildWreck(ctx, q) {
   const ribbons = [];
   const ribbon = (A, len, wid, seed, up = -1, curl = 0.6) => {
     const v0 = k.count, n = hi ? 12 : 8, twist = rng.range(-1.2, 1.2), lean = [rng.bell() * 0.4 + 0.25, rng.bell() * 0.3];
-    k.paint(rng() < 0.5 ? [0.27, 0.38, 0.18] : [0.36, 0.44, 0.20], [0.50, 0.56, 0.28]);
+    k.paint(rng() < 0.5 ? [0.42, 0.53, 0.30] : [0.52, 0.60, 0.34], [0.66, 0.72, 0.46]);
     for (let i = 0; i <= n; i++) {
       const t = i / n, s = t * len, ang = twist * t;
       const cx = A[0] + lean[0] * s * t * curl + Math.sin(t * 5 + seed * 6) * 0.08 * s, cyy = A[1] + up * s * (1 - 0.25 * t * curl), czz = A[2] + lean[1] * s * t + Math.cos(t * 4 + seed * 5) * 0.08 * s;
@@ -1584,7 +1588,7 @@ function buildWreck(ctx, q) {
   for (const zz of [-9.3, -6.5]) {
     const t = tOf(zz), yy = cab.floor + 1.5, [x] = sect(t, (yy - keelAt(t)) / (topAt(t) - keelAt(t)));
     const n = Wd(1, 0, 0), u = Wd(0, 1, 0), v2 = Wd(0, 0, 1);
-    b.paint([0.62, 1, 1, 0]);
+    b.paint([0.8, 1, 1, 0]);
     for (const [xx, sgn] of [[x + 0.025, 1], [x - 0.175, -1]]) {
       const c = W(xx, yy, zz), ring = [], lip = [];
       for (let i = 0; i < 20; i++) {
@@ -1624,7 +1628,7 @@ function buildWreck(ctx, q) {
     sweep(gl, [[...L0(0, -0.14, 0), 0.06], [...L0(0, -0.02, 0), 0.09], [...L0(0, 0.1, 0), 0.08], [...L0(0, 0.17, 0), 0.05]], 12, { caps: true, aux: (kk, j, x, yy, z, o) => { o[0] = 0; o[1] = kk / 3; o[2] = 0; o[3] = 2; } });
   }
   // drifted sand in the cabin's corners, under the broken planks; felt weed growing in it
-  const heaps = [[2.0, -10.25, 0.58, 0.68, 0.27], [-2.05, -10.3, 0.5, 0.6, 0.2], [2.05, -5.62, 0.5, 0.42, 0.22], [0.3, -10.45, 0.62, 0.42, 0.14]];
+  const heaps = [[2.0, -10.25, 0.55, 0.62, 0.36], [-2.05, -10.3, 0.48, 0.55, 0.28], [2.05, -5.62, 0.48, 0.4, 0.3], [0.3, -10.45, 0.55, 0.38, 0.2]];
   {
     const sm = new Mesh(true);
     for (const [xx, zz, rr, rz, hh] of heaps) {
@@ -1638,7 +1642,8 @@ function buildWreck(ctx, q) {
       sm.normals(v0, sm.count, i0, null);
       for (let kk = 0; kk < 3; kk++) ribbon(W(xx + rng.bell() * rr * 0.4, cab.floor + hh * 0.4, zz + rng.bell() * rz * 0.5), rng.range(0.6, 1.5), rng.range(0.1, 0.17), rng(), 1, 0.4);
     }
-    addMesh(ctx, sphereOf(sm.build(), 0.5), material({ aux: true, fade: [100, 118], surface: (s, f) => sandSurf(s, f, vec3(0.80, 0.76, 0.66)) }), 118);
+    // (indoors: little of the water's light reaches it; the lantern's does)
+    addMesh(ctx, sphereOf(sm.build(), 0.5), material({ aux: true, fade: [100, 118], surface: (s, f) => { sandSurf(s, f, srgb(0.72, 0.66, 0.56)); s.ao = float(0.4); s.caustic = float(0.15); } }), 118);
   }
 
   // ---- the meshes
@@ -1651,7 +1656,7 @@ function buildWreck(ctx, q) {
       woodSurf(s, f, vT.rgb, float(0.0), 0.7);
       // what grows on old wood: a little green on the faces that look up
       const Dg = texture(G.detailTex, f.w.xz.mul(0.9)).a;
-      s.albedo = mix(s.albedo, vec3(0.30, 0.36, 0.22), smoothstep(0.6, 0.9, s.n.y).mul(smoothstep(0.5, 0.7, Dg)).mul(0.35));
+      s.albedo = mix(s.albedo, srgb(0.42, 0.48, 0.32), smoothstep(0.6, 0.9, s.n.y).mul(smoothstep(0.5, 0.7, Dg)).mul(0.35));
       // inside the cabin the water's light hardly reaches: it is the lantern's, and a little
       // of the sea's blue where the planks are broken; the hold below the deck is dark
       const lc = f.w.sub(vec3(...C)).toVar();
@@ -1661,6 +1666,7 @@ function buildWreck(ctx, q) {
       const dk = lz.mul(2 / L).toVar();
       const below = float(1).sub(smoothstep(-0.25, 0.1, ly.sub(dk.mul(dk).mul(0.45).add(D)))).mul(smoothstep(0.2, 0.6, s.n.y.negate())).mul(float(1).sub(smoothstep(-0.3, 0.0, abs(lx).sub(B * 0.44))));
       s.ao = s.ao.mul(float(1).sub(inside.mul(0.6))).mul(float(1).sub(below.mul(0.7)));
+      s.caustic = float(1).sub(inside.mul(0.85));
       const gapA = W(2.4, cab.floor + 1.3, -10.5), gapB = W(2.4, cab.floor + 0.75, -5.45);
       const dA = length(f.w.sub(vec3(...gapA))), dB = length(f.w.sub(vec3(...gapB)));
       s.emis = s.emis.add(s.albedo.mul(vec3(0.16, 0.42, 0.5)).mul(exp(dA.mul(dA).mul(-0.9)).add(exp(dB.mul(dB).mul(-1.4)).mul(0.7))).mul(inside));
@@ -1700,7 +1706,7 @@ function buildWreck(ctx, q) {
       const flame = step(1.5, kind).mul(float(1).sub(step(2.5, kind))), dark = step(2.5, kind);
       const lit = vT.w;
       const rr = length(f.aux.xy);
-      s.albedo = vec3(0.06, 0.09, 0.1); s.spec = float(1.2); s.gloss = float(80.0);
+      s.albedo = srgb(0.2, 0.26, 0.28); s.spec = float(1.2); s.gloss = float(80.0);
       // a stern window: amber where lit, a faint blue-black where broken
       const warm = mix(vec3(0.02, 0.03, 0.04), vec3(1.05, 0.55, 0.18).mul(float(1.15).sub(rr.mul(0.4))), smoothstep(0.7, 0.95, lit));
       // a porthole: the sea seen through it, brighter toward the top, a pale glint
@@ -1984,12 +1990,12 @@ function buildGeode(ctx, q) {
       const kind = f.aux.x, rind = float(1).sub(step(0.5, kind)), band = step(0.5, kind).mul(float(1).sub(step(1.5, kind))), hollow = step(1.5, kind);
       const D = detail(f.w, s.n, 1.6, 3.2), E = detail(f.w, s.n, 4.6, 2.4);
       // the rind: dark and rough, charcoal with brown in its pits
-      const rc = mix(vec3(0.13, 0.115, 0.10), vec3(0.07, 0.06, 0.055), smoothstep(0.35, 0.7, D.m)).mul(E.h.mul(0.5).add(0.7));
+      const rc = mix(srgb(0.22, 0.20, 0.19), srgb(0.14, 0.13, 0.12), smoothstep(0.35, 0.7, D.m)).mul(E.h.mul(0.5).add(0.7));
       // the agate: dark grey bands following the rim, a pale line where it meets the crystals
       const bands = sin(f.aux.y.mul(34.0).add(D.h.mul(3.0))).mul(0.5).add(0.5);
-      const ac = mix(mix(vec3(0.17, 0.16, 0.19), vec3(0.11, 0.10, 0.12), bands), vec3(0.62, 0.58, 0.70), float(1).sub(smoothstep(0.1, 0.22, f.aux.y)));
+      const ac = mix(mix(srgb(0.25, 0.23, 0.28), srgb(0.17, 0.16, 0.19), bands), srgb(0.72, 0.68, 0.80), float(1).sub(smoothstep(0.06, 0.14, f.aux.y)));
       // the hollow's wall: a crust of tiny crystals, deep violet
-      const hc = vec3(0.07, 0.04, 0.10).mul(E.h.mul(0.5).add(0.6));
+      const hc = srgb(0.26, 0.18, 0.32).mul(E.h.mul(0.5).add(0.6));
       s.albedo = rc.mul(rind).add(ac.mul(band)).add(hc.mul(hollow));
       s.n = normalize(mix(s.n, normalize(D.n.add(E.n.sub(s.n).mul(0.6))), rind.mul(0.9).add(hollow.mul(0.5)))).toVar();
       s.ao = mix(D.h.mul(0.45).add(0.6), float(1.0), band);
@@ -2120,7 +2126,7 @@ function buildHelmet(ctx) {
     surface: (s, f) => {
       const glass = step(0.5, f.aux.x);
       brassSurf(s, f, 0.3);
-      s.albedo = mix(s.albedo, vec3(0.05, 0.07, 0.08), glass);
+      s.albedo = mix(s.albedo, srgb(0.2, 0.24, 0.26), glass);
       s.emis = s.emis.add(s.albedo.mul(vec3(0.10, 0.07, 0.05)).mul(float(1).sub(glass)));
       s.spec = mix(s.spec, float(1.4), glass); s.gloss = mix(s.gloss, float(90.0), glass);
     },
