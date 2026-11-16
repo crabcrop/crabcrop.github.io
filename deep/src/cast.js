@@ -207,6 +207,8 @@ export function buildCast(ctx) {
       snap.life.squint = Math.max(st.wave * 0.8, pk > 0.4 ? Math.sin((pk - 0.4) / 0.6 * Math.PI) : 0);
       // the gust: a start as the print goes
       if (p > GUST[0] && p < GUST[0] + 0.08) snap.life.surprise = Math.max(snap.life.surprise, Math.sin(((p - GUST[0]) / 0.08) * Math.PI));
+      // and he reaches after it with his free claw
+      snap.life.hold = p > GUST[0] && p < DIVE[1] ? Math.sin(((p - GUST[0]) / (DIVE[1] - GUST[0])) * Math.PI) * 1.6 : 0;
       // he turns to face the visitor, his body a little toward where he goes; on the chain,
       // his up runs along it
       C.copy(camera.position).sub(st.pos);
@@ -246,8 +248,9 @@ export function buildCast(ctx) {
         else {
           // (from where it was snatched; if the dive starts past that, from about there)
           if (!st.flyFrom) { slot(o.snap, FLY[0]); FLY[0].y = 0.3; st.flyFrom = true; }
-          FLY[1].copy(FLY[0]).add(UP3.set(-0.7, 1.5, -1.3));
-          FLY[2].set(FLY[0].x - 1.3, 0.02, FLY[0].z - 3.4);
+          // (up and to the left, through the open sky between the boats, and down ahead)
+          FLY[1].copy(FLY[0]).add(UP3.set(-1.6, 1.25, -1.6));
+          FLY[2].set(FLY[0].x - 2.3, 0.02, FLY[0].z - 3.6);
           if (sink <= 0) bez(print.mesh.position, FLY[0], FLY[1], FLY[2], g * g * (1.6 - 0.6 * g));
           else {
             // sinking: ahead and down, rocking side to side as paper does
