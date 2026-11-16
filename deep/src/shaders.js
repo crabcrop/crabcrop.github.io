@@ -55,6 +55,10 @@ export const G = {
   lampCol: uniform(new Vector4(0, 0, 0, 0.86)),                   // rgb, and the cosine of the cone's edge
   glowPos: uniformArray([0, 1, 2, 3].map(() => new Vector4(0, -1000, 0, 1)), 'vec4'),   // xyz, reach
   glowCol: uniformArray([0, 1, 2, 3].map(() => new Vector4(0, 0, 0, 0)), 'vec4'),       // rgb
+  // where the cast is, for creatures and plants to keep clear of: Snap's middle and the
+  // submarine's (xyz, and a radius round each that nothing should enter); set by cast.js
+  snapAt: uniform(new Vector4(0, -1000, 0, 0.45)),
+  subAt: uniform(new Vector4(0, -1000, 0, 1.3)),
   // the textures the page draws itself; the engine sets them before any material is made
   waterTex: null,      // r: caustics, ba: the surface's slope
   detailTex: null,     // rg: slope, b: height, a: mottle

@@ -30,7 +30,7 @@ const R = new Vector3(), U = new Vector3(), F = new Vector3(), A = new Vector3()
 const UP = new Vector3(0, 1, 0), M = new Vector3(), Z = new Vector3(0, 0, 1);
 const qa = new Quaternion(), qb = new Quaternion();
 const ON = [0, 0, 0, 0, 0, 0], GRIP = new Vector3(), ALONG = new Vector3(), MID = new Vector3();
-const HELD = new Vector3(), UP3 = new Vector3();
+const HELD = new Vector3(), UP3 = new Vector3(), SNAP_AT = [0, 0, 0];
 const FLY = [new Vector3(), new Vector3(), new Vector3()], TUMBLE = new Vector3(0.35, 1, 0.5).normalize(), qt = new Quaternion();
 const bez = (out, a, b, c, u) => out.copy(a).multiplyScalar((1 - u) * (1 - u)).addScaledVector(b, 2 * (1 - u) * u).addScaledVector(c, u * u);
 
@@ -127,6 +127,7 @@ export function buildCast(ctx) {
       follow(st.subPos, A, 3);
       sub.group.visible = come > 0.001;
       sub.group.position.copy(st.subPos);
+      G.subAt.value.set(st.subPos.x, sub.group.visible ? st.subPos.y : -1000, st.subPos.z, 1.3);
       // its nose points across the view, a little toward the visitor, so the bubble shows;
       // level, with a little pitch where the dive goes up or down
       C.copy(R).multiplyScalar(-0.85).addScaledVector(F, -0.5);
@@ -137,8 +138,11 @@ export function buildCast(ctx) {
       sub.group.updateMatrixWorld(true);
       sub.turn(dt, come);
 
-      // ---- Snap: swimming in his place, then into the bubble
-      slot(o.snap, A);
+      // ---- Snap: swimming in his place, then into the bubble. In the wreck's cabin he comes
+      // closer to the camera (the room is small: the desk is three metres off)
+      const cabin = smooth(4.49, 4.55, p) * (1 - smooth(4.63, 4.69, p));
+      M.set(o.snap[0] * (1 - 0.32 * cabin), o.snap[1], o.snap[2]);
+      slot(M.toArray(SNAP_AT), A);
       A.y += Math.sin(t * 1.3) * 0.05;
       A.y = Math.max(A.y, groundY(A.x, A.z) + 0.45);
       const board = smooth(SNAP_BOARDS[0], SNAP_BOARDS[1], p);
@@ -178,6 +182,7 @@ export function buildCast(ctx) {
       st.last.copy(st.pos);
       follow(st.pos, A, board >= 1 || dive < 0.5 ? 30 : dive < 1 ? 12 : hang ? 12 : 4.5);
       snap.group.position.copy(st.pos);
+      G.snapAt.value.set(st.pos.x, st.pos.y, st.pos.z, 0.45);
       // how he moves: paddling harder the faster he goes, leaning into it
       const speed = dt > 0 ? M.copy(st.pos).sub(st.last).length() / dt : 0;
       const inSub = board >= 1;
