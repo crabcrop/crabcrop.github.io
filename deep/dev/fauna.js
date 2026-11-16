@@ -25,7 +25,6 @@ function devLights({ camera }) {
   };
 }
 
-if (new URLSearchParams(location.search).has('dbgfish')) globalThis.__dbg = 1;
 
 // ?lineup: one of each fish, side on, a few metres in front of the camera at p 1.6 (time 20)
 function lineup({ add }) {
