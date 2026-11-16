@@ -29,9 +29,9 @@ import { G, detail, sunAt, yarn } from './shaders.js';
 
 export const toLin = (x) => Math.pow(x, 2.2);
 export const lin = (r, g, b) => vec3(toLin(r), toLin(g), toLin(b));
-// stitches (and rows) to a metre of Snap's yarn; a toy much bigger than him is worked in a
-// thicker one: yarnFor(its length or height in metres)
-export const STITCH = 85;
+// stitches (and rows) to a metre of Snap's yarn (his stitches are about 1.8 cm: some 22 across his
+// body); a toy much bigger than him is worked in a thicker one: yarnFor(its length in metres)
+export const STITCH = 55;
 export const yarnFor = (size) => STITCH / Math.max(1, Math.sqrt(size / 0.9));
 // the felt of the eye rings, the dark thread of a smile, the pink felt of the cheeks
 export const FELT = [0.97, 0.95, 0.9], INK = [0.07, 0.035, 0.04], BLUSH = [0.98, 0.55, 0.6];
@@ -111,13 +111,16 @@ function wool(s, f, fuzz) {
 // The yarn laid in the creature's own frame: yarn() reads its stitches along the three axes of
 // `p` and weighs them by the normal; on a creature that turns both must be in its frame. o.frame
 // = [A, B, C]: where the frame's axes point in the world (rows are stacked along B). The rest of
-// o as yarn() takes it (color, color2, stripe, scale, p, k), and fuzz.
+// o as yarn() takes it (color, color2, stripe, scale, p, k), and fuzz. The stitches stand out as
+// Snap's do: round, with deep gaps between them.
 export function knit(s, f, o) {
   const [A, B, C] = o.frame, n = s.n;
   s.n = vec3(dot(n, A), dot(n, B), dot(n, C));
-  const r = yarn(s, f, { ...o, fuzz: 0 });
+  const r = yarn(s, f, { ...o, k: (o.k ?? 1.3) * 1.5, fuzz: 0 });
   const m = s.n;
   s.n = normalize(A.mul(m.x).add(B.mul(m.y)).add(C.mul(m.z))).toVar();
+  s.albedo = s.albedo.mul(r.h.mul(0.3).add(0.78));
+  s.ao = s.ao.mul(r.h.mul(0.2).add(0.8));
   wool(s, f, o.fuzz ?? 1.0);
   return r;
 }
@@ -126,19 +129,21 @@ export function knit(s, f, o) {
 // dome is made: from a ring of stitches at its pole, round after round, each round as many
 // stitches longer as it takes to stay square. q: the point and c the body's middle, in its own
 // frame (metres); A: the axis, toward the pole the rounds start from; B: square to it (where the
-// rounds start); R: the body's radius; scale: stitches to a metre. Gives the stitch coordinates
-// (a round the body, b up from the pole, both in stitches), how they change across the screen,
-// and the directions they grow on the surface (in the same frame).
-export function rounds(q, c, A, B, R, scale) {
+// rounds start); R: the body's radius; scale: stitches to a metre. tube 1: a tube, an arm or a
+// flipper instead, worked along A (from its far end): its rounds all as long, the rows stacked
+// down the axis. (R, tube, c, A and B may be shader values.) Gives the stitch coordinates (a
+// round the body, b along the rows' stack, both in stitches), how they change across the
+// screen, and the directions they grow on the surface (in the same frame).
+export function rounds(q, c, A, B, R, scale, tube = 0) {
   const d = q.sub(c).toVar(), dn = normalize(d).toVar();
-  const C = cross(A, B);
-  const ct = clamp(dot(dn, A), -0.9999, 0.9999).toVar(), th = acos(ct);
-  const b = th.mul(R * scale).toVar();
+  const C = cross(A, B).toVar();
+  const ct = clamp(dot(dn, A), -0.9999, 0.9999).toVar(), Rs = float(R).mul(scale).toVar();
+  const b = mix(acos(ct).mul(Rs), dot(d, A).negate().mul(scale), tube).toVar();
   const x = dot(d, B), y = dot(d, C);
   // (the round's stitches, a whole number of eights so that the rounds close without a seam; the
   // round's own count, so each round's stitches sit between the last one's, as they do)
-  const ring = sin(floor(b).add(0.5).div(R * scale));
-  const N = max(floor(ring.mul(2 * Math.PI * R * scale / 8).add(0.5)), 1.0).mul(8.0).toVar();
+  const ring = mix(sin(floor(b).add(0.5).div(Rs)), float(1.0), tube);
+  const N = max(floor(ring.mul(Rs).mul(2 * Math.PI / 8).add(0.5)), 1.0).mul(8.0).toVar();
   const a = atan(y, x).div(2 * Math.PI).mul(N);
   // (how the angle round changes across the screen, from the point's own smooth change: no seam
   // where the angle wraps)
@@ -147,7 +152,7 @@ export function rounds(q, c, A, B, R, scale) {
   const k = N.div(2 * Math.PI);
   return {
     a, b, ga: vec2(dphi(dFdx).mul(k), dphi(dFdy).mul(k)), gb: vec2(dFdx(b), dFdy(b)),
-    Ta: normalize(cross(A, d).add(B.mul(1e-5))), Tb: normalize(dn.mul(ct).sub(A).add(C.mul(1e-5))),
+    Ta: normalize(cross(A, d).add(B.mul(1e-5))), Tb: normalize(mix(dn.mul(ct).sub(A), A.negate(), tube).add(C.mul(1e-5))),
   };
 }
 // The yarn laid by stitch coordinates (from rounds(), or any a, b of a shape's own): o.st = {a, b,
@@ -156,12 +161,12 @@ export function rounds(q, c, A, B, R, scale) {
 export function stitches(s, f, o) {
   const st = o.st, uv = vec2(st.a, st.b).div(8.0);
   const t = texture(G.stitchTex, uv).grad(vec2(st.ga.x, st.gb.x).div(8.0), vec2(st.ga.y, st.gb.y).div(8.0)).toVar();
-  const k = o.k ?? 1.3, g = t.rg.sub(0.5).mul(k);
+  const k = (o.k ?? 1.3) * 1.5, g = t.rg.sub(0.5).mul(k);
   s.n = normalize(s.n.sub(st.Ta.mul(g.x)).sub(st.Tb.mul(g.y))).toVar();
   let col = o.color;
   if (o.color2) col = mix(o.color, o.color2, floor(st.b.div(o.stripe ?? 3)).mul(0.5).fract().mul(2.0).floor());
-  s.albedo = vec3(col).mul(t.b.mul(0.5).add(0.5)).mul(t.a.mul(0.16).add(0.92));
-  s.ao = s.ao.mul(t.b.mul(0.35).add(0.65));
+  s.albedo = vec3(col).mul(t.b.mul(0.62).add(0.38)).mul(t.a.mul(0.16).add(0.92));
+  s.ao = s.ao.mul(t.b.mul(0.45).add(0.55));
   wool(s, f, o.fuzz ?? 1.0);
   return { h: t.b, id: t.a };
 }

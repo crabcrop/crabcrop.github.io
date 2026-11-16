@@ -1,25 +1,68 @@
 <section class="zone" id="s5" aria-labelledby="h5">
   <div class="slot s-intro"><div class="beat intro">
     <p class="eyebrow"><span class="d">−500 m</span> · The Twilight Zone</p>
-    <h2 id="h5" tabindex="-1">It reads the picture.</h2>
-    <p class="lede">Almost no sunlight reaches this far. What a picture holds, a meta answer names: tags with their scores, a line of alt text, the text in it, and a report on the URL itself.</p>
+    <h2 id="h5" tabindex="-1">It reads <span class="hi">the picture.</span></h2>
+    <p class="lede">Down here the light is yours: <span class="tw-desk">it follows your cursor.</span><span class="tw-phone">tap to shine it.</span> What it finds, a meta answer names: tags with their scores, a line of alt text, the words in a bottle, and a report on the URL itself.</p>
+    <div class="can js-only tw-can">
+      <p class="can-h">Here you can</p>
+      <ul>
+        <li class="tw-desk"><span class="cue flat"><b class="do">Move</b><span>your light over the creatures <span class="more">· to name them</span></span></span></li>
+        <li class="tw-phone"><span class="cue flat"><b class="do">Tap</b><span>a creature to light it <span class="more">· and name it</span></span></span></li>
+      </ul>
+    </div>
   </div></div>
-  <div class="slot"><article class="beat card">
+  <div class="slot"><article class="beat card tw-card">
+    <div class="tw-spec">
+      <p class="spec-note">This scene, as a meta answer would describe it.</p>
+      <pre class="tw-json" id="tw-json">{
+  "width": 1200, "height": 630, "format": "avif",
+  "tags": [
+    { "label": "jellyfish", "score": 0.97 },
+    { "label": "message in a bottle", "score": 0.96 },
+    { "label": "anglerfish", "score": 0.93 },
+    { "label": "glowing worm", "score": 0.84 }
+  ],
+  "alt_text": "Glowing jellyfish, a glowing worm, a message in a bottle and an anglerfish in the dark of the deep sea."
+}</pre>
+    </div>
     <h3>Metadata that describes the picture</h3>
     <p>JSON meta for every render: size, format, provenance. Richer answers are opt-ins with their own models: CLIP tags and alt text, detections, moderation, embeddings, an aesthetic score, OCR text.</p>
     <p class="ex"><code>Accept: application/json; detections=1</code></p>
     <a class="more" href="https://crabcrop.org/docs.html#meta">Read the docs<span class="sr"> on metadata</span></a>
   </article></div>
-  <div class="slot"><article class="beat card">
+  <div class="slot"><article class="beat card tw-card">
+    <div class="tw-spec">
+      <p class="spec-note">The message in the bottle, read:</p>
+      <ol class="tw-ocr" aria-label="The text lines, in reading order, with their confidence">
+        <li style="--i: 0"><span class="line">To whoever finds this:</span><b>0.98</b></li>
+        <li style="--i: 1"><span class="line">the print you’re after</span><b>0.97</b></li>
+        <li style="--i: 2"><span class="line">sank past the warm vents.</span><b>0.95</b></li>
+        <li style="--i: 3"><span class="line">Keep going! A friend</span><b>0.91</b></li>
+      </ol>
+    </div>
     <h3>Text recognition</h3>
-    <p>Opt a meta request in and the answer reads the picture: the lines of text in reading order, each with its box and a confidence score. The image bytes stay exactly the same.</p>
+    <p>Opt a meta request in and the answer reads the picture: the text lines in reading order, each with its box and a confidence score. The image bytes stay exactly the same.</p>
     <p class="ex"><code>Accept: application/json; ocr=1</code></p>
     <a class="more" href="https://crabcrop.org/docs.html#meta">Read the docs<span class="sr"> on text recognition</span></a>
   </article></div>
-  <div class="slot"><article class="beat card">
+  <div class="slot"><article class="beat card tw-card">
+    <div class="tw-spec">
+      <p class="tw-req" id="tw-req">GET /explain/<wbr>3843ad67…/<wbr>crop:<wbr>1200x630:<wbr>smart/<wbr>filters:<wbr>sharpen(1.2):<wbr>saturation(1.1)/<wbr>root:<wbr>photos/<wbr>print.jpg</p>
+      <dl class="tw-report" id="tw-report">
+        <dt style="--i: 0">signature</dt><dd style="--i: 0">valid · key 1 · never expires</dd>
+        <dt style="--i: 1">source</dt><dd style="--i: 1">root:photos/print.jpg · image · 2400 × 1600</dd>
+        <dt style="--i: 2">crop</dt><dd style="--i: 2">a 1200 × 630 window, moved to the subject</dd>
+        <dt style="--i: 3">filters</dt><dd style="--i: 3">sharpen 1.2, then saturation 1.1</dd>
+        <dt style="--i: 4">format</dt><dd style="--i: 4">none named: the Accept header picks AVIF</dd>
+        <dt style="--i: 5">forecast</dt><dd style="--i: 5">1200 × 630 · AVIF</dd>
+      </dl>
+    </div>
     <h3>URLs that explain themselves</h3>
     <p>Put <code>explain/</code> in front of the signature and the server answers with a report on the URL: the signature’s verdict, the source, every operation in plain words, and what will come out.</p>
     <p class="ex"><code>GET /explain/&lt;signature&gt;/…</code></p>
     <a class="more" href="https://crabcrop.org/docs.html#explain">Read the docs<span class="sr"> on explain</span></a>
   </article></div>
+  <div class="slot s-tale tw-page-tale"><div class="beat tale">
+    <p><em>A tiny fish was lost in the dark.</em> It followed your light all the way to Snap, and now he is taking it home.</p>
+  </div></div>
 </section>

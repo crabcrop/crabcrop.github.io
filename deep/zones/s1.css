@@ -1,0 +1,51 @@
+/* ---- s1: the shallows (src/zones/s1.js): specimens, the format fish, the cargo ---- */
+/* a card's live specimen: the thing itself, in a dark box at the top of the card */
+#s1 .specimen, #s2 .specimen { margin: 0 0 14px; padding: 10px 13px; border-radius: 14px 14px 14px 4px; background: rgba(2, 10, 16, .62); border: 1px solid var(--line); color: var(--sea-glass); font: 12px/1.55 var(--mono); overflow-wrap: anywhere; }
+#s1 .specimen b, #s2 .specimen b { color: var(--sun); font-weight: 800; }
+#s1 .beat > .specimen + * { margin-top: 0; }
+.spec-sig .u { opacity: .78; }
+.spec-fmt b { white-space: nowrap; }
+.spec-fmt .q { display: block; margin-top: 3px; font-size: 11px; color: rgba(143, 227, 225, .66); }
+/* the stacks a URL can be signed from, each with its mark */
+.marks li { display: inline-flex; align-items: center; gap: 6px; padding-left: 6px; }
+.marks .mark { width: 14px; height: 14px; flex: none; }
+/* Choice 1: each option's school, as a crochet fish */
+.fishes .fish { flex: none; display: inline-grid; place-items: center; width: 54px; height: 32px; }
+.fishes .fish svg { width: 54px; height: 32px; display: block; filter: drop-shadow(0 1px 1px rgba(0, 0, 0, .35)); }
+.fishes .f-auto::before { content: ""; width: 26px; height: 26px; border: 2px dashed rgba(238, 242, 236, .55); border-radius: 50%; }
+.pick .race { clear: both; font-size: 13.5px; line-height: 1.45; color: var(--ink2); }
+#s1 .pick .help { clear: both; padding-top: 8px; font-size: 14.5px; color: var(--ink2); }
+/* the cargo: on wide screens the rings in the scene name each source; on narrow ones (and as a
+   page) this list does, a tap opening one */
+.cargo-list { margin-top: 12px !important; }
+.cargo-list ul { display: grid; gap: 6px; }
+.cargo-list li { font-size: 14px; color: var(--ink2); }
+.cargo-list .src { font-weight: 700; color: var(--paper); }
+.cargo-list .src-tip code { color: var(--sand); }
+.cargo-h { display: none; }
+@media (scripting: enabled) and (prefers-reduced-motion: no-preference) {
+  :root:not(.page) .cargo-list { display: none; }
+}
+@media (max-width: 760px) {
+  :root:not(.page) .cargo-list { display: block; }
+  :root:not(.page) .cargo-h { display: block; margin-bottom: 8px; }
+  :root:not(.page) .cargo-list ul { display: flex; flex-wrap: wrap; gap: 6px; }
+  :root:not(.page) .cargo-list li { display: contents; }
+  :root:not(.page) .cargo-list .src { display: inline-flex; align-items: center; min-height: 32px; padding: 0 11px; border: 1.5px solid var(--line2); border-radius: 999px; background: rgba(238, 242, 236, .06); font: 700 12.5px/1 var(--mono); color: var(--paper); cursor: pointer; }
+  :root:not(.page) .cargo-list .src[aria-expanded="true"] { border-color: var(--sun); background: rgba(255, 176, 32, .18); }
+  :root:not(.page) .cargo-list .src-tip { display: none; order: 9; flex-basis: 100%; padding: 8px 11px; border-radius: 12px 12px 12px 4px; background: var(--cream); color: var(--ink); font-size: 13.5px; }
+  :root:not(.page) .cargo-list .src-tip code { color: var(--ink); background: var(--sun-soft); padding: 0 5px; border-radius: 5px; }
+  :root:not(.page) .cargo-list .open + .src-tip { display: block; }
+  /* the four schools in two columns, so the choice fits in the sheet */
+  :root:not(.page) .fishes { grid-template-columns: 1fr 1fr; gap: 6px; }
+  :root:not(.page) .fishes .opt { display: grid; grid-template-columns: auto auto 1fr; grid-template-rows: auto auto; column-gap: 6px; row-gap: 0; padding: 5px 8px; }
+  :root:not(.page) .fishes .opt input { grid-row: span 2; }
+  :root:not(.page) .fishes .opt .fish { grid-row: span 2; width: 42px; height: 26px; }
+  :root:not(.page) .fishes .opt .fish svg { width: 42px; height: 25px; }
+  :root:not(.page) .fishes .opt code { text-align: left; font-size: 10.5px; }
+  :root:not(.page) .pick .race { font-size: 12.5px; }
+}
+/* (a cue's lighter part is not a link: no arrow; the page's .more is) */
+.cue .more::after { content: none; }
+/* the tip a cargo ring opens, to the left near the right edge */
+.tip.left { border-radius: 14px 14px 4px 14px; }

@@ -126,8 +126,11 @@ export function rideU(p) {
   const t = clamp((p - RIDE[0]) / (RIDE[1] - RIDE[0]), 0, 1);
   return 0.025 + 0.96 * (0.5 * t + 0.5 * t * t * (3 - 2 * t));
 }
-// How much the camera rides the chain at p (0 before the dive and after the anchor).
-export const rideWeight = (p) => smooth(RIDE[0] - 0.1, RIDE[0] + 0.02, p) * (1 - smooth(RIDE[2], RIDE[2] + 0.2, p));
+// How much the camera rides the chain at p (0 before the dive and after the anchor). At the
+// anchor it holds still while Snap lets go (cast.js: he is in his place in the view as he does,
+// so he need not move), and only then sets off, with him, for the shallows (RIDE_LEFT).
+export const RIDE_LEFT = [RIDE[2] + 0.07, RIDE[2] + 0.27];
+export const rideWeight = (p) => smooth(RIDE[0] - 0.1, RIDE[0] + 0.02, p) * (1 - smooth(RIDE_LEFT[0], RIDE_LEFT[1], p));
 // Where the camera is while it rides the chain: Snap's grip on the chain at p in the given slot
 // of a view that looks yaw and pitch (degrees, as in the path). out: [x, y, z].
 const RC = [0, 0, 0];
@@ -191,6 +194,10 @@ for (const s of STOPS) {
   }
 }
 export const P_MAX = 8;
+// The climb home: from the vents' floor to the surface. The words keep to it (ui.js: the
+// finale's card comes up only once the submarine is at the surface) and so do the lines that
+// show it (zones/s7.js).
+export const CLIMB = [7.0, 7.78];
 
 // Catmull-Rom through the stops, with their p as the knots. out: [x, y, z, yaw, pitch].
 let seg = 0;

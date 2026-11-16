@@ -7,7 +7,7 @@
 import { Mesh, PlaneGeometry, Quaternion, Vector3 } from 'three/webgpu';
 import { faceDirection, float, select, texture, uv, vec3 } from 'three/tsl';
 import { feltPrint } from './feltprint.js';
-import { RIDE, SLOTS, groundY, rideU } from './layout.js';
+import { RIDE, RIDE_LEFT, SLOTS, groundY, rideU } from './layout.js';
 import { clamp, smooth } from './math.js';
 import { G, material } from './shaders.js';
 import { Snap } from './snap.js';
@@ -44,11 +44,12 @@ const driftAt = (p, out) => {
   return out;
 };
 // The story's beats along p: Snap dives onto the mooring's chain just under its buoy, rides
-// it down to the anchor's ring (RIDE in layout.js) and lets go there; past the wreck the
+// it down to the anchor's ring (RIDE in layout.js) and lets go there (CHAIN_LEAVES, while the
+// camera holds: then they set off together, RIDE_LEFT); past the wreck the
 // submarine comes and turns its cockpit to him, its canopy lifting (OPENS); he climbs in and
 // sits (SNAP_BOARDS); the canopy shuts (SHUTS) and its latch locks (LOCKS: the lights go green,
 // a clunk); and away they go, over the drop.
-const CHAIN_LEAVES = [RIDE[2], RIDE[2] + 0.18], SUB_COMES = [4.68, 4.82], OPENS = [4.76, 4.84], SNAP_BOARDS = [4.84, 4.93];
+const CHAIN_LEAVES = [RIDE[2], RIDE[2] + 0.09], SUB_COMES = [4.68, 4.82], OPENS = [4.76, 4.84], SNAP_BOARDS = [4.84, 4.93];
 const SHUTS = [4.935, 4.97];
 export const LOCKS = [4.975, 4.992];
 // The homecoming: at the surface the submarine comes up, its tower and the top of its hull out
@@ -257,12 +258,12 @@ export function buildCast(ctx) {
         // (his middle hangs a little below his grip; the dive carries him there)
         B.copy(GRIP); B.y -= 0.12;
         A.lerp(B, onChain * dive);
-        // the claw closes on the chain as the dive ends, and lets go as he leaves it
-        grip = smooth(DIVE[1] - 0.025, DIVE[1] + 0.01, p) * smooth(0.5, 0.75, onChain);
+        // the claw closes on the chain as the dive ends, and opens slowly as he leaves it
+        grip = smooth(DIVE[1] - 0.025, DIVE[1] + 0.01, p) * smooth(0.12, 0.88, onChain);
       }
       const hang = grip > 0.5;
       // (free to visit a card: swimming in his place, not on the chain, in the cabin or aboard)
-      st.free = grip <= 0 && board <= 0 && cabin <= 0 && p > RIDE[2] + 0.2 && p < 4.4;
+      st.free = grip <= 0 && board <= 0 && cabin <= 0 && p > RIDE_LEFT[1] && p < 4.4;
       const vk = st.visiting && st.free ? smooth(0, 0.6, st.t - st.visitFrom) : st.visitK > 0 && st.free ? 1 - smooth(0, 0.5, st.t - st.visitFrom) : 0;
       if (st.visiting || vk <= 0) st.visitK = vk; else st.visitK = Math.min(st.visitK, vk);
       if (st.visitK > 0) { A.lerp(st.visitAt, st.visitK); A.y += Math.sin(st.visitK * Math.PI) * 0.35; }
@@ -273,7 +274,9 @@ export function buildCast(ctx) {
         A.y = atTop + (A.y - atTop) * dive + Math.sin(dive * Math.PI) * 0.32;
       }
       st.last.copy(st.pos);
-      follow(st.pos, st.rel, A, board >= 1 || dive < 0.5 ? 30 : dive < 1 ? 12 : grip > 0 ? 14 : 4.5);
+      // (as the camera sets off from the anchor he keeps close to his place: it moves fast there)
+      const leaving = p > RIDE[2] ? 1 - smooth(RIDE_LEFT[1], RIDE_LEFT[1] + 0.15, p) : 0;
+      follow(st.pos, st.rel, A, board >= 1 || dive < 0.5 ? 30 : dive < 1 ? 12 : grip > 0 ? 14 : 4.5 + 9.5 * leaving);
       snap.group.position.copy(st.pos);
       G.snapAt.value.set(st.pos.x, st.pos.y, st.pos.z, 0.45);
       // how he moves: paddling harder the faster he goes, leaning into it

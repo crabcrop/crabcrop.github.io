@@ -9,16 +9,26 @@
 //   4  a soda can in the coral: a box dragged over it (or a tap on it, or the button) erases
 //      it, and the card's chip gets the box: filters:remove_region(x,y,w,h)
 // The scene's pieces (the can, the cuttlefish, the school) are built here too.
-import { Group, Mesh as ThreeMesh, Vector3 } from 'three/webgpu';
+// Then the Clam Studio (as in the painted dive: reef-ui.ts, world/reef.ts): its three jellyfish
+// softboxes flicker on one after another as Snap arrives; its pearl is a mosaic until the AI
+// upscale card is up, and is rebuilt (and again, on "Do it again"); the cards show Snap
+// photographed by the page itself (snapshots.js): on a studio backdrop, and before and after his
+// background is removed, under a line the visitor drags; the finish tiles show him each way.
+import { Group, Mesh as ThreeMesh, Vector3, Vector4 } from 'three/webgpu';
 import { float, select, vec3 } from 'three/tsl';
 import { OPTIONS } from '../content.js';
 import { groundY, pathAt } from '../layout.js';
 import { Mesh, blob, lathe, tube } from '../math.js';
-import { material, yarn } from '../shaders.js';
+import { G, material, yarn } from '../shaders.js';
 import { smooth } from '../math.js';
+import { buildPearl } from '../props/reef.js';
+import { createSnapshots } from '../snapshots.js';
 
-// where the camera is while each station's card is up (p)
-const ST = { crop: [3.08, 3.4], faces: [3.38, 3.52], cuttle: [3.5, 3.64], can: [3.62, 3.77] };
+// where the camera is while each station's card is up (p; the cards' stretches of scroll are
+// sized in s3.css to match), and the studio's: its cards from p 3.58, the softboxes coming on,
+// the pearl in clear view while the upscale card is up
+const ST = { crop: [3.08, 3.37], faces: [3.37, 3.46], cuttle: [3.46, 3.545], can: [3.545, 3.63] };
+const STUDIO = { from: 3.6, lamps: 3.75, upscale: [3.79, 3.875], to: 3.97 };
 const near = (p, r) => smooth(r[0] - 0.02, r[0] + 0.02, p) * (1 - smooth(r[1] - 0.02, r[1] + 0.02, p));
 const ASPECT = [1200 / 630, 1, 0];
 // colours as pictures have them, made linear
@@ -105,7 +115,18 @@ function canGeo() {
 const S = {
   can: null, canAt: new Vector3(), canK: 1, canGone: -1, erased: false,
   cuttle: null, cuttleAt: new Vector3(), fish: [], fishAt: [], school: new Vector3(), p: 0,
+  pearl: null,
 };
+
+// The softboxes: how bright lamp i is, t seconds into the dive, if they started at `at` (-1: off):
+// on one after another 0.45 s apart, each with a flicker, then a slow breath (world/reef.ts).
+function lampLevel(t, at, i) {
+  if (at < 0) return 0;
+  const tau = t - at - 0.45 * i;
+  if (tau < 0) return 0;
+  if (tau < 0.5) return tau < 0.07 || (tau > 0.15 && tau < 0.21) || tau > 0.32 ? 1 : 0.2;
+  return 0.94 + 0.06 * Math.sin(t * 1.7 + i);
+}
 
 export default {
   id: 's3',
@@ -140,6 +161,13 @@ export default {
       add(f, 72);
       S.fish.push(f); S.fishAt.push(at.clone());
     }
+    // the studio's pearl: in place of the clam's own, as large again as before and sitting where
+    // it sat (its foot on the mound of sand), traced by props/reef.js so its upscale can show
+    if (ctx.sets && ctx.sets.clam) {
+      const r = 0.4, at = ctx.sets.clam.position.clone();
+      at.y += r - 0.3;
+      S.pearl = buildPearl(ctx.scene, at, r);
+    }
     return {
       update(t, dt, p) {
         S.p = p;
@@ -147,17 +175,17 @@ export default {
         // scrolls back before its stop
         if (S.erased && p < ST.can[0] - 0.06) { S.erased = false; S.canK = 1; }
         if (S.erased) S.canK = Math.max(0, S.canK - dt * 1.8);
-        S.can.visible = p > 3.45 && p < 3.95 && S.canK > 0.001;
+        S.can.visible = p > ST.can[0] - 0.17 && p < ST.can[1] + 0.18 && S.canK > 0.001;
         const k = S.canK * S.canK * (3 - 2 * S.canK);
         S.can.scale.setScalar(Math.max(k, 0.001));
         S.can.position.copy(S.canAt); S.can.position.y += (1 - k) * 0.35;
         S.can.rotation.y = 0.6 + (1 - k) * 5;
         // the cuttlefish breathes and bobs, its fin rippling with the swell
-        S.cuttle.visible = p > 3.36 && p < 3.82;
+        S.cuttle.visible = p > ST.cuttle[0] - 0.14 && p < ST.cuttle[1] + 0.18;
         S.cuttle.position.copy(S.cuttleAt); S.cuttle.position.y += Math.sin(t * 1.1) * 0.05;
         S.cuttle.rotation.set(Math.sin(t * 0.7) * 0.06, -0.9 + Math.sin(t * 0.4) * 0.15, Math.sin(t * 0.9) * 0.05);
         // the school wiggles where it is
-        const on = p > 3.25 && p < 3.66;
+        const on = p > ST.faces[0] - 0.13 && p < ST.faces[1] + 0.14;
         for (let i = 0; i < S.fish.length; i++) {
           const f = S.fish[i];
           f.visible = on;
@@ -242,6 +270,25 @@ export default {
     stage.dock.ask('can', { verb: 'Tap', text: 'the can to erase it', done: { text: 'Erased', more: '· that is remove_region' } });
 
     const css = (e, x, y, w, h) => { e.style.transform = 'translate(' + Math.round(x) + 'px,' + Math.round(y) + 'px)'; e.style.width = Math.round(w) + 'px'; e.style.height = Math.round(h) + 'px'; };
+
+    // ---- the Clam Studio ----
+    const studio = { lampsAt: -1, pearlAt: -1, armed: true, sparked: true, shot: false };
+    const shots = world.engine && world.engine.renderer ? createSnapshots(world.engine) : null;
+    const pics = [...doc.querySelectorAll('#s3 canvas.snapshot[data-pic]')];
+    // the before and after: the range moves the line; arrows move it too (it is a real range)
+    const compare = doc.getElementById('compare'), range = doc.getElementById('compare-range');
+    if (compare && range) range.addEventListener('input', () => compare.style.setProperty('--cut', range.value + '%'));
+    // "Do it again": the pearl is a mosaic again at once, and rebuilt half a second later
+    const again = doc.getElementById('upscale-again');
+    if (again) again.addEventListener('click', () => { studio.pearlAt = stage.t + 0.5; studio.sparked = false; studio.armed = false; });
+    // the softboxes are the set's (sets.js: the clam's three jellyfish lamps, lit by glow slots
+    // 1 to 3 while the camera is on the reef). With its hook, clam.lampLevel(i, k), they are put
+    // out and lit here; without it, only the light they throw is (the glow slots' colours),
+    // taken as the set lent them and scaled
+    const clam = world.sets && world.sets.clam;
+    const glowBase = [new Vector4(), new Vector4(), new Vector4()], glowMine = [new Vector4(), new Vector4(), new Vector4()];
+    let glowHave = false;
+    const ppm = (d) => stage.pxPerMetre(d);
 
     this.tick = () => {
       const p = stage.p, t = stage.t, dt = Math.min(stage.dt || 0.016, 0.1), W = stage.W, Hh = stage.H;
@@ -381,6 +428,43 @@ export default {
         const tx = stage.pointer.tapX, ty = stage.pointer.tapY;
         if (live4 && !S.erased && tx > canBox.x - 20 && tx < canBox.x + canBox.w + 20 && ty > canBox.y - 20 && ty < canBox.y + canBox.h + 20) presetErase();
         if (on3 && blurAt < 0) blurAt = t;
+      }
+
+      // ---- the Clam Studio
+      // Snap's pictures, once he is there to be photographed (the cards and the finish tiles)
+      if (shots && !studio.shot && world.cast && world.cast.snap && world.cast.snap.ready) {
+        studio.shot = true;
+        shots.shoot(world.cast.snap).then((ok) => {
+          if (!ok) return;
+          for (const cv of pics) if (shots.paint(cv, cv.dataset.pic) && cv.parentElement.classList.contains('fin')) cv.parentElement.classList.add('pic');
+        }).catch((e) => console.warn('dive: Snap\'s pictures were not taken: ' + (e && e.message || e)));
+      }
+      // the softboxes: off until Snap comes to the studio, then on one after another; off again
+      // when the visitor goes back up the reef, to come on again next time
+      if (p < STUDIO.from - 0.03 || p > 4.1) studio.lampsAt = -1;
+      else if (studio.lampsAt < 0 && p >= STUDIO.lamps) studio.lampsAt = t + 0.3;
+      if (clam && clam.lampLevel) {
+        for (let i = 0; i < 3; i++) clam.lampLevel(i, lampLevel(t, studio.lampsAt, i));
+      } else if (p < 4.15) {
+        for (let i = 0; i < 3; i++) {
+          const g = G.glowCol.array[i + 1];
+          if (!glowHave || !g.equals(glowMine[i])) glowBase[i].copy(g);
+          g.copy(glowBase[i]).multiplyScalar(lampLevel(t, studio.lampsAt, i));
+          glowMine[i].copy(g);
+        }
+        glowHave = true;
+      }
+      // the pearl: a mosaic (blocks of 2 % of the view's height, at least 8 px) until the upscale
+      // card is up while it is in view; then the blocks shrink to nothing over 1.4 s, and it
+      // sparkles. Leaving the studio puts the mosaic back for next time.
+      if (S.pearl) {
+        if (p < STUDIO.from || p > STUDIO.to) { studio.armed = true; studio.pearlAt = -1; studio.sparked = true; }
+        else if (studio.armed && p >= STUDIO.upscale[0] && p <= STUDIO.upscale[1]) { studio.armed = false; studio.pearlAt = t; studio.sparked = false; }
+        const full = Math.max(8, Hh * 0.02), since = studio.pearlAt < 0 ? -1 : t - studio.pearlAt;
+        const block = since < 0 ? full : full * (1 - smooth(0, 1.4, since));
+        const on = p > STUDIO.from - 0.12 && p < STUDIO.to + 0.06 && S.pearl.set(stage.camera, block, ppm);
+        S.pearl.mesh.visible = !!on;
+        if (!studio.sparked && since >= 1.4) { studio.sparked = true; if (on) stage.sparkle(S.pearl.at, 8); }
       }
     };
   },

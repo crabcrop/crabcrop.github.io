@@ -8,10 +8,12 @@
 // passes, rises when the slot ends, and fades as it rises, so one beat reads at a time and
 // the next takes its place. Zone i runs from p = i to p = i + 1: it starts when its section's
 // top is LEAD of the way down the window (so p reaches i as the zone's first beat rises
-// into place), and the last zone ends at the bottom of the page.
+// into place), and the last zone ends at the bottom of the page. The last zone has one more
+// knot: the climb (p 7 to CLIMB[1]) ends as the finale's slot starts to come into view, so
+// "Your image, served" rises at the surface, not halfway up.
 // Every length is a share of the window's height, so a beat sits at the same p on any
 // screen.
-import { P_MAX, ZONES, storyDepth } from './layout.js';
+import { CLIMB, P_MAX, ZONES, storyDepth } from './layout.js';
 import { BASE, KEYS, NAME, NOTES, OPTIONS, SRC, remainder, seal, sign } from './content.js';
 
 const LEAD = 0.85;
@@ -84,6 +86,7 @@ export function createUI(opts = {}) {
   const beats = slots.map((s) => s.firstElementChild);
   const N = beats.length;
   const first = sections.map((s) => slots.indexOf(s.querySelector('.slot')));   // each zone's first beat
+  const finJ = slots.indexOf(doc.querySelector('#s7 .s-fin'));                    // the finale's slot
   const status = {};
   for (const k of KEYS) status[k] = $('st-' + k);
 
@@ -322,7 +325,7 @@ export function createUI(opts = {}) {
   const shown = new Int8Array(N).fill(STEPS), gone = new Uint8Array(N);
   const lightBeats = [], lightParts = [], lightY = [];
   beats.forEach((b, j) => { if (b.dataset.lights) { lightBeats.push(j); lightParts.push(b.dataset.lights); lightY.push(0); } });
-  let vh = innerHeight, low = 0, maxY = 1, barBottom = -1, gaugeOn = false, gaugeH = 0, MARK = [];
+  let vh = innerHeight, low = 0, maxY = 1, barBottom = -1, gaugeOn = false, gaugeH = 0, MARK = [], KS = 0;   // KS: where the climb ends (the scroll)
   let shownG = -1, shownD = -1, shownZ = -1, shownWay = null, shownNight = null, quiet = false, measured = false;
 
   // Where zone i's first beat has settled in place: the scroll a jump to that zone goes to.
@@ -344,6 +347,7 @@ export function createUI(opts = {}) {
     K[0] = 0;
     for (let i = 1; i < 8; i++) K[i] = Math.min(maxY - (8 - i), Math.max(K[i - 1] + 1, top8[i] - LEAD * vh));
     K[8] = Math.max(maxY, K[7] + 1);
+    KS = finJ < 0 ? 0 : Math.min(K[8] - 1, Math.max(K[7] + 1, slotTop[finJ] - vh));
     for (let k = 0; k < lightBeats.length; k++) { const j = lightBeats[k]; lightY[k] = slotTop[j] - vh + low + beatH[j]; }
     // the bar's foot, for what sits under it
     const b = bar.getBoundingClientRect().bottom;
@@ -368,7 +372,10 @@ export function createUI(opts = {}) {
     const y = scrollY;
     let i = 0;
     while (i < 8 && y >= K[i + 1]) i++;
-    ui.pTo = i >= 8 ? P_MAX : Math.max(0, i + (y - K[i]) / (K[i + 1] - K[i]));
+    if (i === 7 && KS) {
+      const up = CLIMB[1] - 7;
+      ui.pTo = y < KS ? 7 + (up * (y - K[7])) / (KS - K[7]) : Math.min(P_MAX, 7 + up + ((1 - up) * (y - KS)) / (K[8] - KS));
+    } else ui.pTo = i >= 8 ? P_MAX : Math.max(0, i + (y - K[i]) / (K[i + 1] - K[i]));
     const fade = FADE * vh;
     for (let j = 0; j < N; j++) {
       const risen = y + vh - low - slotBot[j];

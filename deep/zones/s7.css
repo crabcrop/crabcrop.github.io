@@ -57,6 +57,8 @@
   :root:not(.page) .dawn.on { opacity: 1; visibility: visible; transition: opacity .45s ease; }
   :root:not(.page) .dawn p { font-size: clamp(28px, 3.4vw, 52px); font-weight: 860; letter-spacing: -.015em; color: var(--ink); }
   :root:not(.page) .loop-space { height: 70vh; }
+  /* the climb home is a long stretch of scroll under this one beat (ui.js: the finale comes up at the surface) */
+  :root:not(.page) .s-climb { --s: 2.3; }
 }
 @media (max-width: 760px) {
   :root:not(.page) .polaroid { right: 12px; top: calc(var(--top) + 60px); width: 132px; padding: 7px 7px 20px; }

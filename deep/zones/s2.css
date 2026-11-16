@@ -1,0 +1,45 @@
+/* ---- s2: the kelp forest (src/zones/s2.js): the print in each look, the silk curtains, the
+   tangled fish ---- */
+#s2 .pick .help { clear: both; padding-top: 8px; font-size: 14.5px; color: var(--ink2); }
+#s2 .help .phone { display: none; }
+@media (max-width: 760px) { :root:not(.page) #s2 .help .phone { display: inline; } :root:not(.page) #s2 .help .desk { display: none; } }
+:root.page #s2 .help { display: none; }
+/* the Chained filters card: the print in the look, and the look's filters, following the hand */
+.spec-look { display: grid; gap: 8px; justify-items: center; }
+.spec-look canvas { display: block; width: 100%; max-width: 300px; height: auto; aspect-ratio: 360 / 190; border-radius: 8px; background: rgba(238, 242, 236, .06); }
+.spec-look .look-chain { justify-self: stretch; color: var(--sun); font-weight: 800; font-size: 12px; overflow-wrap: anywhere; }
+/* Choice 2: each look's tile shows the print in that look */
+.looks .swatch { flex: none; width: 58px; height: 40px; border-radius: 6px; background: linear-gradient(135deg, #2BB3B1, #FFD88A); box-shadow: 0 1px 3px rgba(0, 0, 0, .35); }
+/* the Size card: three frames of one print */
+.spec-size { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.spec-size figure { margin: 0; display: grid; gap: 6px; align-content: start; }
+.spec-size .frame { display: block; aspect-ratio: 1200 / 630; border-radius: 6px; overflow: hidden; outline: 1.5px dashed rgba(143, 227, 225, .6); outline-offset: 2px; background: rgba(238, 242, 236, .05); }
+.spec-size .frame canvas { display: block; width: 100%; height: 100%; }
+.spec-size figcaption { font-size: 10.5px; line-height: 1.3; overflow-wrap: anywhere; }
+.chips code { display: inline-block; margin: 0 4px 4px 0; }
+@media (max-width: 760px) {
+  :root:not(.page) .spec-look canvas { max-width: 200px; }
+  :root:not(.page) .looks .swatch { width: 46px; height: 32px; }
+}
+
+/* the silk curtains (wide screens): a button over each, its pill on the cloth */
+.silk { position: absolute; left: 0; top: 0; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; padding: 0 0 14px; margin: 0; border: 0; border-radius: 40px; background: none; color: var(--ink); cursor: pointer; opacity: 0; pointer-events: none; transition: opacity .35s; }
+.silk.on { opacity: 1; pointer-events: auto; }
+.silk.mid { padding-bottom: 76px; }
+.silk::before { content: ""; position: absolute; inset: 0; border-radius: inherit; background: linear-gradient(to bottom, transparent, rgba(255, 246, 226, .2) 30%, rgba(255, 246, 226, .2) 70%, transparent); opacity: 0; transition: opacity .3s; }
+.silk.hot::before, .silk:focus-visible::before { opacity: 1; }
+.silk:focus-visible { outline: none; }
+.silk .pill { position: relative; display: grid; justify-items: center; gap: 1px; padding: 5px 11px 6px; background: rgba(251, 244, 230, .94); border: 1.5px solid var(--ink); border-radius: 14px 14px 14px 4px; font: 800 11.5px/1.2 var(--mono); white-space: nowrap; box-shadow: 0 3px 0 rgba(13, 32, 46, .3); transition: transform .2s var(--spring), background .2s; }
+.silk .pill code { font-size: 10px; font-weight: 600; color: var(--ink-2); }
+.silk.hot .pill { transform: scale(1.06); }
+.silk:focus-visible .pill { outline: 3px solid var(--sun); outline-offset: 3px; }
+.silk[aria-pressed="true"] .pill { background: var(--sun-soft); }
+:root:not(.wide) .silk { display: none; }
+
+/* the button by the tangled fish, tied to it by a stitch of yarn: beside it on wide screens
+   while there is room, else under it */
+.free-fish { position: absolute; left: 0; top: 0; z-index: 2; opacity: 0; visibility: hidden; transition: opacity .3s, visibility 0s .3s, background .15s; }
+.free-fish.on { opacity: 1; visibility: visible; transition: opacity .3s, background .15s; }
+.free-fish::after { content: ""; position: absolute; left: var(--knot, 40px); bottom: 100%; height: 16px; margin-left: -1.25px; border-left: 2.5px dashed #fff; filter: drop-shadow(0 1px 1px rgba(13, 32, 46, .55)); }
+.free-fish.side::after { left: auto; right: 100%; top: 50%; bottom: auto; width: 18px; height: 0; margin: -1.25px 0 0; border-left: 0; border-top: 2.5px dashed #fff; }
+.free-fish:hover { background: var(--sun-soft); }
