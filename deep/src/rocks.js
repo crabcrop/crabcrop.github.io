@@ -6,10 +6,30 @@
 // is blended into each one, so a formation flares into the sea floor and has no seam.
 // And loose boulders, scattered along the valley. All of it is built once, at load.
 import { Mesh as ThreeMesh, Quaternion, Vector3 } from 'three/webgpu';
-import { centerX, cleared, floorY, groundY, halfWidth, offTrack } from './layout.js';
+import { CLEARINGS, centerX, floorY, groundY, halfWidth, offTrack, pathAt } from './layout.js';
 import { Mesh, TAU, blob, clamp, fbm3, lerp, makeRng, noise3, smooth } from './math.js';
 import { rockyAt } from './terrain.js';
 import { instanced, place } from './world.js';
+
+// A blob (math.js) whose faces are sure to point out: blob winds them one way, and a shape
+// drawn one-sided must be wound the other; whichever it is, its signed volume tells, and the
+// faces and normals are turned round if they point in.
+export function orb(m, cx, cy, cz, f, res, tag) {
+  const v0 = m.count, i0 = m.i.length;
+  blob(m, cx, cy, cz, f, res, tag);
+  const { p, i } = m;
+  let vol = 0;
+  for (let k = i0; k < i.length; k += 3) {
+    const a = i[k] * 3, b = i[k + 1] * 3, c = i[k + 2] * 3;
+    const ax = p[a] - cx, ay = p[a + 1] - cy, az = p[a + 2] - cz, bx = p[b] - cx, by = p[b + 1] - cy, bz = p[b + 2] - cz, qx = p[c] - cx, qy = p[c + 1] - cy, qz = p[c + 2] - cz;
+    vol += ax * (by * qz - bz * qy) - ay * (bx * qz - bz * qx) + az * (bx * qy - by * qx);
+  }
+  if (vol < 0) {
+    for (let k = i0; k < i.length; k += 3) { const t = i[k + 1]; i[k + 1] = i[k + 2]; i[k + 2] = t; }
+    m.normals(v0, m.count, i0, null);
+  }
+  return m;
+}
 
 // ---- distances -------------------------------------------------------------------------
 
@@ -175,6 +195,35 @@ function arch(z, offA, offB, height, thick, seed) {
   const lo = Math.min(xa, xb) - thick * 2 - 2, hi = Math.max(xa, xb) + thick * 2 + 2;
   return [rock, [lo, hi, Math.max(ga, gb) + height + thick + 2, z - thick * 2 - 4.5, z + thick * 2 + 4.5]];
 }
+// An arch between two feet (x, z), its middle `height` above the ground: the reef's, which
+// the camera passes under.
+function archAt(ax, az, bx, bz, height, thick, seed) {
+  const ga = groundY(ax, az), gb = groundY(bx, bz);
+  const N = 10, pts = [], ux = bx - ax, uz = bz - az, L = Math.hypot(ux, uz), px = -uz / L, pz = ux / L;
+  for (let i = 0; i <= N; i++) {
+    const t = i / N, lift = Math.sin(t * Math.PI), wob = Math.sin(t * TAU + seed) * 0.9;
+    pts.push([ax + ux * t + px * wob, lerp(ga, gb, t) - 2 + (height + 2) * Math.pow(lift, 0.6), az + uz * t + pz * wob, thick * (1.3 - 0.5 * lift)]);
+  }
+  const rock = (qx, qy, qz) => {
+    let d = 1e9;
+    for (let i = 0; i < N; i++) {
+      const a = pts[i], b = pts[i + 1];
+      d = smin(d, cone(qx, qy, qz, a[0], a[1], a[2], b[0], b[1], b[2], a[3], b[3]), 0.7);
+    }
+    return weather(d, qx, qy, qz, 0.4, seed * 0.29);
+  };
+  const r = thick * 2.2 + 2.5;
+  return [rock, [Math.min(ax, bx) - r, Math.max(ax, bx) + r, Math.max(ga, gb) + height + thick + 2, Math.min(az, bz) - r, Math.max(az, bz) + r]];
+}
+// A place beside the camera's way at p: `side` metres to its right (negative: left).
+function besideTrack(p, side) {
+  const o = [0, 0, 0, 0, 0], o2 = [0, 0, 0, 0, 0];
+  pathAt(p, o); pathAt(p + 0.01, o2);
+  const dx = o2[0] - o[0], dz = o2[2] - o[2], l = Math.hypot(dx, dz) || 1;
+  return [o[0] - (dz / l) * side, o[2] + (dx / l) * side];
+}
+const offAt = (p, side) => { const [x, z] = besideTrack(p, side); return [z, x - centerX(z)]; };
+
 // A low outcrop: a few lumps run together.
 function outcrop(z, off, length, height, seed) {
   const rng = makeRng(seed);
@@ -212,6 +261,26 @@ function spire(x, z, yBottom, yTop, radius, seed) {
   const r = radius * 1.7 + 4;
   return [rock, [x - r, x + r, yTop + 1.5, z - r, z + r]];
 }
+// The shelf's last spur: on the right of the way down, the reef's edge runs on out over the
+// drop, its face (toward the camera's way, at x0) falling sheer into the dark, ledged and
+// weathered, its top level with the shelf.
+function spur(x0, z0, z1, seed) {
+  const top = floorY(z0) + 0.6;
+  const rock = (px, py, pz) => {
+    const t = clamp((py + 205) / (top + 205), 0, 1);
+    // the face wanders in and out, leans out a little toward the top, and is cut into ledges
+    const wob = 2.4 * noise3(py * 0.035 + seed, pz * 0.05, 1.3) + 1.2 * noise3(py * 0.11, pz * 0.13 + seed, 4.1);
+    const s = py * 0.07 + 0.4 * noise3(pz * 0.05, py * 0.02, seed);
+    const ledge = 1.1 * smooth(0.8, 0.98, Math.abs(s - Math.floor(s) - 0.5) * 2);
+    let d = x0 + 10 * Math.pow(1 - t, 1.2) + wob - ledge - px;
+    // its far end rounded off, and its top
+    const end = z1 + 4 * noise3(py * 0.04, seed, 7.7) + 3 * (1 - t);
+    d = Math.max(d, end - pz);
+    d = Math.max(d, py - top - 0.8 * noise3(px * 0.2, pz * 0.2, seed));
+    return weather(d, px, py, pz, 0.7, seed * 0.21);
+  };
+  return [rock, [x0 - 7, x0 + 20, top + 2.5, z1 - 9, z0 + 2]];
+}
 // A vent chimney: a knobbled stack that narrows to its mouth.
 function chimney(z, off, height, radius, seed) {
   const rng = makeRng(seed);
@@ -247,9 +316,17 @@ function pillows(z, off, length, seed) {
 // Where each stands: [kind, cell size, ...its numbers]. z runs down the dive; `off` is the
 // distance from the valley's centre line (negative is left as the camera goes).
 export const SPIRE = { x: centerX(-306) + 17, z: -306, bottom: -209, top: -74, radius: 6.5 };
+// (the spur's face, for anything that swims down beside it: x from 19 m out, z -262 to -300)
+export const SPUR = { x: 19.5, z0: -262, z1: -300 };
 const FORMATIONS = [
-  // only the vents' own rock: the chimneys and the pillow lava around them (the sunlit sea
-  // floor of the dive is open sand)
+  // the reef: low outcrops beside the way for corals to crust, and the arch over it (p 3.78)
+  [outcrop, 0.4, ...offAt(3.36, -7.2), 6, 1.6, 71], [outcrop, 0.4, ...offAt(3.46, 7.6), 7, 2.0, 72], [outcrop, 0.4, ...offAt(3.56, -8.2), 5, 1.4, 73],
+  [outcrop, 0.4, ...offAt(3.24, 7.2), 6, 1.8, 74], [outcrop, 0.4, ...offAt(4.02, -7.0), 6, 1.5, 75],
+  [archAt, 0.32, ...besideTrack(3.78, -5.6), ...besideTrack(3.78, 5.6), 5.4, 1.15, 76],
+  // the edge of the drop: coral heads along the lip of the reef's shelf
+  [spur, 0.9, 19.5, -262, -297, 81],
+  [bommie, 0.4, -265.5, -9, 1.8, 1.6, 77], [bommie, 0.4, -266.5, -2.5, 2.2, 1.9, 78], [bommie, 0.4, -265.8, 4.5, 1.6, 1.5, 79], [bommie, 0.4, -266.2, 11, 2.4, 2.0, 80],
+  // the vents' own rock: the chimneys and the pillow lava around them
   [pillows, 0.45, -316, 10, 12, 51], [pillows, 0.45, -326, -11, 12, 52], [chimney, 0.36, -331, 6.5, 9, 1.5, 53], [chimney, 0.36, -334, 9, 6, 1.2, 54],
   [chimney, 0.36, -346, -7.5, 12, 1.8, 55], [chimney, 0.36, -349, -10, 7, 1.3, 56], [pillows, 0.45, -352, 11, 14, 57], [chimney, 0.36, -359, 8, 8.5, 1.5, 58],
   [chimney, 0.36, -372, -6.5, 11, 1.7, 59], [chimney, 0.36, -375, -9.5, 6.5, 1.2, 60], [pillows, 0.45, -380, 11.5, 10, 61],
@@ -265,7 +342,7 @@ export function buildRocks(add, mat, looseMat, q) {
   }
   // boulders: two sizes of the same lumpy stone, in stretches of the valley
   const rng = makeRng(9001);
-  const stone = (res, seed) => { const m = new Mesh(false); blob(m, 0, 0, 0, (x, y, z) => 1 + 0.26 * fbm3(x * 1.3 + seed, y * 1.3, z * 1.3, 3) + 0.1 * noise3(x * 4, y * 4 + seed, z * 4), res); return m.build(); };
+  const stone = (res, seed) => { const m = new Mesh(false); orb(m, 0, 0, 0, (x, y, z) => 1 + 0.26 * fbm3(x * 1.3 + seed, y * 1.3, z * 1.3, 3) + 0.1 * noise3(x * 4, y * 4 + seed, z * 4), res); return m.build(); };
   const small = stone(4, 3.1), big = stone(7, 8.4);
   const pos = new Vector3(), quat = new Quaternion(), scl = new Vector3(), axis = new Vector3();
   for (let z1 = 58; z1 > -440; z1 -= 62) {
@@ -276,7 +353,7 @@ export function buildRocks(add, mat, looseMat, q) {
         if (z < -266 && z > -300) continue;              // none on the cliff
         const s = lo + (hi - lo) * rng() * rng();
         const x = centerX(z) + rng.sign() * halfWidth(z) * rng.range(0.35, 1.7);
-        if (offTrack(x, z) < 2.2 + s * 2 || cleared(x, z)) continue;
+        if (offTrack(x, z) < 2.2 + s * 2 || CLEARINGS.some(([cx, cz, r]) => Math.hypot(x - cx, z - cz) < r + 1.4 * s + 0.5)) continue;
         list.push(x, groundY(x, z) - s * 0.3, z, s);
       }
       if (!list.length) continue;
