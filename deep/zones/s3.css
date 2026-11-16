@@ -28,15 +28,15 @@
 #remove-chip.stamp { animation: stamp .45s var(--spring); }
 @keyframes stamp { 0% { transform: scale(1.08); background: var(--sun-soft); color: var(--ink); } 100% { transform: none; } }
 /* the choices' pictures: the three crop shapes, the three finishes */
-.opt .shape, .opt .fin { flex: none; display: inline-block; width: 34px; height: 24px; border-radius: 4px; }
+.opt .shape, .opt .fpic { flex: none; display: inline-block; width: 34px; height: 24px; border-radius: 4px; }
 .shape.s-wide { width: 38px; height: 20px; border: 2px dashed var(--sun-soft); }
 .shape.s-square { width: 24px; height: 24px; border: 2px dashed var(--sun-soft); }
 .shape.s-whole { width: 38px; height: 26px; border: 2px solid var(--sea-glass); background: rgba(143, 227, 225, .14); }
-.fin.f-none { background: linear-gradient(180deg, #F2B98E 0 42%, #5F9DB3 42% 74%, #9A6A47 74%); }
-.fin.f-studio { background: radial-gradient(ellipse 40% 14% at 50% 86%, rgba(20, 40, 50, .35), transparent 70%), linear-gradient(180deg, #FFEBC2, #FFD88A); }
-.fin.f-cut { background: repeating-conic-gradient(#E9D3A1 0 25%, #F6E7C8 0 50%) 0 0 / 8px 8px; }
+.fpic.f-none { background: linear-gradient(180deg, #F2B98E 0 42%, #5F9DB3 42% 74%, #9A6A47 74%); }
+.fpic.f-studio { background: radial-gradient(ellipse 40% 14% at 50% 86%, rgba(20, 40, 50, .35), transparent 70%), linear-gradient(180deg, #FFEBC2, #FFD88A); }
+.fpic.f-cut { background: repeating-conic-gradient(#E9D3A1 0 25%, #F6E7C8 0 50%) 0 0 / 8px 8px; }
 /* (until Snap's pictures are drawn, and on the page without the scene: a stand-in for him) */
-.opt .fin::after { content: ""; display: block; width: 12px; height: 9px; margin: 8px auto 0; border-radius: 6px 6px 4px 4px; background: #E8482F; }
+.opt .fpic::after { content: ""; display: block; width: 12px; height: 9px; margin: 8px auto 0; border-radius: 6px 6px 4px 4px; background: #E8482F; }
 .pick .help { clear: both; padding-top: 8px; font-size: 14.5px; color: var(--ink2); }
 
 /* ---- the zone's stretches of scroll: each station's card is up while the camera passes its
@@ -73,11 +73,11 @@
 .spec-upscale .again { margin-left: 6px; padding: 3px 10px; border: 2px solid var(--ink); border-radius: 8px; background: var(--sun); color: var(--ink); font: 800 11.5px/1.3 var(--mono); cursor: pointer; }
 .spec-upscale .again:hover { background: var(--sun-soft); }
 /* the finishes: Snap on each, drawn once the scene has him */
-.opt .fin { width: 58px; height: 44px; border: 1.5px solid rgba(238, 242, 236, .35); border-radius: 9px 9px 9px 3px; overflow: hidden; }
-.opt .fin canvas { width: 100%; height: 100%; }
-.opt .fin.pic::after, .opt .fin:not(.pic) canvas { display: none; }
+.opt .fpic { width: 58px; height: 44px; border: 1.5px solid rgba(238, 242, 236, .35); border-radius: 9px 9px 9px 3px; overflow: hidden; }
+.opt .fpic canvas { width: 100%; height: 100%; }
+.opt .fpic.pic::after, .opt .fpic:not(.pic) canvas { display: none; }
 @media (max-width: 760px) {
-  .opt .fin { width: 46px; height: 35px; }
+  .opt .fpic { width: 46px; height: 35px; }
   .compare { height: 120px; }
   .spec-studio canvas { width: 78px; height: 66px; }
 }

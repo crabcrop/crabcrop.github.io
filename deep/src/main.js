@@ -123,6 +123,12 @@ export function start() {
     if (sets.chainAt) cast.chainAt = sets.chainAt;
     if (sets.geode) cast.geodeAt = sets.geode.position;
     if (sets.clam) cast.sights.push({ from: 3.6, to: 4.05, at: sets.clam.position });
+    // (his place in the Clam Studio: just in front of the open shell's lip, on its left as the
+    // camera sees it, its lamps and its pearl behind him)
+    if (sets.clam && sets.clam.normal) {
+      const c = sets.clam, l = Math.hypot(c.normal.x, c.normal.z) || 1, ezx = c.normal.x / l, ezz = c.normal.z / l;
+      cast.studioAt = c.position.clone().add(new Vector3(-1.516 * ezz + 1.8 * ezx, 0.11, 1.516 * ezx + 1.8 * ezz));
+    }
     if (fauna.octopus) cast.sights.push({ from: 4.42, to: 4.7, at: fauna.octopus });
     cast.sights.push({ from: 4.68, to: 4.86, at: cast.sub.group.position });     // (the submarine, as it comes for him)
     if (sets.geode) cast.sights.push({ from: 6.7, to: 7.05, at: sets.geode.position });

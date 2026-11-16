@@ -58,8 +58,9 @@ function place(p) {
   pathAt(p, S.path);
   camera.position.set(S.path[0], S.path[1], S.path[2]);
   // (on a phone the marina's view turns a little left at the start and the end, so a pier
-  // post, its buoy and the lighthouse with the sun behind it are in the narrow frame)
-  const marina = camera.aspect < 1 ? -13 * ((1 - smooth(0.12, 0.3, p)) + smooth(7.84, 7.95, p)) : 0;
+  // post, its buoy and the lighthouse with the sun behind it are in the narrow frame; and a
+  // little right in the Clam Studio, so the open shell is in the middle of it)
+  const marina = camera.aspect < 1 ? -13 * ((1 - smooth(0.12, 0.3, p)) + smooth(7.84, 7.95, p)) + 9 * smooth(3.66, 3.76, p) * (1 - smooth(3.98, 4.06, p)) : 0;
   // down the mooring's chain the path keeps Snap in a wide view's slot; a tall view's camera
   // moves so that he is in its own (centred, above the words)
   const ride = camera.aspect < 1 ? rideWeight(p) : 0;
@@ -68,7 +69,9 @@ function place(p) {
     rideCamera(p, S.path[3], S.path[4], SLOTS.wide.snap, RW);
     camera.position.set(S.path[0] + ride * (RT[0] - RW[0]), S.path[1] + ride * (RT[1] - RW[1]), S.path[2] + ride * (RT[2] - RW[2]));
   }
-  euler.set((S.path[4] + S.lookY) * DEG, -(S.path[3] + S.lookX + marina) * DEG, 0, 'YXZ');
+  // (and in the studio it looks down a little more, so Snap in front of the shell is above the words)
+  const tilt = camera.aspect < 1 ? -9 * smooth(3.7, 3.78, p) * (1 - smooth(3.98, 4.06, p)) : 0;
+  euler.set((S.path[4] + S.lookY + tilt) * DEG, -(S.path[3] + S.lookX + marina) * DEG, 0, 'YXZ');
   camera.quaternion.setFromEuler(euler);
   camera.updateMatrixWorld(true);
   const d = -camera.position.y;

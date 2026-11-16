@@ -436,7 +436,7 @@ export default {
         studio.shot = true;
         shots.shoot(world.cast.snap).then((ok) => {
           if (!ok) return;
-          for (const cv of pics) if (shots.paint(cv, cv.dataset.pic) && cv.parentElement.classList.contains('fin')) cv.parentElement.classList.add('pic');
+          for (const cv of pics) if (shots.paint(cv, cv.dataset.pic) && cv.parentElement.classList.contains('fpic')) cv.parentElement.classList.add('pic');
         }).catch((e) => console.warn('dive: Snap\'s pictures were not taken: ' + (e && e.message || e)));
       }
       // the softboxes: off until Snap comes to the studio, then on one after another; off again

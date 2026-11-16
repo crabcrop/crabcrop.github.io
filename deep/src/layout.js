@@ -166,13 +166,17 @@ const STOPS = [
   P(1.4, -16, -1.2, 2.0, true, 6, -8), P(1.65, -31, 1.0, 1.5, true, -5, -4), P(2.0, -48, 0, 1.8, true, 0, -2),
   // the kelp forest
   P(2.3, -64, 2.5, 3.0, true, -8, 4), P(2.6, -82, -2.0, 3.6, true, 7, 9), P(2.85, -98, 2.0, 3.4, true, -5, 3), P(3.0, -112, 0, 3.0, true, 0, -6),
-  // the reef, and the giant clam at its far end
-  P(3.3, -130, -3.0, 1.9, true, 9, -5), P(3.6, -148, 3.5, 1.8, true, -9, -6), P(3.82, -164, -1.5, 2.0, true, 16, -3), P(4.0, -182, 1.0, 3.4, true, -3, -9),
+  // the reef; under its arch to the giant clam at its far end, the Clam Studio, where the camera
+  // holds on the open shell (its lamps, its pearl) while the studio's cards are up; then away
+  // down the slope, quickly, to the wreck
+  P(3.3, -130, -3.0, 1.9, true, 9, -5), P(3.6, -148, 3.5, 1.8, true, -9, -6),
+  P(3.7, -157, 1.2, 2.3, true, 6, -6), P(3.8, -162.5, 1.3, 2.1, true, 11, -8), P(3.88, -165.3, 1.85, 1.85, true, 12.5, -10.5), P(3.96, -166.0, 1.85, 1.8, true, 13, -11),
+  P(4.06, -176, -0.6, 3.0, true, 0, -9),
   // the wreck on its ledge: over its stern, then alongside, and a look into the captain's
   // cabin through the hole in its side while the visitor makes the last choice (Snap swims
   // in ahead of the camera); out again, past the bow, slowly while the submarine takes Snap
   // aboard, to the edge
-  P(4.25, -204, 4.0, 5.0, true, -10, -12), P(4.4, -228, 7.0, -53.4, false, -62, -5),
+  P(4.2, -212, 3.0, 4.5, true, -6, -13), P(4.4, -228, 7.0, -53.4, false, -62, -5),
   P(4.5, -234.6, 3.15, -54.3, false, -82, -3), P(4.56, -234.9, 0.55, -54.3, false, -82, -4), P(4.63, -235.0, 0.45, -54.3, false, -84, -4),
   P(4.71, -237, 5.0, -54.2, false, -70, -3), P(4.82, -244, 8.0, 3.6, true, -34, -3), P(4.95, -254, 4.5, 3.6, true, -14, -8), P(5.0, -264, 2.0, 4.2, true, -4, -20),
   // off the edge and down the wall, into the dark

@@ -153,7 +153,7 @@ export default {
 
     // ---- the agent's submarine: comes in from the right as its card comes up, waits low on the
     // right of the view (above the words on a phone), and goes off into the dark after it
-    const A = S.agent, ag = { pos: new Vector3(), placed: false }, cam = { x: 0, y: 0, z: 0, F: [0, 0, 0], R: [0, 0, 0], U: [0, 0, 0] };
+    const A = S.agent, ag = { pos: new Vector3(), rel: new Vector3(), placed: false }, cam = { x: 0, y: 0, z: 0, F: [0, 0, 0], R: [0, 0, 0], U: [0, 0, 0] };
     const want = new Vector3(), face = new Vector3(), Z = new Vector3(0, 0, 1), q1 = new Quaternion(), q2 = new Quaternion(), X = new Vector3(1, 0, 0);
 
     // ---- the pickup -----------------------------------------------------------------------------
@@ -175,7 +175,11 @@ export default {
         const f = narrow ? 5.3 : 5.0, r = narrow ? 0.95 : 2.15, u = narrow ? 0.62 : -1.0;
         inCam(cam, f + 3.5 * (1 - come) + 5 * go, r + 3.2 * (1 - come) + 1.8 * go, u + 0.6 * (1 - come) + 1.6 * go, want);
         want.y += Math.sin(t * 1.1) * 0.05;
-        if (!ag.placed || dt <= 0) { ag.pos.copy(want); ag.placed = true; } else ag.pos.lerp(want, 1 - Math.exp(-dt * 2.5));
+        // (it eases toward its place in the view, not in the water, so a camera on the move never
+        // leaves it behind)
+        want.x -= cam.x; want.y -= cam.y; want.z -= cam.z;
+        if (!ag.placed || dt <= 0) { ag.rel.copy(want); ag.placed = true; } else ag.rel.lerp(want, 1 - Math.exp(-dt * 2.5));
+        ag.pos.set(cam.x, cam.y, cam.z).add(ag.rel);
         A.group.position.copy(ag.pos);
         // its nose across the view to the left, a little toward the visitor; rocking gently
         face.set(-cam.R[0] * 0.93 - cam.F[0] * 0.36, 0, -cam.R[2] * 0.93 - cam.F[2] * 0.36).normalize();
