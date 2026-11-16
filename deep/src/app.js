@@ -65,9 +65,9 @@ function place(p) {
   G.amb.value.setRGB(w[3], w[4], w[5]);
   G.opt.value.set(optDepth(d), optSlope(d), KNEE, DEEPER);
   G.light.value.set(1, 1, 1, w[7]);
-  // the deep's own faint indigo: from the twilight down, a touch of violet at the vents
-  const deep = Math.min(1, Math.max(0, (d - 70) / 60));
-  G.deepAmb.value.setRGB(0.020 * deep, 0.020 * deep, 0.058 * deep);
+  // the deep's own faint violet: from the twilight down; nearly black at the vents
+  const deep = Math.min(1, Math.max(0, (d - 70) / 60)), vents = Math.min(1, Math.max(0, (d - 185) / 15));
+  G.deepAmb.value.setRGB(0.036 * deep * (1 - 0.5 * vents), 0.010 * deep * (1 - 0.5 * vents), 0.050 * deep * (1 - 0.55 * vents));
   S.parts.sea.follow(camera);
   cull(camera);
   for (let i = 0; i < live.length; i++) live[i].update(S.time, S.dt, p);

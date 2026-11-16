@@ -36,16 +36,18 @@ import { SUN } from './layout.js';
 export const G = {
   time: uniform(0),
   sunDir: uniform(new Vector3(-SUN[0], -SUN[1], -SUN[2])),       // toward the sun
-  sunCol: uniform(new Color(1.7, 1.6, 1.42)),
+  sunCol: uniform(new Color(1.85, 1.62, 1.24)),
   scat: uniform(new Color(0.16, 0.58, 0.9)),                      // the colour the water scatters, at the camera
   amb: uniform(new Color(0.22, 0.6, 0.8)),                        // the colour of the light from above
   opt: uniform(new Vector4(0, 1, 60, 3.2)),                       // optical depth at the camera, its slope there, the knee, the slope below it
   light: uniform(new Vector4(1, 1, 1, 1)),                        // scales: sun, sky, caustics, shafts
   // above the water: the evening sun, low over the sea ahead, and the sky's own light
-  skySunDir: uniform(new Vector3(0.12, 0.1, -1).normalize()),
-  skySunCol: uniform(new Color(2.1, 1.35, 0.85)),
-  skyLow: uniform(new Color(1.0, 0.66, 0.48)),                     // the sky at the horizon
-  skyHigh: uniform(new Color(0.42, 0.52, 0.86)),                   // and overhead
+  // (the sun low behind the lighthouse, a little to its right)
+  skySunDir: uniform(new Vector3(-0.27, 0.075, -0.96).normalize()),
+  skySunCol: uniform(new Color(2.4, 1.45, 0.62)),
+  skyLow: uniform(new Color(1.32, 0.78, 0.42)),                    // the sky at the horizon: gold
+  skyMid: uniform(new Color(1.12, 0.80, 0.66)),                    // peach above it
+  skyHigh: uniform(new Color(0.62, 0.58, 0.92)),                   // and lilac overhead
   // the faint indigo of the deep water itself, where no sunlight reaches (set by depth)
   deepAmb: uniform(new Color(0, 0, 0)),
   shadowMat: uniform(new Matrix4()),
@@ -130,12 +132,13 @@ export const scatterFrom = Fn(([od, slope, rd, d]) => {
 });
 // The same, from the eye.
 export const scatter = Fn(([rd, d]) => scatterFrom(G.opt.x, G.opt.y, rd, d));
-// The evening sky in a direction: peach at the horizon, blue overhead, the sun's glow.
+// The evening sky in a direction: gold at the horizon, peach above it, lilac overhead, and
+// round the low sun a wide golden glow, a brighter halo and the disc.
 export const skyColor = Fn(([rd]) => {
   const up = max(rd.y, 0.0);
-  const base = mix(G.skyLow, G.skyHigh, pow(up, 0.55));
+  const base = mix(mix(G.skyLow, G.skyMid, smoothstep(0.0, 0.22, up)), G.skyHigh, smoothstep(0.18, 0.85, up));
   const sd = max(dot(rd, G.skySunDir), 0.0);
-  return base.add(G.skySunCol.mul(pow(sd, 6.0).mul(0.35).add(pow(sd, 64.0).mul(1.2)).add(pow(sd, 900.0).mul(14.0))));
+  return base.add(G.skySunCol.mul(pow(sd, 4.0).mul(0.42).add(pow(sd, 24.0).mul(0.75)).add(pow(sd, 160.0).mul(1.6)).add(smoothstep(0.99955, 0.99975, sd).mul(9.0))));
 });
 // A colour seen from the eye: through the water for the part of the way that is under the
 // surface, through the evening air for the part above it. (The eye sits at the waterline

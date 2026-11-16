@@ -166,14 +166,14 @@ export const optSlope = (d) => { const e = d - KNEE; return 1 + DEEPER * 0.5 * (
 // (what depth and distance take out) is in shaders.js; this only tints it: greener among
 // the kelp, bluer on the reef, and the eye opening up as the light goes.
 const WATER = [
-  [0, 0.16, 0.60, 0.86, 0.22, 0.60, 0.80, 0.40, 1.0],
-  [8, 0.16, 0.60, 0.86, 0.22, 0.60, 0.80, 0.42, 1.0],
-  [16, 0.13, 0.62, 0.72, 0.20, 0.62, 0.68, 0.52, 1.0],
-  [32, 0.14, 0.52, 0.95, 0.22, 0.58, 0.84, 0.62, 1.0],
-  [58, 0.12, 0.44, 1.00, 0.20, 0.52, 0.90, 0.75, 0.8],
-  [90, 0.10, 0.38, 1.00, 0.18, 0.46, 0.95, 1.00, 0.0],
-  [130, 0.10, 0.36, 1.00, 0.18, 0.44, 0.95, 1.15, 0.0],
-  [206, 0.10, 0.36, 1.00, 0.18, 0.44, 0.95, 1.15, 0.0],
+  [0, 0.11, 0.62, 0.78, 0.26, 0.66, 0.76, 0.42, 1.25],
+  [8, 0.11, 0.62, 0.78, 0.26, 0.66, 0.76, 0.44, 1.25],
+  [16, 0.10, 0.60, 0.68, 0.24, 0.66, 0.66, 0.52, 1.2],
+  [32, 0.12, 0.60, 0.90, 0.24, 0.62, 0.80, 0.60, 1.15],
+  [58, 0.10, 0.44, 0.80, 0.18, 0.50, 0.78, 0.72, 0.8],
+  [90, 0.12, 0.20, 0.50, 0.16, 0.30, 0.70, 0.95, 0.0],
+  [130, 0.12, 0.13, 0.38, 0.16, 0.22, 0.62, 1.08, 0.0],
+  [206, 0.10, 0.09, 0.28, 0.14, 0.18, 0.55, 1.08, 0.0],
 ];
 // out: [scatter r, g, b, light r, g, b, exposure, shafts]
 export function waterAt(depth, out) {
@@ -196,8 +196,9 @@ export function storyDepth(p) {
 }
 
 // The sun, as the direction light travels toward (so the sun is at -SUN), once bent by
-// the surface. It comes from behind the camera's right shoulder, so shafts lean into view.
-export const SUN = [-0.30, -0.86, -0.41];
+// the surface. High, and a little behind the camera's right shoulder: tops are lit, faces
+// toward the camera get some, and the shafts come down nearly straight, leaning into view.
+export const SUN = [-0.22, -0.92, -0.32];
 {
   const l = Math.hypot(SUN[0], SUN[1], SUN[2]);
   SUN[0] /= l; SUN[1] /= l; SUN[2] /= l;

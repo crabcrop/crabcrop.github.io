@@ -335,7 +335,7 @@ function shaftPass(u, STEPS) {
       const T = exp(SIG.mul(t).negate()).toVar();
       const fp = sunFoot(w);
       const beam = smoothstep(0.26, 0.62, texture(G.waterTex, fp.div(31.0)).level(2.6).r.mul(2.4)).mul(smoothstep(0.12, 0.55, texture(G.waterTex, fp.yx.div(13.0).add(0.3)).level(2.0).r.mul(2.4)));
-      sun.addAssign(T.mul(exp(KD.mul(optDepth(w.y).div(G.sunDir.y)).negate())).mul(shadow1(w).mul(beam.mul(6.0).add(0.014))));
+      sun.addAssign(T.mul(exp(KD.mul(optDepth(w.y).div(G.sunDir.y)).negate())).mul(shadow1(w).mul(beam.mul(7.5).add(0.007))));
       const toL0 = G.lampPos.sub(w);
       const dl = length(toL0);
       const toL = toL0.div(dl).toVar();
@@ -352,7 +352,8 @@ function shaftPass(u, STEPS) {
       other.addAssign(T.mul(here));
     });
     const mu = max(dot(dir, G.sunDir), 0.0);
-    const c = sun.mul(dt).mul(SIG).mul(G.scat.add(vec3(0.04, 0.07, 0.05))).mul(G.sunCol).mul(mu.mul(mu).mul(mu).mul(2.0).add(0.2)).mul(G.light.w).mul(1.5).add(other.mul(dt));
+    // (the shafts are the sun's own gold more than the water's colour)
+    const c = sun.mul(dt).mul(SIG).mul(mix(G.scat.add(vec3(0.04, 0.07, 0.05)), vec3(0.95, 0.80, 0.50), 0.45)).mul(G.sunCol).mul(mu.mul(mu).mul(mu).mul(2.0).add(0.25)).mul(G.light.w).mul(1.6).add(other.mul(dt));
     return vec4(min(c, vec3(20.0)), far);
   })();
 }
@@ -416,6 +417,7 @@ function finalPass(u) {
     const l = mix(l0, l0.mul(l0).mul(float(3).sub(l0.mul(2))), 0.5).toVar();       // a gentle S on brightness
     c.mulAssign(l.div(max(l0, 1e-4)));
     c.assign(mix(c, vec3(l), smoothstep(0.6, 1.0, l).mul(0.1)));                   // the brightest lose a little colour
+    c.assign(max(mix(vec3(l), c, 1.16), vec3(0.0)));                                // and the rest gain some: a diorama's colours
     // the looks of the second choice, on the whole picture: 1 crisp, 2 deep sea, 3 vintage
     const crisp = mix(vec3(l), c, 1.25).sub(0.5).mul(1.12).add(0.5);
     const deep = mix(vec3(0.051, 0.125, 0.180), vec3(1.0, 0.847, 0.541), smoothstep(0.02, 0.9, l));

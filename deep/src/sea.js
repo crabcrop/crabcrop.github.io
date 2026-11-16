@@ -37,12 +37,17 @@ export function buildSea(scene) {
       const sd = max(dot(refract(v, n, 1.333), G.sunDir), 0.0).toVar();
       const fres = pow(float(1).sub(sqrt(max(k, 0.0))), 5.0);
       const glit = texture(G.waterTex, f.w.xz.div(2.9).add(0.13)).r.mul(2.2).add(0.25);
-      // the window: the sky, brighter and darker with the slope of each wave, and the sun's glitter
-      const sky = vec3(0.30, 0.78, 1.0).mul(1.05).mul(clamp(sl.x.mul(0.6).sub(sl.y.mul(0.8)).mul(2.4).add(1.0), 0.4, 2.1))
-        .add(vec3(1.0, 0.95, 0.85).mul(pow(sd, 24.0).mul(0.8).add(pow(sd, 120.0).mul(2.4).add(pow(sd, 700.0).mul(9.0)).mul(glit))))
+      // the window: the evening sky seen through the surface (gold low, lilac high), brighter
+      // and darker with the slope of each wave, and the sun's glitter in gold
+      const ripple = clamp(sl.x.mul(0.6).sub(sl.y.mul(0.8)).mul(2.4).add(1.0), 0.4, 2.1).toVar();
+      const sky = mix(vec3(0.42, 0.86, 1.0), skyColor(refract(v, n, 1.333)), 0.55).mul(1.15).mul(ripple)
+        .add(vec3(1.0, 0.86, 0.6).mul(pow(sd, 24.0).mul(0.8).add(pow(sd, 120.0).mul(2.4).add(pow(sd, 700.0).mul(9.0)).mul(glit))))
         .mul(fres.oneMinus()).mul(G.light.x);
-      // the mirror: the water below, along the reflected ray
-      const refl = scatterFrom(float(0.0), float(1.0), reflect(v, n), float(300.0)).mul(0.72);
+      // the mirror: the water below along the reflected ray, and in the shallows the bright
+      // sand under it; rippling too, so the underside reads as moving water, not a ceiling
+      const shallow = float(1).sub(smoothstep(4.0, 24.0, cameraPosition.y.negate()));
+      const sand = vec3(0.50, 0.82, 0.80).mul(G.light.x).mul(shallow);
+      const refl = scatterFrom(float(0.0), float(1.0), reflect(v, n), float(300.0)).mul(0.72).add(sand).mul(ripple.mul(0.35).add(0.65));
       return inWater(mix(refl, sky, win), f.w);
     },
   }));
