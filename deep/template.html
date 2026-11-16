@@ -317,6 +317,9 @@ p { text-wrap: pretty; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+.fin .served { margin: 4px 0 12px; }
+.fin .served canvas { display: block; width: 100%; max-width: 300px; height: auto; border-radius: 10px; box-shadow: 0 6px 24px rgba(0, 0, 0, .35); }
+@media (max-width: 600px) { .fin .served canvas { max-width: 150px; } }
 </style>
 </head>
 <body>
@@ -612,6 +615,7 @@ p { text-wrap: pretty; }
   </div></div>
   <div class="slot s-fin"><div class="beat fin">
     <h2 id="h7" tabindex="-1">Your image, served.</h2>
+    <figure class="served js-only" hidden><canvas id="served" width="960" height="504" role="img" aria-label="The picture your URL serves: Snap, with the crop, finish and look you chose"></canvas></figure>
     <p class="final"><code id="final-url">https://<wbr>img.example.com/<wbr>3843ad67974400e1c368394dfc3f33326429aabd37c9a15c232662d83a45079a/<wbr>crop:<wbr>1200x630:<wbr>smart/<wbr>filters:<wbr>sharpen(1.2):<wbr>saturation(1.1)/<wbr>root:<wbr>photos/<wbr>print.jpg</code></p>
     <div class="go js-only">
       <button class="btn main" id="copy-final" type="button">Copy your URL</button>

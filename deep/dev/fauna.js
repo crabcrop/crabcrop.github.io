@@ -2,7 +2,7 @@
 // other parts set (the visitor's lamp, as src/cast.js aims it, and two vent glows) so the
 // dark zones can be judged.
 import { startDive } from '../src/app.js';
-import { buildFauna, fishParts } from '../src/fauna.js';
+import { buildFauna, faunaParts } from '../src/fauna.js';
 import { G } from '../src/shaders.js';
 import { clamp, smooth } from '../src/math.js';
 
@@ -28,14 +28,13 @@ if (new URLSearchParams(location.search).has('dbgfish')) globalThis.__dbg = 1;
 
 // ?lineup: one of each fish, side on, a few metres in front of the camera at p 1.6 (time 20)
 function lineup({ add }) {
-  const { SHAPES, COLOURS, KIND, fishShape, fishMaterial, fishMesh } = fishParts, mat = fishMaterial();
-  const rows = [['sardine', 'silver', 0.3], ['garibaldi', 'gold', 0.34], ['damsel', 'blueYellow', 0.3], ['damsel', 'bands', 0.28], ['damsel', 'violet', 0.28],
-    ['snapper', 'grey', 0.42], ['parrot', 'parrot', 0.45], ['parrot', 'grouper', 0.45], ['lantern', 'lantern', 0.3], ['shrimp', 'shrimp', 0.22]];
-  rows.forEach(([shape, col, L], i) => {
-    const x = 0.05 + (i % 5) * 0.62 - 0.4, y = -4.55 - Math.floor(i / 5) * 0.55, z = -31.6, eye = SHAPES[shape].eye, [b, l, f] = COLOURS[col];
-    const fish = [{ A: [x, y, z + 1160, 0.0003], B: [1000, 1000, 0, 0], C: [-Math.PI / 2 - 0.006, 0, 0, L], D: [0.37 * i % 1, 1.2, 1e5, KIND[col] ?? 5],
-      E: [...b, eye[0]], F: [...l, eye[1]], G: [...f, eye[2]] }];
-    add(fishMesh(fishShape(SHAPES[shape], 2), fish, mat), 60);
+  const { FISH, COL, KINDS, fishShape, fishMaterial, fishMesh } = faunaParts, mat = fishMaterial();
+  const all = [...KINDS.pastel, ...KINDS.reefY, ...KINDS.reefT, ...KINDS.striped, ...KINDS.puffer, ...KINDS.kelp.slice(0, 2)];
+  all.forEach(([shape, pattern, body, second, fins], i) => {
+    const x = 0.05 + (i % 5) * 0.62 - 0.9, y = -4.25 - Math.floor(i / 5) * 0.48, z = -31.6, L = shape === 'puffer' ? 0.36 : 0.32;
+    const fish = [{ A: [x, y, z + 1160, 0.0003], B: [1000, 1000, 0, 0], C: [-Math.PI / 2 - 0.006, 0, 0, L], D: [(0.37 * i) % 1, 1.4, 1e5, pattern],
+      E: [...COL[body], 2], F: [...COL[second], 0], G: [...COL[fins], 0] }];
+    add(fishMesh(fishShape(FISH[shape], 2), fish, mat), 60);
   });
 }
 const extra = new URLSearchParams(location.search).has('lineup') ? [lineup] : [];

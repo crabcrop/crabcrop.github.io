@@ -196,6 +196,7 @@ function snapMaterial(map, U) {
       const bead = dark.mul(float(1).sub(lid));
       s.spec = mix(float(0.05), float(1.4), bead); s.gloss = mix(float(10.0), float(90.0), bead);
       s.fluor = float(0.6); s.trans = float(0.12);
+      s.caustic = float(0.3);                 // (the caustics' sharp lines would flicker across him)
       // wool catches the light at grazing angles: a soft sheen on his outline; and the
       // cabin light when he sits in the submarine in the dark
       const vv = normalize(cameraPosition.sub(f.w));

@@ -26,8 +26,13 @@ function bodyMaterial(lamp) {
       s.spec = mix(float(0.35), float(0.9), smoothstep(1.5, 3.0, id));
       s.gloss = mix(float(40.0), float(70.0), smoothstep(1.5, 3.0, id));
       s.fluor = select(id.greaterThan(0.5).and(id.lessThan(1.5)), float(0.5), float(0.1));
-      // the lamp's glass glows when the lamp is on
-      s.emis = vec3(1.0, 0.92, 0.78).mul(lamp).mul(select(id.greaterThan(3.5), float(4.0), float(0.0)));
+      // the lamp's glass glows when the lamp is on (the cabin's small lights always)
+      s.emis = vec3(1.0, 0.9, 0.72).mul(select(id.greaterThan(3.5).and(id.lessThan(4.5)), lamp.mul(10.0).add(1.2), float(0.0)));
+      // the cabin's small lights: red, amber, green
+      s.emis = s.emis.add(select(id.greaterThan(4.5), select(id.lessThan(5.5), vec3(2.2, 0.25, 0.2), select(id.lessThan(6.5), vec3(2.2, 1.4, 0.3), vec3(0.3, 2.0, 0.6))), vec3(0.0)));
+      // in the dark, a little fill and a rim, so the hull still reads against the black
+      const vv = normalize(cameraPosition.sub(f.w));
+      s.emis = s.emis.add(s.albedo.mul(lamp.mul(0.07)).mul(pow(float(1).sub(abs(dot(s.n, vv))), 2.0).mul(2.0).add(0.5)));
     },
   });
 }
@@ -72,11 +77,12 @@ export function buildSub(q) {
   // (lathe stands the profile along y: turn it to lie along z)
   lieAlongZ(m, k);
   tag(k, 0);
-  // the bulkhead behind the glass, dark, closing the hull's front
+  // the back wall of the cabin, behind the glass: cream, with three small lights
   k = m.count;
   lathe(m, 0, 0, 0, [[0.0, -0.13], [0.2, -0.125], [0.41, -0.1]], S(28));
   lieAlongZ(m, k);
-  tag(k, 2);
+  tag(k, 0);
+  for (const [x, y, id] of [[-0.12, -0.3, 5], [0.0, -0.32, 6], [0.12, -0.3, 7]]) { k = m.count; blob(m, x, y, -0.128, () => 0.016, 3); tag(k, id); }
   // the coral collar where the glass sits, and a coral band toward the back
   k = m.count;
   lathe(m, 0, 0, 0, [[0.42, -0.16], [0.47, -0.12], [0.47, -0.04], [0.42, 0.0]], S(32));
@@ -101,13 +107,17 @@ export function buildSub(q) {
     tube(m, [[sx * 0.24, -0.3, -0.1, 0.03], [sx * 0.3, -0.54, -0.1, 0.03]], 6);
     tube(m, [[sx * 0.24, -0.3, 0.55, 0.03], [sx * 0.3, -0.54, 0.55, 0.03]], 6);
     tag(k, 2);
-    // the lamps, on the collar: a brass rim and the glass
+    // the lamps, out in front on the skids, below the glass: a brass can and the glass
     k = m.count;
-    tube(m, [[sx * 0.3, -0.22, -0.12, 0.075], [sx * 0.3, -0.22, -0.22, 0.075]], S(12));
+    tube(m, [[sx * 0.3, -0.52, -0.62, 0.08], [sx * 0.3, -0.5, -0.82, 0.085]], S(12));
     tag(k, 3);
     k = m.count;
-    blob(m, sx * 0.3, -0.22, -0.225, (x, y, z) => (z < 0 ? 0.068 : 0.01), S(5));
+    blob(m, sx * 0.3, -0.5, -0.83, (x, y, z) => (z < 0 ? 0.075 : 0.012), S(5));
     tag(k, 4);
+    // the thrusters' back caps
+    k = m.count;
+    blob(m, sx * 0.5, -0.05, 0.46, (x, y, z) => (z > 0 ? 0.09 : 0.02), S(4));
+    tag(k, 2);
   }
   // a fin on top at the back, coral
   k = m.count;
@@ -136,16 +146,34 @@ export function buildSub(q) {
 
   // the glass bubble in front of the collar
   const gm = new Mesh(false);
-  blob(gm, 0, 0, -0.5, () => 0.46, S(14));
+  blob(gm, 0, 0, -0.6, () => 0.47, S(14));
   const glass = new ThreeMesh(gm.build(), glassMaterial());
   glass.renderOrder = 6;
 
+  // a soft glow round each lamp, from any side: a ball that is bright where it faces the eye
+  const halo = material({
+    additive: true, shadow: false,
+    raw: (f) => {
+      const v = normalize(cameraPosition.sub(f.w));
+      const c = pow(max(dot(f.n, v), 0.0), 7.0);
+      return { color: vec3(1.0, 0.86, 0.62).mul(c).mul(lamp.mul(lamp)).mul(0.9), alpha: float(1.0) };
+    },
+  });
+  const halos = [];
+  for (const sx of [-1, 1]) {
+    const hm = new Mesh(false);
+    blob(hm, 0, 0, 0, () => 0.17, 6);
+    const h = new ThreeMesh(hm.build(), halo);
+    h.position.set(sx * 0.3, -0.5, -0.86);
+    h.renderOrder = 7;
+    halos.push(h);
+  }
   const group = new Group();
-  for (const o of [body, prop, glass]) { o.frustumCulled = false; group.add(o); }
+  for (const o of [body, prop, glass, ...halos]) { o.frustumCulled = false; group.add(o); }
   return {
     group, prop, lamp,
-    seat: new Vector3(0, -0.12, -0.5),          // where Snap's middle goes
-    lampAt: new Vector3(0, -0.22, -0.3),        // between the two lamps
+    seat: new Vector3(0, -0.12, -0.6),          // where Snap's middle goes
+    lampAt: new Vector3(0, -0.5, -0.9),         // between the two lamps
     turn(dt, thrust) { prop.rotation.z += dt * (2 + 14 * thrust); },
   };
 }

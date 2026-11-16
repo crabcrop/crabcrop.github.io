@@ -46,6 +46,8 @@ export const G = {
   skySunCol: uniform(new Color(2.1, 1.35, 0.85)),
   skyLow: uniform(new Color(1.0, 0.66, 0.48)),                     // the sky at the horizon
   skyHigh: uniform(new Color(0.42, 0.52, 0.86)),                   // and overhead
+  // the faint indigo of the deep water itself, where no sunlight reaches (set by depth)
+  deepAmb: uniform(new Color(0, 0, 0)),
   shadowMat: uniform(new Matrix4()),
   shadowTexel: uniform(new Vector2(1 / 4096, 1 / 2048)),
   lampPos: uniform(new Vector3(0, -1000, 0)),
@@ -105,7 +107,7 @@ export const skyAt = Fn(([w, n]) => {
   const up = n.y.mul(0.5).add(0.5);
   const down = exp(KD.mul(optDepth(w.y)).negate()).toVar();
   return G.amb.mul(pow(down, vec3(1.15))).mul(up.mul(up).mul(0.74).add(0.26)).mul(1.25)
-    .add(G.scat.mul(down).mul(float(1).sub(abs(n.y))).mul(0.42)).mul(G.light.y);
+    .add(G.scat.mul(down).mul(float(1).sub(abs(n.y))).mul(0.42)).mul(G.light.y).add(G.deepAmb.mul(up.mul(0.5).add(0.5)).mul(2.5));
 });
 // The light the water scatters toward the eye along a ray of length d that starts where
 // the optical depth is od and changes at the rate slope per metre down. (The sum of the
@@ -119,7 +121,8 @@ export const scatterFrom = Fn(([od, slope, rd, d]) => {
   const I = float(1).sub(exp(clamp(a.negate().mul(d), vec3(-40), vec3(7)))).div(a);
   const mu = max(dot(rd, G.sunDir), 0.0);
   const mu2 = mu.mul(mu);
-  return G.scat.mul(SIG).mul(exp(KD.mul(od).negate())).mul(I).mul(mu2.mul(mu2).mul(0.32).add(1.2)).mul(G.light.y);
+  return G.scat.mul(SIG).mul(exp(KD.mul(od).negate())).mul(I).mul(mu2.mul(mu2).mul(0.32).add(1.2)).mul(G.light.y)
+    .add(G.deepAmb.mul(float(1.0).sub(exp(SIG.mul(d).mul(-1.6)))));
 });
 // The same, from the eye.
 export const scatter = Fn(([rd, d]) => scatterFrom(G.opt.x, G.opt.y, rd, d));
@@ -247,7 +250,7 @@ export function yarn(s, f, o) {
 // Everything that lights a surface, in the water: the sun (through its shadow, with the
 // caustics), the sky, light that comes through thin things from behind, warm colours
 // answering blue light, a highlight, the visitor's lamp, and the four glows.
-export const shadeLit = Fn(([albedo, n, spec, gloss, trans, fluor, emis, ao, sh, w]) => {
+export const shadeLit = Fn(([albedo, n, spec, gloss, trans, fluor, emis, ao, sh, w, causticAmt]) => {
   const toEye = cameraPosition.sub(w);
   const dist = length(toEye);
   const v = toEye.div(dist);
@@ -256,7 +259,7 @@ export const shadeLit = Fn(([albedo, n, spec, gloss, trans, fluor, emis, ao, sh,
   const sunL = normalize(mix(G.sunDir, G.skySunDir, air)).toVar();
   const E = mix(sunAt(w.y).mul(sh), G.skySunCol.mul(0.8), air).toVar();
   const ndl = dot(n, sunL).toVar();
-  const ca = mix(mix(float(0.33), caustic(w, dist).mul(G.light.z).add(G.light.z.oneMinus().mul(0.33)), smoothstep(-0.1, 0.4, ndl)), float(0.33), air).toVar();
+  const ca = mix(mix(float(0.33), caustic(w, dist).mul(G.light.z).add(G.light.z.oneMinus().mul(0.33)), smoothstep(-0.1, 0.4, ndl).mul(causticAmt)), float(0.33), air).toVar();
   const direct = E.mul(ca.mul(2.6).add(0.10)).mul(max(ndl, 0.0).add(trans.mul(max(ndl.negate(), 0.0).mul(0.85).add(0.15))));
   const amb = mix(skyAt(w, n), mix(G.skyLow, G.skyHigh, n.y.mul(0.5).add(0.5)).mul(0.55), air).mul(ao).add(trans.mul(skyAt(w, n.negate())).mul(ao).mul(0.5));
   const light = direct.add(amb).toVar();
@@ -358,10 +361,10 @@ export function material(o) {
       col = r.color ?? r;
       alpha = r.alpha ?? float(1.0);
     } else {
-      const s = { albedo: vec3(0.5), n: f.n, spec: float(0.0), gloss: float(24.0), trans: float(0.0), fluor: float(0.0), emis: vec3(0.0), ao: float(1.0), alpha: float(1.0), shade: null };
+      const s = { albedo: vec3(0.5), n: f.n, spec: float(0.0), gloss: float(24.0), trans: float(0.0), fluor: float(0.0), emis: vec3(0.0), ao: float(1.0), alpha: float(1.0), shade: null, caustic: float(1.0) };
       o.surface?.(s, f);
       const sh = s.shade ?? shadow4(w.add(s.n.mul(0.14)).add(G.sunDir.mul(0.05)));
-      col = min(inWater(shadeLit(s.albedo, s.n, s.spec, s.gloss, s.trans, s.fluor, s.emis, s.ao, sh, w), w), vec3(40.0));
+      col = min(inWater(shadeLit(s.albedo, s.n, s.spec, s.gloss, s.trans, s.fluor, s.emis, s.ao, sh, w, s.caustic), w), vec3(40.0));
       alpha = s.alpha;
       if (G.debug) col = vec3(shadow4(w.add(s.n.mul(0.14)).add(G.sunDir.mul(0.05)))).mul(caustic(w, float(1.0)).add(0.2));
     }

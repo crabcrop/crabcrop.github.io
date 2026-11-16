@@ -352,7 +352,7 @@ function shaftPass(u, STEPS) {
       other.addAssign(T.mul(here));
     });
     const mu = max(dot(dir, G.sunDir), 0.0);
-    const c = sun.mul(dt).mul(SIG).mul(G.scat.add(vec3(0.04, 0.07, 0.05))).mul(G.sunCol).mul(mu.mul(mu).mul(mu).mul(2.0).add(0.2)).mul(G.light.w).mul(0.55).add(other.mul(dt));
+    const c = sun.mul(dt).mul(SIG).mul(G.scat.add(vec3(0.04, 0.07, 0.05))).mul(G.sunCol).mul(mu.mul(mu).mul(mu).mul(2.0).add(0.2)).mul(G.light.w).mul(1.5).add(other.mul(dt));
     return vec4(min(c, vec3(20.0)), far);
   })();
 }

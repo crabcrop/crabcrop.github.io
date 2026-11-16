@@ -4,6 +4,7 @@
 // look at the visitor. At the reef's end the submarine comes for him; from the wreck on he
 // rides in its glass bubble, and its lamp is the visitor's light in the dark.
 import { Quaternion, Vector3 } from 'three/webgpu';
+import { groundY } from './layout.js';
 import { clamp, smooth } from './math.js';
 import { G } from './shaders.js';
 import { Snap } from './snap.js';
@@ -79,6 +80,7 @@ export function buildCast(ctx) {
       B.copy(A).addScaledVector(F, 9).addScaledVector(R, -4).addScaledVector(UP, 1.5);
       A.lerp(B, 1 - come);
       A.y += Math.sin(t * 0.9) * 0.06;
+      A.y = Math.max(A.y, groundY(A.x, A.z) + 0.95);        // (never in the ground)
       follow(st.subPos, A, 3);
       sub.group.visible = come > 0.001;
       sub.group.position.copy(st.subPos);
@@ -95,6 +97,7 @@ export function buildCast(ctx) {
       // ---- Snap: swimming in his place, then into the bubble
       slot(o.snap, A);
       A.y += Math.sin(t * 1.3) * 0.05;
+      A.y = Math.max(A.y, groundY(A.x, A.z) + 0.45);
       const board = smooth(SNAP_BOARDS[0], SNAP_BOARDS[1], p);
       if (board > 0) {
         B.copy(sub.seat).applyMatrix4(sub.group.matrixWorld);

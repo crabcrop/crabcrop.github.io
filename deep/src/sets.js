@@ -1,39 +1,51 @@
-// The set pieces: everything man-made or singular that the story needs, made in code.
+// The set pieces: everything man-made or singular that the story needs, made in code, in the
+// dive's handmade look (wood, rope, crochet, fabric, glass and brass: chunky and rounded).
 //
-//   the marina      pier pilings and their bracing from the sand up through the surface, the
-//                   deck above it (seen only as its shade, and through the window overhead),
-//                   the boat at anchor, its chain hanging down to the anchor on the sand
-//   the giant clam  at the reef's far end: "a studio in a shell"
-//   the wreck       a wooden sailing hull lying on its side on the ledge, a lantern inside
-//   the vents       the chimneys' glowing cracks and mouths, and their black smoke
-//   the geode       a rock split open at the end of the vents, lined with crystals
+//   the marina      twice: where the dive starts (z0) and where it comes up again (z7). Seen from
+//                   the waterline: two wooden piers with posts and rope, crochet fenders, the buoy
+//                   on its coil of rope, a dinghy between them, sailboats, a striped lighthouse.
+//                   At the start, one of the sailboats rides to an anchor: its chain hangs down to
+//                   an anchor stood in the sand, and Snap rides down that chain.
+//   the giant clam  the Clam Studio at the reef's far end: a ruffled crochet clam
+//   the wreck       an old wooden sailing ship sitting on the ledge, and its cabin: portholes, a
+//                   desk with a lantern (glow slot 0) and an envelope
+//   the vents       the chimneys' glowing cracks and mouths and their smoke (glow slots 1, 2), a
+//                   brass diving helmet
+//   the geode       split open, glowing (glow slot 3): where the print lies
 //
 // buildSets(ctx) returns { update(t, dt, p), chainAt(s, out), clam, geode }:
-//   chainAt(s, out)  s is 0 at the boat's bow and 1 at the anchor's ring; writes the point
-//                    on the chain (out[0..2]) and its unit direction toward the anchor
-//                    (out[3..5]), as the chain hangs at this frame (after update(t)).
-//   clam             { position, normal }: where an object sits in the open clam, and the
-//                    way the clam opens (unit vector out of its mouth).
-//   geode            { position, normal, size }: the spot in the geode's hollow where the
-//                    picture goes, the way it faces (toward the camera at p = 7), and the
-//                    largest side a picture centred there can have.
-import { DoubleSide, InstancedBufferAttribute, InstancedBufferGeometry, Mesh as ThreeMesh, Sphere, Vector3 } from 'three/webgpu';
+//   chainAt(s, out)  s is 0 at the boat's bow roller and 1 at the anchor's ring; writes the point
+//                    on the chain (out[0..2]) and its unit direction toward the anchor (out[3..5]),
+//                    as the chain hangs at this frame (after update(t)).
+//   clam             { position, normal }: where an object sits in the open clam, and the way the
+//                    clam opens (unit vector out of its mouth).
+//   geode            { position, normal, size }: the spot in the geode's hollow where the picture
+//                    goes, the way it faces (toward the camera at p = 7), and the widest picture
+//                    (metres) that fits there, square or wide.
+import { BufferAttribute, InstancedBufferAttribute, InstancedBufferGeometry, Mesh as ThreeMesh, Sphere, Vector3 } from 'three/webgpu';
 import {
-  abs, attribute, cameraPosition, clamp, cos, cross, dot, exp, float, floor, fract, fwidth, length, max, min, mix, normalize, pow,
-  reflect, refract, select, sin, smoothstep, sqrt, step, texture, uniform, varyingProperty, vec2, vec3, vec4,
+  abs, attribute, cameraPosition, clamp, cos, cross, dot, exp, float, fract, length, max, min, mix, normalize, pow,
+  sin, smoothstep, step, texture, varyingProperty, vec2, vec3, vec4,
 } from 'three/tsl';
-import { centerX, groundY, offTrack } from './layout.js';
+import { groundY } from './layout.js';
 import { Mesh, TAU, blob, clamp as clampN, lerp, makeRng, noise3 } from './math.js';
-import { G, SIG, detail, hash1, inWater, material, scatterFrom, sunAt } from './shaders.js';
+import { G, SIG, detail, material, sunAt, yarn } from './shaders.js';
+import { rockSurf } from './terrain.js';
 
 // ---- building blocks ----------------------------------------------------------------------
 
 const V = (x = 0, y = 0, z = 0) => new Vector3(x, y, z);
-const sphereOf = (geo, pad = 0) => {
-  geo.computeBoundingSphere();
-  geo.boundingSphere.radius += pad;
-  return geo;
-};
+const toAttr = (a, n = 4) => new BufferAttribute(new Float32Array(a), n);
+// A mesh under construction whose vertices also carry two colours (tint, tint2), set with
+// paint() before each piece is added.
+class TMesh extends Mesh {
+  constructor() { super(true); this.t = []; this.t2 = []; this.c1 = [1, 1, 1, 0]; this.c2 = [1, 1, 1, 0]; }
+  vert(...a) { this.t.push(...this.c1); this.t2.push(...this.c2); return super.vert(...a); }
+  paint(c1, c2 = c1) { this.c1 = c1.length === 4 ? c1 : [...c1, 0]; this.c2 = c2.length === 4 ? c2 : [...c2, 0]; return this; }
+  build() { const g = super.build(); g.setAttribute('tint', toAttr(this.t)); g.setAttribute('tint2', toAttr(this.t2)); return g; }
+}
+
+const sphereOf = (geo, pad = 0) => { geo.computeBoundingSphere(); geo.boundingSphere.radius += pad; return geo; };
 function addMesh(ctx, geo, mat, range, opts = {}) {
   const mesh = new ThreeMesh(geo, mat);
   mesh.matrixAutoUpdate = false;
@@ -43,9 +55,19 @@ function addMesh(ctx, geo, mat, range, opts = {}) {
   return mesh;
 }
 
+// A triangle wound so that it faces n.
+function triFacing(m, a, b, c, nx, ny, nz) {
+  const p = m.p;
+  const ux = p[b * 3] - p[a * 3], uy = p[b * 3 + 1] - p[a * 3 + 1], uz = p[b * 3 + 2] - p[a * 3 + 2];
+  const vx = p[c * 3] - p[a * 3], vy = p[c * 3 + 1] - p[a * 3 + 1], vz = p[c * 3 + 2] - p[a * 3 + 2];
+  const d = (uy * vz - uz * vy) * nx + (uz * vx - ux * vz) * ny + (ux * vy - uy * vx) * nz;
+  if (d >= 0) m.i.push(a, b, c); else m.i.push(a, c, b);
+}
+
 // A tube along points [[x, y, z, r], ...] with a frame carried along it; radius(k, j, ang)
-// scales the radius, aux(k, j, x, y, z, out) fills the vertex's aux. Smooth normals.
-function sweep(m, pts, sides, { radius = null, aux = null, up = [1, 0, 0], closed = false } = {}) {
+// scales the radius, aux(k, j, x, y, z, out) fills the vertex's aux. Smooth normals; `caps`
+// rounds off both ends.
+function sweep(m, pts, sides, { radius = null, aux = null, up = [1, 0, 0], closed = false, caps = false } = {}) {
   const n = pts.length, base = m.count, i0 = m.i.length, o = [0, 0, 0, 0];
   let ux = up[0], uy = up[1], uz = up[2];
   for (let k = 0; k < n; k++) {
@@ -53,16 +75,18 @@ function sweep(m, pts, sides, { radius = null, aux = null, up = [1, 0, 0], close
     let tx = b[0] - a[0], ty = b[1] - a[1], tz = b[2] - a[2];
     const tl = Math.hypot(tx, ty, tz) || 1; tx /= tl; ty /= tl; tz /= tl;
     let sx = ty * uz - tz * uy, sy = tz * ux - tx * uz, sz = tx * uy - ty * ux;
-    const sl = Math.hypot(sx, sy, sz) || 1; sx /= sl; sy /= sl; sz /= sl;
+    let sl = Math.hypot(sx, sy, sz);
+    if (sl < 1e-4) { const alt = Math.abs(tx) < 0.9 ? [1, 0, 0] : [0, 1, 0]; sx = ty * alt[2] - tz * alt[1]; sy = tz * alt[0] - tx * alt[2]; sz = tx * alt[1] - ty * alt[0]; sl = Math.hypot(sx, sy, sz); }
+    sx /= sl; sy /= sl; sz /= sl;
     ux = sy * tz - sz * ty; uy = sz * tx - sx * tz; uz = sx * ty - sy * tx;
     for (let j = 0; j <= sides; j++) {
       const ang = (j / sides) * TAU, c = Math.cos(ang), s = Math.sin(ang);
       const r = pts[k][3] * (radius ? radius(k, j % sides, ang) : 1);
       const nx = sx * c + ux * s, ny = sy * c + uy * s, nz = sz * c + uz * s;
       const x = pts[k][0] + nx * r, y = pts[k][1] + ny * r, z = pts[k][2] + nz * r;
-      o[0] = o[1] = o[2] = o[3] = 0;
+      o[0] = j / sides; o[1] = 0; o[2] = 1; o[3] = 0;
       if (aux) aux(k, j, x, y, z, o);
-      m.vert(x, y, z, nx, ny, nz, j / sides, k / (n - 1), o[0], o[1], o[2], o[3]);
+      m.vert(x, y, z, nx, ny, nz, j / sides, k / Math.max(n - 1, 1), o[0], o[1], o[2], o[3]);
     }
   }
   const w = sides + 1, segs = closed ? n : n - 1;
@@ -71,492 +95,605 @@ function sweep(m, pts, sides, { radius = null, aux = null, up = [1, 0, 0], close
     m.i.push(a, b, a + 1, a + 1, b, b + 1);
   }
   m.normals(base, m.count, i0, null);
-  // (the seam: the first and last column share a normal)
   for (let k = 0; k < n; k++) {
     const a = (base + k * w) * 3, b = (base + k * w + sides) * 3;
     for (let e = 0; e < 3; e++) { const s = m.n[a + e] + m.n[b + e]; m.n[a + e] = s; m.n[b + e] = s; }
     const l = Math.hypot(m.n[a], m.n[a + 1], m.n[a + 2]) || 1;
     for (let e = 0; e < 3; e++) { m.n[a + e] /= l; m.n[b + e] = m.n[a + e]; }
   }
+  if (caps && !closed) for (const k of [0, n - 1]) {
+    const a = pts[k], b = pts[k === 0 ? 1 : n - 2];
+    let tx = a[0] - b[0], ty = a[1] - b[1], tz = a[2] - b[2];
+    const tl = Math.hypot(tx, ty, tz) || 1; tx /= tl; ty /= tl; tz /= tl;
+    const c = m.vert(a[0] + tx * a[3] * 0.5, a[1] + ty * a[3] * 0.5, a[2] + tz * a[3] * 0.5, tx, ty, tz, 0.5, k ? 1 : 0, o[0], o[1], o[2], o[3]);
+    const ring = base + k * w;
+    for (let j = 0; j < sides; j++) triFacing(m, ring + j, ring + j + 1, c, tx, ty, tz);
+  }
   return base;
 }
 
-// A squared timber from a to b: `w` wide along side, `h` deep along up (side = up x axis).
-// Flat faces; aux = (across the face in metres, along in metres, a2, a3).
-function beam(m, a, b, w, h, upv, a3 = 0, hfn = null) {
+// A box with rounded edges: centre c, unit axes X, Y, Z, half sizes h, edge radius r, `seg`
+// cells along each axis's flat part. aux(lx, ly, lz, out) fills each vertex's aux from its
+// local position. Timbers, planks, crates, the desk.
+function rbox(m, c, X, Y, Z, h, r, seg = [1, 1, 1], aux = null) {
+  const rr = Math.min(r, Math.min(h[0], h[1], h[2]) * 0.98);
+  const coords = (hh, n) => {
+    const out = [-hh, -hh + rr * 0.3, -hh + rr];
+    for (let i = 1; i < n; i++) out.push(-hh + rr + (2 * (hh - rr) * i) / n);
+    out.push(hh - rr, hh - rr * 0.3, hh);
+    return out;
+  };
+  const L = [coords(h[0], seg[0]), coords(h[1], seg[1]), coords(h[2], seg[2])];
+  const o = [0, 0, 0, 0], q = [0, 0, 0], inner = [0, 0, 0], A = [X, Y, Z];
+  for (let axis = 0; axis < 3; axis++) for (const sgn of [-1, 1]) {
+    const b = (axis + 1) % 3, cc = (axis + 2) % 3, Lb = L[b], Lc = L[cc], v0 = m.count;
+    for (let i = 0; i < Lb.length; i++) for (let j = 0; j < Lc.length; j++) {
+      q[axis] = sgn * h[axis]; q[b] = Lb[i]; q[cc] = Lc[j];
+      for (let e = 0; e < 3; e++) inner[e] = clampN(q[e], -(h[e] - rr), h[e] - rr);
+      const dx = q[0] - inner[0], dy = q[1] - inner[1], dz = q[2] - inner[2], dl = Math.hypot(dx, dy, dz) || 1;
+      const nx = dx / dl, ny = dy / dl, nz = dz / dl;
+      const lx = inner[0] + nx * rr, ly = inner[1] + ny * rr, lz = inner[2] + nz * rr;
+      o[0] = lx; o[1] = ly; o[2] = 1; o[3] = 0;
+      if (aux) aux(lx, ly, lz, o);
+      m.vert(c[0] + X[0] * lx + Y[0] * ly + Z[0] * lz, c[1] + X[1] * lx + Y[1] * ly + Z[1] * lz, c[2] + X[2] * lx + Y[2] * ly + Z[2] * lz,
+        X[0] * nx + Y[0] * ny + Z[0] * nz, X[1] * nx + Y[1] * ny + Z[1] * nz, X[2] * nx + Y[2] * ny + Z[2] * nz, 0, 0, o[0], o[1], o[2], o[3]);
+    }
+    const F = A[axis], wc = Lc.length;
+    for (let i = 0; i < Lb.length - 1; i++) for (let j = 0; j < wc - 1; j++) {
+      const a = v0 + i * wc + j;
+      triFacing(m, a, a + wc, a + 1, F[0] * sgn, F[1] * sgn, F[2] * sgn); triFacing(m, a + 1, a + wc, a + wc + 1, F[0] * sgn, F[1] * sgn, F[2] * sgn);
+    }
+  }
+}
+// A timber between two points: section w by h (h along `up`), rounded edges.
+function timber(m, a, b, w, h, upv, r = 0.03, aux = null, segLen = 1.2) {
   const ax = b[0] - a[0], ay = b[1] - a[1], az = b[2] - a[2], len = Math.hypot(ax, ay, az);
-  const tx = ax / len, ty = ay / len, tz = az / len;
-  let sx = upv[1] * tz - upv[2] * ty, sy = upv[2] * tx - upv[0] * tz, sz = upv[0] * ty - upv[1] * tx;
-  const sl = Math.hypot(sx, sy, sz); sx /= sl; sy /= sl; sz /= sl;
-  const ux = ty * sz - tz * sy, uy = tz * sx - tx * sz, uz = tx * sy - ty * sx;
-  const hw = w / 2, hh = h / 2;
-  // the four long faces: normal, then the two edges across it
-  const faces = [[ux, uy, uz, sx, sy, sz, hh, hw], [-ux, -uy, -uz, -sx, -sy, -sz, hh, hw], [sx, sy, sz, -ux, -uy, -uz, hw, hh], [-sx, -sy, -sz, ux, uy, uz, hw, hh]];
-  let f = 0;
-  for (const [nx, ny, nz, ex, ey, ez, off, half] of faces) {
-    const v0 = m.count;
-    for (const [e, t] of [[-1, 0], [1, 0], [1, 1], [-1, 1]]) {
-      const px = a[0] + ax * t + nx * off + ex * half * e, py = a[1] + ay * t + ny * off + ey * half * e, pz = a[2] + az * t + nz * off + ez * half * e;
-      m.vert(px, py, pz, nx, ny, nz, 0, 0, e * half + f * 0.37, t * len + a3 * 3.7, hfn ? hfn(px, py, pz) : 0, 0);
-    }
-    m.i.push(v0, v0 + 2, v0 + 1, v0, v0 + 3, v0 + 2);
-    f++;
+  const Z = [ax / len, ay / len, az / len];
+  let X = [upv[1] * Z[2] - upv[2] * Z[1], upv[2] * Z[0] - upv[0] * Z[2], upv[0] * Z[1] - upv[1] * Z[0]];
+  const xl = Math.hypot(X[0], X[1], X[2]); X = X.map((v) => v / xl);
+  const Y = [Z[1] * X[2] - Z[2] * X[1], Z[2] * X[0] - Z[0] * X[2], Z[0] * X[1] - Z[1] * X[0]];
+  rbox(m, [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2], X, Y, Z, [w / 2, h / 2, len / 2], r, [1, 1, Math.max(1, Math.round(len / segLen))],
+    aux || ((lx, ly, lz, o) => { o[0] = lx + ly * 1.31; o[1] = lz; }));
+}
+// Along a polyline of points: the running length at each, for rope and grain.
+const runLength = (pts) => { const acc = [0]; for (let i = 1; i < pts.length; i++) acc.push(acc[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1], pts[i][2] - pts[i - 1][2])); return acc; };
+// A rope through points (aux: around, along).
+function rope(m, pts, sides = 6) {
+  const acc = runLength(pts);
+  return sweep(m, pts, sides, { caps: true, aux: (k, j, x, y, z, o) => { o[0] = j / sides; o[1] = acc[k]; } });
+}
+// Coils of rope: `turns` loops stacked upward from c, radius R, rope radius rr.
+function coil(m, c, R, rr, turns, rise = 0.85) {
+  const pts = [], N = Math.round(turns * 24);
+  for (let i = 0; i <= N; i++) {
+    const t = i / N, ang = t * turns * TAU, rad = R * (1 - 0.05 * Math.sin(t * turns * 2.1)) - (t > 0.8 ? (t - 0.8) * R * 0.4 : 0);
+    pts.push([c[0] + Math.cos(ang) * rad, c[1] + rr + t * turns * rr * 2 * rise, c[2] + Math.sin(ang) * rad, rr]);
   }
-  // the ends
-  for (const [t, sgn] of [[0, -1], [1, 1]]) {
-    const v0 = m.count;
-    for (const [e1, e2] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) {
-      const px = a[0] + ax * t + sx * hw * e1 + ux * hh * e2, py = a[1] + ay * t + sy * hw * e1 + uy * hh * e2, pz = a[2] + az * t + sz * hw * e1 + uz * hh * e2;
-      m.vert(px, py, pz, tx * sgn, ty * sgn, tz * sgn, 0, 0, e1 * hw, t * len + e2 * hh * 0.3 + a3 * 3.7, hfn ? hfn(px, py, pz) : 0, 0);
-    }
-    if (sgn > 0) m.i.push(v0, v0 + 1, v0 + 2, v0, v0 + 2, v0 + 3); else m.i.push(v0, v0 + 2, v0 + 1, v0, v0 + 3, v0 + 2);
+  return rope(m, pts, 7);
+}
+// A rope hanging between two points, sagging.
+function hangRope(m, a, b, rr, sag, n = 16) {
+  const pts = [];
+  for (let i = 0; i <= n; i++) { const t = i / n; pts.push([lerp(a[0], b[0], t), lerp(a[1], b[1], t) - sag * 4 * t * (1 - t), lerp(a[2], b[2], t), rr]); }
+  return rope(m, pts, 6);
+}
+// Turns of rope lashed round an upright post of half width hw, centred at height y.
+function lashing(m, c, hw, y, turns = 3, rr = 0.032) {
+  const pts = [], N = turns * 20;
+  for (let i = 0; i <= N; i++) {
+    const t = i / N, ang = t * turns * TAU, ca = Math.cos(ang), sa = Math.sin(ang);
+    const k = 1 / Math.pow(Math.pow(Math.abs(ca), 4) + Math.pow(Math.abs(sa), 4), 0.25);        // round a squarish post
+    pts.push([c[0] + ca * k * (hw + rr * 0.8), y + (t - 0.5) * turns * rr * 2.05, c[1] + sa * k * (hw + rr * 0.8), rr]);
   }
+  return rope(m, pts, 6);
+}
+// A flat round lid at height y facing `up` (+1 or -1).
+function disc(m, x, y, z, r, n, up, aux = [0, 0, 1, 0]) {
+  const c = m.vert(x, y, z, 0, up, 0, 0.5, 0.5, ...aux), v0 = m.count;
+  for (let i = 0; i <= n; i++) { const a = (i / n) * TAU; m.vert(x + Math.cos(a) * r, y, z + Math.sin(a) * r, 0, up, 0, 0, 0, ...aux); }
+  for (let i = 0; i < n; i++) triFacing(m, c, v0 + i, v0 + i + 1, 0, up, 0);
 }
 
 // ---- surfaces -------------------------------------------------------------------------------
 
-// Weathered timber under water. aux: x across the grain (m), y along it (m), z height above
-// the sand (m), w kind (0 timber, 1 growth lump). shade: how much of the sky a roof hides.
-function woodSurf(s, f, { tint = vec3(1.0), shade = float(0.0), seed = float(0.0) } = {}) {
-  const near = float(1).sub(smoothstep(4.0, 18.0, f.dist)).toVar();
-  const mid = float(1).sub(smoothstep(12.0, 45.0, f.dist)).toVar();
-  const D = detail(f.w, s.n, 1.3, 3.0), E = detail(f.w, s.n, 4.1, 3.5);
-  // the grain: the relief texture drawn out along the timber, twice
-  // (across: whole tiles per turn of a pile, so the grain meets itself without a seam)
-  const gA = texture(G.detailTex, vec2(f.aux.x.mul(2.0).add(seed), f.aux.y.mul(0.06))).toVar();
-  const gB = texture(G.detailTex, vec2(f.aux.x.mul(5.0).add(seed.mul(3.0)), f.aux.y.mul(0.21))).toVar();
-  const grain = gA.b.mul(0.6).add(gB.b.mul(0.4)).toVar();
-  const check = float(1).sub(smoothstep(0.12, 0.3, gB.b)).mul(mid).toVar();       // the splits along the grain
-  const wood = mix(vec3(0.15, 0.125, 0.095), vec3(0.37, 0.31, 0.23), grain.mul(1.25).sub(0.12)).mul(tint).toVar();
-  wood.mulAssign(float(1).sub(check.mul(0.55)));
-  wood.mulAssign(gA.a.mul(0.35).add(0.82));
-  // what grows: barnacles and mussels at the foot, a film of weed up the timber, green near the light
-  const h = f.aux.z.add(D.m.sub(0.5).mul(0.9)).toVar();
-  const foot = float(1).sub(smoothstep(0.5, 1.5, h)).toVar();
-  const film = smoothstep(0.35, 0.75, gA.a.mul(0.6).add(D.h.mul(0.6))).mul(float(1).sub(foot)).toVar();
-  const shallow = smoothstep(-1.9, -0.6, f.w.y).toVar();
-  const barn = smoothstep(0.42, 0.62, E.h).mul(near.mul(0.6).add(0.4)).toVar();
-  const mussel = smoothstep(0.55, 0.68, D.m.add(E.m.mul(0.3))).toVar();
-  const foul = mix(mix(vec3(0.34, 0.33, 0.27), vec3(0.62, 0.60, 0.53), barn), vec3(0.05, 0.055, 0.07), mussel.mul(0.85)).toVar();
-  const weed = mix(vec3(0.17, 0.17, 0.07), vec3(0.20, 0.33, 0.08), shallow).toVar();
-  const col = mix(wood, weed, film.mul(0.75).add(shallow.mul(0.35)).min(0.9)).toVar();
-  col.assign(mix(col, foul, foot));
-  s.albedo = col;
-  const nb = normalize(s.n.add(D.n.sub(s.n).mul(mid.mul(0.7).add(0.3))).add(E.n.sub(s.n).mul(near.mul(foot.mul(1.4).add(0.3)))));
-  s.n = nb.toVar();
-  s.ao = mix(float(1), grain.mul(0.5).add(0.55), 0.6).mul(float(1).sub(shade.mul(0.6))).mul(smoothstep(-0.2, 1.2, f.aux.z).mul(0.35).add(0.65));
-  s.spec = mix(float(0.06), float(0.16), foot.mul(mussel)).mul(near.mul(0.6).add(0.4));
-  s.gloss = float(22.0);
-  s.fluor = film.mul(0.2).add(foot.mul(0.15));
+const vT = varyingProperty('vec4', 'v_set_t'), vT2 = varyingProperty('vec4', 'v_set_t2');
+const tintIn = () => { vT.assign(attribute('tint', 'vec4')); vT2.assign(attribute('tint2', 'vec4')); };
+
+// Wood: smooth and warm, soft grain streaks along the timber, paint worn off in patches where
+// tint2.w says it was painted (tint2.rgb). aux: x across the grain, y along it (metres), z
+// baked shade (1 open).
+function woodSurf(s, f, base, paint = float(0.0)) {
+  const near = float(1).sub(smoothstep(6.0, 28.0, f.dist)).toVar();
+  const g1 = texture(G.detailTex, vec2(f.aux.x.mul(1.6), f.aux.y.mul(0.11))).toVar();
+  const g2 = texture(G.detailTex, vec2(f.aux.x.mul(4.3).add(0.37), f.aux.y.mul(0.35))).toVar();
+  const streak = g1.b.mul(0.55).add(g2.b.mul(0.45)).toVar();
+  const wood = base.mul(streak.sub(0.45).mul(0.55).add(0.86)).mul(g1.a.mul(0.18).add(0.91)).toVar();
+  const keep = smoothstep(0.33, 0.57, g2.b.mul(0.7).add(g1.a.mul(0.5)).sub(0.1)).mul(paint);
+  s.albedo = mix(wood, vT2.rgb.mul(g1.a.mul(0.1).add(0.95)), keep);
+  const D = detail(f.w, s.n, 1.1, 1.2);
+  s.n = normalize(mix(s.n, D.n, near.mul(0.6))).toVar();
+  s.ao = f.aux.z.mul(streak.mul(0.25).add(0.82)).min(1.0);
+  s.spec = float(0.07).add(keep.mul(0.08)).mul(near.mul(0.6).add(0.4)); s.gloss = float(16.0);
+  s.fluor = float(0.3);
+}
+// Rope: three strands twisted, hemp-coloured. aux: x around (0..1), y along (metres).
+function ropeSurf(s, f, col) {
+  const ph = f.aux.x.mul(3.0).sub(f.aux.y.mul(9.0)).toVar();
+  const near = float(1).sub(smoothstep(4.0, 16.0, f.dist));
+  const k = mix(float(0.5), cos(ph.mul(TAU)).mul(0.5).add(0.5), near).toVar();
+  const fib = texture(G.detailTex, vec2(f.aux.x.mul(2.0), f.aux.y.mul(1.7))).b;
+  s.albedo = col.mul(k.mul(0.42).add(0.66)).mul(fib.mul(0.2).add(0.9));
+  s.ao = k.mul(0.35).add(0.65);
+  s.spec = float(0.03); s.gloss = float(10.0); s.fluor = float(0.35); s.trans = float(0.1);
+  const vv = normalize(cameraPosition.sub(f.w));
+  s.emis = sunAt(f.w.y).mul(0.05).add(G.amb.mul(0.1)).mul(pow(float(1.0).sub(abs(dot(s.n, vv))), 3.0)).mul(s.albedo);
+}
+// Brass: warm metal, a little tarnish in the hollows.
+function brassSurf(s, f, tarnish = 0.25) {
+  const D = detail(f.w, s.n, 3.0, 0.8);
+  const t = smoothstep(0.35, 0.75, D.m.add(tarnish - 0.25)).toVar();
+  s.albedo = mix(vec3(0.86, 0.62, 0.26), vec3(0.32, 0.42, 0.30), t.mul(0.55));
+  s.n = D.n;
+  s.spec = mix(float(1.1), float(0.25), t); s.gloss = mix(float(55.0), float(14.0), t); s.fluor = float(0.25);
+  // metal mirrors its surroundings: a little of the water's light from the side it faces
+  s.emis = G.amb.mul(0.12).mul(s.albedo).mul(max(s.n.y, 0.0).mul(0.6).add(0.4));
+}
+// Canvas: a cream sail, fine weave and seams; light shows through it. aux.xy: across, up (m).
+function canvasSurf(s, f, col) {
+  const near = float(1).sub(smoothstep(4.0, 20.0, f.dist));
+  const wv = texture(G.detailTex, f.aux.xy.mul(9.0)).toVar();
+  const seam = float(1).sub(smoothstep(0.0, 0.04, float(0.46).sub(abs(fract(f.aux.y.mul(1.6)).sub(0.5))))).mul(near);
+  s.albedo = col.mul(wv.b.mul(0.12).mul(near).add(0.94)).mul(float(1).sub(seam.mul(0.12)));
+  s.trans = float(0.75); s.spec = float(0.02); s.gloss = float(8.0); s.fluor = float(0.35);
+  s.ao = float(1).sub(seam.mul(0.1));
+}
+// Knitted things in two colours (tint, tint2), stitches on the shape itself.
+const yarnMat = (opts = {}) => material({
+  aux: true, fade: opts.fade,
+  vertex: (v) => { tintIn(); if (opts.vertex) opts.vertex(v); },
+  surface: (s, f) => { yarn(s, f, { color: vT.rgb, color2: vT2.rgb, stripe: opts.stripe ?? 3, scale: opts.scale ?? 18, k: 1.2 }); if (opts.surface) opts.surface(s, f); },
+});
+
+// ---- boats --------------------------------------------------------------------------------
+
+const WOOD = {
+  post: [0.42, 0.36, 0.28], deck: [0.50, 0.40, 0.28], beam: [0.38, 0.29, 0.20], hull: [0.55, 0.42, 0.28], dark: [0.30, 0.22, 0.15],
+  crate: [0.58, 0.45, 0.30], mast: [0.62, 0.48, 0.30],
+};
+const ROPE = [0.78, 0.68, 0.50];
+
+// One wooden boat: clinker planks from keel to sheer, a transom, stem, keel strip and gunwales,
+// a deck lid, a mast and boom, the mainsail (and a jib if asked), forestay and shrouds. Built in
+// its own frame (z forward, y up) and turned to `heading` (radians, 0 = +z) at (x, z). Wood goes
+// to `w`, canvas to `c`, rope to `r`. Returns where its parts are, and the vertex ranges of each.
+function boat(w, c, r, o) {
+  const L = o.len, B = o.beam, depth = o.depth ?? 0.36, sheer = o.sheer ?? 0.58;
+  const ch = Math.cos(o.heading), sh = Math.sin(o.heading);
+  const at = (x, y, z) => [o.x + x * ch + z * sh, y, o.z - x * sh + z * ch];
+  const dir = (x, y, z) => [x * ch + z * sh, y, -x * sh + z * ch];
+  const bTab = [[0, 0.80], [0.18, 0.95], [0.45, 1.0], [0.7, 0.88], [0.86, 0.6], [0.95, 0.3], [1, 0.0]];
+  const dTab = [[0, -0.12], [0.18, -0.85], [0.45, -1.0], [0.7, -0.9], [0.86, -0.55], [0.95, -0.1], [1, 0.2]];
+  const tab = (T, t) => { for (let i = 1; i < T.length; i++) if (t <= T[i][0]) { const a = T[i - 1], b = T[i], u = (t - a[0]) / (b[0] - a[0]); return a[1] + (b[1] - a[1]) * u * u * (3 - 2 * u); } return T[T.length - 1][1]; };
+  const sheerAt = (t) => sheer + 0.26 * Math.pow(t, 2.2) + 0.05 * (1 - t);
+  const keelAt = (t) => depth * tab(dTab, t);
+  const strakes = o.strakes ?? 6, lod = o.lod ? 1 : 0;
+  const v0w = w.count;
+  // the hull's two sides, the strakes' laps as steps
+  for (const side of [-1, 1]) {
+    const cols = lod ? 18 : 30, rows = strakes * (lod ? 2 : 4), base = w.count;
+    for (let rr = 0; rr <= rows; rr++) for (let cc = 0; cc <= cols; cc++) {
+      const t = cc / cols, v = rr / rows;
+      const hb = (B / 2) * tab(bTab, t), kd = keelAt(t), ys = sheerAt(t);
+      const th = v * Math.PI / 2, e1 = 0.72 + 0.45 * t * t;
+      const strake = Math.min(Math.floor(v * strakes), strakes - 1), fr = v * strakes - strake;
+      const lap = (1 - fr) * 0.022 * (1 - lod);
+      const x = side * (hb * Math.pow(Math.sin(th), e1) + lap * Math.sin(th));
+      const y = kd + (ys - kd) * (1 - Math.pow(Math.cos(th), 1.3)) - lap * Math.cos(th) * 0.6;
+      const z = (t - 0.5) * L, P = at(x, y, z);
+      // paint: the top strake in one colour, a band at the water in another, wood between
+      const top = strake === strakes - 1, low = strake === 1 || strake === 2;
+      w.paint(WOOD.hull, o.paint && top ? [...o.paint[0], 1] : o.paint && low ? [...o.paint[1], 1] : WOOD.hull);
+      w.vert(P[0], P[1], P[2], 0, 1, 0, t, v, v * B * 1.3 + strake * 0.37, z, 1, 0);
+    }
+    const W = cols + 1, i0 = w.i.length;
+    for (let rr = 0; rr < rows; rr++) for (let cc = 0; cc < cols; cc++) {
+      const a = base + rr * W + cc;
+      if (side < 0) w.i.push(a, a + 1, a + W, a + 1, a + W + 1, a + W); else w.i.push(a, a + W, a + 1, a + 1, a + W, a + W + 1);
+    }
+    w.normals(base, w.count, i0, null);
+  }
+  // a deck lid at the sheer, so nothing shows through from above
+  {
+    w.paint(WOOD.deck);
+    const base = w.count, cols = 16;
+    for (let cc = 0; cc <= cols; cc++) {
+      const t = cc / cols, hb = (B / 2) * tab(bTab, t) * 0.97, ys = sheerAt(t) - 0.05, z = (t - 0.5) * L;
+      for (const side of [-1, 1]) { const P = at(side * hb, ys, z); w.vert(P[0], P[1], P[2], 0, 1, 0, 0, 0, side * hb, z, 0.9, 0); }
+    }
+    for (let cc = 0; cc < cols; cc++) { const a = base + cc * 2; triFacing(w, a, a + 1, a + 2, 0, 1, 0); triFacing(w, a + 1, a + 3, a + 2, 0, 1, 0); }
+  }
+  // the transom
+  {
+    const hb = (B / 2) * tab(bTab, 0), kd = keelAt(0), ys = sheerAt(0), z = -L / 2, F = dir(0, 0, -1);
+    w.paint(WOOD.hull, o.paint ? [...o.paint[0], 1] : WOOD.hull);
+    const ctr = at(0, (kd + ys) / 2, z), base = w.count;
+    w.vert(ctr[0], ctr[1], ctr[2], F[0], 0, F[2], 0, 0, 0, (kd + ys) / 2, 1, 0);
+    for (let k = 0; k <= 16; k++) {
+      const a = (k / 16) * Math.PI, v = Math.abs(Math.cos(a)), side = k < 8 ? -1 : 1, th = (1 - v) * Math.PI / 2;
+      const x = side * hb * Math.pow(Math.sin(th), 0.72), y = k === 8 ? ys : kd + (ys - kd) * (1 - Math.pow(Math.cos(th), 1.3));
+      const P = at(x, y, z);
+      w.vert(P[0], P[1], P[2], F[0], 0, F[2], 0, 0, x, y, 1, 0);
+    }
+    for (let k = 0; k < 16; k++) triFacing(w, base, base + 1 + k, base + 2 + k, F[0], 0, F[2]);
+  }
+  // stem, keel strip and gunwales
+  w.paint(WOOD.dark);
+  const stem = [], keel = [];
+  for (let i = 0; i <= 8; i++) { const t = 0.86 + 0.14 * (i / 8); const P = at(0, lerp(keelAt(t), sheerAt(1) + 0.05, Math.pow(i / 8, 1.4)), (t - 0.5) * L + 0.02); stem.push([P[0], P[1], P[2], 0.055]); }
+  sweep(w, stem, 8, { caps: true, aux: (k, j, x, y, z, a) => { a[0] = (j / 8) * 0.3; a[1] = y; } });
+  for (let i = 0; i <= 10; i++) { const t = 0.02 + 0.84 * (i / 10); const P = at(0, keelAt(t) - 0.02, (t - 0.5) * L); keel.push([P[0], P[1], P[2], 0.05]); }
+  sweep(w, keel, 6, { caps: true, aux: (k, j, x, y, z, a) => { a[0] = (j / 6) * 0.3; a[1] = k * 0.3; a[2] = 0.8; } });
+  w.paint(o.paint ? o.paint[0] : WOOD.dark);
+  for (const side of [-1, 1]) {
+    const g = [];
+    for (let i = 0; i <= 14; i++) { const t = (i / 14) * 0.985; const P = at(side * (B / 2) * tab(bTab, t), sheerAt(t) + 0.02, (t - 0.5) * L); g.push([P[0], P[1], P[2], 0.045]); }
+    sweep(w, g, 6, { caps: true, aux: (k, j, x, y, z, a) => { a[0] = (j / 6) * 0.3; a[1] = k * 0.3; } });
+  }
+  // mast and boom
+  const mz = (0.5 - (o.mast ?? 0.32)) * L, mh = o.mastH ?? 5.0;
+  w.paint(WOOD.mast);
+  const m0 = at(0, keelAt(0.6) + 0.2, mz), m1 = at(0, sheerAt(0.6) + mh, mz);
+  sweep(w, [[m0[0], m0[1], m0[2], 0.07], [m1[0], (m0[1] + m1[1]) / 2, m1[2], 0.062], [m1[0], m1[1], m1[2], 0.05]], 8, { caps: true, aux: (k, j, x, y, z, a) => { a[0] = (j / 8) * 0.4; a[1] = y; } });
+  const boomY = sheerAt(0.6) + 0.55, boomEnd = -L / 2 + 0.25;
+  const b0 = at(0, boomY, mz - 0.08), b1 = at(0, boomY + 0.08, boomEnd);
+  sweep(w, [[b0[0], b0[1], b0[2], 0.045], [b1[0], b1[1], b1[2], 0.04]], 7, { caps: true, aux: (k, j, x, y, z, a) => { a[0] = (j / 7) * 0.3; a[1] = k * (mz - boomEnd); } });
+  const nw = w.count - v0w;
+  // the sails: a triangle tack - head - clew, as a grid, with a little belly
+  const v0c = c.count;
+  const sail = (A, Bp, Cp, belly) => {
+    const base = c.count, n = lod ? 6 : 10;
+    const nx = (Bp[1] - A[1]) * (Cp[2] - A[2]) - (Bp[2] - A[2]) * (Cp[1] - A[1]), ny = (Bp[2] - A[2]) * (Cp[0] - A[0]) - (Bp[0] - A[0]) * (Cp[2] - A[2]), nz = (Bp[0] - A[0]) * (Cp[1] - A[1]) - (Bp[1] - A[1]) * (Cp[0] - A[0]);
+    const nl = Math.hypot(nx, ny, nz);
+    const foot = Math.hypot(Cp[0] - A[0], Cp[1] - A[1], Cp[2] - A[2]), luff = Math.hypot(Bp[0] - A[0], Bp[1] - A[1], Bp[2] - A[2]);
+    for (let i = 0; i <= n; i++) for (let j = 0; j <= n - i; j++) {
+      const u = i / n, v = j / n;
+      const b = belly * Math.sin(Math.PI * Math.min(u / Math.max(1 - v, 1e-3), 1)) * (1 - v) * (1 - v * 0.3);
+      c.vert(A[0] + (Cp[0] - A[0]) * u + (Bp[0] - A[0]) * v + (nx / nl) * b, A[1] + (Cp[1] - A[1]) * u + (Bp[1] - A[1]) * v + (ny / nl) * b, A[2] + (Cp[2] - A[2]) * u + (Bp[2] - A[2]) * v + (nz / nl) * b,
+        nx / nl, ny / nl, nz / nl, u, v, u * foot, v * luff, 1, 0);
+    }
+    const idx = (i, j) => base + i * (n + 1) - (i * (i - 1)) / 2 + j, i0 = c.i.length;
+    for (let i = 0; i < n; i++) for (let j = 0; j < n - i; j++) {
+      c.i.push(idx(i, j), idx(i + 1, j), idx(i, j + 1));
+      if (j < n - i - 1) c.i.push(idx(i + 1, j), idx(i + 1, j + 1), idx(i, j + 1));
+    }
+    c.normals(base, c.count, i0, null);
+  };
+  const side = o.sailSide ?? 1;
+  sail(at(0, boomY + 0.1, mz - 0.1), at(0, sheerAt(0.6) + mh - 0.15, mz - 0.08), at(side * 0.12, boomY + 0.16, boomEnd + 0.1), (o.belly ?? 0.25) * side);
+  if (o.jib) sail(at(0, sheerAt(1) + 0.1, L / 2 - 0.05), at(0, sheerAt(0.6) + mh * 0.82, mz + 0.06), at(side * 0.35, sheerAt(0.7) + 0.35, mz - 0.35), 0.2 * side);
+  const ncs = c.count - v0c;
+  // rigging
+  const v0r = r.count, top = at(0, sheerAt(0.6) + mh - 0.05, mz);
+  r.paint(ROPE);
+  hangRope(r, top, at(0, sheerAt(1) + 0.06, L / 2 - 0.02), 0.011, 0.02, 10);
+  for (const sd of [-1, 1]) hangRope(r, top, at(sd * (B / 2) * 0.92, sheerAt(0.45) + 0.04, mz - 0.25), 0.011, 0.02, 10);
+  const nr = r.count - v0r;
+  return { at, sheerAt, keelAt, counts: [v0w, nw, v0c, ncs, v0r, nr] };
 }
 
-// Rusted iron: chain and anchor. k is how far the growth has crept on (0..1).
-function rustSurf(s, f, k) {
-  const near = float(1).sub(smoothstep(3.0, 14.0, f.dist)).toVar();
-  const D = detail(f.w, s.n, 2.3, 3.5), E = detail(f.w, s.n, 7.7, 3.0);
-  const scale = smoothstep(0.35, 0.7, D.m.add(E.h.mul(0.4))).toVar();
-  const col = mix(vec3(0.30, 0.14, 0.055), vec3(0.11, 0.085, 0.07), scale).toVar();
-  col.assign(mix(col, vec3(0.42, 0.22, 0.08), smoothstep(0.62, 0.8, E.m).mul(0.6)));
-  const grow = smoothstep(0.55, 0.85, s.n.y.mul(0.5).add(D.h.mul(0.6)).add(k.mul(0.5)).sub(0.3)).toVar();
-  col.assign(mix(col, vec3(0.16, 0.19, 0.08), grow.mul(0.7)));
-  s.albedo = col;
-  s.n = normalize(s.n.add(D.n.sub(s.n).mul(0.8)).add(E.n.sub(s.n).mul(near.mul(0.9)))).toVar();
-  s.ao = D.h.mul(0.5).add(0.6).min(1.0);
-  s.spec = float(0.12).mul(float(1).sub(grow)); s.gloss = float(26.0); s.fluor = float(0.3).mul(float(1).sub(grow));
+// Mark vertices of a boat so its materials can rock it about its own centre.
+function markBob(m, from, count, cx, cz, seed) {
+  if (!m.bob) m.bob = [];
+  while (m.bob.length < m.count * 4) m.bob.push(0, 0, 0, 0);
+  for (let v = from; v < from + count; v++) { m.bob[v * 4] = m.p[v * 3] - cx; m.bob[v * 4 + 1] = m.p[v * 3 + 2] - cz; m.bob[v * 4 + 2] = seed; m.bob[v * 4 + 3] = 1; }
+}
+function finishBob(m, geo) {
+  const a = m.bob || [];
+  while (a.length < m.count * 4) a.push(0, 0, 0, 0);
+  geo.setAttribute('bob', toAttr(a));
+  return geo;
+}
+// The swell rocks what is marked (but not in the shadow map, which stays put).
+function bobTSL(v) {
+  if (v.shadow) return;
+  const b = attribute('bob', 'vec4'), t = G.time.add(b.z.mul(7.0));
+  const heave = sin(t.mul(0.9)).mul(0.035).add(sin(t.mul(1.37).add(1.1)).mul(0.015));
+  const pitch = sin(t.mul(0.63).add(0.4)).mul(0.012), roll = sin(t.mul(0.51).add(2.0)).mul(0.022);
+  v.P.assign(v.P.add(vec3(0.0, heave.add(b.x.mul(roll)).add(b.y.mul(pitch)), 0.0).mul(b.w)));
 }
 
 // ---- the marina -----------------------------------------------------------------------------
 
-// The pier: a timber wharf running out over the sand to its end at z = -0.5, four rows of
-// piles across it (bents every 4 m), the camera's way down its open middle bay. Its deck
-// stands above the water: from below it is seen as its shade, and through the window.
-const PIER = { x: 4.9, rows: [-7.1, -3.05, 3.05, 7.1], bents: 7, zEnd: -0.5, bay: 4.0, top: 0.42, cap: [0.42, 0.66], str: [0.66, 0.9], plank: 0.9, pitch: 0.215 };
-const PIER_BOX = { x0: PIER.x - 7.75, x1: PIER.x + 7.75, z0: PIER.zEnd - 0.6, z1: PIER.zEnd + PIER.bay * (PIER.bents - 1) + 4.0 };
-const STRINGERS = 8;
-const strX = (k) => PIER_BOX.x0 + 0.6 + k * ((PIER_BOX.x1 - PIER_BOX.x0 - 1.2) / (STRINGERS - 1));
-// A plank gone: the same rule here and in the shader (small whole numbers, exact in floats).
-const plankGone = (i) => (i * 37 + 11) % 23 === 0 || (i * 13 + 5) % 31 === 0;
-// The boat at anchor, and the anchor itself: the boat lies to its chain, bow toward it.
-const BOAT = { x: 6.55, z: -7.2, len: 7.6, beam: 2.5 };
+// Laid out from where the camera stands at the waterline looking down -z, (vx, vz): local x is
+// to the right, local z toward the camera (what is ahead has z < 0).
+const MARINA_START = { vx: 4.59, vz: 18 };
+const MARINA_END = { vx: -3.02, vz: -396 };
+// The sailboat that rides to the anchor, and the anchor (only at the start).
+const MOORED = { x: 6.55, z: -7.2, len: 6.2, beam: 2.1 };
 const ANCHOR = { x: 4.35, z: -24.5 };
-const BOAT_F = (() => { const fx = ANCHOR.x - BOAT.x, fz = ANCHOR.z - BOAT.z, l = Math.hypot(fx, fz); return [fx / l, fz / l]; })();
+const COL = { coral: [0.92, 0.42, 0.33], cream: [0.93, 0.86, 0.72], navy: [0.20, 0.25, 0.42], teal: [0.25, 0.58, 0.60], sun: [0.96, 0.72, 0.30] };
 
-// Light thrown back up by the sunlit sand: what lights the undersides of things in the
-// shallows (the shared lighting has only the sky for them). up: metres above the sand;
-// shade: how much of the sand below is in the pier's shade.
-function sandBounce(s, f, up, shade) {
-  const sand = sunAt(f.w.y.sub(up)).mul(0.36).mul(exp(SIG.mul(up).negate())).mul(float(1).sub(shade.mul(0.7)));
-  const facing = max(s.n.y.negate(), 0.0).mul(0.75).add(float(1).sub(abs(s.n.y)).mul(0.3));
-  return s.albedo.mul(sand).mul(facing).mul(s.ao.mul(0.5).add(0.5));
-}
-// How much of the sky the deck hides from a point under it, soft at its edges.
-const underDeck = (w) => {
-  const inX = smoothstep(PIER_BOX.x0 - 1.5, PIER_BOX.x0 + 2.0, w.x).mul(float(1).sub(smoothstep(PIER_BOX.x1 - 2.0, PIER_BOX.x1 + 1.5, w.x)));
-  const inZ = smoothstep(PIER_BOX.z0 - 1.0, PIER_BOX.z0 + 2.5, w.z).mul(float(1).sub(smoothstep(PIER_BOX.z1 - 2.0, PIER_BOX.z1 + 1.5, w.z)));
-  return inX.mul(inZ);
-};
-
-function buildPier(ctx, q, rng) {
-  const m = new Mesh(true);
-  const top = PIER.top, piles = [];
-  for (let b = 0; b < PIER.bents; b++) {
-    const z = PIER.zEnd + b * PIER.bay;
-    for (let r = 0; r < PIER.rows.length; r++) {
-      const x = PIER.x + PIER.rows[r] + rng.range(-0.08, 0.08), zz = z + rng.range(-0.07, 0.07);
-      const g = groundY(x, zz), rad = rng.range(0.16, 0.19), lean = [rng.range(-0.018, 0.018), rng.range(-0.018, 0.018)];
-      piles.push([x, zz, g, rad]);
-      const pts = [], N = 13, y0 = g - 0.9;
-      for (let k = 0; k <= N; k++) {
-        const y = y0 + (top - y0) * (k / N), t = (y - g);
-        pts.push([x + lean[0] * t, y, zz + lean[1] * t, rad * (1.07 - 0.07 * k / N)]);
-      }
-      const seed = rng() * 50;
-      sweep(m, pts, 12, {
-        radius: (k, j, ang) => 1 + 0.05 * noise3(Math.cos(ang) * 1.3 + seed, k * 0.45, Math.sin(ang) * 1.3) + 0.025 * Math.sin(ang * 3 + seed),
-        aux: (k, j, px, py, pz, o) => { o[0] = j / 12; o[1] = py + seed * 7.3; o[2] = py - g; o[3] = 0; },
-      });
-      // mussels and barnacles clumped at the foot
-      for (let c = 0; c < 5; c++) {
-        const ang = rng() * TAU, hgt = rng.range(-0.05, 0.75) * rng(), rr = rng.range(0.07, 0.15);
-        const cx = x + Math.cos(ang) * (rad + rr * 0.3), cz = zz + Math.sin(ang) * (rad + rr * 0.3);
-        const s2 = rng() * 9, v0 = m.count;
-        blob(m, cx, g + hgt, cz, (dx, dy, dz) => rr * (0.8 + 0.35 * noise3(dx * 3 + s2, dy * 3, dz * 3)) * (dy < 0 ? 0.7 : 1), 3);
-        for (let v = v0; v < m.count; v++) { m.a[v * 4] = m.p[v * 3] * 3.1; m.a[v * 4 + 1] = m.p[v * 3 + 1] * 3.1; m.a[v * 4 + 2] = m.p[v * 3 + 1] - g; m.a[v * 4 + 3] = 1; }
+function buildMarina(ctx, q, vp, opts) {
+  const rng = makeRng(opts.seed);
+  const { vx, vz } = vp;
+  const X = (x) => vx + x, Z = (z) => vz + z;
+  const deep = !!opts.deep;
+  const w = new TMesh(), r = new TMesh(), y = new TMesh(), b = new TMesh(), c = new TMesh();
+  const deckY = 0.8, front = -6.5, back = -9.3;
+  const piers = [[-17.5, -3.6], [4.1, 19]];
+  const posts = [];
+  // the piers: posts, fascia beams, joists, planks
+  for (const [x0, x1] of piers) {
+    const left = x1 < 0, n = Math.round((x1 - x0) / 2.3);
+    for (let i = 0; i <= n; i++) {
+      const lx = left ? x1 - 0.2 - i * 2.3 : x0 + 0.2 + i * 2.3;
+      if (lx < x0 - 0.1 || lx > x1 + 0.1) continue;
+      for (const [lz, topY, isFront] of [[front + 0.05, 1.68, true], [back - 0.05, 0.98, false]]) {
+        const px = X(lx + rng.range(-0.05, 0.05)), pz = Z(lz + rng.range(-0.04, 0.04));
+        const g = deep ? -26 : groundY(px, pz) - 0.8;
+        const hw = rng.range(0.16, 0.19), tp = topY + rng.range(-0.06, 0.08);
+        w.paint(WOOD.post.map((v) => v * rng.range(0.85, 1.12)));
+        rbox(w, [px, (g + tp) / 2, pz], [1, 0, 0], [0, 1, 0], [0, 0, 1], [hw, (tp - g) / 2, hw * rng.range(0.92, 1.05)], 0.06, [1, Math.round((tp - g) / 1.2), 1],
+          (lx2, ly, lz2, o) => { o[0] = lx2 + lz2 * 1.37 + i * 0.71; o[1] = ly; o[2] = 1; });
+        posts.push({ x: px, z: pz, hw, top: tp, front: isFront, left });
+        if (isFront) { r.paint(ROPE); lashing(r, [px, pz], hw, deckY + 0.12, 3); lashing(r, [px, pz], hw, tp - 0.25, 2); }
       }
     }
-  }
-  // bracing: X in the outer bays of every other bent and along the outer rows, ties across
-  // every bent (over the camera's way too) just under the water, walers along the rows
-  const T = 0.085, W = 0.26;
-  const pile = (b, r) => piles[b * PIER.rows.length + r];
-  const hfn = (x, y, z) => y - groundY(x, z);
-  const yTop = -0.42;
-  let n = 0;
-  for (let b = 0; b < PIER.bents; b++) {
-    const A0 = pile(b, 0), A3 = pile(b, 3);
-    const offT = Math.max(A0[3], A3[3]) + T * 0.5 + 0.015;
-    beam(m, [A0[0] - 0.3, yTop, A0[1] + offT], [A3[0] + 0.3, yTop, A3[1] + offT + 0.02], W, T, [0, 0, 1], n++, hfn);
-    if (b % 2) continue;
-    for (const [r0, r1] of [[0, 1], [2, 3]]) {
-      const A = pile(b, r0), B = pile(b, r1);
-      const yb = Math.max(A[2], B[2]) + 0.8;
-      const off = -(Math.max(A[3], B[3]) + T * 0.5 + 0.015);
-      beam(m, [A[0], yTop - 0.15, A[1] + off], [B[0], yb, B[1] + off], W, T, [0, 0, 1], n++, hfn);
-      beam(m, [A[0], yb, A[1] + off - T - 0.01], [B[0], yTop - 0.15, B[1] + off - T - 0.01], W, T, [0, 0, 1], n++, hfn);
+    w.paint(WOOD.beam);
+    for (const lz of [front + 0.27, back - 0.27]) timber(w, [X(x0), deckY - 0.15, Z(lz)], [X(x1), deckY - 0.15, Z(lz)], 0.14, 0.3, [0, 1, 0], 0.035);
+    for (let lx = x0 + 0.6; lx < x1 - 0.3; lx += 1.15) timber(w, [X(lx), deckY - 0.17, Z(back - 0.1)], [X(lx), deckY - 0.17, Z(front + 0.1)], 0.12, 0.2, [0, 1, 0], 0.03);
+    for (let lx = x0 + 0.12, k = 0; lx < x1 - 0.1; lx += 0.235, k++) {
+      w.paint(WOOD.deck.map((v) => v * rng.range(0.86, 1.1)));
+      const zj = rng.range(-0.04, 0.04), kk = k;
+      timber(w, [X(lx), deckY - 0.03, Z(back - 0.32 + zj)], [X(lx), deckY - 0.03, Z(front + 0.32 + zj)], 0.215, 0.065, [0, 1, 0], 0.02, (a, bb, cc, o) => { o[0] = a + kk * 0.53; o[1] = cc; o[2] = 1; }, 3.0);
     }
   }
-  for (let b = 0; b < PIER.bents - 1; b++) {
-    for (const r of [0, 3]) {
-      const A = pile(b, r), B = pile(b + 1, r), side = r === 0 ? -1 : 1;
-      const off = side * (Math.max(A[3], B[3]) + T * 0.5 + 0.015);
-      const yb = Math.max(A[2], B[2]) + 1.0;
-      if (b % 2 === 0) beam(m, [A[0] + off, yTop - 0.1, A[1]], [B[0] + off, yb, B[1]], W, T, [1, 0, 0], n++, hfn);
-      else beam(m, [A[0] + off, yb, A[1]], [B[0] + off, yTop - 0.1, B[1]], W, T, [1, 0, 0], n++, hfn);
-    }
-    for (let r = 0; r < 4; r++) {
-      const A = pile(b, r), B = pile(b + 1, r), side = r < 2 ? -1 : 1;
-      const off = side * (Math.max(A[3], B[3]) + T * 1.5 + 0.03);
-      beam(m, [A[0] + off, -0.62, A[1] - 0.3], [B[0] + off, -0.62, B[1] + 0.3], W * 1.1, T, [1, 0, 0], n++, hfn);
-    }
-  }
-  const mat = material({
-    aux: true,
-    surface: (s, f) => {
-      const lump = step(0.5, f.aux.w).toVar(), shade = underDeck(f.w).toVar();
-      woodSurf(s, f, { shade });
-      // the clumps at the foot: shells and barnacles all over
-      const D = detail(f.w, f.n, 5.3, 4.0);
-      s.albedo = mix(s.albedo, mix(vec3(0.05, 0.055, 0.075), vec3(0.55, 0.53, 0.46), smoothstep(0.45, 0.62, D.h)), lump);
-      s.spec = mix(s.spec, float(0.2), lump);
-      s.emis = sandBounce(s, f, max(f.aux.z, 0.2), shade);
-    },
-  });
-  addMesh(ctx, sphereOf(m.build(), 0.5), mat, 110);
-
-  // The deck, above the water: never seen directly (the surface hides it), but it throws its
-  // shade on the sand and through the water. Planks across, a few gone; stringers; caps.
-  const d = new Mesh(false), up = [0, 1, 0];
-  for (let b = 0; b < PIER.bents; b++) {
-    const z = PIER.zEnd + b * PIER.bay;
-    beamPlain(d, [PIER_BOX.x0 + 0.3, (PIER.cap[0] + PIER.cap[1]) / 2, z], [PIER_BOX.x1 - 0.3, (PIER.cap[0] + PIER.cap[1]) / 2, z], 0.3, PIER.cap[1] - PIER.cap[0], up);
-  }
-  for (let k = 0; k < STRINGERS; k++) beamPlain(d, [strX(k), (PIER.str[0] + PIER.str[1]) / 2, PIER_BOX.z0], [strX(k), (PIER.str[0] + PIER.str[1]) / 2, PIER_BOX.z1], 0.1, PIER.str[1] - PIER.str[0], up);
-  for (let i = 0, z = PIER_BOX.z0; z < PIER_BOX.z1; i++, z += PIER.pitch) {
-    if (plankGone(i)) continue;
-    beamPlain(d, [PIER_BOX.x0, PIER.plank + 0.025, z + 0.1], [PIER_BOX.x1, PIER.plank + 0.025, z + 0.1], 0.2, 0.05, up);
-  }
-  const deck = new ThreeMesh(sphereOf(d.build(), 0.5), material({ surface: (s) => { s.albedo = vec3(0.1, 0.08, 0.06); } }));
-  deck.matrixAutoUpdate = false;
-  deck.updateMatrixWorld(true);
-  deck.visible = false;               // drawn only into the shadow map
-  ctx.scene.add(deck);
-  return { piles };
-}
-// A plain box beam (no aux), for what is only ever drawn into the shadow map.
-function beamPlain(m, a, b, w, h, upv) {
-  const save = m.a; m.a = null; beam(m, a, b, w, h, upv); m.a = save;
-}
-
-// What is above the water, seen from below through the window in the surface: the deck,
-// its caps and stringers, the tops of the piles, the boat's topsides. A sheet just under
-// the surface around the camera: each pixel follows its ray out through the wavy surface
-// (the same waves the surface itself draws) and paints whatever the ray meets in the air,
-// fading at the window's rim exactly as the sky does. Elsewhere it leaves the surface alone.
-function buildWindow(ctx) {
-  const SIZE = 18;
-  const geo = new (Mesh)(false);
-  geo.vert(-SIZE, 0, -SIZE, 0, -1, 0); geo.vert(SIZE, 0, -SIZE, 0, -1, 0); geo.vert(SIZE, 0, SIZE, 0, -1, 0); geo.vert(-SIZE, 0, SIZE, 0, -1, 0);
-  geo.i.push(0, 1, 2, 0, 2, 3);
-  const g = geo.build();
-  g.boundingSphere = new Sphere(V(0, 0, 0), SIZE * 1.5);
-  const [bfx, bfz] = BOAT_F;
-  const mat = material({
-    transparent: true, depthWrite: false, twoSided: true,
-    raw: (f) => {
-      const toP = f.w.sub(cameraPosition);
-      const dist = length(toP);
-      const v = toP.div(dist).toVar();
-      // the surface's own slope, as sea.js reads it
-      const fl = float(1).sub(smoothstep(60.0, 260.0, dist));
-      const sl = texture(G.waterTex, f.w.xz.div(13.0)).ba.sub(0.5)
-        .add(texture(G.waterTex, f.w.zx.div(4.7).add(0.2)).ba.sub(0.5).mul(0.7))
-        .add(texture(G.waterTex, f.w.xz.div(37.0).add(0.6)).ba.sub(0.5).mul(0.8)).mul(fl.mul(2.0)).toVar();
-      const n = normalize(vec3(sl.x.mul(-0.8), -1.0, sl.y.mul(-0.8))).toVar();
-      const ci = clamp(dot(v, n.negate()), 0.0, 1.0);
-      const k = float(1).sub(float(1.769).mul(float(1).sub(ci.mul(ci)))).toVar();
-      const win = smoothstep(0.0, 0.22, k);
-      const fres = pow(float(1).sub(sqrt(max(k, 0.0))), 5.0);
-      const rd = refract(v, n, 1.333).toVar();
-      const ry = max(rd.y, 0.03).toVar();
-      const run = rd.xz.div(ry).toVar();                 // horizontal metres per metre of height
-      const S = f.w.xz.toVar();
-      const at = (h) => S.add(run.mul(h));
-      // the planks' underside, with a gap between each and some planks gone
-      const pd = at(PIER.plank).toVar();
-      const inDeck = smoothstep(PIER_BOX.x0 - 0.02, PIER_BOX.x0 + 0.02, pd.x).mul(float(1).sub(smoothstep(PIER_BOX.x1 - 0.02, PIER_BOX.x1 + 0.02, pd.x)))
-        .mul(smoothstep(PIER_BOX.z0 - 0.02, PIER_BOX.z0 + 0.02, pd.y)).mul(float(1).sub(smoothstep(PIER_BOX.z1 - 0.02, PIER_BOX.z1 + 0.02, pd.y))).toVar();
-      const pz = pd.y.sub(PIER_BOX.z0).div(PIER.pitch).toVar();
-      const idx = floor(pz);
-      const fw = max(fwidth(pz), 0.002).toVar();
-      const gz = fract(pz);
-      const plank = smoothstep(0.0, fw.mul(1.5), gz).mul(float(1).sub(smoothstep(0.93 - 0.0, float(0.93).add(fw.mul(1.5)).min(1.0), gz))).toVar();
-      const ra = idx.mul(37).add(11).mod(23), rb = idx.mul(13).add(5).mod(31);
-      const gone = step(ra, 0.5).add(step(22.5, ra)).add(step(rb, 0.5)).add(step(30.5, rb)).min(1.0);
-      const planks = inDeck.mul(mix(plank.mul(float(1).sub(gone)), float(0.86), smoothstep(0.12, 0.45, fw)));
-      // the caps (across, at each bent) and the stringers (along): whatever the ray crosses
-      // between their bottoms and tops
-      const ca = at(PIER.cap[0]), cb = at(PIER.cap[1]);
-      const zc = PIER.zEnd, bay = PIER.bay;
-      const cz0 = min(ca.y, cb.y).sub(zc).div(bay), cz1 = max(ca.y, cb.y).sub(zc).div(bay);
-      const capHit = step(floor(cz0.add(0.0375)), floor(cz1.add(0.0375)).sub(0.5)).add(step(fract(cz0.add(0.0375)), 0.075)).min(1.0)
-        .mul(step(PIER_BOX.x0 + 0.3, ca.x)).mul(step(ca.x, PIER_BOX.x1 - 0.3)).mul(step(zc - 0.15, ca.y)).mul(step(ca.y, zc + bay * (PIER.bents - 1) + 0.15));
-      const sa = at(PIER.str[0]), sb = at(PIER.str[1]);
-      const sp = (PIER_BOX.x1 - PIER_BOX.x0 - 1.2) / (STRINGERS - 1), sx0 = PIER_BOX.x0 + 0.6;
-      const k0 = min(sa.x, sb.x).sub(sx0).div(sp).add(0.024), k1 = max(sa.x, sb.x).sub(sx0).div(sp).add(0.024);
-      const strHit = step(floor(k0), floor(k1).sub(0.5)).add(step(fract(k0), 0.048)).min(1.0)
-        .mul(step(-0.5, k0)).mul(step(k1, STRINGERS - 0.5)).mul(step(PIER_BOX.z0, sa.y)).mul(step(sa.y, PIER_BOX.z1));
-      // the piles' tops, between the water and the caps: the nearest pile to the ray's path
-      const pa = S, pb = at(PIER.top);
-      const pm = pa.add(pb).mul(0.5);
-      const bi = clamp(floor(pm.y.sub(zc).div(bay).add(0.5)), 0.0, PIER.bents - 1).toVar();
-      const pzc = bi.mul(bay).add(zc);
-      const rowX = (r) => float(PIER.x + PIER.rows[r]);
-      const segD = (cx) => {
-        const c = vec2(cx, pzc), ab = pb.sub(pa);
-        const t = clamp(dot(c.sub(pa), ab).div(max(dot(ab, ab), 1e-4)), 0.0, 1.0);
-        return length(pa.add(ab.mul(t)).sub(c));
-      };
-      const dp = min(min(segD(rowX(0)), segD(rowX(1))), min(segD(rowX(2)), segD(rowX(3))));
-      const pileHit = float(1).sub(smoothstep(0.15, 0.2, dp));
-      // the boat's topsides: an ellipse round her waterline, from the water to her sheer
-      const bc = vec2(BOAT.x, BOAT.z), bfw = vec2(bfx, bfz), bsd = vec2(bfz, -bfx);
-      const toB = (p) => { const d = p.sub(bc); return vec2(dot(d, bsd).div(BOAT.beam * 0.5), dot(d, bfw).div(BOAT.len * 0.47)); };
-      const ea = toB(S), eb = toB(at(0.75));
-      const eab = eb.sub(ea);
-      const et = clamp(dot(ea.negate(), eab).div(max(dot(eab, eab), 1e-5)), 0.0, 1.0);
-      const boatHit = float(1).sub(smoothstep(0.96, 1.0, length(ea.add(eab.mul(et)))));
-      // what the ray meets, nearest first: piles, caps, stringers, planks; the boat apart
-      const wood = max(max(pileHit, capHit), max(strHit, planks)).toVar();
-      const woodCol = mix(vec3(0.055, 0.05, 0.045), vec3(0.085, 0.075, 0.06), planks.mul(float(1).sub(max(capHit, strHit)))).mul(G.light.x);
-      const boatCol = vec3(0.42, 0.45, 0.47).mul(G.light.x);
-      const cover = max(wood, boatHit).toVar();
-      const col = mix(woodCol, boatCol, boatHit.mul(float(1).sub(wood)));
-      const refl = scatterFrom(float(0.0), float(1.0), reflect(v, n), float(300.0)).mul(1.15);
-      return { color: vec3(inDeck, fract(pd.y.mul(0.25)), win), alpha: float(1.0) };
-    },
-  });
-  const mesh = new ThreeMesh(g, mat);
-  mesh.frustumCulled = false;
-  mesh.matrixAutoUpdate = false;
-  mesh.renderOrder = 2;
-  ctx.scene.add(mesh);
-  return {
-    follow(cam) {
-      const on = cam.position.z > -30 && cam.position.y > -14;
-      mesh.visible = on;
-      if (!on) return;
-      mesh.position.set(cam.position.x, -0.012, cam.position.z);
-      mesh.updateMatrix();
-      mesh.updateMatrixWorld(true);
-    },
+  // brass: bolts in the fascia at each front post, cleats on the deck's edge
+  for (const p of posts) if (p.front) for (const dy of [-0.07, 0.07]) blob(b, p.x, deckY - 0.15 + dy, Z(front + 0.27) + 0.075, (dx, dyy, dz) => (dz > 0 ? 0.03 : 0.012), 2);
+  const cleat = (x, z) => {
+    timber(b, [x - 0.13, deckY + 0.08, z], [x + 0.13, deckY + 0.08, z], 0.06, 0.05, [0, 1, 0], 0.024);
+    for (const sx of [-0.05, 0.05]) timber(b, [x + sx, deckY - 0.01, z], [x + sx, deckY + 0.07, z], 0.05, 0.05, [0, 0, 1], 0.02);
   };
-}
-
-// The boat: a small sloop seen from below. Its frame: x to starboard, y up, z to the bow.
-function buildBoat(ctx, rng) {
-  const L = BOAT.len, B = BOAT.beam;
-  // the hull's lines at a station t (0 transom, 1 stem): half-beam at the sheer, the sheer's
-  // height, and how deep the canoe body is at the centre line
-  const bTab = [[0, 0.84], [0.2, 0.97], [0.45, 1.0], [0.7, 0.9], [0.85, 0.64], [0.95, 0.32], [1, 0.0]];
-  const dTab = [[0, -0.07], [0.15, -0.27], [0.4, -0.44], [0.6, -0.42], [0.8, -0.27], [0.92, -0.1], [1, 0.12]];
-  const tab = (T, t) => { for (let i = 1; i < T.length; i++) if (t <= T[i][0]) { const a = T[i - 1], b = T[i], u = (t - a[0]) / (b[0] - a[0]); return a[1] + (b[1] - a[1]) * u * u * (3 - 2 * u); } return T[T.length - 1][1]; };
-  const m = new Mesh(true);
-  const sheer = (t) => 0.66 + 0.22 * t * t;
-  const zOf = (t) => (t - 0.5) * L + (t > 0.9 ? (t - 0.9) * 2.2 : 0);
-  // both sides of the hull, keel line to sheer
-  for (const side of [-1, 1]) {
-    m.grid(36, 14, (s, v, o) => {
-      const t = s, hb = (B / 2) * tab(bTab, t), dk = tab(dTab, t), ys = sheer(t);
-      const th = v * Math.PI / 2, e1 = 0.62 + 0.55 * t * t;
-      const x = side * hb * Math.pow(Math.sin(th), e1);
-      const y = dk + (ys - dk) * (1 - Math.pow(Math.cos(th), 1.25));
-      o[0] = x; o[1] = y; o[2] = zOf(t);
-      o[3] = t; o[4] = v; o[5] = 0; o[6] = 0;
-    }, false, side > 0);
-  }
-  // the transom
+  cleat(X(-4.6), Z(front + 0.38)); cleat(X(5.2), Z(front + 0.38)); cleat(X(-9.2), Z(front + 0.38)); cleat(X(9.8), Z(front + 0.38));
+  // on the decks: coils of rope, a crate, a net with floats
+  r.paint(ROPE);
+  coil(r, [X(-7.0), deckY, Z(-7.7)], 0.34, 0.035, 4.2);
+  coil(r, [X(10.9), deckY, Z(-7.6)], 0.4, 0.038, 4.6);
+  coil(r, [X(15.4), deckY, Z(-8.1)], 0.3, 0.033, 3.4);
+  w.paint(WOOD.crate);
   {
-    const v0 = m.count, hb = (B / 2) * tab(bTab, 0), dk = tab(dTab, 0), ys = sheer(0);
-    for (let k = 0; k <= 10; k++) {
-      const th = (k / 10) * Math.PI / 2;
-      const x = hb * Math.pow(Math.sin(th), 0.62), y = dk + (ys - dk) * (1 - Math.pow(Math.cos(th), 1.25));
-      m.vert(x, y, -L / 2, 0, 0, -1, 0, 0, 0, 0, 0, 0); m.vert(-x, y, -L / 2, 0, 0, -1, 0, 0, 0, 0, 0, 0);
-    }
-    for (let k = 0; k < 10; k++) { const a = v0 + k * 2; m.i.push(a, a + 1, a + 3, a, a + 3, a + 2); }
+    const cx = X(-11.2), cz = Z(-7.9), cy = deckY;
+    for (const sz of [-1, 1]) for (let k = 0; k < 3; k++) timber(w, [cx - 0.42, cy + 0.11 + k * 0.19, cz + sz * 0.3], [cx + 0.42, cy + 0.11 + k * 0.19, cz + sz * 0.3], 0.04, 0.16, [0, 1, 0], 0.015);
+    for (const sx of [-1, 1]) for (let k = 0; k < 3; k++) timber(w, [cx + sx * 0.4, cy + 0.11 + k * 0.19, cz - 0.3], [cx + sx * 0.4, cy + 0.11 + k * 0.19, cz + 0.3], 0.04, 0.16, [0, 1, 0], 0.015);
+    for (const sx of [-1, 1]) for (const sz of [-1, 1]) timber(w, [cx + sx * 0.42, cy, cz + sz * 0.32], [cx + sx * 0.42, cy + 0.6, cz + sz * 0.32], 0.06, 0.06, [1, 0, 0], 0.02);
   }
-  // keel and rudder: foils hung under the hull, the keel with a bulb at its tip
-  const foil = (zc, chord0, chord1, y0, y1, sweepBack, thick, kind) => {
-    const v0 = m.count, rows = 8, cols = 16;
-    for (let r = 0; r <= rows; r++) {
-      const u = r / rows, y = y0 + (y1 - y0) * u, ch = chord0 + (chord1 - chord0) * u, zl = zc - sweepBack * u;
-      for (let c = 0; c <= cols; c++) {
-        const a = (c / cols) * TAU, xc = 0.5 - 0.5 * Math.cos(a);
-        const half = 5 * thick * (0.2969 * Math.sqrt(xc) - 0.126 * xc - 0.3516 * xc * xc + 0.2843 * xc ** 3 - 0.1036 * xc ** 4) * ch;
-        m.vert(Math.sin(a) >= 0 ? half : -half, y, zl + ch * 0.3 - xc * ch, 0, 0, 0, 0, 0, 0.5, u, kind, 0);
+  // the dinghy, bow to the camera, between the piers
+  const dinghy = { x: X(2.35), z: Z(-8.9), len: 4.3, beam: 1.72, heading: 0, depth: 0.36, sheer: 0.5, mastH: 4.6, mast: 0.25, paint: [COL.cream, [0.62, 0.22, 0.16]], sailSide: -1, belly: 0.18 };
+  const db = boat(w, c, r, dinghy);
+  for (const [m, from, n] of [[w, db.counts[0], db.counts[1]], [c, db.counts[2], db.counts[3]], [r, db.counts[4], db.counts[5]]]) markBob(m, from, n, dinghy.x, dinghy.z, 0.3);
+  {
+    const v0 = r.count;
+    r.paint(ROPE);
+    hangRope(r, db.at(0.12, db.sheerAt(0.97) + 0.04, 2.0), [X(4.3), deckY + 0.15, Z(front + 0.05)], 0.018, 0.28, 14);
+    hangRope(r, db.at(-0.2, db.sheerAt(0.05) + 0.05, -2.05), [X(-3.8), deckY + 0.12, Z(back - 0.05)], 0.018, 0.45, 14);
+    markBob(r, v0, r.count - v0, dinghy.x, dinghy.z, 0.3);
+  }
+  // fenders: crochet buoys on short ropes, half in the water
+  const fender = (x, z, hang, col, col2, sx = 0.2, sy = 0.31) => {
+    const v0 = y.count;
+    y.paint(col, col2);
+    blob(y, x, hang, z, (dx, dy, dz) => 1 / Math.sqrt((dx / sx) ** 2 + (dy / sy) ** 2 + (dz / sx) ** 2), 9);
+    return v0;
+  };
+  for (const [lx, col, col2] of [[-3.8, COL.coral, COL.cream], [-6.1, COL.cream, COL.coral], [-10.7, COL.coral, COL.cream], [6.6, COL.coral, COL.cream], [13.5, COL.teal, COL.cream]]) {
+    const p = posts.find((pp) => pp.front && Math.abs(pp.x - X(lx)) < 0.35);
+    if (!p) continue;
+    const fz = p.z + 0.44;
+    fender(p.x, fz, 0.18, col, col2);
+    r.paint(ROPE);
+    hangRope(r, [p.x, deckY + 0.12, p.z + p.hw + 0.03], [p.x, 0.5, fz], 0.016, 0.05, 6);
+  }
+  {
+    const fx = db.at(0.95, 0.3, 1.25), v0 = fender(fx[0], fx[2], 0.28, COL.navy, COL.navy, 0.15, 0.24);
+    markBob(y, v0, y.count - v0, dinghy.x, dinghy.z, 0.3);
+    const v1 = r.count;
+    r.paint(ROPE);
+    hangRope(r, db.at(0.85, db.sheerAt(0.8) + 0.03, 1.2), [fx[0], 0.52, fx[2]], 0.014, 0.03, 6);
+    markBob(r, v1, r.count - v1, dinghy.x, dinghy.z, 0.3);
+  }
+  // the buoy on its coil of rope, on the left pier, tilted where it rests
+  {
+    const cx = X(-4.75), cz = Z(-7.25);
+    r.paint([0.80, 0.70, 0.52]);
+    coil(r, [cx, deckY, cz], 0.36, 0.045, 4.5);
+    const v0 = y.count, ang = 0.55, ca = Math.cos(ang), sa = Math.sin(ang);
+    y.paint(COL.coral, COL.cream);
+    blob(y, 0, 0, 0, (dx, dy, dz) => 1 / Math.sqrt((dx / 0.26) ** 2 + (dy / 0.4) ** 2 + (dz / 0.26) ** 2), 10);
+    for (let v = v0; v < y.count; v++) {
+      const px = y.p[v * 3], py = y.p[v * 3 + 1], pz = y.p[v * 3 + 2], nx = y.n[v * 3], ny = y.n[v * 3 + 1];
+      y.p[v * 3] = cx + px * ca - py * sa; y.p[v * 3 + 1] = deckY + 0.46 + px * sa + py * ca; y.p[v * 3 + 2] = cz + pz;
+      y.n[v * 3] = nx * ca - ny * sa; y.n[v * 3 + 1] = nx * sa + ny * ca;
+    }
+  }
+  // a crochet net heaped on the right pier, with two floats
+  y.paint([0.80, 0.76, 0.62], [0.62, 0.70, 0.62]);
+  blob(y, X(14.2), deckY + 0.12, Z(-7.9), (dx, dy, dz) => (0.55 + 0.12 * noise3(dx * 2.5, dy * 2.5, dz * 2.5)) * (dy < 0 ? 0.25 : 0.62 + 0.25 * dy), 10);
+  y.paint(COL.sun); blob(y, X(13.8), deckY + 0.55, Z(-7.7), () => 0.13, 6);
+  y.paint(COL.coral); blob(y, X(14.6), deckY + 0.5, Z(-8.1), () => 0.12, 6);
+  // sailboats beyond, and at the start the one that rides to the anchor
+  const far = [
+    { x: X(-8.8), z: Z(-17.5), len: 5.6, beam: 1.9, heading: Math.PI / 2 + 0.25, paint: [[0.92, 0.90, 0.84], [0.30, 0.45, 0.62]], mastH: 6.2, jib: true, lod: 1, seed: 0.7 },
+    { x: X(14.5), z: Z(-24), len: 6.0, beam: 2.0, heading: -Math.PI / 2 + 0.35, paint: [[0.90, 0.86, 0.78], [0.66, 0.24, 0.20]], mastH: 6.8, jib: true, lod: 1, seed: 1.3 },
+    { x: X(21), z: Z(-33), len: 5.2, beam: 1.8, heading: -Math.PI / 2 - 0.2, paint: [[0.92, 0.90, 0.86], [0.28, 0.50, 0.50]], mastH: 6.0, jib: true, lod: 1, seed: 2.1, sailSide: -1 },
+  ];
+  let moored = null;
+  if (opts.anchor) {
+    moored = { x: MOORED.x, z: MOORED.z, len: MOORED.len, beam: MOORED.beam, heading: Math.atan2(ANCHOR.x - MOORED.x, ANCHOR.z - MOORED.z), paint: [[0.90, 0.88, 0.82], [0.24, 0.36, 0.55]], mastH: 7.0, jib: true, seed: 1.9, depth: 0.5, sheer: 0.62 };
+    far.push(moored);
+  }
+  for (const f of far) {
+    const fb = boat(w, c, r, f);
+    for (const [m, from, n] of [[w, fb.counts[0], fb.counts[1]], [c, fb.counts[2], fb.counts[3]], [r, fb.counts[4], fb.counts[5]]]) markBob(m, from, n, f.x, f.z, f.seed);
+    f.at = fb.at; f.sheerAt = fb.sheerAt;
+  }
+  // string lights along the front of both piers (lit at the end of the dive)
+  let bulbs = null;
+  if (opts.lights) {
+    bulbs = [];
+    for (const [x0, x1] of piers) {
+      const fronts = posts.filter((p) => p.front && p.x >= X(x0) - 0.5 && p.x <= X(x1) + 0.5).sort((a, bb) => a.x - bb.x);
+      for (let i = 0; i < fronts.length - 1; i++) {
+        const A = [fronts[i].x, deckY + 0.42, fronts[i].z + 0.22], B = [fronts[i + 1].x, deckY + 0.42, fronts[i + 1].z + 0.22];
+        r.paint([0.2, 0.18, 0.15]);
+        hangRope(r, A, B, 0.006, 0.22, 10);
+        for (let k = 1; k <= 4; k++) { const t = k / 5; bulbs.push(lerp(A[0], B[0], t), A[1] - 0.22 * 4 * t * (1 - t) - 0.05, lerp(A[2], B[2], t)); }
       }
     }
-    const w = cols + 1, i0 = m.i.length;
-    for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) { const a = v0 + r * w + c; m.i.push(a, a + w, a + 1, a + 1, a + w, a + w + 1); }
-    m.normals(v0, m.count, i0, null);
-  };
-  foil(0.1, 1.05, 0.62, -0.3, -1.42, 0.32, 0.13, 1);
-  foil(-L / 2 + 0.75, 0.46, 0.32, -0.12, -1.05, 0.12, 0.12, 2);
-  // the bulb: a short torpedo under the keel's tip, blunt ahead and fining aft
-  blob(m, 0, -1.47, -0.36, (x, y, z) => {
-    const a = 0.12, b = 0.1, c = z > 0 ? 0.36 : 0.5;
-    return 1 / Math.sqrt((x / a) ** 2 + (y / b) ** 2 + (z / c) ** 2);
-  }, 5, (x, y, z, o) => { o[0] = 0.5; o[1] = 1; o[2] = 1; o[3] = 0; });
-  const geo = m.build();
-  // place her: bow toward the anchor. Her frame (x to port, y up, z to the bow) is right-handed.
-  const fx = ANCHOR.x - BOAT.x, fz = ANCHOR.z - BOAT.z, fl = Math.hypot(fx, fz);
-  const F = V(fx / fl, 0, fz / fl), P = V(F.z, 0, -F.x);
-  const pos = geo.getAttribute('position'), nor = geo.getAttribute('normal');
-  for (let v = 0; v < pos.count; v++) {
-    const x = pos.getX(v), y = pos.getY(v), z = pos.getZ(v);
-    pos.setXYZ(v, BOAT.x + x * P.x + z * F.x, y, BOAT.z + x * P.z + z * F.z);
-    const nx = nor.getX(v), ny = nor.getY(v), nz = nor.getZ(v);
-    nor.setXYZ(v, nx * P.x + nz * F.x, ny, nx * P.z + nz * F.z);
   }
-  sphereOf(geo, 0.4);
-  const c = V(BOAT.x, -0.2, BOAT.z);
-  const mat = material({
-    aux: true,
-    vertex: (v) => {
-      if (v.shadow) return;
-      // she rides the swell a little: heave, pitch and roll, slowly
-      const t = G.time;
-      const heave = sin(t.mul(0.83)).mul(0.035).add(sin(t.mul(1.31).add(1.0)).mul(0.015));
-      const pitch = sin(t.mul(0.61).add(0.7)).mul(0.012), roll = sin(t.mul(0.47).add(2.1)).mul(0.02);
-      const d = v.P.sub(vec3(c.x, c.y, c.z)).toVar();
-      const fw = vec3(F.x, 0, F.z), sd = vec3(P.x, 0, P.z);
-      // small rotations: about the starboard axis (pitch) and the fore-aft axis (roll)
-      const lift = dot(d, fw).mul(pitch).add(dot(d, sd).mul(roll));
-      v.P.assign(v.P.add(vec3(0, lift.add(heave), 0)).sub(fw.mul(d.y.mul(pitch))).sub(sd.mul(d.y.mul(roll))));
+  // the meshes: wood, rope, yarn, brass, canvas
+  const range = 140, fade = [118, 136];
+  addMesh(ctx, sphereOf(finishBob(w, w.build()), 1), material({ aux: true, fade, vertex: (v) => { tintIn(); bobTSL(v); }, surface: (s, f) => woodSurf(s, f, vT.rgb, vT2.w) }), range);
+  addMesh(ctx, sphereOf(finishBob(r, r.build()), 1), material({ aux: true, fade, vertex: (v) => { tintIn(); bobTSL(v); }, surface: (s, f) => ropeSurf(s, f, vT.rgb) }), range);
+  addMesh(ctx, sphereOf(finishBob(y, y.build()), 1), yarnMat({ fade, vertex: (v) => bobTSL(v), scale: 26, stripe: 3 }), range);
+  addMesh(ctx, sphereOf(b.build(), 0.5), material({ aux: true, fade, surface: (s, f) => brassSurf(s, f) }), range);
+  addMesh(ctx, sphereOf(finishBob(c, c.build()), 1), material({ aux: true, twoSided: true, fade, vertex: (v) => bobTSL(v), surface: (s, f) => canvasSurf(s, f, vec3(0.93, 0.87, 0.74)) }), range);
+  if (bulbs) buildBulbs(ctx, bulbs);
+  buildLighthouse(ctx, X(-34.2), Z(-94), deep);
+  return { moored, dinghy, posts };
+}
+
+// Little warm bulbs on a string: a lit bead each, and a soft halo.
+function buildBulbs(ctx, list) {
+  const m = new Mesh(true);
+  for (let i = 0; i < list.length; i += 3) blob(m, list[i], list[i + 1], list[i + 2], () => 0.045, 3);
+  addMesh(ctx, sphereOf(m.build(), 0.5), material({ aux: true, shadow: false, surface: (s) => { s.albedo = vec3(0.9, 0.8, 0.6); s.emis = vec3(3.2, 2.2, 1.0); } }), 140);
+  addMesh(ctx, halos(list, 0.32), material({
+    additive: true, shadow: false,
+    vertex: (v) => haloVertex(v, 0.32),
+    raw: (f) => {
+      const d = length(vHalo);
+      return { color: vec3(1.0, 0.72, 0.38).mul(exp(d.mul(d).mul(-9.0)).mul(1.4)).mul(exp(SIG.mul(f.dist).negate())), alpha: float(1.0) };
     },
+  }), 140, { noShadow: true });
+}
+// Camera-facing cards, one per point (for halos and glows).
+const vHalo = varyingProperty('vec2', 'v_set_halo');
+function halos(list, size) {
+  const n = list.length / 3, geo = new InstancedBufferGeometry();
+  geo.setIndex([0, 1, 2, 0, 2, 3]);
+  geo.setAttribute('position', toAttr([-1, -1, 0, 1, -1, 0, 1, 1, 0, -1, 1, 0], 3));
+  geo.setAttribute('normal', toAttr([0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1], 3));
+  geo.setAttribute('at', new InstancedBufferAttribute(new Float32Array(list), 3));
+  geo.instanceCount = n;
+  let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9, z0 = 1e9, z1 = -1e9;
+  for (let i = 0; i < list.length; i += 3) { x0 = Math.min(x0, list[i]); x1 = Math.max(x1, list[i]); y0 = Math.min(y0, list[i + 1]); y1 = Math.max(y1, list[i + 1]); z0 = Math.min(z0, list[i + 2]); z1 = Math.max(z1, list[i + 2]); }
+  geo.boundingSphere = new Sphere(V((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2), Math.hypot(x1 - x0, y1 - y0, z1 - z0) / 2 + size * 2);
+  return geo;
+}
+function haloVertex(v, size) {
+  const at = attribute('at', 'vec3');
+  const toCam = normalize(cameraPosition.sub(at)).toVar();
+  const right = normalize(cross(vec3(0, 1, 0), toCam)).toVar(), upv = cross(toCam, right);
+  vHalo.assign(v.P.xy);
+  v.P.assign(at.add(right.mul(v.P.x.mul(size))).add(upv.mul(v.P.y.mul(size))).add(toCam.mul(0.05)));
+}
+
+// The lighthouse on its island: a striped tower, a gallery with its rail, the lantern lit, a red
+// cap; the island a heap of rock with a little green on top.
+function buildLighthouse(ctx, x, z, deep) {
+  const m = new Mesh(true), base = 1.6, h = 18, k = 0.95;
+  // aux: x kind (0 tower, 1 gallery and rail, 2 cap, 3 lantern), y height above the foot, z round (0..1)
+  const prof = [[2.45 * k, 0], [2.3 * k, 3], [2.05 * k, 7.5], [1.85 * k, 12.5], [1.68 * k, h]];
+  const tower = [];
+  for (let i = 0; i <= 24; i++) {
+    const yy = h * (i / 24);
+    let rr = 2.45 * k;
+    for (let k = 1; k < prof.length; k++) if (yy <= prof[k][1]) { const a = prof[k - 1], bb = prof[k], u = (yy - a[1]) / (bb[1] - a[1]); rr = lerp(a[0], bb[0], u); break; }
+    tower.push([x, base + yy, z, rr]);
+  }
+  sweep(m, tower, 28, { aux: (k, j, px, py, pz, o) => { o[0] = 0; o[1] = py - base; o[2] = j / 28; } });
+  const gy = base + h, kind = (kk) => (k, j, px, py, pz, o) => { o[0] = kk; o[1] = py - base; o[2] = j / 20; };
+  const G2 = 1.62 * k, R2 = 1.45 * k;
+  sweep(m, [[x, gy - 0.2, z, G2 * 0.9], [x, gy - 0.16, z, G2], [x, gy + 0.06, z, G2]], 28, { aux: kind(1) });
+  disc(m, x, gy + 0.06, z, G2, 28, 1, [1, 20, 0, 0]);
+  disc(m, x, gy - 0.2, z, G2 * 0.9, 28, -1, [1, 20, 0, 0]);
+  for (let i = 0; i < 14; i++) { const a = (i / 14) * TAU; sweep(m, [[x + Math.cos(a) * R2 * 1.05, gy + 0.06, z + Math.sin(a) * R2 * 1.05, 0.04], [x + Math.cos(a) * R2 * 1.05, gy + 0.7, z + Math.sin(a) * R2 * 1.05, 0.04]], 5, { aux: kind(1) }); }
+  const rail = [];
+  for (let i = 0; i < 32; i++) { const a = (i / 32) * TAU; rail.push([x + Math.cos(a) * R2 * 1.05, gy + 0.7, z + Math.sin(a) * R2 * 1.05, 0.05]); }
+  sweep(m, rail, 5, { closed: true, up: [0, 1, 0], aux: kind(1) });
+  sweep(m, [[x, gy + 0.06, z, 0.9 * k * 1.3], [x, gy + 1.6, z, 0.9 * k * 1.3]], 20, { aux: kind(3) });
+  sweep(m, [[x, gy + 1.56, z, 1.1 * k * 1.3], [x, gy + 1.7, z, 1.12 * k * 1.3], [x, gy + 2.45, z, 0.34], [x, gy + 2.66, z, 0.07]], 20, { aux: kind(2) });
+  disc(m, x, gy + 1.56, z, 1.1 * k * 1.3, 20, -1, [2, 22, 0, 0]);
+  blob(m, x, gy + 2.76, z, () => 0.2, 4, (dx, dy, dz, o) => { o[0] = 2; o[1] = 24; });
+  // the door and the windows face the marina: the angle round the tower that looks at it
+  const face = Math.atan2(34.2, 94) / TAU;    // (sweep's angle 0 faces -z; the marina lies at +x, +z)
+  addMesh(ctx, sphereOf(m.build(), 1), material({
+    aux: true, fade: [175, 200],
     surface: (s, f) => {
-      const t = f.aux.x, kind = f.aux.z, y = f.w.y.toVar();
-      const near = float(1).sub(smoothstep(4.0, 20.0, f.dist)).toVar();
-      const D = detail(f.w, s.n, 1.7, 2.0), E = detail(f.w, s.n, 5.0, 2.5);
-      // antifouling below the waterline, a pale boot stripe at it, white topsides above
-      const anti = vec3(0.30, 0.075, 0.06).mul(D.m.mul(0.25).add(0.85));
-      const keelCol = vec3(0.07, 0.07, 0.08);
-      const hullCol = select(kind.greaterThan(0.5), keelCol, anti).toVar();
-      const boot = smoothstep(-0.07, -0.05, y).mul(float(1).sub(smoothstep(0.07, 0.09, y)));
-      hullCol.assign(mix(hullCol, vec3(0.78, 0.76, 0.70), boot));
-      hullCol.assign(mix(hullCol, vec3(0.86, 0.86, 0.84), smoothstep(0.08, 0.1, y)));
-      // a little growth: a film of slime along the waterline and on the flat of the bottom, a few barnacles
-      const slime = smoothstep(0.45, 0.8, D.h.mul(0.8).add(E.m.mul(0.4)).add(smoothstep(-0.5, -0.05, y).mul(0.35)).sub(0.15)).toVar();
-      hullCol.assign(mix(hullCol, vec3(0.20, 0.22, 0.10), slime.mul(0.55).mul(float(1).sub(boot.mul(0.5)))));
-      const barn = smoothstep(0.62, 0.7, E.h).mul(smoothstep(0.6, 0.9, D.m)).mul(near).toVar();
-      hullCol.assign(mix(hullCol, vec3(0.55, 0.53, 0.47), barn));
-      s.albedo = hullCol;
-      s.n = normalize(s.n.add(E.n.sub(s.n).mul(near.mul(slime.mul(0.6).add(barn).add(0.08))))).toVar();
-      s.spec = float(0.18).mul(float(1).sub(slime)); s.gloss = float(40.0);
-      s.ao = float(1).sub(slime.mul(0.15));
-      s.fluor = float(0.25);
-      s.emis = sandBounce(s, f, f.w.y.add(6.6), float(0.0));
+      const k = f.aux.x, hh = f.aux.y, round = fract(f.aux.z.sub(0.5 - face).add(1.0));
+      const band = step(0.5, fract(hh.div(3.2)));
+      const paint = mix(vec3(0.94, 0.91, 0.85), vec3(0.82, 0.25, 0.21), band);
+      const facing = float(1).sub(smoothstep(0.02, 0.03, abs(round.sub(0.5))));
+      const win = facing.mul(float(1).sub(smoothstep(0.1, 0.13, abs(fract(hh.div(4.6)).sub(0.5))))).mul(step(3.0, hh)).mul(step(hh, 16.5));
+      const door = float(1).sub(smoothstep(0.03, 0.04, abs(round.sub(0.5)))).mul(step(hh, 1.9));
+      const kT = float(1).sub(step(0.5, k)), kR = step(0.5, k).mul(float(1).sub(step(1.5, k))), kC = step(1.5, k).mul(float(1).sub(step(2.5, k))), kG = step(2.5, k);
+      const col = mix(paint, vec3(0.13, 0.11, 0.11), max(win, door).mul(kT)).toVar();
+      col.assign(mix(col, vec3(0.17, 0.18, 0.19), kR));
+      col.assign(mix(col, vec3(0.64, 0.17, 0.15), kC));
+      col.assign(mix(col, vec3(1.0, 0.92, 0.65), kG));
+      s.albedo = col;
+      s.spec = mix(float(0.06), float(0.6), kG); s.gloss = float(30.0); s.fluor = float(0.3);
+      s.emis = vec3(2.6, 1.9, 0.9).mul(kG);
     },
-  });
-  addMesh(ctx, geo, mat, 120);
-  // the bow roller, where the chain leaves her: on the stem, above the water
-  const bowL = [0, 0.95, L / 2 + 0.2];
-  return { bow: [BOAT.x + bowL[2] * F.x, 0.5, BOAT.z + bowL[2] * F.z], F, P };
+  }), 200);
+  // the island
+  const isl = new Mesh(true), cy = deep ? -9 : -5;
+  blob(isl, x, cy, z, (dx, dy, dz) => (dy > 0 ? 7.0 : 7.6) * (1 + 0.18 * noise3(dx * 2.2 + 4, dy * 2.2, dz * 2.2) + 0.08 * noise3(dx * 6, dy * 6, dz * 6 + 2)), 16);
+  for (let v = 0; v < isl.count; v++) { const yy = isl.p[v * 3 + 1] - cy; isl.p[v * 3 + 1] = cy + (yy > 0 ? yy * (deep ? 1.25 : 0.9) : yy * 1.3); }
+  isl.normals(0, isl.count, 0, null);
+  addMesh(ctx, sphereOf(isl.build(), 1), material({
+    aux: true, fade: [175, 200],
+    surface: (s, f) => {
+      rockSurf(s, f.w, f.w, clamp(smoothstep(0.6, 1.4, f.w.y).sub(smoothstep(0.55, 0.85, f.n.y).mul(0.5)).add(0.3), 0.0, 1.0), float(1.0), f.dist);
+      s.albedo = mix(s.albedo, vec3(0.40, 0.52, 0.24), smoothstep(0.3, 2.6, f.w.y).mul(smoothstep(0.7, 0.9, f.n.y)).mul(0.85));
+    },
+  }), 200);
 }
 
 // ---- the chain --------------------------------------------------------------------------------
 
-// The rest shape: a catenary from the bow roller down to where it touches the sand, then a
-// lazy S along the sand to the anchor's ring. Sampled at even lengths for chainAt.
-function chainShape(bow, ring, along) {
-  const ax = along[0], az = along[2];
-  const lie = 3.4;            // metres of chain on the sand before the ring
-  const T = [ring[0] - ax * lie, 0, ring[2] - az * lie];
-  T[1] = groundY(T[0], T[2]) + 0.02;
+// The rest shape: a catenary from the bow roller down to where it meets the sand, then up to the
+// anchor's ring. Sampled at even lengths for chainAt.
+function chainShape(bow, ring, foot) {
+  const ax = foot[0] - bow[0], az = foot[1] - bow[2], al = Math.hypot(ax, az), ux = ax / al, uz = az / al;
+  const T = [foot[0] - ux * 1.6, 0, foot[1] - uz * 1.6];
+  T[1] = groundY(T[0], T[2]) + 0.05;
   const L = Math.hypot(bow[0] - T[0], bow[2] - T[2]), H = bow[1] - T[1];
   let lo = 0.3, hi = 300;
   for (let i = 0; i < 60; i++) { const a = (lo + hi) / 2; if (a * (Math.cosh(L / a) - 1) > H) lo = a; else hi = a; }
   const a = (lo + hi) / 2, Sh = a * Math.sinh(L / a);
-  const ux = (bow[0] - T[0]) / L, uz = (bow[2] - T[2]) / L;
-  const N = 400, pts = [];
-  // hanging part, from the bow (u = L) down to T (u = 0), at even arc length
+  const px = (bow[0] - T[0]) / L, pz = (bow[2] - T[2]) / L;
+  const N = 300, pts = [];
   for (let i = 0; i <= N; i++) {
-    const sigma = Sh * (1 - i / N);                  // arc length from T
-    const u = a * Math.asinh(sigma / a);
-    const x = T[0] + ux * u, z = T[2] + uz * u;
-    const y = Math.max(T[1] + a * (Math.cosh(u / a) - 1), groundY(x, z) + 0.03);
-    pts.push([x, y, z]);
+    const u = a * Math.asinh((Sh * (1 - i / N)) / a);
+    const x = T[0] + px * u, z = T[2] + pz * u;
+    pts.push([x, Math.max(T[1] + a * (Math.cosh(u / a) - 1), groundY(x, z) + 0.05), z]);
   }
-  // on the sand: a gentle S, at even steps (re-sampled below)
-  const sx = -az, sz = ax, M = 120, ground = [];
+  const M = 60, mid = [T[0] + ux * 0.6, T[1] + 0.04, T[2] + uz * 0.6];
   for (let i = 1; i <= M; i++) {
-    const t = i / M, wob = Math.sin(t * Math.PI * 2) * (1 - t) * 0.28;
-    const x = T[0] + (ring[0] - T[0]) * t + sx * wob, z = T[2] + (ring[2] - T[2]) * t + sz * wob;
-    ground.push([x, groundY(x, z) + 0.035, z]);
+    const t = i / M, a0 = (1 - t) * (1 - t), a1 = 2 * t * (1 - t), a2 = t * t;
+    pts.push([a0 * T[0] + a1 * mid[0] + a2 * ring[0], a0 * T[1] + a1 * mid[1] + a2 * ring[1], a0 * T[2] + a1 * mid[2] + a2 * ring[2]]);
   }
-  const all = pts.concat(ground);
-  // arc lengths
-  const acc = [0];
-  for (let i = 1; i < all.length; i++) acc.push(acc[i - 1] + Math.hypot(all[i][0] - all[i - 1][0], all[i][1] - all[i - 1][1], all[i][2] - all[i - 1][2]));
-  return { all, acc, total: acc[acc.length - 1], hang: acc[N], plane: [ux, uz] };
+  const acc = runLength(pts);
+  return { all: pts, acc, total: acc[acc.length - 1], hang: acc[N], plane: [px, pz] };
 }
 
 // The sway, the same in JavaScript and in the shader: h is how far down the hanging part
 // (0 at the bow, 1 where it meets the sand); returns side, along, up offsets in metres.
 const swayJS = (h, t, out) => {
   const e = Math.sin(Math.PI * clampN(h, 0, 1));
-  const lat = e * 0.24 * (0.7 * Math.sin(t * 0.55 - h * 2.2 + 0.5) + 0.3 * Math.sin(t * 0.93 - h * 4.1 + 2.0));
-  const surge = Math.sin(t * 0.37 + 1.0);
-  out[0] = lat; out[1] = e * 0.12 * surge; out[2] = e * 0.07 * Math.sin(t * 0.37 + 1.6);
+  out[0] = e * 0.24 * (0.7 * Math.sin(t * 0.55 - h * 2.2 + 0.5) + 0.3 * Math.sin(t * 0.93 - h * 4.1 + 2.0));
+  out[1] = e * 0.12 * Math.sin(t * 0.37 + 1.0); out[2] = e * 0.07 * Math.sin(t * 0.37 + 1.6);
   return out;
 };
 const swayTSL = (h, t) => {
@@ -565,17 +702,28 @@ const swayTSL = (h, t) => {
   return vec3(lat, e.mul(0.12).mul(sin(t.mul(0.37).add(1.0))), e.mul(0.07).mul(sin(t.mul(0.37).add(1.6))));
 };
 
-function buildChain(ctx, q, bow, ring, along) {
-  const C = chainShape(bow, ring, along);
-  const d = 0.02, r = d / 2, a = 0.85 * d, cR = 1.25 * d, pitch = 3.2 * d;
+// Chunky rusty iron, orange where it has flaked, as in our picture of the anchor.
+function rustSurf(s, f) {
+  const near = float(1).sub(smoothstep(3.0, 16.0, f.dist)).toVar();
+  const D = detail(f.w, s.n, 1.6, 2.0), E = detail(f.w, s.n, 4.4, 1.6);
+  const flake = smoothstep(0.42, 0.6, D.m.add(E.h.mul(0.35)).sub(0.1)).toVar();
+  const col = mix(vec3(0.74, 0.33, 0.13), vec3(0.42, 0.17, 0.07), flake).toVar();
+  col.assign(mix(col, vec3(0.86, 0.46, 0.20), smoothstep(0.62, 0.78, E.m).mul(0.5)));
+  s.albedo = col.mul(E.h.mul(0.25).mul(near).add(0.9));
+  s.n = normalize(s.n.add(D.n.sub(s.n).mul(0.7)).add(E.n.sub(s.n).mul(near.mul(0.6)))).toVar();
+  s.ao = D.h.mul(0.4).add(0.68).min(1.0);
+  s.spec = float(0.08); s.gloss = float(18.0); s.fluor = float(0.55);
+}
+
+function buildChain(ctx, q, bow, ring, foot) {
+  const C = chainShape(bow, ring, foot);
+  const d = 0.034, r = d / 2, a = 0.85 * d, cR = 1.25 * d, pitch = 3.2 * d;
   // one link: a stadium-shaped ring in its own plane (x across, y along the chain)
-  const m = new Mesh(true), line = [];
-  const arcN = q.amount >= 0.5 ? 6 : 4;
+  const m = new Mesh(true), line = [], arcN = q.amount >= 0.5 ? 6 : 4;
   for (let i = 0; i <= arcN; i++) { const th = Math.PI * (i / arcN); line.push([Math.cos(th) * cR, a + Math.sin(th) * cR, 0, r]); }
   for (let i = 0; i <= arcN; i++) { const th = Math.PI + Math.PI * (i / arcN); line.push([Math.cos(th) * cR, -a + Math.sin(th) * cR, 0, r]); }
-  sweep(m, line, q.amount >= 0.5 ? 6 : 4, { closed: true, up: [0, 0, 1], aux: (k, j, x, y, z, o) => { const c = line[k]; o[0] = c[0]; o[1] = c[1]; o[2] = c[2]; o[3] = j; } });
+  sweep(m, line, q.amount >= 0.5 ? 7 : 5, { closed: true, up: [0, 0, 1], aux: (k, j, x, y, z, o) => { o[0] = line[k][0]; o[1] = line[k][1]; o[2] = line[k][2]; o[3] = j; } });
   const link = m.build();
-  // the links along the shape
   const count = Math.floor(C.total / pitch);
   const ca = new Float32Array(count * 4), cb = new Float32Array(count * 4), cc = new Float32Array(count * 4);
   let seg = 0;
@@ -593,12 +741,9 @@ function buildChain(ctx, q, bow, ring, along) {
   for (let i = 0; i < count; i++) {
     const sig = (i + 0.5) * pitch;
     at(sig, o);
-    // the side: level and square to the chain (on the sand: links lie flat, then stand)
     let sx = -o[5], sz = o[3];
     const sl = Math.hypot(sx, sz) || 1; sx /= sl; sz /= sl;
-    ca[i * 4] = o[0]; ca[i * 4 + 1] = o[1]; ca[i * 4 + 2] = o[2]; ca[i * 4 + 3] = sig / C.total;
-    cb[i * 4] = o[3]; cb[i * 4 + 1] = o[4]; cb[i * 4 + 2] = o[5]; cb[i * 4 + 3] = i & 1;
-    cc[i * 4] = sx; cc[i * 4 + 1] = 0; cc[i * 4 + 2] = sz; cc[i * 4 + 3] = Math.min(sig / C.hang, 1);
+    ca.set([o[0], o[1], o[2], sig / C.total], i * 4); cb.set([o[3], o[4], o[5], i & 1], i * 4); cc.set([sx, 0, sz, Math.min(sig / C.hang, 1)], i * 4);
     x0 = Math.min(x0, o[0]); x1 = Math.max(x1, o[0]); y0 = Math.min(y0, o[1]); y1 = Math.max(y1, o[1]); z0 = Math.min(z0, o[2]); z1 = Math.max(z1, o[2]);
   }
   const geo = new InstancedBufferGeometry();
@@ -609,11 +754,11 @@ function buildChain(ctx, q, bow, ring, along) {
   geo.setAttribute('cc', new InstancedBufferAttribute(cc, 4));
   geo.instanceCount = count;
   geo.boundingSphere = new Sphere(V((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2), Math.hypot(x1 - x0, y1 - y0, z1 - z0) / 2 + 1);
-  const [px, pz] = C.plane;          // the chain's plane: level, from the sand toward the bow
+  const [px, pz] = C.plane;
   const SIDE = vec3(-pz, 0, px), ALONG = vec3(px, 0, pz), UP = vec3(0, 1, 0);
   const A0 = attribute('ca', 'vec4'), B0 = attribute('cb', 'vec4'), C0 = attribute('cc', 'vec4');
-  const mat = material({
-    aux: true, shadow: false,
+  addMesh(ctx, geo, material({
+    aux: true, shadow: false, fade: [100, 118],
     vertex: (v) => {
       const h = C0.w, t = G.time;
       const sw = swayTSL(h, t), sw2 = swayTSL(min(h.add(0.01), 1.0), t);
@@ -621,20 +766,18 @@ function buildChain(ctx, q, bow, ring, along) {
       const off2 = SIDE.mul(sw2.x).add(ALONG.mul(sw2.y)).add(UP.mul(sw2.z));
       const Tn = normalize(B0.xyz.add(off2.sub(off).div(0.01 * C.hang))).toVar();
       const e0 = normalize(C0.xyz.sub(Tn.mul(dot(C0.xyz, Tn)))).toVar();
-      const X = mix(e0, cross(Tn, e0), B0.w).toVar();
-      const Z = cross(X, Tn).toVar();
+      const Xv = mix(e0, cross(Tn, e0), B0.w).toVar();
+      const Zv = cross(Xv, Tn).toVar();
       const centre = A0.xyz.add(off).toVar();
-      // far away the wire thickens a little, so it never thins below a pixel and shimmers
+      // far away the iron thickens a little, so it never thins below a pixel and shimmers
       const fat = max(float(1.0), length(centre.sub(cameraPosition)).mul(0.0006 / r));
       const lp = v.aux.xyz.add(v.N.mul(r).mul(fat));
-      v.P.assign(centre.add(X.mul(lp.x)).add(Tn.mul(lp.y)).add(Z.mul(lp.z)));
-      v.N.assign(normalize(X.mul(v.N.x).add(Tn.mul(v.N.y)).add(Z.mul(v.N.z))));
+      v.P.assign(centre.add(Xv.mul(lp.x)).add(Tn.mul(lp.y)).add(Zv.mul(lp.z)));
+      v.N.assign(normalize(Xv.mul(v.N.x).add(Tn.mul(v.N.y)).add(Zv.mul(v.N.z))));
       v.aux.assign(vec4(A0.w, h, B0.w, 0.0));
     },
-    surface: (s, f) => rustSurf(s, f, f.aux.y.mul(0.6)),
-  });
-  addMesh(ctx, geo, mat, 100, { noShadow: true });
-  // chainAt: the rest shape plus this frame's sway
+    surface: (s, f) => rustSurf(s, f),
+  }), 118, { noShadow: true });
   const sw = [0, 0, 0], sw2 = [0, 0, 0], tmp = [0, 0, 0, 0, 0, 0];
   let now = 0;
   const chainAt = (s, out) => {
@@ -645,7 +788,7 @@ function buildChain(ctx, q, bow, ring, along) {
     const ox = -pz * sw[0] + px * sw[1], oy = sw[2], oz = px * sw[0] + pz * sw[1];
     const dx = -pz * sw2[0] + px * sw2[1] - ox, dy = sw2[2] - oy, dz = px * sw2[0] + pz * sw2[1] - oz;
     out[0] = tmp[0] + ox; out[1] = tmp[1] + oy; out[2] = tmp[2] + oz;
-    let tx = tmp[3] + dx / (0.01 * C.hang), ty = tmp[4] + dy / (0.01 * C.hang), tz = tmp[5] + dz / (0.01 * C.hang);
+    const tx = tmp[3] + dx / (0.01 * C.hang), ty = tmp[4] + dy / (0.01 * C.hang), tz = tmp[5] + dz / (0.01 * C.hang);
     const l = Math.hypot(tx, ty, tz) || 1;
     out[3] = tx / l; out[4] = ty / l; out[5] = tz / l;
     return out;
@@ -653,104 +796,159 @@ function buildChain(ctx, q, bow, ring, along) {
   return { chainAt, setTime: (t) => { now = t; }, total: C.total };
 }
 
-// A triangle wound so that it faces n.
-function triFacing(m, a, b, c, nx, ny, nz) {
-  const p = m.p;
-  const ux = p[b * 3] - p[a * 3], uy = p[b * 3 + 1] - p[a * 3 + 1], uz = p[b * 3 + 2] - p[a * 3 + 2];
-  const vx = p[c * 3] - p[a * 3], vy = p[c * 3 + 1] - p[a * 3 + 1], vz = p[c * 3 + 2] - p[a * 3 + 2];
-  const d = (uy * vz - uz * vy) * nx + (uz * vx - ux * vz) * ny + (ux * vy - uy * vx) * nz;
-  if (d >= 0) m.i.push(a, b, c); else m.i.push(a, c, b);
-}
-// A flat plate with some thickness: outline [[u, w], ...] in the plane of U and W around c,
-// thickness along N = U x W.
-function plate(m, c, U, W, outline, thick, aux = [0, 0, 0, 0]) {
-  const N = [U[1] * W[2] - U[2] * W[1], U[2] * W[0] - U[0] * W[2], U[0] * W[1] - U[1] * W[0]];
-  const nl = Math.hypot(N[0], N[1], N[2]); N[0] /= nl; N[1] /= nl; N[2] /= nl;
-  const k = outline.length, v0 = m.count;
-  for (const face of [1, -1]) for (const [u, w] of outline) {
-    const x = c[0] + U[0] * u + W[0] * w + N[0] * thick * 0.5 * face, y = c[1] + U[1] * u + W[1] * w + N[1] * thick * 0.5 * face, z = c[2] + U[2] * u + W[2] * w + N[2] * thick * 0.5 * face;
-    m.vert(x, y, z, N[0] * face, N[1] * face, N[2] * face, 0, 0, aux[0], aux[1], aux[2], aux[3]);
-  }
-  for (let i = 1; i < k - 1; i++) { triFacing(m, v0, v0 + i, v0 + i + 1, N[0], N[1], N[2]); triFacing(m, v0 + k, v0 + k + i, v0 + k + i + 1, -N[0], -N[1], -N[2]); }
-  // the rim
-  let cu = 0, cw = 0;
-  for (const [u, w] of outline) { cu += u / k; cw += w / k; }
-  for (let i = 0; i < k; i++) {
-    const j = (i + 1) % k, mu = (outline[i][0] + outline[j][0]) / 2 - cu, mw = (outline[i][1] + outline[j][1]) / 2 - cw;
-    const ox = U[0] * mu + W[0] * mw, oy = U[1] * mu + W[1] * mw, oz = U[2] * mu + W[2] * mw;
-    const r0 = m.count;
-    for (const [ii, f] of [[i, 1], [j, 1], [j, -1], [i, -1]]) {
-      const b = v0 + (f > 0 ? 0 : k) + ii;
-      m.vert(m.p[b * 3], m.p[b * 3 + 1], m.p[b * 3 + 2], ox, oy, oz, 0, 0, aux[0], aux[1], aux[2], aux[3]);
-    }
-    triFacing(m, r0, r0 + 1, r0 + 2, ox, oy, oz); triFacing(m, r0, r0 + 2, r0 + 3, ox, oy, oz);
-  }
-  return v0;
-}
-
-// The anchor: a fisherman's anchor, its stock flat on the sand, one fluke dug in, the other
-// up in the water. Built in its own frame (shank along y from the crown, arms in the xy
-// plane, stock along z), then laid down with its shank toward the boat. Returns the point
-// on its ring where the chain is shackled.
-function buildAnchor(ctx, crownXZ, along) {
+// The anchor: a fisherman's anchor stood up in a heap of sand, crown and the arms' roots
+// buried, the shank leaning toward the chain, the stock across it near the ring. Chunky and
+// orange with rust. Returns the point on its ring where the chain is shackled.
+function buildAnchor(ctx, foot, toward, facing) {
   const m = new Mesh(true);
-  const shank = 1.55, ringY = shank + 0.14, stockY = shank - 0.16;
-  const S = (pts, sides) => sweep(m, pts, sides, { aux: (k, j, x, y, z, o) => { o[0] = x; o[1] = y; } });
-  S([[0, -0.03, 0, 0.072], [0, 0.4, 0, 0.062], [0, 1.0, 0, 0.053], [0, shank + 0.02, 0, 0.046]], 8);
+  const shank = 1.6, ringY = shank + 0.15, stockY = shank - 0.18, SC = 1.3;
+  const S = (pts, sides) => sweep(m, pts, sides, { caps: true, aux: (k, j, x, y, z, o) => { o[0] = x; o[1] = y; } });
+  S([[0, -0.03, 0, 0.11], [0, 0.4, 0, 0.096], [0, 1.0, 0, 0.084], [0, shank + 0.02, 0, 0.075]], 10);
   for (const sx of [-1, 1]) {
-    const th1 = 1.12, R = 0.62, pts = [];
-    for (let i = 0; i <= 6; i++) { const th = (i / 6) * th1; pts.push([sx * Math.sin(th) * R, R - Math.cos(th) * R, 0, 0.064 - i * 0.004]); }
-    S(pts, 8);
-    // the palm: a spade across the arms' plane, its broad face toward the shank
+    const th1 = 1.12, R = 0.66, pts = [];
+    for (let i = 0; i <= 7; i++) { const th = (i / 7) * th1; pts.push([sx * Math.sin(th) * R, R - Math.cos(th) * R, 0, 0.09 - i * 0.005]); }
+    S(pts, 10);
+    // the palm: an arrowhead flattened across the arms' plane, pointing up and out
     const tx = sx * Math.sin(th1) * R, ty = R - Math.cos(th1) * R, dx = sx * Math.cos(th1), dy = Math.sin(th1);
-    plate(m, [tx - dx * 0.03, ty - dy * 0.03, 0], [dx, dy, 0], [0, 0, 1], [[-0.2, 0], [-0.07, 0.15], [0.13, 0.12], [0.22, 0], [0.13, -0.12], [-0.07, -0.15]], 0.035, [tx, ty, 0, 0]);
-    S([[tx + dx * 0.16, ty + dy * 0.16, 0, 0.032], [tx + dx * 0.31, ty + dy * 0.31, 0, 0.01]], 6);
+    const v0 = m.count, i0 = m.i.length;
+    blob(m, 0, 0, 0, (ux, uy, uz) => 1 / Math.sqrt((ux / 0.2) ** 2 + (uy / 0.05) ** 2 + (uz / 0.14) ** 2), 5);
+    for (let v = v0; v < m.count; v++) {
+      const lx = m.p[v * 3], ly = m.p[v * 3 + 1], lz = m.p[v * 3 + 2];
+      const sharp = lx > 0 ? 1 - 0.6 * (lx / 0.2) : 1, XX = lx + 0.05;
+      m.p[v * 3] = tx + dx * XX - dy * ly; m.p[v * 3 + 1] = ty + dy * XX + dx * ly; m.p[v * 3 + 2] = lz * sharp;
+      m.a[v * 4] = m.p[v * 3]; m.a[v * 4 + 1] = m.p[v * 3 + 1];
+    }
+    m.normals(v0, m.count, i0, null);
   }
-  // the stock, square to the arms, a ball at each end
-  S([[0, stockY, -0.8, 0.038], [0, stockY, -0.3, 0.05], [0, stockY, 0.3, 0.05], [0, stockY, 0.8, 0.038]], 8);
-  for (const z of [-0.82, 0.82]) blob(m, 0, stockY, z, () => 0.068, 3, (x, y, zz, o) => { o[0] = x; o[1] = y + 3; });
-  // the ring, in the plane of the shank and the stock
+  S([[0, stockY, -0.86, 0.06], [0, stockY, -0.3, 0.075], [0, stockY, 0.3, 0.075], [0, stockY, 0.86, 0.06]], 10);
+  for (const z of [-0.9, 0.9]) blob(m, 0, stockY, z, () => 0.1, 4, (x, yy, zz, o) => { o[0] = x; o[1] = yy + 3; });
   const ringPts = [];
-  for (let i = 0; i < 14; i++) { const th = (i / 14) * TAU; ringPts.push([0, ringY + Math.sin(th) * 0.12, Math.cos(th) * 0.12, 0.022]); }
-  sweep(m, ringPts, 6, { closed: true, up: [1, 0, 0], aux: (k, j, x, y, z, o) => { o[0] = z; o[1] = y; } });
+  for (let i = 0; i < 16; i++) { const th = (i / 16) * TAU; ringPts.push([0, ringY + Math.sin(th) * 0.15, Math.cos(th) * 0.15, 0.035]); }
+  sweep(m, ringPts, 7, { closed: true, up: [1, 0, 0], aux: (k, j, x, yy, z, o) => { o[0] = z; o[1] = yy; } });
   const geo = m.build();
-  // laid down: shank level toward the boat and tilted up by the stock resting on the sand,
-  // the arms upright (local x up), the stock level (local z). (F, up, side) keeps it right-handed.
-  const fx = -along[0], fz = -along[2], sx = fz, sz = -fx;
-  const cx = crownXZ[0], cz = crownXZ[1], cy = groundY(cx, cz) - 0.06;
-  const stockAt = [cx + fx * stockY, cz + fz * stockY];
-  const tilt = Math.asin(clampN((groundY(stockAt[0], stockAt[1]) + 0.035 - cy) / stockY, -0.3, 0.3));
-  const ct = Math.cos(tilt), st = Math.sin(tilt);
+  // stand it: the arms across the way the camera comes, the shank leaning toward the chain
+  const Xw = [-facing[1], 0, facing[0]], lean = 0.28;
+  const Yw = [Math.sin(lean) * toward[0], Math.cos(lean), Math.sin(lean) * toward[1]];
+  const dxy = Xw[0] * Yw[0] + Xw[2] * Yw[2];
+  const Xs = [Xw[0] - Yw[0] * dxy, -Yw[1] * dxy, Xw[2] - Yw[2] * dxy], xl = Math.hypot(Xs[0], Xs[1], Xs[2]);
+  Xs[0] /= xl; Xs[1] /= xl; Xs[2] /= xl;
+  const Zs = [Xs[1] * Yw[2] - Xs[2] * Yw[1], Xs[2] * Yw[0] - Xs[0] * Yw[2], Xs[0] * Yw[1] - Xs[1] * Yw[0]];
+  const gy = groundY(foot[0], foot[1]), O = [foot[0], gy - 0.14, foot[1]];
+  const toW = (x, y, z) => [O[0] + (Xs[0] * x + Yw[0] * y + Zs[0] * z) * SC, O[1] + (Xs[1] * x + Yw[1] * y + Zs[1] * z) * SC, O[2] + (Xs[2] * x + Yw[2] * y + Zs[2] * z) * SC];
   const pos = geo.getAttribute('position'), nor = geo.getAttribute('normal');
-  const toWorld = (x, y, z, out) => {
-    const a = y * ct - x * st, u = x * ct + y * st;
-    out[0] = cx + fx * a + sx * z; out[1] = cy + u; out[2] = cz + fz * a + sz * z;
-    return out;
-  };
-  const w = [0, 0, 0];
   for (let v = 0; v < pos.count; v++) {
-    toWorld(pos.getX(v), pos.getY(v), pos.getZ(v), w);
-    pos.setXYZ(v, w[0], w[1], w[2]);
+    const P = toW(pos.getX(v), pos.getY(v), pos.getZ(v));
+    pos.setXYZ(v, P[0], P[1], P[2]);
     const nx = nor.getX(v), ny = nor.getY(v), nz = nor.getZ(v);
-    const a = ny * ct - nx * st, u = nx * ct + ny * st;
-    nor.setXYZ(v, fx * a + sx * nz, u, fz * a + sz * nz);
+    nor.setXYZ(v, Xs[0] * nx + Yw[0] * ny + Zs[0] * nz, Xs[1] * nx + Yw[1] * ny + Zs[1] * nz, Xs[2] * nx + Yw[2] * ny + Zs[2] * nz);
   }
-  sphereOf(geo, 0.2);
-  const mat = material({ aux: true, surface: (s, f) => rustSurf(s, f, float(0.35)) });
-  addMesh(ctx, geo, mat, 90);
-  return toWorld(0, ringY + 0.09, 0, [0, 0, 0]);
+  addMesh(ctx, sphereOf(geo, 0.2), material({ aux: true, fade: [80, 98], surface: (s, f) => rustSurf(s, f) }), 98);
+  // the heap of sand round its foot
+  const sm = new Mesh(true), sy = gy - 0.45;
+  blob(sm, foot[0], sy, foot[1], (dx, dy, dz) => (dy < 0 ? 0.5 : 1.0) * (1.0 + 0.1 * noise3(dx * 3, dy * 3, dz * 3)), 10);
+  for (let v = 0; v < sm.count; v++) { const yy = sm.p[v * 3 + 1] - sy; sm.p[v * 3 + 1] = sy + yy * (yy > 0 ? 0.78 : 0.4); }
+  sm.normals(0, sm.count, 0, null);
+  addMesh(ctx, sphereOf(sm.build(), 0.2), material({ aux: true, fade: [80, 98], surface: (s, f) => rockSurf(s, f.w, f.w, float(0.0), float(1.0), f.dist) }), 98);
+  return toW(0, ringY + 0.11, 0);
 }
 
-function buildMarina(ctx, q) {
-  const rng = makeRng(5150);
-  buildPier(ctx, q, rng);
-  const win = buildWindow(ctx);
-  const boat = buildBoat(ctx, rng);
-  const fx = BOAT.x - ANCHOR.x, fz = BOAT.z - ANCHOR.z, fl = Math.hypot(fx, fz);
-  const along = [-fx / fl, 0, -fz / fl];       // from the boat toward the anchor
-  const ring = buildAnchor(ctx, [ANCHOR.x, ANCHOR.z], along);
-  const chain = buildChain(ctx, q, boat.bow, ring, along);
-  return { chain, win };
+// ---- the giant clam ---------------------------------------------------------------------------
+
+// The Clam Studio: a giant clam crocheted in orange, two valves hinged at the back, the upper
+// one lifted, their rims ruffled the way hyperbolic crochet ruffles; a paler, softly lit
+// inside, and a little cushion in the middle where the studio's object sits.
+const CLAM = { x: 5.9, z: -178.0, a: 2.15, b: 1.7, depth: 0.62, open: 1.08, face: [-0.42, 0.91] };
+function buildClam(ctx, q) {
+  const { a, b, depth } = CLAM;
+  const fl = Math.hypot(CLAM.face[0], CLAM.face[1]), fx = CLAM.face[0] / fl, fz = CLAM.face[1] / fl;
+  // the clam's frame: local z toward `face`, x to its right
+  const ex = [fz, 0, -fx], ez = [fx, 0, fz];
+  const gy = groundY(CLAM.x, CLAM.z), tilt = 0.12;                     // tipped a little toward us
+  const O = [CLAM.x, gy + depth * 0.62, CLAM.z];
+  const toW = (x, y, z) => {
+    const yy = y * Math.cos(tilt) + z * Math.sin(tilt), zz = -y * Math.sin(tilt) + z * Math.cos(tilt);
+    return [O[0] + ex[0] * x + ez[0] * zz, O[1] + yy, O[2] + ex[2] * x + ez[2] * zz];
+  };
+  const NU = q.amount >= 0.5 ? 220 : 140, NV = 16, thick = 0.035;
+  const ORANGE = [1.0, 0.44, 0.10], PEACH = [1.0, 0.58, 0.34], DEEP = [0.94, 0.34, 0.08];
+  const y = new TMesh();
+  // one valve's surface, before it is offset into two faces of yarn: (u round, v out) -> local
+  const shape = (u, v, upper) => {
+    const ph = u * TAU, sv = v;
+    const front = (1 + Math.cos(ph)) / 2;                               // 1 at the front, 0 at the hinge
+    const ruff = Math.pow(sv, 2.6) * (0.25 + 0.75 * front) * (1 - Math.pow(1 - front, 6) * 0.9);
+    const k1 = Math.sin(ph * 9 + 0.6), k2 = Math.sin(ph * 23 + 1.9 + k1);
+    const h = ruff * (0.46 * k1 + 0.13 * k2) * (upper ? 0.9 : 1);
+    const rr = sv * (1 + 0.05 * ruff * Math.cos(ph * 9 + 0.6) + 0.04 * Math.sin(ph * 4));
+    const x = a * rr * Math.sin(ph), z = b * rr * Math.cos(ph);
+    const yb = -depth * (1 - sv * sv) + h + 0.12 * sv * sv * front;
+    return [x, yb, z];
+  };
+  const valve = (upper) => {
+    const tmp = new Mesh(false);
+    for (let j = 0; j <= NV; j++) for (let i = 0; i <= NU; i++) {
+      const v = Math.pow(j / NV, 0.8), P = shape(i / NU, v, upper);
+      let [x, yy, z] = P;
+      if (upper) {
+        // mirrored to close over the lower valve, then swung open about the hinge at the back
+        yy = -yy; const zp = z + b, c = Math.cos(CLAM.open), s2 = Math.sin(CLAM.open);
+        const y2 = yy * c + zp * s2, z2 = -yy * s2 + zp * c - b; yy = y2; z = z2;
+      }
+      tmp.vert(x, yy, z, 0, 1, 0);
+    }
+    const W = NU + 1;
+    for (let j = 0; j < NV; j++) for (let i = 0; i < NU; i++) { const k = j * W + i; tmp.i.push(k, k + W, k + 1, k + 1, k + W, k + W + 1); }
+    tmp.normals(0, tmp.count, 0, { cols: NU, rows: NV, base: 0 });
+    // the side of the surface that is the inside of the cup
+    const inSign = upper ? -1 : 1;
+    for (const layer of [1, -1]) {
+      const inner = layer === inSign, base = y.count;
+      for (let j = 0; j <= NV; j++) for (let i = 0; i <= NU; i++) {
+        const k = j * W + i, v = j / NV;
+        let nx = tmp.n[k * 3], ny = tmp.n[k * 3 + 1], nz = tmp.n[k * 3 + 2];
+        if (upper) { /* (normals came from the swung shape already) */ }
+        const px = tmp.p[k * 3] + nx * thick * 0.5 * layer, py = tmp.p[k * 3 + 1] + ny * thick * 0.5 * layer, pz = tmp.p[k * 3 + 2] + nz * thick * 0.5 * layer;
+        const P = toW(px, py, pz), N = toW(nx * layer, ny * layer, nz * layer).map((vv, e) => vv - toW(0, 0, 0)[e]);
+        const col = inner ? PEACH.map((c0, e) => lerp(c0, ORANGE[e], Math.pow(v, 3))) : DEEP.map((c0, e) => lerp(c0, ORANGE[e], v));
+        y.paint([...col, 0], [...col, inner ? 1 - v * v : 0]);
+        y.vert(P[0], P[1], P[2], N[0], N[1], N[2], 0, 0, 0, 0, 1, 0);
+      }
+      for (let j = 0; j < NV; j++) for (let i = 0; i < NU; i++) {
+        const k = base + j * W + i;
+        if (layer > 0) y.i.push(k, k + W, k + 1, k + 1, k + W, k + W + 1); else y.i.push(k, k + 1, k + W, k + 1, k + W + 1, k + W);
+      }
+    }
+    // the rim: a soft roll of yarn along the edge
+    const rim = [];
+    for (let i = 0; i < NU; i++) { const k = NV * W + i; const P = toW(tmp.p[k * 3], tmp.p[k * 3 + 1], tmp.p[k * 3 + 2]); rim.push([P[0], P[1], P[2], thick * 0.62]); }
+    y.paint(ORANGE, [...ORANGE, 0]);
+    sweep(y, rim, 6, { closed: true, up: [0, 1, 0] });
+  };
+  valve(false);
+  valve(true);
+  // the hinge: a fat roll across the back
+  y.paint(DEEP, [...DEEP, 0]);
+  { const A = toW(-a * 0.55, -0.06, -b * 0.98), B = toW(a * 0.55, -0.06, -b * 0.98); sweep(y, [[A[0], A[1], A[2], 0.16], [(A[0] + B[0]) / 2, A[1] + 0.03, (A[2] + B[2]) / 2, 0.19], [B[0], B[1], B[2], 0.16]], 12, { caps: true }); }
+  // the stage: a little round cushion in the middle
+  const stage = toW(0, -depth + 0.16, 0.1);
+  y.paint([0.98, 0.90, 0.78], [0.98, 0.90, 0.78, 0.6]);
+  blob(y, stage[0], stage[1], stage[2], (dx, dy, dz) => 1 / Math.sqrt((dx / 0.5) ** 2 + (dy / 0.14) ** 2 + (dz / 0.5) ** 2), 10);
+  const geo = sphereOf(y.build(), 0.5);
+  addMesh(ctx, geo, yarnMat({
+    fade: [82, 98], scale: 14,
+    // the inside glows a little, warm, strongest deep in the cup (tint2.w)
+    surface: (s, f) => { s.emis = s.emis.add(vec3(1.0, 0.55, 0.32).mul(vT2.w.mul(vT2.w)).mul(0.22)); },
+  }), 98);
+  // a soft light over the stage
+  addMesh(ctx, halos([stage[0], stage[1] + 0.35, stage[2]], 1.6), material({
+    additive: true, shadow: false, fade: [70, 90],
+    vertex: (v) => haloVertex(v, 1.6),
+    raw: (f) => { const d = length(vHalo); return { color: vec3(1.0, 0.62, 0.36).mul(exp(d.mul(d).mul(-4.0)).mul(0.22)).mul(exp(SIG.mul(f.dist).negate())), alpha: float(1.0) }; },
+  }), 90, { noShadow: true });
+  const up = toW(0, 1, 0).map((vv, e) => vv - toW(0, 0, 0)[e]);
+  const front = toW(0, 0, 1).map((vv, e) => vv - toW(0, 0, 0)[e]);
+  const normal = V(up[0] * 0.75 + front[0] * 0.66, up[1] * 0.75 + front[1] * 0.66, up[2] * 0.75 + front[2] * 0.66).normalize();
+  return { position: V(stage[0], stage[1] + 0.14, stage[2]), normal };
 }
 
 // ---- all of it ----------------------------------------------------------------------------------
@@ -758,16 +956,22 @@ function buildMarina(ctx, q) {
 export function buildSets(ctx) {
   const t0 = performance.now();
   const { q } = ctx;
-  const marina = buildMarina(ctx, q);
-  const clam = { position: V(5.6, -32.6, -177.5), normal: V(-0.5, 0.5, 0.7).normalize() };
+  const start = buildMarina(ctx, q, MARINA_START, { seed: 5150, anchor: true });
+  buildMarina(ctx, q, MARINA_END, { seed: 7272, lights: true, deep: true });
+  // the chain: from the moored sailboat's bow roller down to the anchor in the sand
+  const mo = start.moored;
+  const bow = mo.at(0, mo.sheerAt(1) + 0.08, mo.len / 2 + 0.06);
+  const tw = [mo.x - ANCHOR.x, mo.z - ANCHOR.z], tl = Math.hypot(tw[0], tw[1]);
+  // (the arms turned 40 degrees from square to the way the camera comes, so arms and stock both show)
+  const fa = Math.atan2(-0.9, 0.435) + 0.7;
+  const ring = buildAnchor(ctx, [ANCHOR.x, ANCHOR.z], [tw[0] / tl, tw[1] / tl], [Math.cos(fa), Math.sin(fa)]);
+  const chain = buildChain(ctx, q, bow, ring, [ANCHOR.x, ANCHOR.z]);
+  const clam = buildClam(ctx, q);
   const geode = { position: V(-4.4, -206.6, -389.4), normal: V(0, 0.15, 1).normalize(), size: 1.2 };
   if (typeof DEV !== 'undefined' && DEV) console.log('sets ' + Math.round(performance.now() - t0) + ' ms');
   return {
-    update(t) {
-      marina.chain.setTime(t);
-      marina.win.follow(ctx.camera);
-    },
-    chainAt: marina.chain.chainAt,
+    update(t) { chain.setTime(t); },
+    chainAt: chain.chainAt,
     clam, geode,
   };
 }

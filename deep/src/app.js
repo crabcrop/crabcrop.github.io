@@ -21,7 +21,7 @@ import { cull, makeWorld } from './world.js';
 // Options besides parts: follow() returns where the page says the camera should be (else
 // the scroll decides, evenly over the page); progress(fraction, label) is told how the
 // building goes; onFrame(p, dt) runs every frame after the camera is placed.
-export async function startDive({ parts = [], follow = null, progress = null, onFrame = null } = {}) {
+export async function startDive({ parts = [], follow = null, progress = null, onFrame = null, onFail = null } = {}) {
 const canvas = document.getElementById('world');
 const params = new URLSearchParams(location.search);
 const level = pickLevel();
@@ -65,6 +65,9 @@ function place(p) {
   G.amb.value.setRGB(w[3], w[4], w[5]);
   G.opt.value.set(optDepth(d), optSlope(d), KNEE, DEEPER);
   G.light.value.set(1, 1, 1, w[7]);
+  // the deep's own faint indigo: from the twilight down, a touch of violet at the vents
+  const deep = Math.min(1, Math.max(0, (d - 70) / 60));
+  G.deepAmb.value.setRGB(0.020 * deep, 0.020 * deep, 0.058 * deep);
   S.parts.sea.follow(camera);
   cull(camera);
   for (let i = 0; i < live.length; i++) live[i].update(S.time, S.dt, p);
@@ -79,14 +82,17 @@ function frame(now) {
   if (!S.running) return;
   requestAnimationFrame(frame);
   pace.frame(now - S.last);
-  if (statsBox && (now - statsAt) > 500) { statsAt = now; statsBox.textContent = pace.stats(); }
   const dt = Math.min((now - S.last) / 1000, 0.1);
   S.last = now;
   S.dt = dt;
   S.time += dt;
   G.time.value = S.time;
   // ease toward where the scroll is, quickly but without a jerk
-  if (follow) S.pTo = follow();
+  if (follow) {
+    S.pTo = follow();
+    // a jump (a link to a zone, or "Dive again"): go there at once rather than fly
+    if (Math.abs(S.pTo - S.p) > 1.5) S.p = S.pTo;
+  }
   const k = 1 - Math.exp(-dt * 5.5);
   S.p += (S.pTo - S.p) * k;
   S.lookX += (S.lookXTo - S.lookX) * k * 0.7;
@@ -98,16 +104,7 @@ function frame(now) {
 
 const pause = () => new Promise((r) => setTimeout(r, 0));
 const pace = createPace(engine, () => resize());
-// the H key: a line of frame statistics
-let statsBox = null, statsAt = 0;
-addEventListener('keydown', (e) => {
-  if (e.key !== 'h' && e.key !== 'H') return;
-  if (e.target && /input|textarea|select/i.test(e.target.tagName)) return;
-  if (statsBox) { statsBox.remove(); statsBox = null; return; }
-  statsBox = document.createElement('div');
-  statsBox.style.cssText = 'position:fixed;left:8px;bottom:8px;z-index:40;font:11px/1.4 ui-monospace,Menlo,monospace;color:#eef2ec;background:rgba(4,18,26,.7);padding:4px 8px;border-radius:6px;pointer-events:none';
-  document.body.appendChild(statsBox);
-});
+
 
 const told = (f, label) => { if (progress) progress(f, label); };
 async function boot() {
@@ -169,5 +166,9 @@ async function boot() {
   requestAnimationFrame(frame);
 }
 await boot();
-return { S, engine, scene, camera, place, draw };
+// if the graphics device is lost, say so: the page carries on as words
+const lost = (why) => { S.running = false; if (onFail) onFail(why); };
+canvas.addEventListener('webglcontextlost', () => lost('the graphics context was lost'));
+engine.renderer.backend.device?.lost?.then((info) => { if (info.reason !== 'destroyed') lost('the graphics device was lost'); });
+return { S, engine, scene, camera, place, draw, stats: () => pace.stats() };
 }

@@ -252,7 +252,8 @@ const FORMATIONS = [
   // floor of the dive is open sand)
   [pillows, 0.45, -316, 10, 12, 51], [pillows, 0.45, -326, -11, 12, 52], [chimney, 0.36, -331, 6.5, 9, 1.5, 53], [chimney, 0.36, -334, 9, 6, 1.2, 54],
   [chimney, 0.36, -346, -7.5, 12, 1.8, 55], [chimney, 0.36, -349, -10, 7, 1.3, 56], [pillows, 0.45, -352, 11, 14, 57], [chimney, 0.36, -359, 8, 8.5, 1.5, 58],
-  [chimney, 0.36, -372, -6.5, 11, 1.7, 59], [chimney, 0.36, -375, -9.5, 6.5, 1.2, 60], [pillows, 0.45, -380, 9.5, 12, 61], [pillows, 0.45, -396, -4, 10, 62],
+  [chimney, 0.36, -372, -6.5, 11, 1.7, 59], [chimney, 0.36, -375, -9.5, 6.5, 1.2, 60], [pillows, 0.45, -380, 11.5, 10, 61],
+  // (the geode stands at the end, where the camera looks: nothing of the rock's own in front of it)
 ];
 
 export function buildRocks(add, mat, looseMat, q) {
