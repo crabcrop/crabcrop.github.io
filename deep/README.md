@@ -64,9 +64,11 @@ with neither, or a visitor who prefers reduced motion, gets the page as plain te
   the siphonophore, the anglerfish, the sea sheep and the tube worms, drifting specks and
   bubbles.
 - `src/snap.js`: Snap from his model, with his rig ported to TSL (limbs, eye beads, lids,
-  pincer). `src/sub.js`: his submarine, made in code. `src/cast.js`: where they are at each
-  point of the dive, and the lamp. `src/print.js`: the visitor's image, a picture of Snap the
-  page takes itself with the chosen crop, finish and look.
+  pincer). `src/sub.js`: his brass submarine, made in code after the painted one. `src/cast.js`:
+  where they are at each point of the dive (the gust that takes his print, the chain, the
+  wreck's cabin, the pickup), and the lamp. `src/feltprint.js`: his print, the little felt
+  picture, drawn on a canvas at load. `src/print.js`: the visitor's image, that print
+  photographed by the page itself with the chosen crop, finish and look.
 - `src/pace.js`: keeps the frame rate by trading resolution first, in small steps, and
   remembers where it settled. `src/app.js`: builds the world and runs the loop.
 - `src/ui.js`, `src/audio.js`, `template.html`: the page around the scene; all of its sound is
