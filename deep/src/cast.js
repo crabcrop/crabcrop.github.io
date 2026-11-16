@@ -63,6 +63,7 @@ const chainS = (p) => rideU(p);
 // he hops and dives after it.
 const GUST = [0.035, 0.15], DIVE = [0.075, 0.2], PRINT_GONE = 1.55;
 
+const REACTIONS = ['poke', 'hop', 'snap', 'wave', 'spin'];
 const R = new Vector3(), U = new Vector3(), F = new Vector3(), A = new Vector3(), B = new Vector3(), C = new Vector3();
 const UP = new Vector3(0, 1, 0), M = new Vector3(), Z = new Vector3(0, 0, 1);
 const qa = new Quaternion(), qb = new Quaternion();
@@ -97,7 +98,7 @@ export function buildCast(ctx) {
   const loading = snap.load(Math.max(innerWidth, innerHeight) * (devicePixelRatio || 1) < 1400).catch((e) => console.warn('dive: Snap did not load: ' + e.message));
   const st = {
     pos: new Vector3(), last: new Vector3(), subPos: new Vector3(), rel: new Vector3(), subRel: new Vector3(), placed: false,
-    aimX: 0, aimY: 0, idle: 0, lastP: -1, wave: 0, poked: -1e9, react: 'poke', t: 0, flyFrom: false,
+    aimX: 0, aimY: 0, idle: 0, lastP: -1, wave: 0, poked: -1e9, react: 'poke', nPoke: 0, t: 0, flyFrom: false,
   };
   const ndc = new Vector3();
   const slot = (o, out) => out.copy(camera.position).addScaledVector(F, o[0]).addScaledVector(R, o[1]).addScaledVector(U, o[2]);
@@ -111,14 +112,19 @@ export function buildCast(ctx) {
     sights: [],
     // the pointer steers the lamp: x and y from -1 to 1
     aim(x, y) { st.aimX = x; st.aimY = y; },
-    // a tap or click at (x, y) in -1..1 (y up): if it is on Snap, he reacts. Returns whether it was.
-    poke(x, y) {
-      if (!snap.ready) return false;
+    // whether (x, y) in -1..1 (y up) is on Snap
+    hits(x, y) {
+      if (!snap.ready || !snap.group.visible) return false;
       ndc.copy(snap.group.position).project(camera);
       const d = camera.position.distanceTo(snap.group.position);
       const r = (snap.height * 0.75) / (d * Math.tan((camera.fov * Math.PI) / 360));
-      if (ndc.z > 1 || Math.hypot((x - ndc.x) * camera.aspect, y - ndc.y) > r) return false;
-      st.poked = st.t; st.react = 'poke';
+      return ndc.z <= 1 && Math.hypot((x - ndc.x) * camera.aspect, y - ndc.y) <= r;
+    },
+    // a tap or click at (x, y): if it is on Snap, he answers, each time the next of his
+    // reactions (a start, a hop, a snap, a wave, a spin). Returns whether it was on him.
+    poke(x, y) {
+      if (!cast.hits(x, y)) return false;
+      st.poked = st.t; st.react = REACTIONS[st.nPoke++ % REACTIONS.length];
       return true;
     },
     // Snap answers something the visitor did: 'snap' (two snaps of his pincer: he cut it, sealed
@@ -288,7 +294,8 @@ export function buildCast(ctx) {
       // (now and then, swimming, he turns his body toward where he goes, his eyes still on
       // the visitor; on the chain, in the cabin and in the submarine he faces them)
       const turnAway = hang || inSub || cabin > 0.5 || p < DIVE[1] ? 0 : smooth(0.55, 0.95, Math.sin(t * 0.37 + 1.3)) * 0.75;
-      qb.setFromAxisAngle(UP, -0.35 - turnAway + snap.life.swing * 0.15);
+      const spin = pk && rk === 'spin' ? smooth(0, 0.7, pk) * Math.PI * 2 : 0;
+      qb.setFromAxisAngle(UP, -0.35 - turnAway + snap.life.swing * 0.15 + spin);
       snap.group.quaternion.copy(qa).multiply(qb);
       // head-first as he dives after the print, and a forward lean when he swims hard
       const plunge = smooth(0.075, 0.15, p) * (1 - smooth(0.36, 0.62, p));
@@ -312,6 +319,13 @@ export function buildCast(ctx) {
       for (let i = 0; i < cast.sights.length; i++) {
         const g = cast.sights[i];
         if (p > g.from && p < g.to && Math.sin(t * 0.7 + i) > -0.2) { snap.target.copy(g.at); break; }
+      }
+      // (while the visitor's hand moves over the scene his eyes follow it: the point under it, as
+      // far off as he is)
+      const hand = G.hand.value;
+      if (hand.z > 0.5) {
+        const d = camera.position.distanceTo(st.pos), th = Math.tan((camera.fov * Math.PI) / 360);
+        snap.target.copy(camera.position).addScaledVector(F, d).addScaledVector(R, hand.x * d * th * camera.aspect).addScaledVector(U, hand.y * d * th);
       }
       // (in the submarine a warm light inside keeps him red in the dark)
       snap.U.cabin.value = inSub ? 0.1 + 0.3 * smooth(40, 90, depth) : 0.22 * cabin;   // (and the lantern's glow on him in the wreck's cabin)

@@ -108,3 +108,19 @@ button.cue:hover { background: #fff; }
 .so-far.pop mark { animation: chip .45s var(--spring); }
 @keyframes chip { 0% { transform: scale(.4); opacity: 0; } 100% { transform: none; opacity: 1; } }
 @media (max-width: 760px) { .so-far .lab { display: none; } .so-far code { font-size: 11px; } }
+
+/* sparkles: a burst of little sun stars (stage.sparkle) */
+.spark { position: absolute; width: 12px; height: 12px; margin: -6px 0 0 -6px; background: var(--sun); clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%); filter: drop-shadow(0 0 3px rgba(255, 216, 138, .9)); animation: spark .8s ease-out both; pointer-events: none; }
+@keyframes spark { 0% { transform: translate(0, 0) scale(.3) rotate(0); opacity: 1; } 70% { opacity: 1; } 100% { transform: translate(var(--dx), var(--dy)) scale(1) rotate(90deg); opacity: 0; } }
+
+/* the headings' second halves in coral, as in the painted dive */
+h1 .hi, h2 .hi, h3 .hi { color: var(--coral); }
+/* the hero's install command, and the site's links in the settings */
+.hero-cmd { max-width: 560px; }
+.hero-cmd code { font-size: 11.5px; }
+.settings .site { display: flex; flex-wrap: wrap; gap: 4px 14px; padding-top: 10px; border-top: 1px solid var(--line); font-size: 13.5px; font-weight: 650; }
+.skip2:focus { top: 58px; }
+.story-lab { font: 800 11px/1 var(--mono) !important; letter-spacing: .14em; text-transform: uppercase; color: var(--coral); }
+@media (max-width: 760px) { :root:not(.page) .hero-cmd { display: none; } }
+.spark.drop { width: 9px; height: 11px; margin: -5px 0 0 -4px; background: radial-gradient(circle at 35% 35%, #fff, #bfeff5 55%, #7fd6e3); clip-path: none; border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%; filter: none; animation-name: drop; animation-duration: .9s; }
+@keyframes drop { 0% { transform: translate(0, 0) scale(.5); opacity: 1; } 45% { transform: translate(calc(var(--dx) * .6), calc(-1 * abs(var(--dy)) - 26px)) scale(1); opacity: 1; } 100% { transform: translate(var(--dx), 18px) scale(.7); opacity: 0; } }

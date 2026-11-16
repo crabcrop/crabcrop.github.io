@@ -145,6 +145,22 @@ export function createStage({ camera, ui }) {
       },
     },
 
+    // ---- a burst of sparkles at a point of the world (a Vector3 or [x, y, z]) or of the
+    // screen ([x, y]): for a snip, a seal, a find ---------------------------------------------
+    // (kind 'drop': water drops instead, for a splash)
+    sparkle(at, n = 8, kind = '') {
+      let x, y;
+      if (Array.isArray(at) && at.length === 2) { x = at[0]; y = at[1]; } else { const q = stage.project(at, SP); if (q[2] <= 0) return; x = q[0]; y = q[1]; }
+      for (let i = 0; i < n; i++) {
+        const e = stage.el('i', kind ? 'spark ' + kind : 'spark');
+        const a = (i / n) * Math.PI * 2 + Math.random() * 0.6, r = 26 + Math.random() * 30;
+        e.style.left = Math.round(x) + 'px'; e.style.top = Math.round(y) + 'px';
+        e.style.setProperty('--dx', Math.round(Math.cos(a) * r) + 'px'); e.style.setProperty('--dy', Math.round(Math.sin(a) * r) + 'px');
+        e.style.animationDelay = Math.round(Math.random() * 90) + 'ms';
+        setTimeout(() => e.remove(), 900);
+      }
+    },
+
     // ---- Snap's story: a note, timed to what happened -------------------------------------
     note(html, secs = 7) {
       noteEl.querySelector('p').innerHTML = html;
@@ -173,7 +189,7 @@ export function createStage({ camera, ui }) {
       for (let i = 0; i < stage.zones.length; i++) { const z = stage.zones[i]; if (z.frame) z.frame(stage); }
     },
   };
-  const H2 = [0, 0];
+  const H2 = [0, 0], SP = [0, 0, 0];
   let handOn = 0;
 
   // the window: its size, and whether this is the wide layout (the words on the left)

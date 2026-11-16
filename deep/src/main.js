@@ -117,8 +117,22 @@ export function start() {
       }
       // the pointer steers the lamp; a tap on Snap, and he reacts
       const canvas = document.getElementById('world');
-      addEventListener('pointermove', (e) => { if (e.target === canvas) cast.aim((e.clientX / innerWidth) * 2 - 1, -((e.clientY / innerHeight) * 2 - 1)); }, { passive: true });
-      addEventListener('pointerdown', (e) => { if (e.target === canvas) cast.poke((e.clientX / innerWidth) * 2 - 1, -((e.clientY / innerHeight) * 2 - 1)); }, { passive: true });
+      // (the scene takes the pointer where nothing of the page is over it: the canvas, or the
+      // hands-on layer's empty space)
+      const onScene = (e) => e.target === canvas || e.target === document.getElementById('fx');
+      let overSnap = false;
+      addEventListener('pointermove', (e) => {
+        if (!onScene(e)) { if (overSnap) { overSnap = false; document.body.style.cursor = ''; } return; }
+        const x = (e.clientX / innerWidth) * 2 - 1, y = -((e.clientY / innerHeight) * 2 - 1);
+        cast.aim(x, y);
+        // the cursor turns to a pointer over Snap: he can be tapped
+        const on = e.pointerType !== 'touch' && cast.hits(x, y);
+        if (on !== overSnap) { overSnap = on; document.body.style.cursor = on ? 'pointer' : ''; }
+      }, { passive: true });
+      addEventListener('pointerdown', (e) => {
+        if (!onScene(e)) return;
+        if (cast.poke((e.clientX / innerWidth) * 2 - 1, -((e.clientY / innerHeight) * 2 - 1)) && stage) stage.sparkle([e.clientX, e.clientY], 7);
+      }, { passive: true });
       // the scene fades in once its first frame is drawn
       requestAnimationFrame(() => requestAnimationFrame(() => ui.ready()));
     })

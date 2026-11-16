@@ -87,7 +87,7 @@ export class Engine {
       invProj: uniform(new Matrix4()), camWorld: uniform(new Matrix4()), camPos: uniform(new Vector3()),
       texel: uniform(new Vector2()), first: uniform(0), size: uniform(new Vector2(1, 1)),
       exposure: uniform(1), bloom: uniform(this.q.bloom), look: uniform(new Vector4(0, 0, 0, 0)), fade: uniform(1),
-      ascent: uniform(new Vector2(0, 0)),
+      ascent: uniform(new Vector2(0, 0)), shimmer: uniform(0),
     };
     this.shaftMat = pass(shaftPass(this.u, this.q.steps));
     this.blurMat = pass(blurPass(this.u));
@@ -124,6 +124,8 @@ export class Engine {
   // The climb home (amount 0 to 1, q how far up 0 to 1): bands of every zone's colour slide
   // down past the window and warm streaks fall, behind the submarine and Snap.
   ascent(amount, q) { this.u.ascent.value.set(amount, q); }
+  // The water wavering with heat round the visitor's hand (at the vents): 0 to 1.
+  shimmer(amount) { this.u.shimmer.value = amount; }
 
   drawQuad(mat, target) {
     this.quad.material = mat;
@@ -416,7 +418,11 @@ function finalPass(u) {
   const curve = (x) => clamp(x.mul(x.mul(2.51).add(0.03)).div(x.mul(x.mul(2.43).add(0.59)).add(0.14)), 0.0, 1.0);
   const lum = (c) => dot(c, vec3(0.2126, 0.7152, 0.0722));
   return Fn(() => {
-    const q = uv();
+    const q0 = uv();
+    // (the heat over the vents wavers round the visitor's hand)
+    const hd = q0.sub(vec2(G.hand.x.mul(0.5).add(0.5), float(0.5).sub(G.hand.y.mul(0.5)))).mul(vec2(G.hand.w, 1.0));
+    const sh = u.shimmer.mul(G.hand.z).mul(float(1).sub(smoothstep(0.03, 0.22, length(hd))));
+    const q = q0.add(vec2(sin(q0.y.mul(140.0).add(G.time.mul(7.0))), cos(q0.x.mul(120.0).add(G.time.mul(6.0)))).mul(sh.mul(0.0035))).toVar();
     const sc = u.fScene.sample(q).toVar();
     const c = sc.rgb.add(u.fShaft.sample(q).rgb).toVar();
     const bl = u.fBloom.sample(q).rgb.div(u.bloom).toVar();

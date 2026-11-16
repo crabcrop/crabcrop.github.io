@@ -65,6 +65,8 @@ export const G = {
   // now (a cursor that moved lately, or a tap: 0 to 1, eased), and the window's aspect. Things
   // that shy from it (fish, worms, kelp) compare it with where they are on the screen.
   hand: uniform(new Vector4(0, 0, 0, 1)),
+  // rings on the water's surface where the visitor's hand is over it: x, z, how much (0 to 1)
+  ripple: uniform(new Vector4(0, 0, 0, 0)),
   // the textures the page draws itself; the engine sets them before any material is made
   waterTex: null,      // r: caustics, ba: the surface's slope
   detailTex: null,     // rg: slope, b: height, a: mottle
