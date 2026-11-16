@@ -26,7 +26,7 @@ export function buildSea(scene) {
       const d = length(toP);
       const v = toP.div(d).toVar();
       // (small waves fade with distance: far away they would only shimmer)
-      const fl = float(1).sub(smoothstep(60.0, 260.0, d));
+      const fl = float(1).sub(smoothstep(25.0, 120.0, d));
       const sl = texture(G.waterTex, f.w.xz.div(13.0)).ba.sub(0.5)
         .add(texture(G.waterTex, f.w.zx.div(4.7).add(0.2)).ba.sub(0.5).mul(0.7))
         .add(texture(G.waterTex, f.w.xz.div(37.0).add(0.6)).ba.sub(0.5).mul(0.8)).mul(fl.mul(2.0)).toVar();
@@ -42,7 +42,7 @@ export function buildSea(scene) {
         .add(vec3(1.0, 0.95, 0.85).mul(pow(sd, 24.0).mul(0.8).add(pow(sd, 120.0).mul(2.4).add(pow(sd, 700.0).mul(9.0)).mul(glit))))
         .mul(fres.oneMinus()).mul(G.light.x);
       // the mirror: the water below, along the reflected ray
-      const refl = scatterFrom(float(0.0), float(1.0), reflect(v, n), float(300.0)).mul(1.15);
+      const refl = scatterFrom(float(0.0), float(1.0), reflect(v, n), float(300.0)).mul(0.72);
       return inWater(mix(refl, sky, win), f.w);
     },
   }));

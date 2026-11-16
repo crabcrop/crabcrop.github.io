@@ -58,9 +58,10 @@ const bladeMat = (fade) => material({
     const N0 = normalize(cross(W0, T)).toVar();
     const tw = seed.sub(0.5).mul(2.4).mul(t).add(sin(ph.add(t.mul(4.0))).mul(0.35)).toVar();
     const W = W0.mul(cos(tw)).add(N0.mul(sin(tw))).toVar(), Nn = N0.mul(cos(tw)).sub(W0.mul(sin(tw))).toVar();
-    const wd = ib.w.mul(mix(pow(sin(pow(t, 0.7).mul(3.14159)), 0.6), float(1.0).sub(t.mul(t).mul(0.9)), kind)).mul(far.mul(1.3).add(1.0));
+    const ribbon = smoothstep(0.0, 0.12, t).mul(float(1.0).sub(pow(t, 6.0).mul(0.75)));
+    const wd = ib.w.mul(mix(ribbon, float(1.0).sub(t.mul(t).mul(0.9)), kind)).mul(far.mul(1.3).add(1.0));
     const rp = t.mul(16.0).add(seed.mul(50.0)).toVar(), edge = abs(u).mul(float(1.0).sub(kind)).toVar();
-    const P = S.add(Q).add(W.mul(u.mul(wd))).add(Nn.mul(sin(rp).mul(0.16).mul(ib.w).mul(edge).sub(float(1.0).sub(abs(u)).mul(0.12).mul(ib.w))));
+    const P = S.add(Q).add(W.mul(u.mul(wd))).add(Nn.mul(sin(rp).mul(0.38).mul(ib.w).mul(edge).sub(float(1.0).sub(abs(u)).mul(0.12).mul(ib.w))));
     // far away, most blades are not drawn at all: they fold to a point
     v.P.assign(select(fract(seed.mul(7.13)).greaterThan(float(1.0).sub(far.mul(0.72))), S, P));
     v.N.assign(normalize(Nn.add(W.mul(u).mul(0.4)).sub(T.mul(cos(rp)).mul(0.5).mul(edge))));
@@ -162,7 +163,7 @@ function cells(add, shape, mat, list, size, range) {
 
 function buildKelp(add, q) {
   const rng = makeRng(4242);
-  const plants = Math.round(210 * (q.amount >= 1 ? 1 : q.amount >= 0.5 ? 0.7 : 0.45)), perMetre = q.amount >= 1 ? 6.5 : q.amount >= 0.5 ? 4.2 : 2.6;
+  const plants = Math.round(210 * (q.amount >= 1 ? 1 : q.amount >= 0.5 ? 0.7 : 0.45)), perMetre = q.amount >= 1 ? 4.2 : q.amount >= 0.5 ? 3.0 : 2.0;
   const wide = q.amount >= 1 ? 1 : q.amount >= 0.5 ? 1.25 : 1.6;
   const blades = [], stalks = [];
   for (let n = 0, tries = 0; n < plants && tries < plants * 30; tries++) {
@@ -170,6 +171,8 @@ function buildKelp(add, q) {
     if (rng() > edge) continue;                          // thinner at both ends of the forest
     const x = centerX(z) + rng.bell() * 2.2 * (halfWidth(z) + 4);
     if (offTrack(x, z) < 2.7 || Math.abs(x - centerX(z)) > halfWidth(z) + 11) continue;
+    // (fewer near the camera on the left, where the words are)
+    if (x < centerX(z) - 1 && offTrack(x, z) < 13 && rng() < 0.6) continue;
     // in clumps, with clearings between
     if (noise2(x * 0.11 + 3.3, z * 0.11) < -0.18 + 0.3 * rng()) continue;
     const g = groundY(x, z), H = (-g - rng.range(1.2, 5.5)) * rng.range(0.78, 1), ps = rng();
@@ -178,7 +181,7 @@ function buildKelp(add, q) {
     const count = Math.round(H * perMetre * rng.range(0.75, 1.15));
     for (let b = 0; b < count; b++) {
       const h = 0.06 + 0.94 * Math.pow(rng(), 0.8), top = h > 0.9 ? 1.5 : 1;
-      blades.push(x, g, z, H, h, rng() * TAU, rng.range(0.9, 1.6) * (0.75 + 0.45 * h) * top, rng.range(0.13, 0.21) * wide, rng(), rng.range(0.05, 0.8) / top, 0, ps);
+      blades.push(x, g, z, H, h, rng() * TAU, rng.range(1.4, 2.4) * (0.7 + 0.5 * h) * top, rng.range(0.11, 0.17) * wide, rng(), rng.range(0.35, 1.1) / top, 0, ps);
     }
     n++;
   }
@@ -312,6 +315,28 @@ const SHAPES = {
     }
     return finish(m, (x, y, z, s, arm, ny, o) => { const k = arm > 0 ? s : 0; o[0] = 0.09 * k; o[1] = 0; o[2] = arm > 0 ? 0.55 + 0.45 * k : 0.6; o[3] = arm > 0 ? k : 0.15; });
   },
+  // a starfish: five plump arms, flat on the sand
+  starfish(rng) {
+    const m = new Mesh(true), twist = rng() * TAU;
+    blob(m, 0, 0.04, 0, (x, y, z) => {
+      const a = Math.atan2(z, x) + twist, arm = Math.pow(Math.max(0, Math.cos(a * 2.5)), 2.2);
+      const flat = 0.35 + 0.65 * Math.abs(y) < 0.5 ? 1 : 1;
+      return (0.16 + 0.42 * arm) * (Math.abs(y) > 0.3 ? 0.55 : 1) * flat;
+    }, 10);
+    for (let i = 0; i < m.count; i++) m.p[i * 3 + 1] *= 0.32;
+    return finish(m, (x, y, z, _, __, ny, o) => { o[0] = 0; o[1] = 0; o[2] = 0.6 + 0.4 * Math.max(ny, 0); o[3] = 0.6 + 0.4 * Math.min(1, Math.hypot(x, z) * 2); });
+  },
+  // a scallop shell: a fan of ribs, cupped, lying on the sand
+  shell(rng) {
+    const m = new Mesh(true);
+    m.grid(28, 8, (s, t, o) => {
+      const a = (s - 0.5) * 2.4, r = 0.08 + 0.42 * t;
+      const rib = 1 + 0.05 * Math.cos(s * 28 * Math.PI) * t;
+      o[0] = Math.sin(a) * r * rib; o[2] = Math.cos(a) * r * rib - 0.2; o[1] = 0.03 + 0.14 * Math.sin(t * Math.PI * 0.9) * (1 - 0.4 * Math.abs(s - 0.5) * 2);
+      o[3] = t;
+    }, false, true);
+    return finish(m, (x, y, z, t, _, ny, o) => { o[0] = 0; o[1] = 0; o[2] = 0.65 + 0.35 * t; o[3] = 0.55 + 0.45 * t; });
+  },
   // a tube worm: a white tube with a red plume, for the vents
   worm(rng) {
     const m = new Mesh(true), h = rng.range(0.6, 1.2);
@@ -347,6 +372,8 @@ const CORAL = [[0.96, 0.38, 0.55], [0.98, 0.45, 0.33], [0.98, 0.56, 0.16], [0.64
 const SPONGE = [[0.98, 0.76, 0.20], [0.64, 0.30, 0.82], [0.96, 0.42, 0.18], [0.22, 0.62, 0.86]];
 const FAN = [[0.72, 0.30, 0.86], [0.94, 0.30, 0.32], [0.98, 0.64, 0.22]];
 const BONE = [[0.82, 0.80, 0.74]];
+const STAR = [[0.98, 0.50, 0.20], [0.96, 0.36, 0.40], [0.66, 0.36, 0.84], [0.98, 0.74, 0.26]];
+const SHELL = [[0.96, 0.86, 0.74], [0.98, 0.70, 0.66], [0.92, 0.80, 0.56]];
 
 // What is planted: shape, how many (on high), where (z from, z to), on the ground or on
 // the formations or both, size from and to, colours, variants of the shape.
@@ -355,11 +382,10 @@ const PLANTING = [
   ['cauliflower', 190, -120, -194, 'both', 0.5, 1.3, CORAL, 3], ['sponge', 150, -118, -196, 'both', 0.6, 1.5, SPONGE, 3], ['fan', 90, -126, -196, 'rock', 0.9, 2.2, FAN, 2],
   ['whips', 90, -128, -200, 'both', 0.8, 1.7, FAN, 2], ['anemone', 140, -118, -192, 'both', 0.6, 1.3, CORAL, 2],
   // the shallows and the kelp have a little of it too
-  ['mound', 22, -20, -118, 'ground', 0.4, 1.0, CORAL, 1], ['anemone', 30, -24, -118, 'rock', 0.5, 1.0, CORAL, 1], ['sponge', 26, -60, -118, 'rock', 0.6, 1.2, SPONGE, 1],
+  ['starfish', 70, 14, -60, 'ground', 0.25, 0.42, STAR, 2], ['shell', 60, 14, -60, 'ground', 0.18, 0.32, SHELL, 2], ['sponge', 26, -60, -118, 'ground', 0.6, 1.2, SPONGE, 1],
   // the ledge and the wreck: fans, whips and sponges, sparser
   ['fan', 26, -200, -264, 'both', 0.9, 2.0, FAN, 1], ['whips', 26, -200, -264, 'both', 0.8, 1.6, FAN, 1], ['sponge', 30, -198, -264, 'both', 0.6, 1.4, SPONGE, 1],
-  // the vents: tube worms on the pillow lava and at the chimneys' feet
-  ['worm', 420, -306, -400, 'both', 0.6, 1.5, BONE, 3],
+
 ];
 
 function buildReef(add, q) {
