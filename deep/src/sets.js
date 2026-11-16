@@ -887,7 +887,7 @@ function buildLighthouse(ctx, x, z, deep) {
   }), 200);
   // the island
   const isl = new Mesh(true), cy = deep ? -2.2 : -5;
-  blob(isl, x, cy, z, (dx, dy, dz) => (dy > 0 ? 7.0 : 7.6) * (1 + 0.18 * noise3(dx * 2.2 + 4, dy * 2.2, dz * 2.2) + 0.08 * noise3(dx * 6, dy * 6, dz * 6 + 2)), 16);
+  blob(isl, x, cy, z, (dx, dy, dz) => (dy > 0 ? 7.0 : 7.6) * (1 + 0.18 * noise3(dx * 2.2 + 4, dy * 2.2, dz * 2.2) + 0.08 * noise3(dx * 6, dy * 6, dz * 6 + 2)), 24);
   // (at the end there is no sea floor below it: the rock ends just under the water, open
   // underneath, so seen from the deep, where the camera comes up, it is not a dark blot against
   // the bright surface; from the waterline the water hides the rest)
@@ -903,8 +903,9 @@ function buildLighthouse(ctx, x, z, deep) {
     surface: (s, f) => {
       rockSurf(s, f.w, f.w, clamp(smoothstep(0.6, 1.4, f.w.y).sub(smoothstep(0.55, 0.85, f.n.y).mul(0.5)).add(0.3), 0.0, 1.0), float(1.0), f.dist);
       s.albedo = mix(s.albedo, srgb(0.52, 0.64, 0.36), smoothstep(0.3, 2.6, f.w.y).mul(smoothstep(0.7, 0.9, f.n.y)).mul(0.85));
-      // under the water the rock is dark with weed, so from far off it sinks into the blue
-      s.albedo = mix(s.albedo, srgb(0.1, 0.16, 0.15), smoothstep(-0.2, -1.5, f.w.y));
+      // just under the water the rock is dark with weed; further down it is the sea floor's own
+      // sandy rock, lit from above, so from the shallows it reads as a solid rounded hill
+      s.albedo = mix(s.albedo, srgb(0.1, 0.16, 0.15), smoothstep(-0.2, -1.5, f.w.y).mul(float(1).sub(smoothstep(-2.5, -5.0, f.w.y))));
     },
   }), 200);
 }

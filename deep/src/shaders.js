@@ -375,8 +375,15 @@ export function material(o) {
       alpha = s.alpha;
       if (G.debug) col = vec3(shadow4(w.add(s.n.mul(0.14)).add(G.sunDir.mul(0.05)))).mul(caustic(w, float(1.0)).add(0.2));
     }
-    if (o.fade) col = mix(col, scatter(w.sub(cameraPosition).div(dist), float(300.0)), smoothstep(o.fade[0], o.fade[1], dist));
-    return vec4(col, blended ? alpha : dist);
+    let far = dist;
+    if (o.fade) {
+      const k = smoothstep(o.fade[0], o.fade[1], dist);
+      col = mix(col, scatter(w.sub(cameraPosition).div(dist), float(300.0)), k);
+      // (and to the light shafts it is as far as the open water behind it, so a faded thing
+      // does not cut a hole in them)
+      far = mix(dist, float(400.0), k);
+    }
+    return vec4(col, blended ? alpha : far);
   })();
   // the twin for the shadow map: the same shape, depth only
   if (o.shadow !== false && !o.raw && !blended) {
