@@ -226,8 +226,10 @@ export function buildCast(ctx) {
       sub.turn(dt, come * (0.25 + 0.75 * locked));
 
       // ---- Snap: swimming in his place, then into the bubble. In the wreck's cabin he comes
-      // closer to the camera (the room is small: the desk is three metres off)
-      const cabin = smooth(4.49, 4.55, p) * (1 - smooth(4.63, 4.69, p));
+      // closer to the camera (the room is small: the desk is three metres off), and steps back
+      // once the octopus's letter is sealed (by p 4.594), so the wax seal on the desk shows for
+      // Choice 5 (zones/s4.js)
+      const cabin = smooth(4.49, 4.55, p) * (1 - smooth(4.595, 4.645, p));
       if (o === SLOT.wide) driftAt(p, DRIFT_AT);
       else {
         // (on a phone he moves aside for the turtle in the reef's crop frame, which sits in the
