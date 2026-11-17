@@ -271,7 +271,8 @@ function bottleAt(p, tanV, aspect, o) {
 // of the view before the reef's next station (the school of seven).
 function reefTurtleAt(p, tanV, aspect, o) {
   const pc = clampN(p, REEF_TURTLE[0], REEF_TURTLE[1]), u = (pc - REEF_TURTLE[0]) / (REEF_TURTLE[1] - REEF_TURTLE[0]), wide = aspect >= 1, c = camAt(pc, _cA);
-  onScreen(o.c, c, wide ? 4.6 : 6.0, wide ? 0.2 - 0.12 * u : 0.02 - 0.06 * u, wide ? 0.18 : 0.36, tanV, aspect);
+  // (on a phone high in the view, between the bar and Snap, who keeps right and low meanwhile: cast.js)
+  onScreen(o.c, c, wide ? 4.6 : 6.0, wide ? 0.2 - 0.12 * u : -0.04 - 0.06 * u, wide ? 0.18 : 0.46, tanV, aspect);
   dirOf(o.f, -0.75 * c.R[0] - 0.9 * c.L[0], -0.06, -0.75 * c.R[2] - 0.9 * c.L[2]);
   const off = smooth(REEF_TURTLE[1] - 0.05, REEF_TURTLE[1] + 0.08, p);
   if (off > 0) {

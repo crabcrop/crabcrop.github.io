@@ -228,7 +228,13 @@ export function buildCast(ctx) {
       // ---- Snap: swimming in his place, then into the bubble. In the wreck's cabin he comes
       // closer to the camera (the room is small: the desk is three metres off)
       const cabin = smooth(4.49, 4.55, p) * (1 - smooth(4.63, 4.69, p));
-      if (o === SLOT.wide) driftAt(p, DRIFT_AT); else { DRIFT_AT[0] = DRIFT_AT[1] = 0; DRIFT_AT[2] = -0.75 * cabin; }
+      if (o === SLOT.wide) driftAt(p, DRIFT_AT);
+      else {
+        // (on a phone he moves aside for the turtle in the reef's crop frame, which sits in the
+        // middle of the view above the words: to the right and lower, as on a wide screen)
+        const reef = smooth(3.05, 3.11, p) * (1 - smooth(3.36, 3.42, p));
+        DRIFT_AT[0] = 0; DRIFT_AT[1] = 0.42 * reef; DRIFT_AT[2] = -0.75 * cabin - 0.3 * reef;
+      }
       M.set(o.snap[0] * (1 - 0.1 * cabin) + DRIFT_AT[0], o.snap[1] * (1 - 0.25 * cabin) + DRIFT_AT[1], o.snap[2] + DRIFT_AT[2]);
       slot(M.toArray(SNAP_AT), A);
       A.y += Math.sin(t * 1.3) * 0.05;
