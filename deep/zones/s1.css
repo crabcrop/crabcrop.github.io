@@ -19,7 +19,9 @@
   :root:not(.page) .fishes { grid-template-columns: 1fr 1fr; gap: 6px; }
   :root:not(.page) .fishes .opt { display: grid; grid-template-columns: auto auto minmax(0, 1fr); grid-template-rows: auto auto; align-items: center; column-gap: 8px; row-gap: 0; padding: 6px 10px; }
   :root:not(.page) .fishes .opt input, :root:not(.page) .fishes .opt .fish { grid-row: span 2; }
-  :root:not(.page) .fishes .opt code { text-align: left; font-size: 11px; }
+  :root:not(.page) .fishes .opt code { text-align: left; font-size: 11px; overflow-wrap: normal; }
+  :root:not(.page) .fishes .opt .fish { width: 46px; height: 28px; }
+  :root:not(.page) .fishes .opt .fish svg { width: 46px; height: 27px; }
 }
 .pick .race { clear: both; font-size: 13.5px; line-height: 1.45; color: var(--ink2); }
 #s1 .pick .help { clear: both; padding-top: 8px; font-size: 14.5px; color: var(--ink2); }

@@ -71,7 +71,7 @@ export default {
 
     // ---- the visitor's URL: its readable form, and sealed (the page's own token when Choice 5 is
     // sealed, so the chest shows the one the bar does; else one minted here)
-    let rem = '', sig8 = '', token = '', tokenFor = '', minting = 0, pollUntil = -1;
+    let rem = '', sig8 = '', token = '', tokenFor = '', minting = 0, pollAt = -1;
     const pageToken = () => {
       if (typeof ui.token === 'string' && ui.token.startsWith('s1.')) return ui.token;
       if (!stage.choices.seal) return '';
@@ -86,7 +86,6 @@ export default {
       tokenFor = rem; token = '';
       const n = ++minting;
       seal(rem).then((tk) => { if (n === minting && !token) { token = tk || ''; chestText(true); } });
-      pollUntil = performance.now() / 1000 + 10;
     };
 
     // ---- the chest: open 1, shut 0; where the lid is heading
@@ -213,7 +212,6 @@ export default {
       refresh();
       chestText(true);
       writeLog();
-      if (key === 'seal' && i) pollUntil = performance.now() / 1000 + 10;
     });
 
     // ---- the cards' specimens come alive as each comes into view
@@ -427,10 +425,11 @@ export default {
       lastP = p;
 
       // ---- the page's token, once it has one for this recipe (sealed by Choice 5): the chest shows
-      // the same one as the bar (looked for a few seconds after a choice)
-      if (stage.choices.seal && t < pollUntil) {
+      // the same one as the bar (looked for twice a second while it differs)
+      if (stage.choices.seal && t - pollAt > 0.5) {
+        pollAt = t;
         const pt = pageToken();
-        if (pt && pt !== token && tokenFor === rem) { token = pt; minting++; pollUntil = -1; chestText(ch.open === ch.target); }
+        if (pt && pt !== token && tokenFor === rem) { token = pt; minting++; chestText(ch.open === ch.target); }
       }
     };
     restGlow();

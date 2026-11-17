@@ -14,7 +14,6 @@ import { SRC, remainder, sign } from '../content.js';
 import { groundY, pathAt } from '../layout.js';
 import { smooth } from '../math.js';
 import { buildAgent } from '../props/vents.js';
-import { G } from '../shaders.js';
 
 const INSTALL = ['npm install @crabcrop/url', 'pip install crabcrop_url', 'cargo add crabcrop-url'];
 const SIZE = ['1200 × 630', '760 × 760', '945 × 630'], FMT = ['AVIF', 'AVIF', 'JPEG XL', 'WebP'];
@@ -163,7 +162,7 @@ export default {
     const gp = world.geodePrint;
     const home = gp ? { pos: gp.position.clone(), quat: gp.quaternion.clone(), scale: gp.scale.clone() } : null;
     const pk = { taken: false, at: -10, settledAt: -1, lastSub: new Vector3(), noteAt: -10 };
-    const pin = new Vector3(), hold = new Vector3(), holdQ = new Quaternion(), fwd = new Vector3(), up = new Vector3(), lift = new Vector3(), look = new Matrix4();
+    const pin = new Vector3(), hold = new Vector3(), holdQ = new Quaternion(), up = new Vector3(), lift = new Vector3(), look = new Matrix4();
     stage.printOnPincer = false;
 
     this.tick = () => {
@@ -228,23 +227,12 @@ export default {
         stage.sparkle(home.pos, 12);
         cast.react('hop');
         if (world.fauna && world.fauna.wormsDuck) world.fauna.wormsDuck();
-        if (typeof cast.lunge === 'function') cast.lunge();
+        cast.lunge();
         stage.note(PRINT_STORY, 7);
         pk.noteAt = t;
       }
       stage.printOnPincer = pk.taken;
       const age = t - pk.at;
-      // the nudge (cast.js keeps the submarine where it parks; until it can nudge it itself, it is
-      // moved here for this frame only, with Snap in it and its lamp)
-      if (pk.taken && age >= 0 && age < 0.6 && typeof cast.lunge !== 'function') {
-        fwd.set(0, 0, -1).applyQuaternion(sub.quaternion);
-        const k = Math.sin(Math.min(age / 0.5, 1) * Math.PI) * 0.34, hop = Math.sin(Math.min(age / 0.55, 1) * Math.PI) * 0.1;
-        sub.position.addScaledVector(fwd, k);
-        sub.updateMatrixWorld(true);
-        G.lampPos.value.addScaledVector(fwd, k);
-        cast.snap.group.position.addScaledVector(fwd, k);
-        cast.snap.group.position.y += hop;
-      }
       // (the story goes when the visitor leaves the vents)
       if (pk.noteAt > 0 && (p > CLIMB + 0.1 || p < 6.6) && t - pk.noteAt < 7) {
         const np = noteEl.querySelector('p');

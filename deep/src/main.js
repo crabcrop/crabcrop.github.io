@@ -163,6 +163,8 @@ export function start() {
       }, { passive: true });
       addEventListener('pointerdown', (e) => {
         if (!onScene(e)) return;
+        // (on a touch screen a tap aims the lamp too, as a moving cursor does)
+        if (e.pointerType === 'touch') cast.aim((e.clientX / innerWidth) * 2 - 1, -((e.clientY / innerHeight) * 2 - 1));
         if (cast.poke((e.clientX / innerWidth) * 2 - 1, -((e.clientY / innerHeight) * 2 - 1)) && stage) stage.sparkle([e.clientX, e.clientY], 7);
       }, { passive: true });
       // the scene fades in once its first frame is drawn

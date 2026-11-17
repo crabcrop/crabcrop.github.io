@@ -335,7 +335,7 @@ export default {
       if (b > 0) {
         for (let k = 0; k < 7; k++) { const m = (a + b) / 2; if (o.y + FW.y * m < groundY(o.x + FW.x * m, o.z + FW.z * m)) b = m; else a = m; }
         const d = (a + b) / 2, x = o.x + FW.x * d, z = o.z + FW.z * d;
-        g.mesh.position.set(x, groundY(x, z) + 0.05, z);
+        g.mesh.position.set(x, groundY(x, z) + 0.12, z);
         // about 150 px across on the screen, wherever it falls
         const ppm = stage.H / (2 * Math.max(d * FW.dot(F), 0.5) * tanV);
         g.mesh.scale.setScalar(Math.min(7, 300 / ppm));
@@ -343,7 +343,8 @@ export default {
         want = 1;
       }
     }
-    const kk = g.k.value + (want - g.k.value) * Math.min(1, (stage.dt || 0.016) * (want ? 5 : 3));
+    // (eased in and out; a still frame shows it as it is)
+    const kk = stage.dt > 0 ? g.k.value + (want - g.k.value) * Math.min(1, stage.dt * (want ? 5 : 3)) : want;
     g.k.value = kk < 0.005 && !want ? 0 : kk;
     g.mesh.visible = g.k.value > 0.005;
   },
