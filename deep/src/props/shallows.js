@@ -509,8 +509,9 @@ export function buildGlint(scene) {
     raw: (f) => {
       const q = f.obj.xy, r2 = dot(q, q).mul(4.0);
       const g = exp(r2.mul(-2.6)).mul(float(1.0).sub(smoothstep(0.7, 1.0, r2)));
-      const c = caustic(f.w, f.dist);
-      const col = vec3(1.0, 0.8, 0.5).mul(c.mul(1.5).add(0.3)).mul(g).mul(k).mul(exp(f.dist.mul(-0.05)));
+      // (the caustics' net, sharpened and warmed, brighter than the sand's own light round it)
+      const c = pow(caustic(f.w, f.dist), 1.4);
+      const col = vec3(1.0, 0.78, 0.46).mul(c.mul(3.6).add(0.7)).mul(g).mul(k).mul(exp(f.dist.mul(-0.04)));
       return { color: col, alpha: float(1.0) };
     },
   });

@@ -13,7 +13,8 @@
 
 /* the cards' specimens: what a meta answer, the OCR and explain give back */
 .tw-spec { padding: 11px 13px 12px; background: rgba(0, 0, 0, .36); border: 1px solid rgba(143, 227, 225, .22); border-radius: 14px 14px 14px 4px; font: 12px/1.5 var(--mono); color: var(--sea-glass); overflow-wrap: anywhere; }
-.tw-spec .spec-note { margin: 0; font: 600 11.5px/1.4 var(--sans); color: rgba(143, 227, 225, .8); }
+/* (#s5: the template's own size for a card's paragraphs must not reach these) */
+#s5 .tw-spec .spec-note { margin: 0; font: 600 11.5px/1.4 var(--sans); color: rgba(143, 227, 225, .8); }
 .tw-json { margin: 7px 0 0; font: 11.5px/1.45 var(--mono); white-space: pre-wrap; overflow-wrap: anywhere; color: var(--sea-glass); }
 .tw-json.pop { animation: tw-pop .6s ease-out; }
 @keyframes tw-pop { 0% { color: #fff; text-shadow: 0 0 10px rgba(143, 227, 225, .7); } 100% { color: var(--sea-glass); text-shadow: none; } }
@@ -23,7 +24,7 @@
 .tw-ocr .line { font: italic 500 15px/1.35 Georgia, "Times New Roman", serif; color: #3a2a1c; padding: 1px 6px; border: 1.5px dashed #D63118; border-radius: 4px; background: rgba(255, 216, 138, .35); }
 .tw-ocr b { font: 800 11px/1 var(--mono); color: #0B7A78; }
 /* the explain report */
-.tw-req { margin: 0 0 8px; font: 11.5px/1.45 var(--mono); color: var(--sun); overflow-wrap: anywhere; }
+#s5 .tw-req { margin: 0 0 8px; font: 11.5px/1.45 var(--mono); color: var(--sun); overflow-wrap: anywhere; }
 .tw-report { display: grid; grid-template-columns: 6.4em minmax(0, 1fr); gap: 4px 10px; margin: 0; font: 11.5px/1.45 var(--mono); }
 .tw-report dt { padding-top: 2px; font-size: 9.5px; letter-spacing: .06em; text-transform: uppercase; color: rgba(143, 227, 225, .75); }
 .tw-report dd { margin: 0; color: #E8FFFC; overflow-wrap: anywhere; }
@@ -39,7 +40,8 @@
 }
 @media (max-width: 760px) {
   .tw-spec { padding: 8px 10px 9px; }
-  .tw-json, .tw-req, .tw-report { font-size: 10.5px; line-height: 1.4; }
+  .tw-json, #s5 .tw-req, .tw-report { font-size: 10.5px; line-height: 1.4; }
+  #s5 .tw-spec .spec-note { font-size: 11px; }
   .tw-ocr { padding: 8px 9px 7px; gap: 3px; }
   .tw-ocr .line { font-size: 13.5px; }
 }
@@ -56,3 +58,4 @@
 .tw-alt span { margin-right: 4px; font-weight: 800; color: var(--sun); }
 :root:not(.wide) .tw-alt { display: none; }
 @media (max-width: 760px) { .tw-tags li { font-size: 12px; padding: 3px 10px; } }
+.tw-json .ln { display: block; padding-left: calc(var(--in) * 1ch + 2ch); text-indent: -2ch; }

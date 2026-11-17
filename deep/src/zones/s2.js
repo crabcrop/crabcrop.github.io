@@ -22,20 +22,22 @@ import { CURTAIN_LOOK, LOOK_NAMES, buildCurtains, buildLine, fitInto } from '../
 
 // the curtains: hung across the way, ahead of the camera as the look is chosen; the camera
 // passes under their hems near p 2.74
-const CURTAINS = { centre: [-8.4, -92.0], along: [1, 0], facing: [0, 1], high: 11.6, drop: 7.0, width: 1.75, gap: 2.45 };
+const CURTAINS = { centre: [-8.4, -92.0], along: [1, 0], facing: [0, 1], high: 12.2, drop: 7.0, width: 1.75, gap: 2.45 };
 const CURTAIN_PILLS = ['Vintage <code>sepia</code>', 'Deep sea <code>duotone</code>', 'Crisp <code>sharpen · saturation</code>'];
 const FISH_LEN = 0.24;
 const NOTE = 'A little fish is caught in an old fishing line. Snap clicks his claw, snips it, and the fish spins free. It follows him for a while.';
 
 const S = {
   fish: null, line: null, curtains: null, camera: null, cast: null,
-  state: 'tangled', since: 0, rho: 0, x: 0, y: 0, z: 0, vx: 0, turn: -Math.PI + 0.3, wag: 0, placed: false, pAuto: 2.38,
+  state: 'tangled', byHimself: false, lastTap: 0, since: 0, rho: 0, x: 0, y: 0, z: 0, vx: 0, turn: -Math.PI + 0.3, wag: 0, placed: false, pAuto: 2.38,
   preview: null, hoverC: -1, lookShown: 0, lookMix: 1, held: false,
   looks: [null, null, null], whole: null, jobs: [], busy: false, stale: true,
 };
 const R = new Vector3(), U = new Vector3(), F = new Vector3(), P = new Vector3(), FW = new Vector3(), UP = new Vector3(), V = new Vector3();
 const PR = [0, 0, 0], PT = [0, 0, 0], PH = [0, 0, 0];
 
+// whether the page's words (or the bar, a note, the dock) are over a point of the window
+function underWords(x, y) { const e = document.elementFromPoint(x, y); return !!(e && e.closest('.beat, .bar, .note, .dock')); }
 // the view's own frame, from the camera
 function frameOf(cam) { const e = cam.matrixWorld.elements; R.set(e[0], e[1], e[2]); U.set(e[4], e[5], e[6]); F.set(-e[8], -e[9], -e[10]); }
 // a point of the world in the view's frame (right, up, forward from the eye)
@@ -170,7 +172,7 @@ export default {
     // ---- the tangled fish's button, tied to it
     S.free = stage.cue({ verb: 'Click', text: 'the fish to cut it free', button: true, cls: 'free-fish' });
     S.freeVerb = S.free.el.querySelector('.do');
-    S.free.el.addEventListener('click', () => snip(stage, world));
+    S.free.el.addEventListener('click', () => snip(stage));
     S.freeOn = false; S.freeSide = null; S.freeLast = ''; S.frameNo = 0; S.covered = false;
     // where the fish is snipped by itself: three quarters of a screen past the forest's top
     // (as the painted dive had it: the section's top three quarters of a window up the page)
@@ -230,8 +232,19 @@ export default {
     cu.hover.value.set(S.silks[0].hotShown ? 1 : 0, S.silks[1].hotShown ? 1 : 0, S.silks[2].hotShown ? 1 : 0);
 
     // ---- the tangled fish
-    if (p < 1.93 && S.state !== 'tangled') { S.state = 'tangled'; S.rho = 0; }
-    if (S.state === 'tangled' && p >= S.pAuto && p < 2.95) snip(stage, world);
+    // (tangled again when the visitor goes back into the shallows; and, if he snipped it by
+    // himself, when they scroll back above where he did, so they can free it themselves)
+    if (S.state !== 'tangled' && (p < 1.93 || (S.byHimself && p < S.pAuto - 0.06))) { S.state = 'tangled'; S.rho = 0; S.byHimself = false; }
+    if (S.state === 'tangled' && p >= S.pAuto && p < 2.95) { snip(stage); S.byHimself = true; }
+    // a click or tap on the fish itself frees it too
+    if (stage.pointer.tapAt > (S.lastTap || 0)) {
+      S.lastTap = stage.pointer.tapAt;
+      if (S.state === 'tangled' && S.fishAt && p > 2.0 && p < 2.95) {
+        stage.project(S.fishAt, PR);
+        const r = Math.max(28, FISH_LEN * 0.7 * stage.pxPerMetre(Math.max(PR[2], 0.3)));
+        if (PR[2] > 0.3 && Math.hypot(stage.pointer.tapX - PR[0], stage.pointer.tapY - PR[1]) < r) snip(stage);
+      }
+    }
     if (p > 1.94 && p < 3.06) moveFish(stage, p); else { S.fish.hide(0); S.line.mesh.visible = false; S.placed = false; }
     // its button: beside it while there is room (and Snap is not there), else under it
     let showFree = false;
@@ -256,10 +269,7 @@ export default {
           if (side !== S.freeSide) { S.freeSide = side; el.classList.toggle('side', side); }
         }
         // (hidden while the words cover the fish or the button)
-        if (++S.frameNo % 4 === 0) {
-          const hit = (px, py) => { const e = document.elementFromPoint(px, py); return !!(e && e.closest('.beat, .bar, .note, .dock')); };
-          S.covered = hit(fx, fy) || hit(x + w / 2, y + h / 2);
-        }
+        if (++S.frameNo % 4 === 0) S.covered = underWords(fx, fy) || underWords(x + w / 2, y + h / 2);
         showFree = !S.covered;
       }
     }

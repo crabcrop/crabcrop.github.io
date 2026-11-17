@@ -5,28 +5,30 @@
 // submarine down here, an agent, asks crabcrop about that URL, and the agent itself in the scene
 // saying "sign_url ✓" while its card is up; and the pickup: once Snap's submarine has settled by
 // the geode it nudges forward, stars burst where the print lay, Snap hops in his seat, the tube
-// worms duck, and the
-// print rises out of the geode into the pincer, where it stays for the climb (stage.printOnPincer;
-// hidden while the page shows it there itself, stage.printFigure), and Snap's story says so.
+// worms duck, and the print rises out of the geode into the pincer, where it stays for the climb
+// (stage.printOnPincer; hidden while the page shows it there itself, stage.printFigure), and
+// Snap's story says so.
 // Its words are in zones/s6.html, its styles in zones/s6.css; the agent is props/vents.js.
 import { Matrix4, Quaternion, Vector3 } from 'three/webgpu';
-import { OPTIONS, SRC, remainder, sign } from '../content.js';
+import { SRC, remainder, sign } from '../content.js';
 import { groundY, pathAt } from '../layout.js';
 import { smooth } from '../math.js';
 import { buildAgent } from '../props/vents.js';
 import { G } from '../shaders.js';
 
-const LANG = ['ts', 'py', 'rs'];
 const INSTALL = ['npm install @crabcrop/url', 'pip install crabcrop_url', 'cargo add crabcrop-url'];
 const SIZE = ['1200 × 630', '760 × 760', '945 × 630'], FMT = ['AVIF', 'AVIF', 'JPEG XL', 'WebP'];
 const PRINT_STORY = 'There it is, in the glow of the geode: Snap’s print. The submarine’s pincer lifts it out. It is the last part of your URL: <code>root:photos/print.jpg</code>, the source.';
 // the pickup: the submarine has parked by the geode from p 6.87 (cast.js); the climb starts at 7
 const PARKED = 6.87, CLIMB = 7.02;
 // the print as the pincer holds it: this much of its size in the geode, hanging below the claw
-const HELD = 0.62;
+const HELD = 0.8;
 
 const esc = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 const soft = (t) => esc(t).replace(/([/:,])(?=[^/\s])/g, '$1<wbr>');
+// code as lines that keep their indent when they wrap: each line a block, its continuation hanging
+// two characters further in
+const codeLines = (text) => text.split('\n').map((l) => { const n = l.length - l.trimStart().length; return '<span class="ln" style="--in: ' + n + '">' + soft(l.trimStart()) + '</span>'; }).join('');
 
 // The camera on its path at p (without the visitor's nudge): where it is, its forward, right, up.
 const O6 = [0, 0, 0, 0, 0];
@@ -85,7 +87,7 @@ export default {
         '# crabcrop_url\nurl = build_url(base, secret,\n    "' + ops + '",\n    "' + SRC + '")',
         '// crabcrop-url\nlet url = build_url(base, Some(secret),\n    "' + ops + '",\n    "' + SRC + '", None)?;',
       ][lang];
-      codeEl.innerHTML = soft(call);
+      codeEl.innerHTML = codeLines(call);
       outEl.innerHTML = soft('→ https://img.example.com/' + sign(rem).slice(0, 8) + '…/' + rem) + ' <span class="vt-same">(the same from all three)</span>';
       if (installEl.textContent !== INSTALL[lang]) {
         installEl.textContent = INSTALL[lang];
@@ -173,7 +175,9 @@ export default {
       if (agentOn) {
         pathCam(Math.min(Math.max(p, 6.4), 6.88), cam);
         const come = smooth(6.32, 6.5, p), go = smooth(6.79, 6.9, p);
-        const f = narrow ? 5.3 : 5.0, r = narrow ? 0.95 : 2.15, u = narrow ? 0.62 : -1.0;
+        // (on a phone Snap's submarine fills the middle of the view: the agent waits further off,
+        // up in the band between the bar and the submarine)
+        const f = narrow ? 7.0 : 5.0, r = narrow ? 1.0 : 2.15, u = narrow ? 2.9 : -1.0;
         inCam(cam, f + 3.5 * (1 - come) + 5 * go, r + 3.2 * (1 - come) + 1.8 * go, u + 0.6 * (1 - come) + 1.6 * go, want);
         want.y += Math.sin(t * 1.1) * 0.05;
         // (it eases toward its place in the view, not in the water, so a camera on the move never
@@ -182,8 +186,10 @@ export default {
         if (!ag.placed || dt <= 0) { ag.rel.copy(want); ag.placed = true; } else ag.rel.lerp(want, 1 - Math.exp(-dt * 2.5));
         ag.pos.set(cam.x, cam.y, cam.z).add(ag.rel);
         A.group.position.copy(ag.pos);
-        // its nose across the view to the left, a little toward the visitor; rocking gently
-        face.set(-cam.R[0] * 0.93 - cam.F[0] * 0.36, 0, -cam.R[2] * 0.93 - cam.F[2] * 0.36).normalize();
+        // side on to the visitor wherever it is in the view, its nose to the left (as in the painted
+        // dive), a touch toward them; rocking gently
+        face.set(ag.rel.x, 0, ag.rel.z).normalize();
+        face.set(face.z - face.x * 0.18, 0, -face.x - face.z * 0.18).normalize();
         q1.setFromUnitVectors(Z, face.negate());
         q2.setFromAxisAngle(X, Math.sin(t * 0.8) * 0.05);
         A.group.quaternion.copy(q1).multiply(q2);
@@ -200,7 +206,7 @@ export default {
         stage.project(v, P);
         if (P[2] > 0.5 && stage.onScreen(P[0], P[1], -20)) {
           speak = true;
-          const x = Math.round(Math.min(Math.max(P[0], 150), W - (stage.wide ? 70 : 10))), y = Math.round(Math.max(P[1], (narrow ? 130 : 110)));
+          const x = Math.round(Math.min(Math.max(P[0], 150), W - (stage.wide ? 70 : 10))), y = Math.round(Math.max(P[1], (narrow ? 178 : 110)));
           if (x !== bx || y !== by) { bx = x; by = y; bubble.style.transform = 'translate(' + x + 'px,' + y + 'px) translateX(-100%)'; }
         }
       }

@@ -17,20 +17,21 @@ import { smooth } from '../math.js';
 import { G } from '../shaders.js';
 import { buildCargo, buildGlint, createFish } from '../props/shallows.js';
 
-// where the schools live in the view, as shares of its width and height (wide screens); how
-// many fish each has, and how long they are (metres)
+// where the schools live in the view, as shares of its width and height (home: wide screens;
+// tall: phones, in rows above and beside Snap, who is in the middle there); how many fish each
+// has, and how long they are (metres)
 const SCHOOLS = [
-  { kind: 'avif', home: [0.64, 0.21], n: 4, len: 0.36 },
-  { kind: 'webp', home: [0.83, 0.26], n: 4, len: 0.29 },
-  { kind: 'jpeg', home: [0.81, 0.44], n: 4, len: 0.32 },
-  { kind: 'jxl', home: [0.74, 0.37], n: 4, len: 0.34 },
-  { kind: 'png', home: [0.56, 0.31], n: 4, len: 0.32 },
-  { kind: 'gif', home: [0.92, 0.17], n: 6, len: 0.18 },
+  { kind: 'avif', home: [0.64, 0.21], tall: [0.2, 0.215], n: 4, len: 0.36 },
+  { kind: 'webp', home: [0.83, 0.26], tall: [0.13, 0.3], n: 4, len: 0.29 },
+  { kind: 'jpeg', home: [0.81, 0.44], tall: [0.87, 0.29], n: 4, len: 0.32 },
+  { kind: 'jxl', home: [0.74, 0.37], tall: [0.64, 0.205], n: 4, len: 0.34 },
+  { kind: 'png', home: [0.56, 0.31], tall: [0.4, 0.165], n: 4, len: 0.32 },
+  { kind: 'gif', home: [0.87, 0.18], tall: [0.85, 0.165], n: 6, len: 0.18 },
 ];
 const OPTION_KIND = [null, 'avif', 'jxl', 'webp'];        // the format choice's options
 const RACE = ['avif', 'jxl', 'webp'];                     // the order they reach the claw on a tie
 const HOME_DEPTH = 4.3;                                   // how far off the schools swim, metres
-const ON = [1.12, 2.06];                                  // the stretch of the dive they are in
+const ON = [1.16, 2.06];                                  // the stretch of the dive they are in (they come as the camera leaves the anchor)
 // the cargo: where it lies (a spot beside the camera's way at p, metres right and ahead)
 const CARGO_AT = { p: 1.95, right: 0.9, ahead: 9.5 };
 const CARGO_RINGS = [1.76, 1.995];                        // while the rings are out (p): near enough to tell apart
@@ -90,7 +91,7 @@ function swim(stage, p) {
   const dt = Math.min(stage.dt || 0, 0.1), jump = dt <= 0 || !S.placed;
   const tanV = Math.tan((cam.fov * Math.PI) / 360), W = stage.W, H = stage.H, phone = cam.aspect < 1;
   // they swim in from the right as the shallows open, and away as the forest begins
-  const here = smooth(ON[0], ON[0] + 0.2, p) * (1 - smooth(ON[1] - 0.12, ON[1], p));
+  const here = smooth(ON[0], ON[0] + 0.22, p) * (1 - smooth(ON[1] - 0.12, ON[1], p));
   // Snap's raised claw, in the view (where he usually holds it, if he is off on a card)
   let gx, gy, gz;
   if (S.cast && S.cast.snap.ready) {
@@ -100,14 +101,14 @@ function swim(stage, p) {
   const ex = phone ? -0.2 : 0.87, ey = phone ? 0.53 : -0.4, ez = phone ? 2.46 : 2.48;
   if (gx === undefined || Math.hypot(gx - ex, gy - ey, gz - ez) > 0.6) { gx = ex; gy = ey; gz = ez; }
   // the tag: beside the claw, out in the open water, a little behind it
-  const tx = gx + (phone ? -0.22 : -0.42), ty = gy + (phone ? 0.2 : 0.14), tz = gz + 0.4;
+  const tx = gx + (phone ? -0.24 : -0.42), ty = gy + (phone ? 0.3 : 0.14), tz = gz + (phone ? 0.45 : 0.4);
   const live = stage.live() && !stage.overWords(), hand = stage.hand(H2);
   if (S.raceAt >= 0 && t - S.raceAt > 5.2) S.raceAt = -2;
   for (let s = 0; s < S.schools.length; s++) {
     const sc = S.schools[s];
     // where it wants to be: home, drifting; or by the claw
-    let hx = sc.home[0] + Math.sin(t * 0.21 + sc.ph) * 0.035, hy = sc.home[1] + Math.sin(t * 0.29 + sc.ph * 1.7) * 0.03;
-    if (phone) { hx = 0.24 + (hx - 0.56) * 1.45; hy = 0.17 + (hy - 0.17) * 0.6; }
+    const home = phone ? sc.tall : sc.home, drift = phone ? 0.5 : 1;
+    const hx = home[0] + Math.sin(t * 0.21 + sc.ph) * 0.035 * drift, hy = home[1] + Math.sin(t * 0.29 + sc.ph * 1.7) * 0.03 * drift;
     viewPoint(hx + (1 - here) * 0.75, hy, HOME_DEPTH, cam, T3);
     const gather = here > 0.5 && (S.picked === sc.kind || S.focus === sc.kind);
     let racing = false;
@@ -119,7 +120,8 @@ function swim(stage, p) {
     if (sc.fresh || jump) { sc.x = T3[0]; sc.y = T3[1]; sc.z = T3[2]; sc.fresh = false; }
     const k = 1 - Math.exp(-dt * (gather || racing ? 3.2 : 0.9));
     sc.x += (T3[0] - sc.x) * k; sc.y += (T3[1] - sc.y) * k; sc.z += (T3[2] - sc.z) * k;
-    const spread = gather || racing ? 1.4 : 1;
+    // (a school keeps closer together on a phone's narrow view)
+    const spread = (gather || racing ? 1.4 : 1) * (phone ? 0.72 : 1);
     for (let j = 0; j < sc.fish.length; j++) {
       const f = sc.fish[j], L = f.len;
       if (phone && j === 3) { S.fish.hide(f.slot); continue; }
@@ -184,7 +186,7 @@ export default {
     const sigSpec = doc.getElementById('sig-spec');
     const showSig = () => {
       const rem = remainder(stage.choices);
-      const html = '<span class="u">' + soft(BASE) + '</span><b>' + sign(rem).slice(0, 8) + '…</b><span class="u">/' + soft(rem) + '</span>';
+      const html = '<span class="su">' + soft(BASE) + '</span><b>' + sign(rem).slice(0, 8) + '…</b><span class="su">/' + soft(rem) + '</span>';
       if (sigSpec && sigSpec.innerHTML !== html) sigSpec.innerHTML = html;
     };
     showSig();

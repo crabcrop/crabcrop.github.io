@@ -5,20 +5,18 @@
 
 /* the cards' specimens: the terminal, the SDKs' code, the agent's tool calls */
 .vt-spec { padding: 11px 13px 12px; background: rgba(0, 0, 0, .36); border: 1px solid rgba(143, 227, 225, .22); border-radius: 14px 14px 14px 4px; font: 12px/1.5 var(--mono); color: var(--sea-glass); overflow-wrap: anywhere; }
-.vt-spec .spec-note { margin: 0; font: 600 11.5px/1.4 var(--sans); color: rgba(143, 227, 225, .8); }
+/* (#s6: the template's own size for a card's paragraphs must not reach these) */
+#s6 .vt-spec .spec-note { margin: 0; font: 600 11.5px/1.4 var(--sans); color: rgba(143, 227, 225, .8); }
 .vt-card .vt-spec + h3 { margin-top: 14px; }
 .vt-term { background: #0B1622; }
-.vt-line { margin: 0; font: 11.5px/1.5 var(--mono); color: #E8FFFC; overflow-wrap: anywhere; }
-.vt-line + .vt-line { margin-top: 4px; }
+#s6 .vt-line { margin: 0; font: 11.5px/1.5 var(--mono); color: #E8FFFC; overflow-wrap: anywhere; }
+#s6 .vt-line + .vt-line { margin-top: 4px; }
 .vt-line .ps { margin-right: 6px; color: var(--sun); }
-.vt-line.vt-said { margin-top: 6px; color: #9BE7A9; }
+#s6 .vt-line.vt-said { margin-top: 6px; color: #9BE7A9; }
 /* typed in: each character waits its turn (the script wraps them), one line a second */
 .vt-ch { opacity: 0; }
 .vt-card.in .vt-ch { animation: vt-type .01s steps(1) forwards; animation-delay: var(--d); }
 @keyframes vt-type { to { opacity: 1; } }
-.vt-caret { display: inline-block; width: .6em; height: 1.1em; margin-left: 2px; vertical-align: -.2em; background: var(--sun); opacity: 0; }
-.vt-card.in .vt-caret { animation: vt-caret 1.05s steps(1) infinite; animation-delay: var(--d); }
-@keyframes vt-caret { 0% { opacity: 1; } 50% { opacity: 0; } }
 /* the SDKs: a tab for each language, the call that builds the visitor's own URL, and the URL */
 .vt-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 9px; }
 .vt-tabs[hidden] { display: none; }
@@ -27,7 +25,7 @@
 .vt-tabs button[aria-selected="true"] { color: #04121a; background: var(--sea-glass); border-color: var(--sea-glass); }
 .vt-tabs button:focus-visible { outline: 2px solid var(--sand); outline-offset: 2px; }
 .vt-code { margin: 0; font: 11.5px/1.5 var(--mono); white-space: pre-wrap; overflow-wrap: anywhere; color: #E8FFFC; }
-.vt-out { margin: 8px 0 0; font: 11px/1.45 var(--mono); color: var(--sun); overflow-wrap: anywhere; }
+#s6 .vt-out { margin: 8px 0 0; font: 11px/1.45 var(--mono); color: var(--sun); overflow-wrap: anywhere; }
 .vt-same { color: rgba(143, 227, 225, .75); white-space: nowrap; }
 #vt-install.swap { animation: vt-swap .45s cubic-bezier(.34, 1.4, .64, 1); }
 @keyframes vt-swap { 0% { transform: scale(1.06); background: rgba(255, 216, 138, .35); } 100% { transform: none; } }
@@ -47,8 +45,9 @@
 }
 @media (max-width: 760px) {
   .vt-spec { padding: 8px 10px 9px; }
-  .vt-line, .vt-code, .vt-mcp li { font-size: 10.5px; line-height: 1.4; }
-  .vt-out { font-size: 10px; }
+  #s6 .vt-line, .vt-code, .vt-mcp li { font-size: 10.5px; line-height: 1.4; }
+  #s6 .vt-out { font-size: 10px; }
+  #s6 .vt-spec .spec-note { font-size: 11px; }
   .vt-tabs button { min-height: 28px; font-size: 11px; }
 }
 
@@ -57,3 +56,4 @@
 .vt-bubble.on { opacity: 1; }
 .vt-bubble code { font: inherit; }
 .vt-bubble b { color: #2E9E4F; }
+.vt-code .ln { display: block; padding-left: calc(var(--in) * 1ch + 2ch); text-indent: -2ch; }

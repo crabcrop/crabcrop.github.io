@@ -1213,19 +1213,8 @@ function buildClam(ctx, q) {
       s.emis = s.emis.add(vT.rgb.mul(bell.mul(through).mul(1.5).add(tent.mul(0.3))).mul(lampOf(f.aux.z)));
     },
   }), 98);
-  // the pearl
-  {
-    const pm = new Mesh(true);
-    ball(pm, pearlAt[0], pearlAt[1] + 0.26, pearlAt[2], () => 0.3, 10);
-    addMesh(ctx, sphereOf(pm.build(), 0.2), material({
-      aux: true, fade: [82, 98],
-      surface: (s, f) => {
-        const vv = normalize(cameraPosition.sub(f.w)), fres = pow(float(1).sub(abs(dot(s.n, vv))), 2.0);
-        s.albedo = srgb(0.98, 0.93, 0.93); s.spec = float(0.9); s.gloss = float(70.0); s.fluor = float(0.8);
-        s.emis = mix(vec3(0.78, 0.6, 0.62), vec3(0.8, 0.72, 0.92), fres).mul(fres.mul(0.3).add(0.36));
-      },
-    }), 98);
-  }
+  // (the pearl is the studio's own, drawn by props/reef.js at `position` below, so that its
+  // upscale can rebuild it from a mosaic: zones/s3.js)
   // the lamps' light: a haze of each one's own colour round its bell
   {
     const geo = halos(lamps, 1.3);

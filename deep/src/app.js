@@ -167,7 +167,9 @@ async function boot() {
   }, { passive: true });
   if (follow) { S.pTo = S.p = follow(); }
   addEventListener('pointermove', (e) => {
-    if (e.pointerType === 'touch') return;
+    // (not while a button is held: a box dragged over the reef's can, the before and after, the
+    // chest's lid; the view would turn under the hand)
+    if (e.pointerType === 'touch' || e.buttons) return;
     S.lookXTo = (e.clientX / innerWidth - 0.5) * 16;
     S.lookYTo = -(e.clientY / innerHeight - 0.5) * 9;
   }, { passive: true });

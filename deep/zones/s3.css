@@ -40,15 +40,18 @@
 .pick .help { clear: both; padding-top: 8px; font-size: 14.5px; color: var(--ink2); }
 
 /* ---- the zone's stretches of scroll: each station's card is up while the camera passes its
-   thing, and the Clam Studio's while the clam is in view (its pearl from p 3.79 to 3.86) ---- */
-:root:not(.page) #s3 .s3-k0 { --s: 1.02; }
-:root:not(.page) #s3 .s3-k1 { --s: 1.25; }
-:root:not(.page) #s3 .s3-k2 { --s: 2.38; }
-:root:not(.page) #s3 .s3-k3 { --s: 1.12; }
-:root:not(.page) #s3 .s3-k4, :root:not(.page) #s3 .s3-k5 { --s: 1; }
-:root:not(.page) #s3 .s3-k6, :root:not(.page) #s3 .s3-k7 { --s: .75; }
-:root:not(.page) #s3 .s3-k8, :root:not(.page) #s3 .s3-k9 { --s: .81; }
-:root:not(.page) #s3 .s3-k10 { --s: 1.59; }
+   thing, and the Clam Studio's while the clam is in view (from p 3.66; the camera holds on its
+   open shell from 3.8 to 3.96, where the upscale card and the finishes come up) ---- */
+:root:not(.page) #s3 .s3-k0 { --s: 1.08; }
+:root:not(.page) #s3 .s3-k1 { --s: 1.33; }
+:root:not(.page) #s3 .s3-k2 { --s: 2.53; }
+:root:not(.page) #s3 .s3-k3 { --s: 1.21; }
+:root:not(.page) #s3 .s3-k4, :root:not(.page) #s3 .s3-k5 { --s: 1.064; }
+:root:not(.page) #s3 .s3-k6 { --s: .92; }
+:root:not(.page) #s3 .s3-k7 { --s: .93; }
+:root:not(.page) #s3 .s3-k8 { --s: 1; }
+:root:not(.page) #s3 .s3-k9 { --s: .9; }
+:root:not(.page) #s3 .s3-k10 { --s: 1.26; }
 
 /* ---- the Clam Studio: Snap's pictures (src/snapshots.js), the before and after, the pearl ---- */
 .spec { padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px 12px 12px 4px; background: rgba(0, 0, 0, .34); color: var(--sea-glass); font: 12px/1.5 var(--mono); overflow-wrap: anywhere; }

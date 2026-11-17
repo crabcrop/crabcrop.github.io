@@ -40,7 +40,7 @@ import {
   pow, sign, sin, smoothstep, sqrt, step, texture, uniform, uniformArray, varyingProperty, vec2, vec3, vec4, select,
 } from 'three/tsl';
 import {
-  BLUSH, FELT, STITCH, arc, ball, bead, eyes, felt, glint, inWorld, knit, lin, orient, pillow, plump, ringAt, rounds, sew, spot, stitches, toLin, tubes, yarnFor,
+  STITCH, arc, ball, crochet, eyes, felt, inWorld, knit, lin, orient, pillow, plump, ringAt, rounds, sew, spot, stitches, toLin, tubes, yarnFor,
 } from './amigurumi.js';
 import { SLOTS as CAST_SLOTS, TRACK, centerX, groundY, mooringAt, offTrack, pathAt, rideU, rideWeight } from './layout.js';
 import { Mesh, TAU, blob, clamp as clampN, lerp, makeRng, noise3, smooth, tube } from './math.js';
@@ -246,14 +246,14 @@ function siphonAt(p, tanV, aspect, o) {
 // forward again: SUB_DRIFT's third beat.)
 function anglerAt(p, tanV, aspect, o) {
   const pc = clampN(p, ANGLER[0], ANGLER[1]), u = (pc - ANGLER[0]) / (ANGLER[1] - ANGLER[0]), wide = aspect >= 1, c = camAt(pc, _cA);
-  onScreen(o.c, c, wide ? 2.9 : 3.6, wide ? 0.3 - 0.08 * u : 0.14 - 0.1 * u, wide ? -0.42 : 0.5, tanV, aspect);
+  onScreen(o.c, c, wide ? 2.9 : 3.6, wide ? 0.3 - 0.08 * u : 0.1 - 0.08 * u, wide ? -0.42 : 0.55, tanV, aspect);
   if (wide) {
     const d = SUB_DRIFT[2], back = smooth(d[0], d[0] + 0.06, pc) * (1 - smooth(d[1] - 0.06, d[1], pc)), off = smooth(0.5, 0.8, u);
     o.c[0] -= c.R[0] * 2.2 * off * (1 - back); o.c[2] -= c.R[2] * 2.2 * off * (1 - back);
     o.c[1] -= 2.6 * (1 - back);
   }
   dirOf(o.f, -c.R[0] - 0.36 * c.L[0], 0, -c.R[2] - 0.36 * c.L[2]);
-  o.size = wide ? 1.8 : 1.25;
+  o.size = wide ? 1.8 : 1.05;
   return o;
 }
 // The bottle with a message: small, drifting down through the twilight with the visitor,
@@ -265,26 +265,35 @@ function bottleAt(p, tanV, aspect, o) {
   return o;
 }
 // The turtle over the reef: close and big in the middle of the view (the reef's first station
-// frames it: the smart crop), heading left and a little toward the visitor, drifting on slowly.
+// frames it: the smart crop), heading left and toward the visitor, three-quarters on, so its face
+// shows (and stays clear of the words), drifting on slowly; then it swims off, up and away, out
+// of the view before the reef's next station (the school of seven).
 function reefTurtleAt(p, tanV, aspect, o) {
   const pc = clampN(p, REEF_TURTLE[0], REEF_TURTLE[1]), u = (pc - REEF_TURTLE[0]) / (REEF_TURTLE[1] - REEF_TURTLE[0]), wide = aspect >= 1, c = camAt(pc, _cA);
   onScreen(o.c, c, wide ? 4.6 : 6.0, wide ? 0.2 - 0.12 * u : 0.02 - 0.06 * u, wide ? 0.18 : 0.36, tanV, aspect);
-  dirOf(o.f, -c.R[0] - 0.42 * c.L[0], -0.06, -c.R[2] - 0.42 * c.L[2]);
+  dirOf(o.f, -0.75 * c.R[0] - 0.9 * c.L[0], -0.06, -0.75 * c.R[2] - 0.9 * c.L[2]);
+  const off = smooth(REEF_TURTLE[1] - 0.05, REEF_TURTLE[1] + 0.08, p);
+  if (off > 0) {
+    const k = off * off * 10, ax = 0.5 * c.L[0] + 0.2 * c.R[0], az = 0.5 * c.L[2] + 0.2 * c.R[2];
+    o.c[0] += ax * k; o.c[1] += 0.8 * k; o.c[2] += az * k;
+    dirOf(o.f, lerp(o.f[0], ax, off), lerp(o.f[1], 0.55, off), lerp(o.f[2], az, off));
+  }
   return o;
 }
 // The end: under the waterline, the turtle and the octopus swim to the right across the
-// view, side on, a little toward the visitor, close and big: on a wide screen the turtle
-// below the submarine (clear of the words) and the octopus right of it; on a phone, either
-// side of the submarine, just under the surface, above the words.
+// view, turned to the visitor, close and big: on a wide screen the turtle below the submarine
+// (clear of the words) and the octopus right of it; on a phone, where the words fill the view
+// below the waterline, either side of the submarine at the surface, their heads just out.
 function endingAt(p, tanV, aspect, turtle, octo) {
   // (on a phone the view turns a little left at the end, so the pier is in it: app.js)
   const pc = clampN(p, ENDING[0], ENDING[1]), wide = aspect >= 1, c = camAt(pc, _cA, wide ? 0 : -13 * smooth(7.84, 7.95, pc));
   // (`d` ahead, at nx across the screen, at a depth below the submarine, which stays a metre down)
   const put = (o, d, nx, y) => { inViewAt(o.c, c, 0, nx * d * tanV * aspect, 0); o.c[0] += c.L[0] * d; o.c[1] = y; o.c[2] += c.L[2] * d; };
-  put(turtle, wide ? 4.8 : 5.6, wide ? 0.1 : -0.5, wide ? -1.75 : -0.6);
-  put(octo, wide ? 5.0 : 5.8, wide ? 0.8 : 0.56, wide ? -1.35 : -0.75);
-  dirOf(turtle.f, c.R[0] + 0.3 * c.L[0], 0, c.R[2] + 0.3 * c.L[2]);
-  dirOf(octo.f, c.R[0] + 0.45 * c.L[0], 0, c.R[2] + 0.45 * c.L[2]);
+  put(turtle, wide ? 4.8 : 5.4, wide ? -0.04 : -0.5, wide ? -2.0 : -0.2);
+  put(octo, wide ? 5.0 : 5.6, wide ? 0.8 : 0.56, wide ? -2.05 : -0.42);
+  // (turned to the visitor, so their faces show)
+  dirOf(turtle.f, 0.7 * c.R[0] - 0.7 * c.L[0], 0, 0.7 * c.R[2] - 0.7 * c.L[2]);
+  dirOf(octo.f, 0.4 * c.R[0] - 0.9 * c.L[0], 0, 0.4 * c.R[2] - 0.9 * c.L[2]);
 }
 
 // How far a place is from the camera's way near p (within `w` of it): as offTrack, but only
@@ -395,7 +404,7 @@ function fishShape(sp, lod) {
   }
   // the eyes: big black beads, half sunk, one on each side
   const [ex, ey, ez, er] = eyeOf(sp);
-  for (const side of [1, -1]) ball(m, ex, ey, side * ez, er, er, er, lod ? 4 : 3, 4);
+  for (const side of [1, -1]) ball(m, ex, ey, side * ez, er, er, er, 3, 4);
   return m.build();
 }
 
@@ -1414,8 +1423,8 @@ function haloMaterial() {
   });
 }
 
-// The siphonophore (z5lit): a glowing teal core, beaded as if strung, and all along it loops
-// of crocheted cord, uneven in size and lean, sticking out above it in teal and periwinkle and
+// The siphonophore (z5lit; the twilight's tags call it a glowing worm): a glowing teal core,
+// beaded as if strung, and all along it loops of fat crocheted cord, uneven in size and lean, sticking out above it in teal and periwinkle and
 // below it in pink and magenta, a lilac one here and there; at each end its free cords curl.
 // The core lights the loops from inside: they glow where they meet it. Built in the shader,
 // along a line that sways and arches: aux = (along 0..1, round 0..1, which, kind: 1 the core,
@@ -1430,7 +1439,7 @@ function siphonoShape(lod) {
   return m.build();
 }
 function siphonoMaterial(lod) {
-  const nL = S_LOOPS[lod], rc = SI.k.mul(0.04), rCore = SI.k.mul(0.095);
+  const nL = S_LOOPS[lod], rc = SI.k.mul(0.052), rCore = SI.k.mul(0.1);
   const h1 = (x) => fract(sin(x.mul(12.9898).add(4.1)).mul(43758.5453)), h2 = (x) => fract(sin(x.mul(78.233).add(1.7)).mul(24634.6345));
   return material({
     aux: true, shadow: false, fade: [40, 54],
@@ -1485,7 +1494,7 @@ function siphonoMaterial(lod) {
       const pinkEnds = float(1.0).sub(smoothstep(0.05, 0.3, along)).mul(0.5).add(smoothstep(0.75, 0.97, along).mul(0.3));
       const loopCol = mix(mix(above, below, max(float(1.0).sub(up), step(fract(pick.mul(7.13)), pinkEnds))), lin(0.72, 0.62, 0.9), step(0.86, pick));
       const coreCol = lin(0.55, 1.0, 0.92);
-      knit(s, f, { color: mix(loopCol, coreCol, core), scale: 64, p: vP, frame: [A, B, cross(A, B)], k: 1.2 });
+      knit(s, f, { color: mix(loopCol, coreCol, core), scale: STITCH, p: vP, frame: [A, B, cross(A, B)], k: 1.2 });
       // light: the core glows; a loop is lit by it at its foot, faces toward the core most,
       // and has a little of its own colour's light all along, so it reads in the dark
       const inward = max(dot(s.n, normalize(vJ2.xyz)), 0.0);
@@ -1518,13 +1527,13 @@ function ventFill(s, f, k = 1, col = vec3(0.17, 0.12, 0.1)) {
 // 1 a plume). Per worm: wA its foot (x, y, z) and height; wB its lean (x, z), its seed, and
 // how much of it is striped; wC its clump. The taller the worm, the fatter.
 const wA = attribute('wA', 'vec4'), wB = attribute('wB', 'vec4'), wC = attribute('wC', 'vec4');
-const PLUMES = [4, 5, 5], W_CLUMPS = 32;
+const PLUMES = [4, 4, 5], W_CLUMPS = 32;
 // how far in each clump's plumes are (0 out, 1 in), four clumps to a vec4; set every frame
 const WIN = uniformArray(Array.from({ length: W_CLUMPS / 4 }, () => new Vector4(0, 0, 0, 0)), 'vec4');
 function wormShape(lod) {
   const m = new Mesh(true);
   tubes(m, 1, [9, 11, 12][lod], [6, 7, 8][lod], () => 0);
-  tubes(m, PLUMES[lod], [3, 4, 5][lod], [4, 5, 5][lod], () => 1);
+  tubes(m, PLUMES[lod], [4, 5, 6][lod], [4, 5, 5][lod], () => 1);
   return m.build();
 }
 function wormMaterial(lod) {
@@ -1552,15 +1561,15 @@ function wormMaterial(lod) {
       const out = float(1.0).sub(duck), top = stem(float(1.0)).toVar(), Tt = normalize(top.sub(stem(float(0.97)))).toVar();
       const S0 = normalize(vec3(1.0, 0.0, 0.0).sub(Tt.mul(Tt.x))).toVar(), B0 = cross(Tt, S0);
       const aj = j.div(nP).mul(TAU).add(seed.mul(5.0)), O = S0.mul(cos(aj)).add(B0.mul(sin(aj))).toVar();
-      const Lp = H.mul(0.16).add(rw.mul(0.9)).mul(out).add(0.002), base = top.add(Tt.mul(rw.mul(mix(float(-0.6), float(0.55), out)))).add(O.mul(rw.mul(0.3)));
+      const Lp = H.mul(0.2).add(rw.mul(0.9)).mul(out).add(0.002), base = top.add(Tt.mul(rw.mul(mix(float(-0.6), float(0.5), out)))).add(O.mul(rw.mul(0.42)));
       const wave = sin(t.mul(1.3).add(j.mul(2.0)).add(seed.mul(9.0))).mul(0.1);
-      const at = (u) => base.add(Tt.mul(Lp.mul(u).mul(0.85))).add(O.mul(Lp.mul(u.mul(u)).mul(wave.add(0.45))));
-      // (the last ring closes it in a round cap as long as it is wide)
-      const r0 = rw.mul(0.5).mul(out.mul(0.5).add(0.5)), cap = step(0.9, s), u0 = min(s, 0.8);
+      const at = (u) => base.add(Tt.mul(Lp.mul(u).mul(0.8))).add(O.mul(Lp.mul(u.mul(u)).mul(wave.add(0.7))));
+      // (its last rings close it in a round cap, as a stuffed finger ends)
+      const r0 = rw.mul(0.42).mul(out.mul(0.5).add(0.5)), u0 = min(s, 0.68), ca = max(s.sub(0.68), 0.0).div(0.32).mul(Math.PI / 2);
       const P0w = at(u0).toVar(), Tp = normalize(at(u0.add(0.02)).sub(P0w).add(Tt.mul(1e-4))).toVar();
-      const rEnd = r0.mul(0.78);
-      const P1 = P0w.add(Tp.mul(rEnd.mul(cap)));
-      const rp = mix(r0.mul(float(1.0).sub(u0.mul(0.28))), float(0.0), cap);
+      const rEnd = r0.mul(0.8);
+      const P1 = P0w.add(Tp.mul(rEnd.mul(sin(ca))));
+      const rp = select(s.greaterThan(0.68), rEnd.mul(cos(ca)), r0.mul(float(1.0).sub(u0.mul(0.3))));
       const fin = ringAt(P1, Tp, O, phi, rp);
       const isP = plume.greaterThan(0.5);
       v.P.assign(select(isP, fin.p, tube.p)); v.N.assign(select(isP, fin.n, tube.n));
@@ -1967,6 +1976,8 @@ export function buildFauna(ctx) {
   const amt = q.amount, lod = amt >= 1 ? 2 : amt >= 0.5 ? 1 : 0;
   const rng = makeRng(20261116);
   const counts = {};
+  // (Snap's single crochet, drawn once, before any creature's material is made)
+  crochet(engine);
 
   // fish
   const fishMat = fishMaterial(), geos = {};
@@ -2321,7 +2332,7 @@ export function buildFauna(ctx) {
       const tanV = Math.tan((camera.fov * Math.PI) / 360), aspect = camera.aspect;
       // the turtle over the reef
       reefTurtleAt(p, tanV, aspect, hold);
-      keyed(0, hold, t, 1.7, 0.3, 0, 0.1, 0.25, -0.45);
+      keyed(0, hold, t, 1.7, 0.3, 0, 0.1, 0.25, -0.2);
       { const a = POSE.array[0]; marks.turtle.at.set(a.x, a.y, a.z); marks.turtle.on = p > REEF_TURTLE[0] - 0.05 && p < REEF_TURTLE[1] + 0.05; }
       // the anglerfish, and the bottle with a message (tilted, turning slowly as it sinks)
       anglerAt(p, tanV, aspect, hold);
@@ -2347,14 +2358,14 @@ export function buildFauna(ctx) {
       U.fill.value = 0.35 * smooth(7.2, 7.3, p) * (1 - smooth(7.62, 7.78, p));
       // the end: the turtle, and the octopus swimming, leaning into it
       endingAt(p, tanV, aspect, hold, hold2);
-      keyed(1, hold, t, 1.3, 0.7, 1, 0.08, 0.3, 0);
+      keyed(1, hold, t, 1.15, 0.7, 1, 0.08, 0.3, 0);
       keyed(3, hold2, t, 1.05, 0.6, 1, 0.1, 0.25, 0);
-      // (the octopus leans forward as it swims: its head ahead, its arms trailing)
+      // (the octopus leans forward a little as it swims: its head ahead, its arms trailing)
       {
         const a = POSE.array, f = a[3 * 4 + 1], u = a[3 * 4 + 2];
         F.set(f.x, f.y, f.z); Upv.set(u.x, u.y, u.z);
-        W.copy(Upv).multiplyScalar(Math.cos(0.5)).addScaledVector(F, Math.sin(0.5));
-        F.multiplyScalar(Math.cos(0.5)).addScaledVector(Upv, -Math.sin(0.5));
+        W.copy(Upv).multiplyScalar(Math.cos(0.25)).addScaledVector(F, Math.sin(0.25));
+        F.multiplyScalar(Math.cos(0.25)).addScaledVector(Upv, -Math.sin(0.25));
         f.set(F.x, F.y, F.z, f.w); u.set(W.x, W.y, W.z, u.w);
       }
       // the octopus with the letter: at the desk, then away (see path); without a cabin, to

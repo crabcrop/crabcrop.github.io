@@ -33,6 +33,9 @@ const FISH_STORY = 'A tiny fish was lost in the dark. It followed your light all
 const esc = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 // code as HTML that breaks only after a slash, a colon or a comma
 const soft = (t) => esc(t).replace(/([/:,])(?=[^/\s])/g, '$1<wbr>');
+// text as lines that keep their indent when they wrap (a narrow card): each line a block, its
+// continuation hanging two characters further in
+const lines = (text) => text.split('\n').map((l) => { const n = l.length - l.trimStart().length; return '<span class="ln" style="--in: ' + n + '">' + esc(l.trimStart()) + '</span>'; }).join('');
 
 // The camera on its path at p (without the visitor's nudge): where it is, and its forward, right
 // and up. out: { x, y, z, F, R, U }.
@@ -89,7 +92,7 @@ export default {
       const text = '{\n  "width": ' + w + ', "height": ' + h + ', "format": "' + FMT_JSON[c.format] + '",\n  "tags": [' + (tags.length ? '\n' + tags.join(',\n') + '\n  ' : '') + '],\n  "alt_text": ' + (alt ? '"' + alt + '"' : 'null') + '\n}';
       if (text === lastJson) return;
       lastJson = text;
-      jsonEl.textContent = text;
+      jsonEl.innerHTML = lines(text);
       altQ.textContent = alt || '';
       if (pop) { jsonEl.classList.remove('pop'); void jsonEl.offsetWidth; jsonEl.classList.add('pop'); }
     };
@@ -141,11 +144,16 @@ export default {
     stage.dock.ask('light-tap', { verb: 'Tap', text: 'a creature to light it' });
     let shone = false, askedAt = -1;
 
-
     // ---- the lost fish ------------------------------------------------------------------------
-    const F = S.fish, fish = { state: 'lost', pos: new Vector3(), face: new Vector3(0, 0, -1), placed: false, lit: 0, glowAt: -10 };
+    const F = S.fish, fish = { state: 'lost', pos: new Vector3(), face: new Vector3(0, 0, -1), placed: false, lit: 0 };
     const cam = { x: 0, y: 0, z: 0, F: [0, 0, 0], R: [0, 0, 0], U: [0, 0, 0] }, want = new Vector3(), look = new Vector3(), last = new Vector3();
     let focus = 7.5, owned = 0, reachM = 6;
+    // where it waits, lost: low in the open water, under the submarine's way (on a phone, right of
+    // the submarine and above the words), circling a little; cam is the camera on its path
+    const lostAt = (out, t, narrow) => {
+      const lf = narrow ? 3.9 : 4.3, lx = (narrow ? 0.8 : 0.1) + Math.cos(t * 1.3) * 0.16, ly = (narrow ? -0.24 : -1.12) + Math.sin(t * 2.1) * 0.07;
+      return out.set(cam.x + cam.F[0] * lf + cam.R[0] * lx + cam.U[0] * ly, cam.y + cam.F[1] * lf + cam.U[1] * ly, cam.z + cam.F[2] * lf + cam.R[2] * lx + cam.U[2] * ly);
+    };
 
     this.tick = () => {
       const p = stage.p, t = stage.t, dt = stage.dt, W = stage.W, Hh = stage.H;
@@ -245,19 +253,15 @@ export default {
       const show = p > 4.99 && p < 7.02 && (zone > 0.01 || fish.state === 'home') && !!F;
       if (F) F.mesh.visible = show;
       if (!show) return;
-      // where it waits, lost: low in the open water, under the submarine's way (above the words on a phone)
       pathCam(Math.min(Math.max(p, 5.0), 5.76), cam);
-      const lf = narrow ? 3.9 : 4.3, lx = narrow ? 0.55 : 0.1, ly = narrow ? 0.12 : -1.12;
-      const tx = Math.cos(t * 1.3) * 0.16, ty = Math.sin(t * 2.1) * 0.07;
-      const lost = (out) => out.set(cam.x + cam.F[0] * lf + cam.R[0] * (lx + tx) + cam.U[0] * (ly + ty), cam.y + cam.F[1] * lf + cam.U[1] * (ly + ty), cam.z + cam.F[2] * lf + cam.R[2] * (lx + tx) + cam.U[2] * (ly + ty));
-      if (!fish.placed) { lost(fish.pos); fish.placed = true; }
+      if (!fish.placed) { lostAt(fish.pos, t, narrow); fish.placed = true; }
       stage.project(fish.pos, P);
       const dl = P[2] > 0 ? Math.hypot(P[0] - L[0], P[1] - L[1]) : 1e9;
       if (fish.state === 'lost' && p > 5.05 && on > 0.6 && dl < reach) {
         fish.state = 'follow';
         stage.sparkle(fish.pos, 6);
       }
-      if (fish.state === 'lost') lost(want);
+      if (fish.state === 'lost') lostAt(want, t, narrow);
       else if (fish.state === 'follow') {
         // in the beam, a little way out from the lamp toward where the light is, wiggling round it
         const s = Math.min(Math.max(focus * 0.45, 1.6), 3.4);

@@ -18,21 +18,18 @@
   <div class="slot"><article class="beat card vt-card" id="vt-sdks">
     <div class="vt-spec vt-sdk">
       <div class="vt-tabs" role="tablist" aria-label="Language" hidden>
-        <button type="button" role="tab" id="vt-tab-ts" data-lang="0" aria-selected="true" aria-controls="vt-panel" tabindex="0"><svg class="vt-mk" aria-hidden="true" focusable="false"><use href="#vt-m-m-ts"/></svg>TypeScript</button>
-        <button type="button" role="tab" id="vt-tab-py" data-lang="1" aria-selected="false" aria-controls="vt-panel" tabindex="-1"><svg class="vt-mk" aria-hidden="true" focusable="false"><use href="#vt-m-m-py"/></svg>Python</button>
-        <button type="button" role="tab" id="vt-tab-rs" data-lang="2" aria-selected="false" aria-controls="vt-panel" tabindex="-1"><svg class="vt-mk" aria-hidden="true" focusable="false"><use href="#vt-m-m-rs"/></svg>Rust</button>
+        <button type="button" role="tab" id="vt-tab-ts" data-lang="0" aria-selected="true" aria-controls="vt-panel" tabindex="0"><svg class="vt-mk" aria-hidden="true" focusable="false"><use href="#vt-m-ts"/></svg>TypeScript</button>
+        <button type="button" role="tab" id="vt-tab-py" data-lang="1" aria-selected="false" aria-controls="vt-panel" tabindex="-1"><svg class="vt-mk" aria-hidden="true" focusable="false"><use href="#vt-m-py"/></svg>Python</button>
+        <button type="button" role="tab" id="vt-tab-rs" data-lang="2" aria-selected="false" aria-controls="vt-panel" tabindex="-1"><svg class="vt-mk" aria-hidden="true" focusable="false"><use href="#vt-m-rs"/></svg>Rust</button>
       </div>
       <div id="vt-panel" aria-labelledby="vt-tab-ts">
-        <pre class="vt-code" id="vt-code">// @crabcrop/url
-const url = buildURL(base, secret,
-  "crop:1200x630:smart/filters:sharpen(1.2):saturation(1.1)",
-  "root:photos/print.jpg");</pre>
+        <pre class="vt-code" id="vt-code"><span class="ln" style="--in: 0">// @crabcrop/<wbr>url</span><span class="ln" style="--in: 0">const url = buildURL(base, secret,</span><span class="ln" style="--in: 2">"crop:<wbr>1200x630:<wbr>smart/<wbr>filters:<wbr>sharpen(1.2):<wbr>saturation(1.1)",</span><span class="ln" style="--in: 2">"root:<wbr>photos/<wbr>print.jpg");</span></pre>
         <p class="vt-out" id="vt-out">→ https://<wbr>img.example.com/<wbr>3843ad67…/<wbr>crop:<wbr>1200x630:<wbr>smart/<wbr>filters:<wbr>sharpen(1.2):<wbr>saturation(1.1)/<wbr>root:<wbr>photos/<wbr>print.jpg <span class="vt-same">(the same from all three)</span></p>
       </div>
     </div>
     <h3>SDKs and loaders</h3>
     <p>Build and sign the same URL from TypeScript, Python, or the Rust crate the server verifies with. Loaders drop it into your framework’s image component:</p>
-    <ul class="tags vt-loaders" aria-label="Loaders for"><li><svg class="vt-mk" aria-hidden="true" focusable="false"><use href="#vt-m-m-next"/></svg>Next.js</li><li><svg class="vt-mk" aria-hidden="true" focusable="false"><use href="#vt-m-m-nuxt"/></svg>Nuxt</li><li><svg class="vt-mk" aria-hidden="true" focusable="false"><use href="#vt-m-m-hydrogen"/></svg>Hydrogen</li><li><svg class="vt-mk" aria-hidden="true" focusable="false"><use href="#vt-m-m-astro"/></svg>Astro</li><li><svg class="vt-mk" aria-hidden="true" focusable="false"><use href="#vt-m-m-svelte"/></svg>SvelteKit</li></ul>
+    <ul class="tags vt-loaders" aria-label="Loaders for"><li><svg class="vt-mk" aria-hidden="true" focusable="false"><use href="#vt-m-next"/></svg>Next.js</li><li><svg class="vt-mk" aria-hidden="true" focusable="false"><use href="#vt-m-nuxt"/></svg>Nuxt</li><li><svg class="vt-mk" aria-hidden="true" focusable="false"><use href="#vt-m-hydrogen"/></svg>Hydrogen</li><li><svg class="vt-mk" aria-hidden="true" focusable="false"><use href="#vt-m-astro"/></svg>Astro</li><li><svg class="vt-mk" aria-hidden="true" focusable="false"><use href="#vt-m-svelte"/></svg>SvelteKit</li></ul>
     <p class="ex"><code id="vt-install">npm install @crabcrop/url</code></p>
     <a class="more" href="https://crabcrop.org/docs.html#sdks">Read the docs<span class="sr"> on SDKs and loaders</span></a>
   </article></div>
