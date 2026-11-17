@@ -58,8 +58,9 @@ node .github/site-checks/scripts.mjs   # the page's Content-Security-Policy hold
   step. A `<script>` block in the page would be blocked, and the check
   says so. Styles may be inline.
 - **Pictures.** A picture under `preview/home/` has to be referenced by
-  the page, like the site's own. The dive is the exception to that rule,
-  not this page.
+  the page, like the site's own. The dive is held to more: every file
+  under `preview/dive/`, whatever its type, has to be used by its page,
+  its stylesheet or its scripts.
 - **Fonts.** The fonts hold ASCII, Latin-1, the dashes, quotes, ellipsis
   and arrows. A character outside that (the script lists what the page
   has beyond it) needs `python3 design/home/tools/subset-fonts.py` run

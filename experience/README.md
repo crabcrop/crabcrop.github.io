@@ -40,6 +40,7 @@ npm install
 npm run dev        # http://localhost:5173, media served from ../preview/dive/media
 npm run build      # type-check, then write ../preview/dive/index.html and assets/
 npm run preview    # serve the build
+node ../.github/site-checks/assets.mjs   # every file in ../preview/dive is used, and every file it names exists
 ```
 
 The encoded media are committed, so a build needs no network. To make them
@@ -231,6 +232,15 @@ steps down to a lighter pixel ratio.
 
 All the media together are about 43 MB on disk: the loops in three codecs,
 every picture in AVIF and WebP.
+
+The site's asset check (`.github/site-checks/assets.mjs`) holds
+`preview/dive/` to what the page uses: every file there has to be named by
+the page, its stylesheet or its scripts, read the way the scripts build
+their names (`snap-${clip}.mp4`, a plate's key and its widths). So media the
+page stops loading, and the bundles of an earlier build, fail the check
+until they are deleted. The manifest is the one file there that only the
+build reads (`src/media.ts` puts it into the page's script), so
+`_config.yml` leaves it out of the site.
 
 ## Not built yet
 

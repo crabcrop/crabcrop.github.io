@@ -278,9 +278,10 @@ def images():
     for name in ('icon-chain', 'icon-fish', 'icon-reel', 'icon-drops', 'icon-crop', 'icon-gear'):
         man['icons'][name] = icon(ic, name)
 
-    # Foreground cutouts (already RGBA from Higgsfield).
-    for name, key, h in (('cut-seagrass.png', 'seagrass', 900), ('cut-rope-buoy.png', 'rope-buoy', 640), ('cut-kelp.png', 'kelp', 1100)):
-        cutout(name, key, h)
+    # The kelp clump at the forest's edge, a foreground cutout (already RGBA
+    # from Higgsfield). The seagrass and rope buoy cutouts are not encoded:
+    # nothing in the dive places them.
+    cutout('cut-kelp.png', 'kelp', 1100)
     print('images done')
 
 
