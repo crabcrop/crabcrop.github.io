@@ -18,7 +18,7 @@ import {
 } from 'three/tsl';
 import { groundY } from '../layout.js';
 import { Mesh, TAU, blob, lathe, lerp, makeRng, tube } from '../math.js';
-import { G, caustic, material, sunAt, yarn } from '../shaders.js';
+import { G, material, sunAt, yarn } from '../shaders.js';
 
 // colours as the pictures have them, made linear (the light works in linear values)
 const toLin = (x) => Math.pow(x, 2.2);
@@ -508,9 +508,14 @@ export function buildGlint(scene) {
     additive: true, shadow: false,
     raw: (f) => {
       const q = f.obj.xy, r2 = dot(q, q).mul(4.0);
-      const g = exp(r2.mul(-2.6)).mul(float(1.0).sub(smoothstep(0.7, 1.0, r2)));
-      const c = caustic(f.w, f.dist);
-      const col = vec3(1.0, 0.8, 0.5).mul(c.mul(1.5).add(0.3)).mul(g).mul(k).mul(exp(f.dist.mul(-0.05)));
+      const g = exp(r2.mul(-1.7)).mul(float(1.0).sub(smoothstep(0.75, 1.0, r2)));
+      // (the sunlit sand is near white already: the glint is a net of caustic lines of its own,
+      // drifting, in warm gold glitter far brighter than the sand round them, with a little haze)
+      const t = G.time, pp = f.w.xz.mul(2.4).toVar();
+      const a = sin(pp.x.add(sin(pp.y.mul(1.3).add(t.mul(1.1))).mul(1.2)).add(t.mul(0.7)));
+      const b = sin(pp.y.mul(1.1).add(sin(pp.x.mul(0.9).sub(t.mul(0.9))).mul(1.3)).sub(t.mul(0.6)));
+      const net = pow(float(1.0).sub(abs(a.mul(b))), 9.0);
+      const col = vec3(1.0, 0.7, 0.34).mul(net.mul(5.5).add(0.45)).mul(g).mul(k).mul(exp(f.dist.mul(-0.04)));
       return { color: col, alpha: float(1.0) };
     },
   });

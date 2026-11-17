@@ -71,7 +71,7 @@ export default {
 
     // ---- the visitor's URL: its readable form, and sealed (the page's own token when Choice 5 is
     // sealed, so the chest shows the one the bar does; else one minted here)
-    let rem = '', sig8 = '', token = '', tokenFor = '', minting = 0, pollUntil = -1;
+    let rem = '', sig8 = '', token = '', tokenFor = '', minting = 0, pollAt = -1;
     const pageToken = () => {
       if (typeof ui.token === 'string' && ui.token.startsWith('s1.')) return ui.token;
       if (!stage.choices.seal) return '';
@@ -86,12 +86,11 @@ export default {
       tokenFor = rem; token = '';
       const n = ++minting;
       seal(rem).then((tk) => { if (n === minting && !token) { token = tk || ''; chestText(true); } });
-      pollUntil = stage.t + 4;
     };
 
     // ---- the chest: open 1, shut 0; where the lid is heading
     const chestBtn = doc.getElementById('chest'), chestLabel = doc.getElementById('chest-label'), restEl = doc.getElementById('sealed-rest'), verbEl = doc.getElementById('chest-verb');
-    const ch = { open: 1, target: 1, drag: null, dragged: false, locked: false, thunkAt: -1e9, poked: -1e9, text: '', sealedShown: null, openShown: '', tip: '' };
+    const ch = { open: 1, target: 1, drag: null, dragged: false, locked: false, pressed: false, thunkAt: -1e9, poked: -1e9, tickT: 0, text: '', sealedShown: null, openShown: '', tip: '' };
     const LABEL = ['Close the chest to seal the URL', 'Open the chest: the URL is sealed'];
     // (the place on the chest that takes the pointer, under its ring)
     const hit = stage.el('div', 'chest-hit'); hit.setAttribute('aria-hidden', 'true');
@@ -100,7 +99,7 @@ export default {
     chestTip.innerHTML = '<code></code><span></span>';
     const tipCode = chestTip.firstChild, tipWords = chestTip.lastChild;
     let overChest = false;
-    const go = (to) => { ch.target = to; ch.poked = stage.t; };
+    const go = (to) => { ch.target = to; ch.poked = ch.tickT = performance.now() / 1000; };
     // the card's chest and the one in the cabin: a click (or Enter, Space) opens or shuts it; a
     // drag moves the lid with the pointer (down shuts it, up opens it, 70 px for the whole way)
     const dragOn = (el, touchDrags) => {
@@ -145,13 +144,18 @@ export default {
     const chestState = () => {
       const o = ch.open.toFixed(3);
       if (o !== ch.openShown) { ch.openShown = o; chestBtn.style.setProperty('--open', o); }
+      // (its state is said at once, for a screen reader; the lock drops when the lid is down)
+      const pressed = ch.target <= 0.5;
+      if (pressed !== ch.pressed) {
+        ch.pressed = pressed;
+        chestBtn.setAttribute('aria-pressed', String(pressed));
+        chestLabel.textContent = LABEL[pressed ? 1 : 0];
+        chestRing.el.setAttribute('aria-label', LABEL[pressed ? 1 : 0]);
+      }
       const locked = ch.open <= 0.001;
       if (locked !== ch.locked) {
         ch.locked = locked;
         chestBtn.classList.toggle('locked', locked);
-        chestBtn.setAttribute('aria-pressed', String(locked));
-        chestLabel.textContent = LABEL[locked ? 1 : 0];
-        chestRing.el.setAttribute('aria-label', LABEL[locked ? 1 : 0]);
         if (locked) { ch.thunkAt = stage.t; say('lock'); }
       }
     };
@@ -208,7 +212,6 @@ export default {
       refresh();
       chestText(true);
       writeLog();
-      if (key === 'seal' && i) pollUntil = stage.t + 4;
     });
 
     // ---- the cards' specimens come alive as each comes into view
@@ -234,6 +237,8 @@ export default {
     let lastHit = '', lastChestTip = '', lastSealTip = '';
 
     let wasHere = true;
+    // (dev builds only: the zone's state, for probes)
+    if (DEV) window.__s4 = { cabin: cab, ch, letter, desk, lamp };
     this.tick = () => {
       const p = stage.p, t = stage.t, dt = Math.min(stage.dt || 0, 0.05), W = stage.W, Hh = stage.H, wide = stage.wide;
       frameNo++;
@@ -258,10 +263,12 @@ export default {
       // how much the camera is looking into the cabin
       const inCabin = smooth(4.47, 4.52, p) * (1 - smooth(4.66, 4.71, p));
 
-      // ---- the chest's lid
+      // ---- the chest's lid: 1.6 of its way a second, by the clock (a slow frame does not slow it)
+      const step = Math.min(Math.max(t - ch.tickT, 0), 1) * 1.6;
+      ch.tickT = t;
       if (!ch.drag && ch.open !== ch.target) {
         const d = ch.target - ch.open;
-        ch.open = Math.abs(d) < 0.004 ? ch.target : ch.open + Math.sign(d) * Math.min(Math.abs(d), (dt || 0.016) * 1.6);
+        ch.open = Math.abs(d) < 0.004 ? ch.target : ch.open + Math.sign(d) * Math.min(Math.abs(d), step);
         chestText(ch.open === ch.target);
       } else if (ch.drag) chestText(false);
       chestState();
@@ -418,10 +425,11 @@ export default {
       lastP = p;
 
       // ---- the page's token, once it has one for this recipe (sealed by Choice 5): the chest shows
-      // the same one as the bar (looked for a few seconds after a choice)
-      if (check && stage.choices.seal && t < pollUntil) {
+      // the same one as the bar (looked for twice a second while it differs)
+      if (stage.choices.seal && t - pollAt > 0.5) {
+        pollAt = t;
         const pt = pageToken();
-        if (pt && pt !== token && tokenFor === rem) { token = pt; minting++; pollUntil = -1; chestText(ch.open === ch.target); }
+        if (pt && pt !== token && tokenFor === rem) { token = pt; minting++; chestText(ch.open === ch.target); }
       }
     };
     restGlow();

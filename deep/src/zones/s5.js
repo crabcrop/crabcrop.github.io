@@ -10,7 +10,6 @@
 // Its words are in zones/s5.html, its styles in zones/s5.css; the fish is props/twilight.js.
 import { Vector3 } from 'three/webgpu';
 import { OPTIONS, remainder, sign } from '../content.js';
-import * as faunaModule from '../fauna.js';
 import { pathAt } from '../layout.js';
 import { smooth } from '../math.js';
 import { buildBeam, buildLostFish } from '../props/twilight.js';
@@ -34,6 +33,9 @@ const FISH_STORY = 'A tiny fish was lost in the dark. It followed your light all
 const esc = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 // code as HTML that breaks only after a slash, a colon or a comma
 const soft = (t) => esc(t).replace(/([/:,])(?=[^/\s])/g, '$1<wbr>');
+// text as lines that keep their indent when they wrap (a narrow card): each line a block, its
+// continuation hanging two characters further in
+const lines = (text) => text.split('\n').map((l) => { const n = l.length - l.trimStart().length; return '<span class="ln" style="--in: ' + n + '">' + esc(l.trimStart()) + '</span>'; }).join('');
 
 // The camera on its path at p (without the visitor's nudge): where it is, and its forward, right
 // and up. out: { x, y, z, F, R, U }.
@@ -46,50 +48,6 @@ function pathCam(p, c) {
   c.R[0] = cy; c.R[1] = 0; c.R[2] = sy;
   c.U[0] = -sx * sy; c.U[1] = cx; c.U[2] = sx * cy;
   return c;
-}
-
-// Where the six creatures are, until fauna.js says so itself (fauna.spots.twilight): the jellies
-// from their own instance data (three of them: the ones largest in the view at the moments the
-// visitor stops at), the siphonophore (the glowing worm), the bottle and the anglerfish from where
-// fauna.js puts them each frame (faunaParts).
-function stand(world, wideView, fov, aspect) {
-  const parts = faunaModule.faunaParts || {};
-  const list = TAGS.map(([l, s]) => ({ name: LABEL[l], score: s, at: new Vector3(0, -1000, 0), r: 0.6, on: false }));
-  const homes = [], seenAttr = new Set();
-  world.scene.traverse((o) => {
-    const a = o.geometry && o.geometry.getAttribute && o.geometry.getAttribute('jA');
-    if (!a || seenAttr.has(a)) return;
-    seenAttr.add(a);
-    for (let i = 0; i < a.count; i++) homes.push([a.getX(i), a.getY(i), a.getZ(i), a.getW(i)]);
-  });
-  const c = { x: 0, y: 0, z: 0, F: [0, 0, 0], R: [0, 0, 0], U: [0, 0, 0] }, tanV = Math.tan((fov * Math.PI) / 360);
-  const best = homes.map(() => 0);
-  for (let pb = 5.15; pb <= 5.9; pb += 0.025) {
-    pathCam(pb, c);
-    homes.forEach((h, i) => {
-      const dx = h[0] - c.x, dy = h[1] - c.y, dz = h[2] - c.z;
-      const f = dx * c.F[0] + dy * c.F[1] + dz * c.F[2];
-      if (f < 3 || f > 18) return;
-      const nx = (dx * c.R[0] + dz * c.R[2]) / (f * tanV * aspect), ny = (dx * c.U[0] + dy * c.U[1] + dz * c.U[2]) / (f * tanV);
-      // (whole in the view, and clear of the words: right of them on a wide screen, above them on a phone)
-      const ok = wideView ? nx > -0.24 && nx < 0.88 && ny > -0.78 && ny < 0.8 : nx > -0.82 && nx < 0.82 && ny > -0.05 && ny < 0.72;
-      if (ok) best[i] = Math.max(best[i], h[3] / f);
-    });
-  }
-  const order = homes.map((h, i) => i).filter((i) => best[i] > 0).sort((a, b) => best[b] - best[a]);
-  if (DEV) console.log('s5: ' + homes.length + ' jellies; tagged ' + order.slice(0, 3).map((i) => '#' + i + ' ' + best[i].toFixed(3)).join(', '));
-  const jellies = [0, 1, 5];
-  jellies.forEach((k, n) => { const h = homes[order[n]]; if (h) { list[k].at.set(h[0], h[1], h[2]); list[k].r = h[3]; list[k].on = true; } });
-  const POSE = parts.POSE && parts.POSE.array, SI = parts.SI;
-  return {
-    list,
-    // (each frame: where fauna.js has put the others)
-    update(p) {
-      if (SI && SI.c) { list[2].at.copy(SI.c.value); list[2].r = 1.1; list[2].on = p > 5.1 && p < 5.9; }
-      if (POSE && POSE[20]) { const b = POSE[20]; list[3].at.set(b.x, b.y, b.z); list[3].r = 0.3; list[3].on = p > 5.32 && p < 5.84; }
-      if (POSE && POSE[16]) { const a = POSE[16]; list[4].at.set(a.x, a.y, a.z); list[4].r = Math.max(0.4, a.w * 0.36); list[4].on = p > 5.5 && p < 5.82; }
-    },
-  };
 }
 
 const S = { fish: null, beam: null };
@@ -134,7 +92,7 @@ export default {
       const text = '{\n  "width": ' + w + ', "height": ' + h + ', "format": "' + FMT_JSON[c.format] + '",\n  "tags": [' + (tags.length ? '\n' + tags.join(',\n') + '\n  ' : '') + '],\n  "alt_text": ' + (alt ? '"' + alt + '"' : 'null') + '\n}';
       if (text === lastJson) return;
       lastJson = text;
-      jsonEl.textContent = text;
+      jsonEl.innerHTML = lines(text);
       altQ.textContent = alt || '';
       if (pop) { jsonEl.classList.remove('pop'); void jsonEl.offsetWidth; jsonEl.classList.add('pop'); }
     };
@@ -186,13 +144,16 @@ export default {
     stage.dock.ask('light-tap', { verb: 'Tap', text: 'a creature to light it' });
     let shone = false, askedAt = -1;
 
-    // where the creatures are: fauna.js's own spots when it has them, else found here
-    const own = stand(world, stage.wide, camera.fov || 58, stage.W / Math.max(stage.H, 1));
-
     // ---- the lost fish ------------------------------------------------------------------------
-    const F = S.fish, fish = { state: 'lost', pos: new Vector3(), face: new Vector3(0, 0, -1), placed: false, lit: 0, glowAt: -10 };
+    const F = S.fish, fish = { state: 'lost', pos: new Vector3(), face: new Vector3(0, 0, -1), placed: false, lit: 0 };
     const cam = { x: 0, y: 0, z: 0, F: [0, 0, 0], R: [0, 0, 0], U: [0, 0, 0] }, want = new Vector3(), look = new Vector3(), last = new Vector3();
     let focus = 7.5, owned = 0, reachM = 6;
+    // where it waits, lost: low in the open water, under the submarine's way (on a phone, right of
+    // the submarine and above the words), circling a little; cam is the camera on its path
+    const lostAt = (out, t, narrow) => {
+      const lf = narrow ? 3.9 : 4.3, lx = (narrow ? 0.8 : 0.1) + Math.cos(t * 1.3) * 0.16, ly = (narrow ? -0.24 : -1.12) + Math.sin(t * 2.1) * 0.07;
+      return out.set(cam.x + cam.F[0] * lf + cam.R[0] * lx + cam.U[0] * ly, cam.y + cam.F[1] * lf + cam.U[1] * ly, cam.z + cam.F[2] * lf + cam.R[2] * lx + cam.U[2] * ly);
+    };
 
     this.tick = () => {
       const p = stage.p, t = stage.t, dt = stage.dt, W = stage.W, Hh = stage.H;
@@ -202,7 +163,8 @@ export default {
       const on = zone * smooth(0.2, 0.45, lamp);
       const narrow = narrowMQ.matches, tapMode = narrow || touchMQ.matches;
       const live = stage.live();
-      const spots = (world.fauna && world.fauna.spots && world.fauna.spots.twilight && world.fauna.spots.twilight.length === 6) ? world.fauna.spots.twilight : (own.update(p), own.list);
+      // (where the creatures are, kept by fauna.js every frame: { name, score, at, r, on })
+      const spots = world.fauna && world.fauna.spots && world.fauna.spots.twilight;
 
       // ---- the light: where the visitor's hand is, else a slow sweep over the middle of the view
       if (zone > 0.001) {
@@ -219,7 +181,7 @@ export default {
       // ---- the tags: each by its creature, lit while the light is on it and a while after
       let nearD = 1e9, aimD = 7.5, added = false;
       for (let i = 0; i < 6; i++) {
-        const s = spots[i], g = tags[i];
+        const s = spots && spots[i], g = tags[i];
         let shown = false;
         if (s && s.on !== false && zone > 0.001) {
           stage.project(s.at, P);
@@ -291,19 +253,15 @@ export default {
       const show = p > 4.99 && p < 7.02 && (zone > 0.01 || fish.state === 'home') && !!F;
       if (F) F.mesh.visible = show;
       if (!show) return;
-      // where it waits, lost: low in the open water, under the submarine's way (above the words on a phone)
       pathCam(Math.min(Math.max(p, 5.0), 5.76), cam);
-      const lf = narrow ? 3.9 : 4.3, lx = narrow ? 0.55 : 0.1, ly = narrow ? 0.12 : -1.12;
-      const tx = Math.cos(t * 1.3) * 0.16, ty = Math.sin(t * 2.1) * 0.07;
-      const lost = (out) => out.set(cam.x + cam.F[0] * lf + cam.R[0] * (lx + tx) + cam.U[0] * (ly + ty), cam.y + cam.F[1] * lf + cam.U[1] * (ly + ty), cam.z + cam.F[2] * lf + cam.R[2] * (lx + tx) + cam.U[2] * (ly + ty));
-      if (!fish.placed) { lost(fish.pos); fish.placed = true; }
+      if (!fish.placed) { lostAt(fish.pos, t, narrow); fish.placed = true; }
       stage.project(fish.pos, P);
       const dl = P[2] > 0 ? Math.hypot(P[0] - L[0], P[1] - L[1]) : 1e9;
       if (fish.state === 'lost' && p > 5.05 && on > 0.6 && dl < reach) {
         fish.state = 'follow';
         stage.sparkle(fish.pos, 6);
       }
-      if (fish.state === 'lost') lost(want);
+      if (fish.state === 'lost') lostAt(want, t, narrow);
       else if (fish.state === 'follow') {
         // in the beam, a little way out from the lamp toward where the light is, wiggling round it
         const s = Math.min(Math.max(focus * 0.45, 1.6), 3.4);

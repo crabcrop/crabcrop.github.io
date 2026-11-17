@@ -1,7 +1,7 @@
 // Amigurumi: what every creature of the dive shares with Snap, so that they read as one cast of
 // crocheted toys. Plush, rounded, chunky shapes with no hard edges and no thin flat parts;
-// single crochet in the same yarn as his (a stitch is about a centimetre on Snap, who is 0.6 m
-// tall), its rows worked round the body as an amigurumi is made; a little fuzz; glossy black bead
+// single crochet in the same yarn as his (his stitches are about 1.8 cm: some 22 across his
+// body), its rows worked round the body as an amigurumi is made; a little fuzz; glossy black bead
 // eyes, each in a ring of white felt, set wide; a stitched smile and pink felt cheeks; fins,
 // flippers, arms and legs as fat stuffed shapes. Colours are written as they look in the
 // pictures (sRGB) and used linear.
@@ -12,20 +12,25 @@
 //   tubes(m, n, rings, sides, tag)               rings of tubes for a vertex step to bend (arms)
 //   orient(m, i0, base, out)                     make what was just added face out
 // For the surface (TSL, in a material's surface step):
+//   crochet(engine)        draw the single crochet the yarn is laid in, once, before any material
+//                          that uses it is made (else the dive's shared stitch is used)
 //   knit(s, f, o)          the yarn laid in the creature's own frame (rows stacked along one axis)
-//   rounds(q, c, A, B, R, scale)  where the stitches are on a body worked in rounds about an axis,
+//   rounds(q, c, A, B, R, scale, tube)  where the stitches are on a body worked in rounds about
+//                          an axis (or along a tube),
 //   stitches(s, f, o)      ... and the yarn laid by them (rows that ring the body)
 //   felt(s, f, o)          felt: soft, matted, no stitches
-//   eyes(s, f, o)          the bead eyes in their felt rings (mirrored across the shape's z)
+//   eyes(s, q, n0, o)      the bead eyes in their felt rings (mirrored across the shape's z)
 //   bead(s, n, k), glint(...)      a bead's gloss, its catch light
-//   arc(u, v, w, c, t, aa) a stitched line (a smile), spot(u, v, r, aa) a felt dot (a cheek)
+//   arc(u, v, w, c, t, aa) a stitched line (a smile), spot(u, v, r, aa) a felt dot (a cheek),
+//   sew(s, n0, smile, cheeks)      ... sewn on
 //   ringAt(C, T, S0, phi, r)       a ring of a tube built in a vertex step
+import { LinearFilter, LinearMipmapLinearFilter, RenderTarget, RepeatWrapping, UnsignedByteType } from 'three/webgpu';
 import {
-  abs, acos, atan, cameraPosition, clamp, cos, cross, dFdx, dFdy, dot, float, floor, length, max, mix, normalize, pow, sign, sin, smoothstep,
-  texture, vec2, vec3,
+  Fn, abs, acos, atan, cameraPosition, clamp, cos, cross, dFdx, dFdy, dot, float, floor, fract, ivec3, length, max, min, mix, normalize, pow, sign, sin,
+  smoothstep, sqrt, texture, uv, vec2, vec3, vec4,
 } from 'three/tsl';
 import { blob } from './math.js';
-import { G, detail, sunAt, yarn } from './shaders.js';
+import { G, detail, hash3, pass, sunAt } from './shaders.js';
 
 export const toLin = (x) => Math.pow(x, 2.2);
 export const lin = (r, g, b) => vec3(toLin(r), toLin(g), toLin(b));
@@ -98,6 +103,44 @@ export function ringAt(C, T, S0, phi, r) {
 
 // ---- the yarn -----------------------------------------------------------------------------
 
+// Single crochet, as Snap's yarn is worked: eight by eight stitches to a tile, each a short plump
+// V of two fat loops that lean together and meet at its foot, the round's top loop across it, in
+// rows with a groove between them (where the shared stitch of the dive is a taller, thinner V,
+// knitted-looking). rg: the slope of the yarn's height, b: the height, a: which stitch it is.
+const CROCHET = { tex: null };
+function crochetTexture() {
+  const N = 8;
+  const loop = (q, ax, ay, bx, by, r) => {
+    const pa = q.sub(vec2(ax, ay)), ba = vec2(bx - ax, by - ay);
+    const t = clamp(dot(pa, ba).div(dot(ba, ba)), 0.0, 1.0);
+    const d = length(pa.sub(ba.mul(t))), across = min(d.div(r), 1.0);
+    const L = Math.hypot(bx - ax, by - ay), side = vec2(-(by - ay) / L, (bx - ax) / L);
+    // (two plies twisted round each other: slanted ridges along the loop)
+    const ply = sin(t.mul(7.0 * Math.PI).add(dot(pa, side).mul(22.0))).mul(0.1).add(0.9);
+    return sqrt(max(float(1.0).sub(across.mul(across)), 0.0)).mul(ply);
+  };
+  const height = Fn(([q]) => {
+    const c = fract(q);
+    const a = loop(c, 0.5, 0.2, 0.2, 0.74, 0.25), b = loop(c, 0.5, 0.2, 0.8, 0.74, 0.25);
+    const top = loop(c, 0.06, 0.92, 0.94, 0.92, 0.1).mul(0.5);
+    return max(max(a, b), top);
+  }, { q: 'vec2', return: 'float' });
+  return Fn(() => {
+    const q = uv().mul(N).toVar(), e = N / 512, h = height(q);
+    const g = vec2(height(q.add(vec2(e, 0))).sub(height(q.sub(vec2(e, 0)))), height(q.add(vec2(0, e))).sub(height(q.sub(vec2(0, e))))).div(2 * e);
+    return vec4(clamp(g.mul(0.08).add(0.5), 0.0, 1.0), h, hash3(ivec3(vec3(q.floor().mod(N), 11.0))));
+  })();
+}
+export function crochet(engine) {
+  if (CROCHET.tex || !engine || !engine.drawQuad) return CROCHET.tex;
+  const target = new RenderTarget(512, 512, { type: UnsignedByteType, depthBuffer: false, minFilter: LinearMipmapLinearFilter, magFilter: LinearFilter, wrapS: RepeatWrapping, wrapT: RepeatWrapping, generateMipmaps: true, anisotropy: 8 });
+  engine.drawQuad(pass(crochetTexture()), target);
+  engine.renderer.setRenderTarget(null);
+  CROCHET.tex = target.texture;
+  return CROCHET.tex;
+}
+const stitchTex = () => CROCHET.tex ?? G.stitchTex;
+
 // What wool does with the light: soft, a little light through it, warm colours answering the
 // blue water, and a halo on every outline where the fibres catch the light (as on Snap). The
 // caustics' sharp net is softened on it, as on him: on stitches it would flicker.
@@ -108,21 +151,35 @@ function wool(s, f, fuzz) {
   s.emis = s.emis.add(sunAt(f.w.y).mul(0.06).add(G.amb.mul(0.14)).mul(graze).mul(s.albedo).mul(fuzz));
 }
 
-// The yarn laid in the creature's own frame: yarn() reads its stitches along the three axes of
-// `p` and weighs them by the normal; on a creature that turns both must be in its frame. o.frame
-// = [A, B, C]: where the frame's axes point in the world (rows are stacked along B). The rest of
-// o as yarn() takes it (color, color2, stripe, scale, p, k), and fuzz. The stitches stand out as
-// Snap's do: round, with deep gaps between them.
+// The colour of the yarn at a stitch: its own colour, or rows of two (stripes, `stripe` rows each,
+// counted along b), a little different from stitch to stitch, darker in the gaps.
+function yarnColour(s, o, t, rows) {
+  let col = o.color;
+  if (o.color2) col = mix(o.color, o.color2, floor(rows.div(o.stripe ?? 3)).mul(0.5).fract().mul(2.0).floor());
+  s.albedo = vec3(col).mul(t.b.mul(0.55).add(0.45)).mul(t.a.mul(0.14).add(0.93));
+  s.ao = s.ao.mul(t.b.mul(0.4).add(0.6));
+}
+// The yarn laid in the creature's own frame: the stitches read along the three axes of `p` and
+// weighed by the normal (as the dive's yarn() lays them), both in the creature's frame, so they
+// stay on it as it turns. o.frame = [A, B, C]: where the frame's axes point in the world (rows are
+// stacked along B); o.color, color2 and stripe; scale (stitches to a metre, STITCH if left out),
+// p (where to read them, metres; f.obj if left out), k (how much they bend the light), fuzz.
 export function knit(s, f, o) {
-  const [A, B, C] = o.frame, n = s.n;
-  s.n = vec3(dot(n, A), dot(n, B), dot(n, C));
-  const r = yarn(s, f, { ...o, k: (o.k ?? 1.3) * 1.5, fuzz: 0 });
-  const m = s.n;
+  const [A, B, C] = o.frame, n0 = s.n;
+  const n = vec3(dot(n0, A), dot(n0, B), dot(n0, C));
+  const p = (o.p ?? f.obj).mul((o.scale ?? STITCH) / 8).toVar();
+  const w0 = pow(abs(n), vec3(4.0)), w = w0.div(w0.x.add(w0.y).add(w0.z)).toVar();
+  const T = stitchTex();
+  const x = texture(T, p.zy).toVar(), y = texture(T, p.xz).toVar(), z = texture(T, p.xy).toVar();
+  const t = x.mul(w.x).add(y.mul(w.y)).add(z.mul(w.z)).toVar();
+  const k = (o.k ?? 1.3) * 1.5;
+  const gx = x.rg.sub(0.5).mul(k), gy = y.rg.sub(0.5).mul(k), gz = z.rg.sub(0.5).mul(k);
+  const b = vec3(0.0, gx.y, gx.x).mul(w.x).add(vec3(gy.x, 0.0, gy.y).mul(w.y)).add(vec3(gz.x, gz.y, 0.0).mul(w.z));
+  const m = normalize(n.sub(b));
   s.n = normalize(A.mul(m.x).add(B.mul(m.y)).add(C.mul(m.z))).toVar();
-  s.albedo = s.albedo.mul(r.h.mul(0.3).add(0.78));
-  s.ao = s.ao.mul(r.h.mul(0.2).add(0.8));
+  yarnColour(s, o, t, p.y.mul(8.0));
   wool(s, f, o.fuzz ?? 1.0);
-  return r;
+  return { h: t.b, id: t.a };
 }
 
 // Where the stitches are on a body worked in rounds about an axis, as an amigurumi body, head or
@@ -160,13 +217,10 @@ export function rounds(q, c, A, B, R, scale, tube = 0) {
 // of each, counted up b), k (how much the stitches bend the light), fuzz.
 export function stitches(s, f, o) {
   const st = o.st, uv = vec2(st.a, st.b).div(8.0);
-  const t = texture(G.stitchTex, uv).grad(vec2(st.ga.x, st.gb.x).div(8.0), vec2(st.ga.y, st.gb.y).div(8.0)).toVar();
+  const t = texture(stitchTex(), uv).grad(vec2(st.ga.x, st.gb.x).div(8.0), vec2(st.ga.y, st.gb.y).div(8.0)).toVar();
   const k = (o.k ?? 1.3) * 1.5, g = t.rg.sub(0.5).mul(k);
   s.n = normalize(s.n.sub(st.Ta.mul(g.x)).sub(st.Tb.mul(g.y))).toVar();
-  let col = o.color;
-  if (o.color2) col = mix(o.color, o.color2, floor(st.b.div(o.stripe ?? 3)).mul(0.5).fract().mul(2.0).floor());
-  s.albedo = vec3(col).mul(t.b.mul(0.62).add(0.38)).mul(t.a.mul(0.16).add(0.92));
-  s.ao = s.ao.mul(t.b.mul(0.45).add(0.55));
+  yarnColour(s, o, t, st.b);
   wool(s, f, o.fuzz ?? 1.0);
   return { h: t.b, id: t.a };
 }

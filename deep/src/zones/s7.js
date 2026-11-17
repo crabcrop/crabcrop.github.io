@@ -27,6 +27,9 @@ export default {
     const img = frame.querySelector('img');
     try { img.src = feltPrint().image.toDataURL('image/jpeg', 0.9); } catch (e) { /* the frame stays empty */ }
     let token = null, tokenFor = '', shown = -2, recipe = '', flashed = false, on = false, w = 0, h = 0, last = '';
+    // (on a phone the print hangs down to the top of the climb's own card, measured with it)
+    const climbBeat = doc.querySelector('#s7 .s-climb > *');
+    let floor = 0;
 
     const setRecipe = () => {
       const c = stage.choices;
@@ -81,21 +84,27 @@ export default {
       const amount = q > 0 && q < 1 ? smooth(0, 0.065, q) * (1 - smooth(0.84, 0.97, q)) : 0;
       world.engine.ascent(amount, Math.min(Math.max(q, 0), 1));
 
-      // the print on the pincer, with its ticket, while the bands are up
-      const show = q > 0.03 && q < 0.93;
-      stage.printFigure = show || p > 7.86;      // (the 3D print on the pincer stays hidden meanwhile)
+      // the print on the pincer, with its ticket, while the bands are up (and the pincer is in
+      // the view: as the camera turns up from the geode the submarine is out of it for a moment)
+      const climbing = q > 0.03 && q < 0.93;
+      if (climbing) { world.cast.pincerAt(v); stage.project(v, P); }
+      const show = climbing && P[2] > 0 && stage.onScreen(P[0], P[1], on ? 160 : -30);
+      stage.printFigure = climbing || p > 7.86;  // (the 3D print on the pincer stays hidden meanwhile)
       if (show !== on) { on = show; fig.classList.toggle('on', show); if (show) { w = 0; shown = -2; } }
       if (on) {
         let n = -1;
         for (let i = 0; i < STEPS.length; i++) { const d = q >= STEPS[i].at; frame.classList.toggle(STEPS[i].cls, d); if (d) n = i; }
         if (n !== shown) { shown = n; paintTicket(n); }
-        if (!w) { w = fig.offsetWidth; h = fig.offsetHeight; }
+        if (!w) {
+          w = fig.offsetWidth; h = fig.offsetHeight;
+          floor = climbBeat && climbBeat.offsetHeight ? stage.H - (parseFloat(getComputedStyle(climbBeat).bottom) || 8) - climbBeat.offsetHeight : 0;
+        }
         // it hangs from the pincer by its top corner, kept on screen (its ticket above the bottom edge)
-        world.cast.pincerAt(v);
-        stage.project(v, P);
         const right = stage.W - w - (stage.wide ? 64 : 14);
-        // (on a phone, above the words' sheet along the bottom)
-        const x = Math.max(10, Math.min(P[0] - 10, right)), y = Math.max(stage.wide ? 90 : 112, Math.min(P[1] - 6, (stage.wide ? stage.H : stage.H * 0.54) - h - 10));
+        // (on a phone, above the words' sheet along the bottom: under the pincer, so the cockpit
+        // and Snap in it show, where the climb's card leaves room)
+        const bottom = stage.wide ? stage.H : floor > stage.H * 0.4 ? floor : stage.H * 0.54;
+        const x = Math.max(10, Math.min(P[0] - 10, right)), y = Math.max(stage.wide ? 90 : 112, Math.min(P[1] - 6, bottom - h - 10));
         const key = Math.round(x) + ',' + Math.round(y);
         if (key !== last) { last = key; fig.style.transform = 'translate(' + Math.round(x) + 'px,' + Math.round(y) + 'px)'; }
       }

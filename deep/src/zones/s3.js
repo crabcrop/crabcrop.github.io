@@ -25,10 +25,11 @@ import { buildPearl } from '../props/reef.js';
 import { createSnapshots } from '../snapshots.js';
 
 // where the camera is while each station's card is up (p; the cards' stretches of scroll are
-// sized in s3.css to match), and the studio's: its cards from p 3.58, the softboxes coming on,
-// the pearl in clear view while the upscale card is up
+// sized in s3.css to match), and the studio's: its cards from p 3.6, the softboxes coming on as
+// Snap swims to the shell (cast.js: 3.74 to 3.8), the upscale card's stretch while the camera
+// holds on the open shell (layout.js: 3.8 to 3.96), where the pearl is in clear view
 const ST = { crop: [3.08, 3.37], faces: [3.37, 3.46], cuttle: [3.46, 3.545], can: [3.545, 3.63] };
-const STUDIO = { from: 3.6, lamps: 3.75, upscale: [3.79, 3.875], to: 3.97 };
+const STUDIO = { from: 3.6, lamps: 3.735, upscale: [3.83, 3.93], to: 3.97 };
 const near = (p, r) => smooth(r[0] - 0.02, r[0] + 0.02, p) * (1 - smooth(r[1] - 0.02, r[1] + 0.02, p));
 const ASPECT = [1200 / 630, 1, 0];
 // colours as pictures have them, made linear
@@ -273,6 +274,7 @@ export default {
 
     // ---- the Clam Studio ----
     const studio = { lampsAt: -1, pearlAt: -1, armed: true, sparked: true, shot: false };
+    if (DEV) window.__s3 = { studio, S };          // (dev builds: for probes)
     const shots = world.engine && world.engine.renderer ? createSnapshots(world.engine) : null;
     const pics = [...doc.querySelectorAll('#s3 canvas.snapshot[data-pic]')];
     // the before and after: the range moves the line; arrows move it too (it is a real range)
@@ -462,7 +464,8 @@ export default {
         else if (studio.armed && p >= STUDIO.upscale[0] && p <= STUDIO.upscale[1]) { studio.armed = false; studio.pearlAt = t; studio.sparked = false; }
         const full = Math.max(8, Hh * 0.02), since = studio.pearlAt < 0 ? -1 : t - studio.pearlAt;
         const block = since < 0 ? full : full * (1 - smooth(0, 1.4, since));
-        const on = p > STUDIO.from - 0.12 && p < STUDIO.to + 0.06 && S.pearl.set(stage.camera, block, ppm);
+        const lit = (lampLevel(t, studio.lampsAt, 0) + lampLevel(t, studio.lampsAt, 1) + lampLevel(t, studio.lampsAt, 2)) / 3;
+        const on = p > STUDIO.from - 0.12 && p < STUDIO.to + 0.06 && S.pearl.set(stage.camera, block, ppm, lit);
         S.pearl.mesh.visible = !!on;
         if (!studio.sparked && since >= 1.4) { studio.sparked = true; if (on) stage.sparkle(S.pearl.at, 8); }
       }

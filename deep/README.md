@@ -20,7 +20,7 @@ is [PROMPT.md](PROMPT.md).
 | | The painted dive (`preview/dive/`) | This dive |
 |---|---|---|
 | Files | about 270 images and videos, 44 MB | one HTML file, and Snap's model (214 KB) and texture (79 to 186 KB) |
-| A visit downloads | 9.6 MB on desktop, 5.5 to 7.2 MB on a phone | about 0.65 to 0.75 MB (the page is 351 KB compressed) |
+| A visit downloads | 9.6 MB on desktop, 5.5 to 7.2 MB on a phone | about 0.75 to 0.85 MB (the page is 435 KB compressed) |
 
 ## Build
 
@@ -86,18 +86,22 @@ with neither, or a visitor who prefers reduced motion, gets the page as plain te
   there (`zones/core.css`). Each zone has a module, `src/zones/<id>.js`, with its scene pieces and
   page pieces, its words in `zones/<id>.html` and its styles in `zones/<id>.css`, which the build
   puts into the page; bigger 3D pieces are in `src/props/`. The shallows: six schools of format
-  fish (the picked one gathers by Snap's claw; Auto races AVIF, JPEG XL and WebP to it) and the
-  cargo of sources with their rings. The kelp: three silk curtains that try a look on the whole
-  forest and keep it on a click, and a little fish tangled in fishing line to cut free. The reef:
-  the crop frame on the turtle, face boxes on the school, the cuttlefish's blur, the can to erase;
-  the Clam Studio, where Snap poses in front of the open shell while its jellyfish lamps come on
-  one by one, a before/after to cut him out (`src/snapshots.js` draws him once for the cards) and
-  the pearl rebuilt from a mosaic by `upscale(2)`. The cabin: the chest that seals the visitor's
-  own URL into a token, the wax seal on the desk, the octopus's letter, the lantern and the dust.
-  The twilight: the lamp follows the hand and names what it finds (tags with scores, the meta
-  answer and its alt text), the bottle's message read line by line. The vents: the install typed
-  out, the SDK tabs, an agent's little submarine calling the MCP tools about the visitor's URL,
-  the print picked up at the geode. The way up: the print on the pincer and its ticket.
+  fish (the picked one gathers by Snap's claw; Auto races AVIF, JPEG XL and WebP to it), the cargo
+  of sources with their rings, and the sun's glint on the sand under the hand. The kelp: three
+  silk curtains that try a look on the whole forest and keep it on a click, and a little fish
+  tangled in fishing line to cut free. The reef: the crop frame on the turtle, face boxes on the
+  school, the cuttlefish's blur, the can to erase; the Clam Studio, where Snap poses in front of
+  the open shell while its jellyfish lamps come on one by one, a before/after to cut him out
+  (`src/snapshots.js` draws him once for the cards) and the pearl rebuilt from a mosaic by
+  `upscale(2)`. The cabin: the chest that seals the visitor's own URL into a token (the card's and
+  the cabin's show the bar's), the wax seal on the desk, the octopus's letter, the lantern that
+  leans with the hand, and the dust; the cabin's loose things are made in `src/props/cabin.js`, so
+  they move. The twilight: the submarine's lamp follows the hand (or a tap) and names what it
+  finds (tags with scores, the meta answer and its alt text), a lost fish follows the beam home,
+  the bottle's message is read line by line. The vents: the install typed out, the SDK tabs, an
+  agent's little submarine calling the MCP tools about the visitor's URL, and the print picked up
+  at the geode: the submarine nudges forward for it and it rises into the pincer. The way up: the
+  print on the pincer and its ticket.
 - `src/amigurumi.js`: the crochet kit every creature is made with, as Snap is: rows of stitches
   worked round each body, felt, big bead eyes in white rings, a sewn smile.
 

@@ -28,13 +28,16 @@ const smooth01 = (t) => (t <= 0 ? 0 : t >= 1 ? 1 : t * t * (3 - 2 * t));
 
 // How deep the dive is at p, in metres, for the gauge (and the sound): the story's depth
 // (storyDepth eases each zone's depth into the next across the zone), except where the
-// camera does not move that way. The wreck sits on its ledge at its own depth and the drop
-// begins only at the zone's end; the vents hold their depth while the camera is among them;
-// the climb back to the surface happens in the last zone, where the camera climbs.
-const WRECK = -ZONES[4].depth, TWILIGHT = -ZONES[5].depth, VENTS = -ZONES[6].depth;
+// camera does not move that way. The wreck sits on its ledge at its own depth, and Snap
+// boards the submarine there: the drop begins once its canopy is locked (DROP), easing into
+// the twilight's depths; the vents hold their depth while the camera is among them; the
+// climb back to the surface happens in the last zone, where the camera climbs.
+const WRECK = -ZONES[4].depth, VENTS = -ZONES[6].depth;
+const DROP = [4.97, 5.3];
 export function depthAt(p) {
-  if (p < 4 || (p >= 5 && p < 6)) return -storyDepth(p);
-  if (p < 5) return WRECK + (TWILIGHT - WRECK) * smooth01((p - 4.7) / 0.3);
+  if (p < 4 || (p >= DROP[1] && p < 6)) return -storyDepth(p);
+  if (p < DROP[0]) return WRECK;
+  if (p < DROP[1]) return WRECK + (-storyDepth(DROP[1]) - WRECK) * smooth01((p - DROP[0]) / (DROP[1] - DROP[0]));
   if (p < 7) return VENTS;
   return VENTS * (1 - smooth01((p - 7) / 0.75));
 }
@@ -61,6 +64,9 @@ export function createUI(opts = {}) {
     mode: why ? 'page' : 'dive',
     pTo: 0,
     choices: { format: 0, look: 0, crop: 0, finish: 0, seal: 0 },
+    // the sealed token minted for the recipe while Choice 5 is sealed (null while it is being
+    // minted, '' where this page cannot seal): the cabin's chest shows the same one as the bar
+    get token() { return token; },
     statsOn: false,
     loading, ready, failed, frame, stats,
     // pick option i of a choice from elsewhere (a curtain in the forest, the wax seal): its

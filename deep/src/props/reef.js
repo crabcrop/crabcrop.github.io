@@ -7,21 +7,23 @@
 // tiles with a stepped edge; as the blocks shrink to a pixel the same sum is the round, glossy
 // pearl, with nothing to swap. It is lit as everything else is (shaders.js: the sun, its
 // shadow, the sky, the clam's lamps, the water between it and the eye), with the clam's own
-// pearl's surface (sets.js).
+// pearl's surface (sets.js), and the studio's softboxes shine on it: a glint toward them that
+// comes on with them.
 import { Mesh, PlaneGeometry, Vector3 } from 'three/webgpu';
 import { abs, cameraPosition, clamp, dot, float, floor, max, mix, normalize, pow, select, sqrt, uniform, uv, vec3 } from 'three/tsl';
 import { G, inWater, material, shadeLit, shadow4 } from '../shaders.js';
 
-const F = new Vector3(), Rv = new Vector3(), Uv = new Vector3(), D = new Vector3();
+const F = new Vector3(), Rv = new Vector3(), Uv = new Vector3(), D = new Vector3(), K = new Vector3();
 
-// A pearl of radius r at `at` (a Vector3). Returns { mesh, set(camera, blockPx, ppm), at, r }:
+// A pearl of radius r at `at` (a Vector3). Returns { mesh, set(camera, blockPx, ppm, lit), at, r }:
 // set() places the card for this frame; blockPx is the mosaic's block in CSS pixels (0: whole),
-// ppm(depth) how many CSS pixels a metre is at a depth.
+// ppm(depth) how many CSS pixels a metre is at a depth, lit how bright the softboxes are (0..1).
 export function buildPearl(scene, at, r) {
   const U = {
     c: uniform(new Vector3().copy(at)), r: uniform(r),
     q: uniform(new Vector3()), qr: uniform(new Vector3()), qu: uniform(new Vector3()),
     n: uniform(1e4), cov: uniform(r), aa: uniform(0.01),
+    key: uniform(new Vector3(-0.7, 0.6, -0.3).normalize()), lit: uniform(0),
   };
   const mat = material({
     transparent: true, depthWrite: false, shadow: false,
@@ -40,8 +42,11 @@ export function buildPearl(scene, at, r) {
       const P = select(h.greaterThan(0.0), hit, rim).toVar();
       const n = normalize(P.sub(U.c)).toVar();
       // the clam's pearl (sets.js): white and glossy, its sheen pink face on and lilac at the rim
-      const fres = pow(float(1.0).sub(abs(dot(n, normalize(cameraPosition.sub(P))))), 2.0);
-      const emis = mix(vec3(0.78, 0.6, 0.62), vec3(0.8, 0.72, 0.92), fres).mul(fres.mul(0.3).add(0.36));
+      const v = normalize(cameraPosition.sub(P)).toVar();
+      const fres = pow(float(1.0).sub(abs(dot(n, v))), 2.0);
+      // (and the softboxes' glint: warm white, toward the lamps, as bright as they are lit)
+      const glint = pow(max(dot(n, normalize(U.key.add(v))), 0.0), 60.0).mul(U.lit.mul(1.4).add(0.2));
+      const emis = mix(vec3(0.84, 0.62, 0.66), vec3(0.8, 0.72, 0.94), fres).mul(fres.mul(0.32).add(0.4)).add(vec3(1.0, 0.95, 0.88).mul(glint));
       const albedo = vec3(0.956, 0.852, 0.852);
       const sh = shadow4(P.add(n.mul(0.14)).add(G.sunDir.mul(0.05)));
       const col = inWater(shadeLit(albedo, n, float(0.9), float(70.0), float(0.0), float(0.8), emis, float(1.0), sh, P, float(1.0)), P);
@@ -60,7 +65,7 @@ export function buildPearl(scene, at, r) {
     // Place the card for this frame: square to the camera's line of sight, just in front of
     // the pearl, as large as the pearl looks from here (a little more toward the screen's edge,
     // where a sphere is drawn longer), and the blocks
-    set(camera, blockPx, ppm) {
+    set(camera, blockPx, ppm, lit = 1) {
       const e = camera.matrixWorld.elements;
       Rv.set(e[0], e[1], e[2]); Uv.set(e[4], e[5], e[6]); F.set(-e[8], -e[9], -e[10]);
       const c = U.c.value;
@@ -81,6 +86,12 @@ export function buildPearl(scene, at, r) {
       U.n.value = blockW > 0 ? Math.max(1, (2 * half * ppm(zq)) / blockPx) : 1e4;
       U.cov.value = r + 0.7 * blockW;
       U.aa.value = blockW > 0 ? 1e-4 : 1.1 / pxC;
+      // the softboxes: where the clam's three lamps hang (glow slots 1 to 3, lent to them on the reef)
+      K.set(0, 0, 0);
+      for (let i = 1; i <= 3; i++) K.add(G.glowPos.array[i]);
+      K.multiplyScalar(1 / 3).sub(c);
+      if (K.lengthSq() > 1e-4 && K.lengthSq() < 400) U.key.value.copy(K).normalize();
+      U.lit.value = lit;
       return true;
     },
   };

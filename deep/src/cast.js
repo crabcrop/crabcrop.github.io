@@ -102,7 +102,7 @@ export function buildCast(ctx) {
   const loading = snap.load(Math.max(innerWidth, innerHeight) * (devicePixelRatio || 1) < 1400).catch((e) => console.warn('dive: Snap did not load: ' + e.message));
   const st = {
     pos: new Vector3(), last: new Vector3(), subPos: new Vector3(), rel: new Vector3(), subRel: new Vector3(), placed: false,
-    aimX: 0, aimY: 0, idle: 0, lastP: -1, wave: 0, poked: -1e9, react: 'poke', nPoke: 0, t: 0, flyFrom: false,
+    aimX: 0, aimY: 0, idle: 0, lastP: -1, wave: 0, poked: -1e9, react: 'poke', nPoke: 0, t: 0, flyFrom: false, lungeAt: -1e9,
     free: false, visiting: false, visitFrom: -1e9, visitAt: new Vector3(), visitK: 0,
   };
   const ndc = new Vector3();
@@ -145,6 +145,8 @@ export function buildCast(ctx) {
     // Snap answers something the visitor did: 'snap' (two snaps of his pincer: he cut it, sealed
     // it, took it), 'wave', 'hop' (a little jump of joy), 'poke' (a start, a snap and a wave)
     react(kind = 'snap') { st.poked = st.t; st.react = kind; },
+    // the pickup at the geode: the submarine nudges forward for the print (0.5 s) and back
+    lunge() { st.lungeAt = st.t; },
     // where his middle is, and the point in his raised claw (world space)
     snapAt(out) { return out.copy(snap.group.position); },
     gripAt(out) { return snap.gripWorld(out); },
@@ -211,6 +213,9 @@ export function buildCast(ctx) {
       sub.group.quaternion.setFromUnitVectors(Z, C.negate());
       qa.setFromAxisAngle(R, clamp(F.y, -0.6, 0.6) * 0.35 + Math.sin(t * 0.7) * 0.03);
       sub.group.quaternion.premultiply(qa);
+      // (the pickup's nudge: forward along its nose and back; Snap and the lamp follow from its matrix)
+      const lunge = t - st.lungeAt;
+      if (lunge >= 0 && lunge < 0.5) { M.set(0, 0, -1).applyQuaternion(sub.group.quaternion); sub.group.position.addScaledVector(M, Math.sin((lunge / 0.5) * Math.PI) * 0.34); }
       // the canopy lifts as it arrives, shuts once he is in (with a little bounce), and locks
       const shut = smooth(SHUTS[0], SHUTS[1], p), bounce = Math.sin(clamp((p - SHUTS[1]) / 0.02, 0, 1) * Math.PI) * 0.05;
       sub.open(Math.max(smooth(OPENS[0], OPENS[1], p) * (1 - shut) + bounce, smooth(CLIMBS_OUT[0] - 0.03, CLIMBS_OUT[0], p) * (1 - smooth(EMPTY_SHUT[0], EMPTY_SHUT[1], p))));
@@ -221,9 +226,18 @@ export function buildCast(ctx) {
       sub.turn(dt, come * (0.25 + 0.75 * locked));
 
       // ---- Snap: swimming in his place, then into the bubble. In the wreck's cabin he comes
-      // closer to the camera (the room is small: the desk is three metres off)
-      const cabin = smooth(4.49, 4.55, p) * (1 - smooth(4.63, 4.69, p));
-      if (o === SLOT.wide) driftAt(p, DRIFT_AT); else { DRIFT_AT[0] = DRIFT_AT[1] = 0; DRIFT_AT[2] = -0.75 * cabin; }
+      // closer to the camera (the room is small: the desk is three metres off), and steps back
+      // once the octopus's letter is sealed (by p 4.594), so the wax seal on the desk shows for
+      // Choice 5 (zones/s4.js)
+      const cabin = smooth(4.49, 4.55, p) * (1 - smooth(4.595, 4.645, p));
+      if (o === SLOT.wide) driftAt(p, DRIFT_AT);
+      else {
+        // (on a phone he moves aside for the turtle in the reef's crop frame, which sits in the
+        // middle of the view above the words: to the right and lower, as on a wide screen)
+        // (and for the wreck as it comes into view below him: to the right and a little up)
+        const reef = smooth(3.05, 3.11, p) * (1 - smooth(3.36, 3.42, p)), wreck = smooth(4.08, 4.16, p) * (1 - smooth(4.3, 4.38, p));
+        DRIFT_AT[0] = 0; DRIFT_AT[1] = 0.42 * reef + 0.5 * wreck; DRIFT_AT[2] = -0.75 * cabin - 0.3 * reef + 0.12 * wreck;
+      }
       M.set(o.snap[0] * (1 - 0.1 * cabin) + DRIFT_AT[0], o.snap[1] * (1 - 0.25 * cabin) + DRIFT_AT[1], o.snap[2] + DRIFT_AT[2]);
       slot(M.toArray(SNAP_AT), A);
       A.y += Math.sin(t * 1.3) * 0.05;
@@ -304,7 +318,7 @@ export function buildCast(ctx) {
       snap.life.surprise = pk && rk === 'poke' ? Math.max(0, 1 - pk * 3) : 0;
       snap.life.snap = pk && (rk === 'poke' || rk === 'snap') ? Math.min(1, pk * 1.6) : 0;
       snap.life.wave = pk && (rk === 'poke' || rk === 'wave') ? Math.sin(pk * Math.PI) : 0;
-      if (pk && rk === 'hop' && grip < 0.5 && !inSub) { st.pos.y += Math.sin(Math.min(pk * 2, 1) * Math.PI) * 0.18; snap.group.position.copy(st.pos); }
+      if (pk && rk === 'hop' && grip < 0.5) { st.pos.y += Math.sin(Math.min(pk * 2, 1) * Math.PI) * (inSub ? 0.08 : 0.18); snap.group.position.copy(st.pos); }
       snap.life.hello = st.wave;
       snap.life.squint = Math.max(st.wave * 0.8, pk > 0.4 ? Math.sin((pk - 0.4) / 0.6 * Math.PI) : 0);
       // the gust: a start as the print goes

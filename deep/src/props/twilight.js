@@ -3,7 +3,8 @@
 // fins and tail, glossy bead eyes in rings of white felt, a stitched smile and pink felt cheeks.
 // Worked in Snap's yarn. In the dark it is a dim blue-grey shape until the visitor's light finds
 // it (lit: 0 to 1); then its own colours come up, warm, as if the light stayed on it.
-// Its frame: nose toward +z, back up; about 0.24 m from the nose to the tip of the tail.
+// Its frame: nose toward +z, back up; about 0.24 m from the nose to the tip of the tail (drawn at
+// 1.45 times that, so that it reads among the jellies).
 // And the visitor's light as it is seen in the water: a soft beam from the submarine's lamp.
 import { Mesh as ThreeMesh } from 'three/webgpu';
 import { abs, cameraPosition, clamp, dot, exp, float, length, max, mix, normalize, pow, select, sin, smoothstep, uniform, vec2, vec3 } from 'three/tsl';
@@ -104,6 +105,7 @@ export function buildLostFish() {
   });
   const mesh = new ThreeMesh(fishShape(), mat);
   mesh.visible = false;
+  mesh.scale.setScalar(1.45);
   return { mesh, lit, swim };
 }
 

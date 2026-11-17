@@ -14,7 +14,7 @@ export const CROPS = [
   { name: 'Square', aspect: 1, dist: 1.55 },
   { name: 'Whole picture', aspect: 4 / 3, dist: 2.6 },
 ];
-const W = 960;
+const W = 1200;   // (the wide card is the URL's own 1200 x 630)
 
 // (the studio stands far outside the world, beyond the shadow map's reach)
 const AT = [600, 0, 600];
