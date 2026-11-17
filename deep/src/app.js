@@ -69,8 +69,9 @@ function place(p) {
     rideCamera(p, S.path[3], S.path[4], SLOTS.wide.snap, RW);
     camera.position.set(S.path[0] + ride * (RT[0] - RW[0]), S.path[1] + ride * (RT[1] - RW[1]), S.path[2] + ride * (RT[2] - RW[2]));
   }
-  // (and in the studio it looks down a little more, so Snap in front of the shell is above the words)
-  const tilt = camera.aspect < 1 ? -9 * smooth(3.7, 3.78, p) * (1 - smooth(3.98, 4.06, p)) : 0;
+  // (and in the studio it looks down a little more, so Snap in front of the shell is above the
+  // words; and on down to the wreck, so it sits above them too, until the camera turns to it)
+  const tilt = camera.aspect < 1 ? -9 * smooth(3.7, 3.78, p) * (1 - smooth(4.3, 4.4, p)) : 0;
   euler.set((S.path[4] + S.lookY + tilt) * DEG, -(S.path[3] + S.lookX + marina) * DEG, 0, 'YXZ');
   camera.quaternion.setFromEuler(euler);
   camera.updateMatrixWorld(true);
