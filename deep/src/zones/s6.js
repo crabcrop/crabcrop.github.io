@@ -4,7 +4,8 @@
 // gives, and the line that installs that library; the MCP card's log of what the other little
 // submarine down here, an agent, asks crabcrop about that URL, and the agent itself in the scene
 // saying "sign_url ✓" while its card is up; and the pickup: once Snap's submarine has settled by
-// the geode it nudges forward, stars burst where the print lay, Snap hops in his seat, and the
+// the geode it nudges forward, stars burst where the print lay, Snap hops in his seat, the tube
+// worms duck, and the
 // print rises out of the geode into the pincer, where it stays for the climb (stage.printOnPincer;
 // hidden while the page shows it there itself, stage.printFigure), and Snap's story says so.
 // Its words are in zones/s6.html, its styles in zones/s6.css; the agent is props/vents.js.
@@ -220,6 +221,7 @@ export default {
         pk.taken = true; pk.at = t;
         stage.sparkle(home.pos, 12);
         cast.react('hop');
+        if (world.fauna && world.fauna.wormsDuck) world.fauna.wormsDuck();
         if (typeof cast.lunge === 'function') cast.lunge();
         stage.note(PRINT_STORY, 7);
         pk.noteAt = t;
