@@ -52,7 +52,5 @@
   :root:not(.page) .fishes .opt code { font-size: 10.5px; }
   :root:not(.page) .pick .race { font-size: 12.5px; }
 }
-/* (a cue's lighter part is not a link: no arrow; the page's .more is) */
-.cue .more::after { content: none; }
 /* the tip a cargo ring opens, to the left near the right edge */
 .tip.left { border-radius: 14px 14px 4px 14px; }

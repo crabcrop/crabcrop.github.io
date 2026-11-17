@@ -33,6 +33,8 @@ const S = {
   preview: null, hoverC: -1, lookShown: 0, lookMix: 1, held: false,
   looks: [null, null, null], whole: null, jobs: [], busy: false, stale: true,
 };
+// (dev builds only: for probes)
+if (DEV) window.__s2 = S;
 const R = new Vector3(), U = new Vector3(), F = new Vector3(), P = new Vector3(), FW = new Vector3(), UP = new Vector3(), V = new Vector3();
 const PR = [0, 0, 0], PT = [0, 0, 0], PH = [0, 0, 0];
 

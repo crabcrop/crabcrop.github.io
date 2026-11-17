@@ -240,20 +240,21 @@ function siphonAt(p, tanV, aspect, o) {
 // (with its fins more than a third of the view's height), three-quarters on, heading left, lit
 // by nothing but its lure: on a wide screen low in the right two-thirds, clear of the words, in
 // front of the submarine and below it (the submarine keeps back then: cast.js); on a phone,
-// above the submarine, clear of the words at the bottom. Before, it is in the dark below, where
+// where the submarine fills the middle of the view, close in front of its hull on the right, its
+// lure toward Snap's bubble, above the words. Before, it is in the dark below, where
 // the camera sinks to it; after, it stays as the camera goes on. (On a wide screen it comes up
 // into its place as the submarine draws back, and swims off down and to the left as it comes
 // forward again: SUB_DRIFT's third beat.)
 function anglerAt(p, tanV, aspect, o) {
   const pc = clampN(p, ANGLER[0], ANGLER[1]), u = (pc - ANGLER[0]) / (ANGLER[1] - ANGLER[0]), wide = aspect >= 1, c = camAt(pc, _cA);
-  onScreen(o.c, c, wide ? 2.9 : 3.6, wide ? 0.3 - 0.08 * u : 0.1 - 0.08 * u, wide ? -0.42 : 0.55, tanV, aspect);
+  onScreen(o.c, c, wide ? 2.9 : 2.4, wide ? 0.3 - 0.08 * u : 0.44 - 0.08 * u, wide ? -0.42 : 0.08, tanV, aspect);
   if (wide) {
     const d = SUB_DRIFT[2], back = smooth(d[0], d[0] + 0.06, pc) * (1 - smooth(d[1] - 0.06, d[1], pc)), off = smooth(0.5, 0.8, u);
     o.c[0] -= c.R[0] * 2.2 * off * (1 - back); o.c[2] -= c.R[2] * 2.2 * off * (1 - back);
     o.c[1] -= 2.6 * (1 - back);
   }
   dirOf(o.f, -c.R[0] - 0.36 * c.L[0], 0, -c.R[2] - 0.36 * c.L[2]);
-  o.size = wide ? 1.8 : 1.05;
+  o.size = wide ? 1.8 : 0.95;
   return o;
 }
 // The bottle with a message: small, drifting down through the twilight with the visitor,
@@ -289,8 +290,8 @@ function endingAt(p, tanV, aspect, turtle, octo) {
   const pc = clampN(p, ENDING[0], ENDING[1]), wide = aspect >= 1, c = camAt(pc, _cA, wide ? 0 : -13 * smooth(7.84, 7.95, pc));
   // (`d` ahead, at nx across the screen, at a depth below the submarine, which stays a metre down)
   const put = (o, d, nx, y) => { inViewAt(o.c, c, 0, nx * d * tanV * aspect, 0); o.c[0] += c.L[0] * d; o.c[1] = y; o.c[2] += c.L[2] * d; };
-  put(turtle, wide ? 4.8 : 5.4, wide ? -0.04 : -0.5, wide ? -2.0 : -0.2);
-  put(octo, wide ? 5.0 : 5.6, wide ? 0.8 : 0.56, wide ? -2.05 : -0.42);
+  put(turtle, 4.8, wide ? 0.07 : -0.46, wide ? -2.0 : -0.28);
+  put(octo, wide ? 5.0 : 5.6, wide ? 0.78 : 0.56, wide ? -2.3 : -0.42);
   // (turned to the visitor, so their faces show)
   dirOf(turtle.f, 0.7 * c.R[0] - 0.7 * c.L[0], 0, 0.7 * c.R[2] - 0.7 * c.L[2]);
   dirOf(octo.f, 0.4 * c.R[0] - 0.9 * c.L[0], 0, 0.4 * c.R[2] - 0.9 * c.L[2]);
@@ -1748,6 +1749,8 @@ function chimneys() {
     return { x, z, g, height, radius, top: [x + lean, g + height, z - lean * 0.5] };
   });
 }
+// The geode, as sets.js places it (GEODE there): the submarine settles beside it for the print.
+const GEODE = { x: -4.13, z: -388.9 };
 // Where the camera is nearest to a place at the vents: its p.
 const ventP = (z) => Math.min(Math.max(6.25 + ((-314 - z) / 69) * 0.75, 6.25), 7.0);
 
@@ -2055,29 +2058,31 @@ export function buildFauna(ctx) {
     add(solid(cards(n, attrs, sph), haloMat), 46);
   }
 
-  // The three jellies the twilight's tags name, on either shape of screen: of those in the view
-  // as the visitor goes down through the twilight (clear of the words, below the header), the
-  // biggest there, each at its own moment of the way down, in the order they come.
+  // The three jellies the twilight's tags name, on either shape of screen: one for each stretch
+  // of the way down through the twilight (its start, its middle, its end), the biggest in the
+  // view there (clear of the words, below the header); failing that, the biggest anywhere in it.
   const named = {};
   for (const scr of [SCREENS.wide, SCREENS.tall]) {
-    const q = [0, 0, 0], cand = [];
-    jellies.forEach((j) => {
-      let best = 0, bp = 0;
-      for (let pp = 5.06; pp <= 5.86; pp += 0.01) {
-        project(camAt(pp, _cA), j.x, j.y - j.R * 0.6, j.z, scr, q);
-        if (q[2] < 3 || q[2] > 24 || q[0] < (scr.kind === 'wide' ? -0.05 : -0.8) || q[0] > 0.86 || q[1] < (scr.kind === 'wide' ? -0.8 : -0.05) || q[1] > scr.top - 0.12) continue;
-        if (j.R / q[2] > best) { best = j.R / q[2]; bp = pp; }
-      }
-      if (best > 0) cand.push({ j, best, bp });
-    });
-    cand.sort((a, b) => b.best - a.best);
+    const q = [0, 0, 0], seen = jellies.map(() => []);
+    for (let pp = 5.06; pp <= 5.9; pp += 0.01) {
+      const c = camAt(pp, _cA);
+      jellies.forEach((j, k) => {
+        project(c, j.x, j.y - j.R * 0.6, j.z, scr, q);
+        if (q[2] < 3 || q[2] > 24 || q[0] < (scr.kind === 'wide' ? -0.12 : -0.85) || q[0] > 0.88 || q[1] < (scr.kind === 'wide' ? -0.8 : -0.18) || q[1] > scr.top - 0.1) return;
+        seen[k].push([pp, j.R / q[2]]);
+      });
+    }
+    const best = (k, p0, p1) => seen[k].reduce((m, [pp, v]) => (pp >= p0 && pp < p1 && v > m ? v : m), 0);
     const pick = [];
-    for (const c of cand) { if (pick.length < 3 && pick.every((o) => Math.abs(o.bp - c.bp) > 0.08)) pick.push(c); }
-    for (const c of cand) { if (pick.length < 3 && !pick.includes(c)) pick.push(c); }
-    while (pick.length < 3 && jellies.length) pick.push({ j: jellies[pick.length % jellies.length], bp: 9 });
-    pick.sort((a, b) => a.bp - b.bp);
-    named[scr.kind] = pick.map((c) => c.j);
-    if (DEV) console.log('fauna: the tags\' jellies (' + scr.kind + ') at p ' + pick.map((c) => c.bp.toFixed(2)).join(', '));
+    for (const [p0, p1] of [[5.06, 5.4], [5.4, 5.65], [5.65, 5.9]]) {
+      let bk = -1, bv = 0;
+      jellies.forEach((j, k) => { const v = best(k, p0, p1); if (v > bv && !pick.includes(k)) { bv = v; bk = k; } });
+      if (bk < 0) jellies.forEach((j, k) => { const v = best(k, 5.06, 5.9); if (v > bv && !pick.includes(k)) { bv = v; bk = k; } });
+      if (bk < 0) bk = pick.length % Math.max(jellies.length, 1);
+      pick.push(bk);
+    }
+    named[scr.kind] = pick.map((k) => jellies[k]);
+    if (DEV) console.log('fauna: the tags\' jellies (' + scr.kind + ') seen at p ' + pick.map((k) => seen[k] && seen[k].length ? seen[k][0][0].toFixed(2) + '-' + seen[k][seen[k].length - 1][0].toFixed(2) : 'never').join(', '));
   }
 
   // the siphonophore: its core, its loops and its curls, along a line set every frame
@@ -2089,7 +2094,7 @@ export function buildFauna(ctx) {
 
   // the vents: clumps of tube worms at the chimneys' feet, on the side the camera passes; sea sheep on the rock
   const chim = chimneys(), worms = [], sheep = [], clumps = [];
-  const addClump = (x, z, h) => { clumps.push({ x, z, g: groundY(x, z), h, at: new Vector3(), on: 0 }); return clumps.length - 1; };
+  const addClump = (x, z, h, reach = 0) => { clumps.push({ x, z, g: groundY(x, z), h, reach, on: 0 }); return clumps.length - 1; };
   for (const c of chim) {
     pathAt(ventP(c.z), _o);
     const toward = Math.atan2(_o[2] - c.z, _o[0] - c.x);
@@ -2115,6 +2120,21 @@ export function buildFauna(ctx) {
       // (beside the clump, toward the middle of the view and a little further away)
       const x = f.x - f.back[0] * 0.8 + Math.cos(f.toward + Math.PI / 2) * 1.5, z = f.z - f.back[1] * 0.8 + Math.sin(f.toward + Math.PI / 2) * 1.5;
       sheep.push([x, groundY(x, z) + 0.02, z, rng.range(2.2, 2.6), f.toward + rng.range(-0.4, 0.4), 0, rng(), 0]);
+    }
+  }
+  // and by the geode, where the submarine settles to take the print: a clump in the left
+  // foreground, and one just right of where the submarine settles (it ducks as the submarine
+  // does; both duck at the pickup). (Their own random numbers: the rest stays as it was.)
+  {
+    const c = camAt(6.9, _cA), rg = makeRng(4242);
+    for (const [r, f, n, h0, h1, reach] of [[-2.6, -4.0, 9, 0.8, 1.4, 0], [4.6, 0.4, 7, 0.7, 1.2, 0.8]]) {
+      const cx = GEODE.x + c.R[0] * r + c.L[0] * f, cz = GEODE.z + c.R[2] * r + c.L[2] * f;
+      if (offTrack(cx, cz) < 2.2 || clumps.length >= W_CLUMPS) continue;
+      const ci = addClump(cx, cz, (h0 + h1) / 2, reach);
+      for (let i = 0, nw = Math.max(4, Math.round(n * Math.sqrt(amt))); i < nw; i++) {
+        const rr = Math.sqrt(rg()) * 0.5, a = rg() * TAU, x = cx + Math.cos(a) * rr, z = cz + Math.sin(a) * rr;
+        worms.push([x, groundY(x, z) - 0.06, z, rg.range(h0, h1) * (1 - 0.3 * rr), (x - cx) * 0.15 + rg.bell() * 0.05, (z - cz) * 0.15 + rg.bell() * 0.05, rg(), rg.range(0.4, 0.56), ci]);
+      }
     }
   }
   // and one large, close by, on a rock in the foreground as the camera comes to the vents: low in
@@ -2305,7 +2325,7 @@ export function buildFauna(ctx) {
       V1.set(c.x, c.g + c.h * 0.85, c.z).project(camera);
       V2.set(c.x, c.g, c.z).project(camera);
       const near = h.z > 0.3 && V1.z < 1 && Math.hypot((V1.x - h.x) * h.w, V1.y - h.y) < Math.max(0.55 * Math.abs(V1.y - V2.y), 0.1);
-      const settled = Math.hypot(sub.x - c.x, sub.y - c.g - c.h, sub.z - c.z) < 2.2 + c.h * 0.5;
+      const settled = Math.hypot(sub.x - c.x, sub.y - c.g - c.h, sub.z - c.z) < 2.2 + c.h * 0.5 + c.reach;
       const want = near || settled || startle ? 1 : 0;
       c.on += (want - c.on) * Math.min(1, dt * (want > c.on ? 9 : 0.9));
       WIN.array[i >> 2].setComponent(i & 3, c.on);
