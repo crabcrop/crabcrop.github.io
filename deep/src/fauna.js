@@ -21,76 +21,42 @@
 // along), and before and after it stays where it was in the water; their parts move in their
 // shaders: flippers beat, tentacles curl, wings flap.
 //
-// Everything wears the shared yarn (shaders.js), laid in each creature's own frame so the
-// stitches stay on it as it turns, with rows running round a fish from nose to tail as an
-// amigurumi is worked. Small things are kept from sparkling: a fish too small on screen
+// Every one of them is an amigurumi built as Snap is (amigurumi.js): plush round shapes, fins,
+// flippers and arms as fat stuffed ones, single crochet in his yarn with its rows worked round
+// the body, big glossy bead eyes in rings of white felt, a stitched smile and pink felt cheeks;
+// the gulls are felt. Small things are kept from sparkling: a fish too small on screen
 // dissolves into the water behind it, and a speck is never drawn narrower than about a
 // pixel: below that it is drawn that wide and dimmer, so it carries the same light.
+//
+// They answer the visitor's hand (G.hand): fish dart away from it, and tube worms pull their
+// plumes in when it comes near (and when the submarine settles by them), and slowly put them
+// out again. And they tell the page's hands-on layer where they are, every frame (spots).
 import { SUB_DRIFT } from './cast.js';
 import {
   BufferAttribute, InstancedBufferAttribute, InstancedBufferGeometry, InstancedInterleavedBuffer, InterleavedBufferAttribute, Mesh as ThreeMesh, Sphere, Vector3, Vector4,
 } from 'three/webgpu';
 import {
-  abs, atan, attribute, cameraPosition, clamp, cos, cross, dot, exp, float, floor, fract, fwidth, int, length, max, min, mix, normalize,
+  abs, atan, attribute, cameraPosition, clamp, cos, cross, dFdx, dFdy, dot, exp, float, floor, fract, fwidth, int, length, max, min, mix, normalize,
   pow, sign, sin, smoothstep, sqrt, step, texture, uniform, uniformArray, varyingProperty, vec2, vec3, vec4, select,
 } from 'three/tsl';
+import {
+  BLUSH, FELT, STITCH, arc, ball, bead, eyes, felt, glint, inWorld, knit, lin, orient, pillow, plump, ringAt, rounds, sew, spot, stitches, toLin, tubes, yarnFor,
+} from './amigurumi.js';
 import { SLOTS as CAST_SLOTS, TRACK, centerX, groundY, mooringAt, offTrack, pathAt, rideU, rideWeight } from './layout.js';
 import { Mesh, TAU, blob, clamp as clampN, lerp, makeRng, noise3, smooth, tube } from './math.js';
-import { G, SIG, material, scatter, skyAt, sunAt, sunFoot, vNrm, yarn } from './shaders.js';
+import { G, SIG, material, scatter, skyAt, sunAt, sunFoot, vNrm } from './shaders.js';
 import { rockSurf } from './terrain.js';
 
 // Set every frame: how many metres one pixel spans one metre from the eye, and the eye's
-// right and up, for what is drawn as a card that faces it.
+// right, up and forward, and the tangent of half its view's height, for what is drawn as a
+// card that faces it and for what answers the hand on the screen.
 // And a soft fill on the fish from the eye's side, for the way back up, where they are seen
 // from below against the bright surface (as a diorama is lit for its picture).
-const U = { pix: uniform(0.002), right: uniform(new Vector3(1, 0, 0)), up: uniform(new Vector3(0, 1, 0)), fill: uniform(0) };
+const U = { pix: uniform(0.002), right: uniform(new Vector3(1, 0, 0)), up: uniform(new Vector3(0, 1, 0)), fwd: uniform(new Vector3(0, 0, -1)), tanV: uniform(0.55), fill: uniform(0) };
 const UP = vec3(0.0, 1.0, 0.0);
 const one = (x, k) => float(1.0).sub(step(0.5, abs(x.sub(k))));      // 1 where x is k
-// Colours are written as they look in the pictures (sRGB) and turned into the linear values the
-// light works in (the final pass only gamma-encodes them).
-const toLin = (x) => Math.pow(x, 2.2);
-const lin = (r, g, b) => vec3(toLin(r), toLin(g), toLin(b));
-
-// ---- yarn on a creature ----------------------------------------------------------------------
-
-// yarn() reads its stitches along the three axes of `p` and weighs them by the normal. On
-// a creature that turns, both must be in the creature's own frame: knit() hands yarn() the
-// normal in that frame (A, B, C: where the frame's axes point in the world, for p's x, y,
-// z; rows are stacked along B), turns the stitched normal back, and adds the wool's halo
-// with it (as yarn() does).
-function knit(s, f, o) {
-  const [A, B, C] = o.frame, n = s.n;
-  s.n = vec3(dot(n, A), dot(n, B), dot(n, C));
-  const r = yarn(s, f, { ...o, fuzz: 0 });
-  const m = s.n;
-  s.n = normalize(A.mul(m.x).add(B.mul(m.y)).add(C.mul(m.z))).toVar();
-  const graze = pow(float(1.0).sub(abs(dot(s.n, normalize(cameraPosition.sub(f.w))))), 3.0);
-  s.emis = s.emis.add(sunAt(f.w.y).mul(0.06).add(G.amb.mul(0.14)).mul(graze).mul(s.albedo).mul(o.fuzz ?? 1.0));
-  return r;
-}
-// A glass bead (the eyes): black, glossy, smooth.
-function bead(s, nSmooth, k) {
-  s.albedo = mix(s.albedo, vec3(0.012, 0.012, 0.016), k);
-  s.emis = s.emis.mul(float(1.0).sub(k));
-  s.n = normalize(mix(s.n, nSmooth, k));
-  s.spec = mix(s.spec, float(1.2), k); s.gloss = mix(s.gloss, float(80.0), k);
-  s.trans = mix(s.trans, float(0.0), k); s.fluor = mix(s.fluor, float(0.0), k);
-}
-// A glint on a bead eye (either side): a small bright spot where it catches the light from
-// above and in front. `q` the point in the shape's own frame, the eye at (ex, ey, +-ez) of
-// radius er; k: 1 on the eye.
-function glint(s, q, ex, ey, ez, er, k) {
-  const sd = sign(q.z), n = normalize(q.sub(vec3(ex, ey, sd.mul(ez))));
-  const g = smoothstep(0.88, 0.95, dot(n, normalize(vec3(0.62, 0.62, sd.mul(0.48))))).mul(k).mul(float(1.0).sub(smoothstep(0.0, er * 0.4, abs(length(q.sub(vec3(ex, ey, sd.mul(ez)))).sub(er)))));
-  s.albedo = mix(s.albedo, vec3(0.92), g);
-  s.emis = s.emis.add(vec3(0.55).mul(g));
-}
-// A ring of pale felt round a bead eye, so it reads from afar: `q` the point in the shape's
-// own frame, the eye at (ex, ey, +-ez) of radius er.
-function eyeRing(q, ex, ey, ez, er) {
-  const d = length(vec3(q.x.sub(ex), q.y.sub(ey), abs(q.z).sub(ez)));
-  return float(1.0).sub(smoothstep(er.mul(1.28), er.mul(1.7), d));
-}
+// (a pixel's width in shape units, for lines drawn on a shape)
+const pixel = (q) => max(length(vec2(fwidth(q.x), fwidth(q.y))).mul(0.7), 1e-5);
 
 // ---- keeping clear of the cast --------------------------------------------------------------
 
@@ -171,60 +137,6 @@ function sphereOf(boxes) {
   for (const b of boxes) { x0 = Math.min(x0, b[0]); x1 = Math.max(x1, b[1]); y0 = Math.min(y0, b[2]); y1 = Math.max(y1, b[3]); z0 = Math.min(z0, b[4]); z1 = Math.max(z1, b[5]); }
   return new Sphere(new Vector3((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2), Math.hypot(x1 - x0, y1 - y0, z1 - z0) / 2 + 0.5);
 }
-// Make the triangles added since i0 face the way out(x, y, z) says is out (and their normals).
-function orient(m, i0, base, out) {
-  const p = m.p;
-  let sum = 0;
-  for (let k = i0; k < m.i.length; k += 3) {
-    const a = m.i[k] * 3, b = m.i[k + 1] * 3, c = m.i[k + 2] * 3;
-    const ux = p[b] - p[a], uy = p[b + 1] - p[a + 1], uz = p[b + 2] - p[a + 2], vx = p[c] - p[a], vy = p[c + 1] - p[a + 1], vz = p[c + 2] - p[a + 2];
-    const o = out((p[a] + p[b] + p[c]) / 3, (p[a + 1] + p[b + 1] + p[c + 1]) / 3, (p[a + 2] + p[b + 2] + p[c + 2]) / 3);
-    sum += (uy * vz - uz * vy) * o[0] + (uz * vx - ux * vz) * o[1] + (ux * vy - uy * vx) * o[2];
-  }
-  if (sum >= 0) return;
-  for (let k = i0; k < m.i.length; k += 3) { const t = m.i[k + 1]; m.i[k + 1] = m.i[k + 2]; m.i[k + 2] = t; }
-  for (let v = base * 3; v < m.count * 3; v++) m.n[v] = -m.n[v];
-}
-// A crocheted fin: flat but puffed, thickest in the middle and meeting itself at the edge.
-// f(s, t, o) gives the point on its middle (o[0..2]) and how thick it is there (o[3]); it
-// puffs along `dir`. aux = (x, y, z of that point, part).
-function pillow(m, cols, rows, dir, part, f) {
-  const o = [0, 0, 0, 0];
-  for (const sg of [1, -1]) {
-    const i0 = m.i.length, base = m.count;
-    m.grid(cols, rows, (s, t, out) => {
-      f(s, t, o);
-      out[0] = o[0] + dir[0] * o[3] * sg; out[1] = o[1] + dir[1] * o[3] * sg; out[2] = o[2] + dir[2] * o[3] * sg;
-      out[3] = o[0]; out[4] = o[1]; out[5] = o[2]; out[6] = part;
-    });
-    orient(m, i0, base, () => [dir[0] * sg, dir[1] * sg, dir[2] * sg]);
-  }
-}
-// A bead, a ball, an egg: a blob with aux (centre, part).
-function ball(m, x, y, z, rx, ry, rz, res, part) {
-  blob(m, x, y, z, (dx, dy, dz) => 1 / Math.hypot(dx / rx, dy / ry, dz / rz), res, (dx, dy, dz, o) => { o[0] = x; o[1] = y; o[2] = z; o[3] = part; });
-}
-// The rings of tubes the vertex shader builds round a centreline: n tubes of `rings` rings,
-// `sides` round. aux = (along 0..1, round 0..1, which tube, tag(tube)).
-function tubes(m, n, rings, sides, tag) {
-  for (let k = 0; k < n; k++) {
-    const base = m.count, g = tag(k);
-    for (let r = 0; r <= rings; r++) for (let j = 0; j <= sides; j++) m.vert(0, 0, 0, 0, 1, 0, 0, 0, r / rings, j / sides, k, g);
-    for (let r = 0; r < rings; r++) for (let j = 0; j < sides; j++) {
-      const a = base + r * (sides + 1) + j;
-      m.quad(a, a + 1, a + sides + 2, a + sides + 1);
-    }
-  }
-}
-// A ring of a tube: the centre C, the tangent T, a side S0 (made square to T), the angle
-// round and the radius. Gives the point, its normal and the ring's two axes.
-function ringAt(C, T, S0, phi, r) {
-  const S = normalize(S0.sub(T.mul(dot(S0, T)))).toVar();
-  const B = cross(T, S).toVar();
-  const n = S.mul(cos(phi)).add(B.mul(sin(phi))).toVar();
-  return { p: C.add(n.mul(r)), n, S, B };
-}
-
 // ---- where the camera looks, and where the cast is -----------------------------------------
 
 const DEG = Math.PI / 180, _o = [0, 0, 0, 0, 0];
@@ -325,22 +237,23 @@ function siphonAt(p, tanV, aspect, o) {
   return o;
 }
 // The anglerfish: the twilight's close-up. While the visitor is at it, it is near and large
-// (with its fins about a third of the view's height), side on, heading left, lit by nothing
-// but its lure: on a wide screen low in the right two-thirds, in front of the submarine and to
-// its left (the submarine keeps back then: cast.js); on a phone, under the submarine. Before,
-// it is in the dark below, where the camera sinks to it; after, it stays as the camera goes on.
-// (On a wide screen it comes up into its place as the submarine draws back, and swims off down
-// and to the left as it comes forward again: SUB_DRIFT's third beat.)
+// (with its fins more than a third of the view's height), three-quarters on, heading left, lit
+// by nothing but its lure: on a wide screen low in the right two-thirds, clear of the words, in
+// front of the submarine and below it (the submarine keeps back then: cast.js); on a phone,
+// above the submarine, clear of the words at the bottom. Before, it is in the dark below, where
+// the camera sinks to it; after, it stays as the camera goes on. (On a wide screen it comes up
+// into its place as the submarine draws back, and swims off down and to the left as it comes
+// forward again: SUB_DRIFT's third beat.)
 function anglerAt(p, tanV, aspect, o) {
   const pc = clampN(p, ANGLER[0], ANGLER[1]), u = (pc - ANGLER[0]) / (ANGLER[1] - ANGLER[0]), wide = aspect >= 1, c = camAt(pc, _cA);
-  onScreen(o.c, c, wide ? 3.1 : 3.6, wide ? 0.05 - 0.06 * u : 0.24 - 0.08 * u, wide ? -0.46 : -0.26, tanV, aspect);
+  onScreen(o.c, c, wide ? 2.9 : 3.6, wide ? 0.3 - 0.08 * u : 0.14 - 0.1 * u, wide ? -0.42 : 0.5, tanV, aspect);
   if (wide) {
     const d = SUB_DRIFT[2], back = smooth(d[0], d[0] + 0.06, pc) * (1 - smooth(d[1] - 0.06, d[1], pc)), off = smooth(0.5, 0.8, u);
     o.c[0] -= c.R[0] * 2.2 * off * (1 - back); o.c[2] -= c.R[2] * 2.2 * off * (1 - back);
     o.c[1] -= 2.6 * (1 - back);
   }
-  dirOf(o.f, -c.R[0] - 0.16 * c.L[0], 0, -c.R[2] - 0.16 * c.L[2]);
-  o.size = wide ? 1.65 : 1.45;
+  dirOf(o.f, -c.R[0] - 0.36 * c.L[0], 0, -c.R[2] - 0.36 * c.L[2]);
+  o.size = wide ? 1.8 : 1.25;
   return o;
 }
 // The bottle with a message: small, drifting down through the twilight with the visitor,
@@ -360,14 +273,16 @@ function reefTurtleAt(p, tanV, aspect, o) {
   return o;
 }
 // The end: under the waterline, the turtle and the octopus swim to the right across the
-// view, side on, a little toward the visitor; the octopus lower and further right.
+// view, side on, a little toward the visitor, close and big: on a wide screen the turtle
+// below the submarine (clear of the words) and the octopus right of it; on a phone, either
+// side of the submarine, just under the surface, above the words.
 function endingAt(p, tanV, aspect, turtle, octo) {
   // (on a phone the view turns a little left at the end, so the pier is in it: app.js)
   const pc = clampN(p, ENDING[0], ENDING[1]), wide = aspect >= 1, c = camAt(pc, _cA, wide ? 0 : -13 * smooth(7.84, 7.95, pc));
   // (`d` ahead, at nx across the screen, at a depth below the submarine, which stays a metre down)
   const put = (o, d, nx, y) => { inViewAt(o.c, c, 0, nx * d * tanV * aspect, 0); o.c[0] += c.L[0] * d; o.c[1] = y; o.c[2] += c.L[2] * d; };
-  put(turtle, wide ? 5.6 : 6.2, wide ? -0.24 : -0.42, wide ? -2.35 : -3.3);
-  put(octo, wide ? 6.2 : 6.8, wide ? 0.62 : 0.45, wide ? -2.8 : -3.8);
+  put(turtle, wide ? 4.8 : 5.6, wide ? 0.1 : -0.5, wide ? -1.75 : -0.6);
+  put(octo, wide ? 5.0 : 5.8, wide ? 0.8 : 0.56, wide ? -1.35 : -0.75);
   dirOf(turtle.f, c.R[0] + 0.3 * c.L[0], 0, c.R[2] + 0.3 * c.L[2]);
   dirOf(octo.f, c.R[0] + 0.45 * c.L[0], 0, c.R[2] + 0.45 * c.L[2]);
 }
@@ -405,10 +320,10 @@ function inView(p, ahead, side, up) {
 //            body ends; ped: the root of the tail; tail: [half span, how deep the notch]
 //   dorsal, anal: [from x, to x, height]; pect: [x, length, width]; eye: [x, y, radius]
 const FISH = {
-  round: { h: 0.24, w: 0.2, at: 0.36, nose: 0.4, end: -0.18, ped: 0.06, tail: [0.25, 0.3], dorsal: [0.12, -0.12, 0.13], anal: [-0.02, -0.14, 0.06], pect: [0.14, 0.17, 0.1], eye: [0.3, 0.075, 0.085], fin: 0.035 },
-  tang: { h: 0.38, w: 0.12, at: 0.45, nose: 0.75, end: -0.2, ped: 0.07, tail: [0.22, 0.12], dorsal: [0.24, -0.18, 0.09], anal: [0.1, -0.18, 0.09], pect: [0.12, 0.17, 0.1], eye: [0.27, 0.11, 0.075], fin: 0.03, keel: 0.2 },
-  long: { h: 0.17, w: 0.14, at: 0.34, nose: 0.5, end: -0.24, ped: 0.05, tail: [0.2, 0.45], dorsal: [0.16, -0.16, 0.08], anal: [0.0, -0.17, 0.05], pect: [0.18, 0.13, 0.07], eye: [0.36, 0.045, 0.07], fin: 0.03 },
-  puffer: { h: 0.3, w: 0.29, at: 0.5, nose: 0.36, end: -0.14, ped: 0.07, tail: [0.2, 0.0], dorsal: [0.0, -0.12, 0.09], anal: null, pect: [0.1, 0.15, 0.11], eye: [0.27, 0.1, 0.085], fin: 0.035, spikes: 36 },
+  round: { h: 0.24, w: 0.21, at: 0.36, nose: 0.4, end: -0.18, ped: 0.07, tail: [0.25, 0.3], dorsal: [0.12, -0.12, 0.13], anal: [-0.02, -0.14, 0.06], pect: [0.14, 0.17, 0.11], eye: [0.29, 0.08, 0.098], fin: 0.06 },
+  tang: { h: 0.38, w: 0.13, at: 0.45, nose: 0.75, end: -0.2, ped: 0.08, tail: [0.22, 0.12], dorsal: [0.24, -0.18, 0.09], anal: [0.1, -0.18, 0.09], pect: [0.12, 0.17, 0.11], eye: [0.26, 0.115, 0.088], fin: 0.05, keel: 0.2 },
+  long: { h: 0.17, w: 0.15, at: 0.34, nose: 0.5, end: -0.24, ped: 0.06, tail: [0.2, 0.45], dorsal: [0.16, -0.16, 0.08], anal: [0.0, -0.17, 0.05], pect: [0.18, 0.13, 0.08], eye: [0.35, 0.05, 0.078], fin: 0.05 },
+  puffer: { h: 0.3, w: 0.29, at: 0.5, nose: 0.36, end: -0.14, ped: 0.08, tail: [0.2, 0.0], dorsal: [0.0, -0.12, 0.09], anal: null, pect: [0.1, 0.15, 0.12], eye: [0.27, 0.1, 0.098], fin: 0.06, spikes: 30 },
 };
 // Where a kind's eyes sit: (x, y, z out from the middle, radius), half sunk into the body.
 function eyeOf(sp) {
@@ -421,6 +336,11 @@ function eyeOf(sp) {
   return [ex, ey, zs - er * 0.3, er];
 }
 
+// Each kind is grown one metre long, nose at x = 0.5, tail tip at -0.5, back up, its right
+// side +z, as a toy fish is stuffed: a plump body, a fat tail, a stuffed fin along the back
+// and one under the belly, a plump paddle at each side, two big bead eyes. aux = (x, y, how
+// high round the body from -1 belly to 1 back, part: 0 body, 1 tail, 2 back and belly fins,
+// 3 side fins, 4 eyes, 5 the puffer's soft spikes).
 function fishShape(sp, lod) {
   const nr = [8, 10, 12][lod], ns = [8, 10, 12][lod], m = new Mesh(true), rng = makeRng(7);
   const p = sp.nose, q = (p * (1 - sp.at)) / sp.at, peak = Math.pow(sp.at, p) * Math.pow(1 - sp.at, q), E = sp.end;
@@ -439,39 +359,39 @@ function fishShape(sp, lod) {
   }, true);
   orient(m, i0, base, (x, y, z) => [0, y - prof(uAt(x))[2], z]);
   const th = sp.fin, yE = prof(1)[2];
-  // the tail: a fan from the root, a notch in its edge
+  // the tail: a fat fan from the root, a soft notch in its edge, stuffed to its rim
   pillow(m, lod ? 6 : 4, lod ? 3 : 2, [0, 0, 1], 1, (s, t, o) => {
     const v = s * 2 - 1, span = lerp(sp.ped * 0.85, sp.tail[0], Math.pow(t, 0.6));
     o[0] = lerp(E + 0.05, -0.5 + sp.tail[1] * 0.12 * (1 - Math.abs(v)), t); o[1] = yE + v * span; o[2] = 0;
-    o[3] = th * Math.sqrt(Math.max(1 - v * v, 0)) * (1 - Math.pow(t, 3) * 0.85);
+    o[3] = th * Math.sqrt(Math.max(1 - v * v, 0)) * (1.15 - 0.45 * Math.pow(t, 2));
   });
   // along the back and under the belly
   for (const [fin, dir] of [[sp.dorsal, 1], [sp.anal, -1]]) {
     if (!fin) continue;
     pillow(m, 5, 2, [0, 0, 1], 2, (s, t, o) => {
       const xb = lerp(fin[0], fin[1], s), [a, , yc] = prof(uAt(xb)), hgt = fin[2] * Math.pow(Math.sin(Math.PI * Math.pow(s, 0.75)), 0.8);
-      o[0] = xb - t * hgt * 0.4; o[1] = yc + dir * (a * 0.82 + t * hgt); o[2] = 0;
-      o[3] = th * 0.85 * Math.sqrt(Math.max(4 * s * (1 - s), 0)) * (1 - Math.pow(t, 3) * 0.85);
+      o[0] = xb - t * hgt * 0.4; o[1] = yc + dir * (a * 0.8 + t * hgt); o[2] = 0;
+      o[3] = th * 0.95 * plump(s, t, 0.55);
     });
   }
-  // a little paddle at each side, behind the eye
+  // a plump paddle at each side, behind the eye
   {
     const [px, pl, pw] = sp.pect, [a, b, yc] = prof(uAt(px));
     for (const side of [1, -1]) {
       const d = [-0.8, -0.15, side * 0.58], nn = [-d[2], 0, d[0]], ln = Math.hypot(...nn);
       pillow(m, 3, 3, [nn[0] / ln, nn[1] / ln, nn[2] / ln], 3, (s, t, o) => {
-        const w = pw * Math.sqrt(Math.max(1 - Math.pow(t * 1.05 - 0.05, 2), 0)) * (1 - 0.3 * t);
-        o[0] = px + d[0] * t * pl; o[1] = yc - a * 0.2 + d[1] * t * pl + (s - 0.5) * w; o[2] = side * b * 0.85 + d[2] * t * pl;
-        o[3] = th * 0.8 * Math.sqrt(Math.max(4 * s * (1 - s), 0)) * (1 - t * t * 0.8);
+        const w = pw * Math.sqrt(Math.max(1 - Math.pow(t * 1.05 - 0.05, 2), 0)) * (1 - 0.25 * t);
+        o[0] = px + d[0] * t * pl; o[1] = yc - a * 0.2 + d[1] * t * pl + (s - 0.5) * w; o[2] = side * b * 0.82 + d[2] * t * pl;
+        o[3] = th * 1.1 * plump(s, t, 0.6);
       });
     }
   }
-  // spikes (the puffer)
+  // the puffer's spikes: soft round nubs, as a crocheted puffer has them
   for (let k = 0; k < (sp.spikes ?? 0); k++) {
     const u = rng.range(0.12, 0.85), ph = rng() * TAU, [a, b, yc] = prof(u), x = xAt(u);
     const y = yc + a * Math.sin(ph), z = b * Math.cos(ph), nx = 0.15, ny = Math.sin(ph) / a, nz = Math.cos(ph) / b, l = Math.hypot(nx, ny, nz);
-    const len = 0.06 + 0.03 * rng(), dx = nx / l, dy = ny / l, dz = nz / l;
-    tube(m, [[x - dx * 0.01, y - dy * 0.01, z - dz * 0.01, 0.022], [x + dx * len, y + dy * len, z + dz * len, 0.004]], 4, [0, 0, 5]);
+    const len = 0.045 + 0.02 * rng(), dx = nx / l, dy = ny / l, dz = nz / l;
+    tube(m, [[x - dx * 0.01, y - dy * 0.01, z - dz * 0.01, 0.03], [x + dx * len * 0.55, y + dy * len * 0.55, z + dz * len * 0.55, 0.022], [x + dx * len, y + dy * len, z + dz * len, 0.012]], 5, [0, 0, 5]);
   }
   // the eyes: big black beads, half sunk, one on each side
   const [ex, ey, ez, er] = eyeOf(sp);
@@ -509,6 +429,19 @@ function fishAt(t, sc) {
   return sc.c.add(sc.T.mul(fC.x)).add(N.mul(fC.y)).add(vec3(0.0, fC.z, 0.0)).add(wob);
 }
 
+// How far the visitor's hand pushes a thing at P (world) of size L (metres) away on the screen:
+// within a few of its own lengths of the hand (and never less than a tenth of the view's
+// height), the nearer the more, straight away from it across the screen and a little back.
+// Gives the push in the world and how strong it is (0..1).
+function shy(P, L) {
+  const rel = P.sub(cameraPosition), zc = max(dot(rel, U.fwd), 0.05).toVar(), k = zc.mul(U.tanV);
+  const dh = vec2(dot(rel, U.right).div(k).sub(G.hand.x.mul(G.hand.w)), dot(rel, U.up).div(k).sub(G.hand.y)).toVar();
+  const dd = length(dh), reach = clamp(L.div(k).mul(2.6), 0.2, 0.55);
+  const push = max(reach.sub(dd), 0.0).mul(G.hand.z).mul(smoothstep(0.4, 1.0, zc)).toVar();
+  const dir = dh.div(max(dd, 1e-3));
+  return { by: U.right.mul(dir.x).add(U.up.mul(dir.y)).add(U.fwd.mul(0.35)).mul(push.mul(0.85).mul(k)), fear: push.div(reach) };
+}
+
 function fishMaterial() {
   return material({
     aux: true, shadow: false,
@@ -517,18 +450,22 @@ function fishMaterial() {
       const sc = schoolAt(t), sc0 = schoolAt(t.sub(0.1));
       // the school keeps clear of Snap and the submarine: all of it moves aside together
       const off = awayFrom(sc.c, G.snapAt.xyz, G.snapAt.w.add(fF.w).add(0.3)).add(awayFrom(sc.c, G.subAt.xyz, G.subAt.w.add(fF.w).add(0.4)));
-      const P0 = fishAt(t, sc).add(off).toVar('fishP');
+      const at0 = fishAt(t, sc).add(off).toVar();
+      // and each fish darts away from the visitor's hand, turning from it
+      const away = shy(at0, L);
+      const P0 = at0.add(away.by).toVar('fishP');
       const d = fishAt(t, sc).sub(fishAt(t.sub(0.1), sc0)).toVar();
       // it faces the way it goes, never steeper than about 30 degrees
       const hl = length(d.xz).add(1e-5);
-      const F = normalize(vec3(d.x, clamp(d.y, hl.mul(-0.55), hl.mul(0.55)), d.z)).toVar();
+      const go = normalize(vec3(d.x, clamp(d.y, hl.mul(-0.55), hl.mul(0.55)), d.z));
+      const F = normalize(mix(go, normalize(away.by.add(go.mul(1e-3))), clamp(away.fear.mul(1.6), 0.0, 0.75))).toVar();
       const R = normalize(cross(F, UP)).toVar();
       const Up = cross(R, F).toVar();
-      // it wags: the head barely, the tail most
+      // it wags: the head barely, the tail most (harder as it darts)
       const lp = v.P.toVar(), ln = v.N.toVar();
       const u = clamp(float(0.45).sub(lp.x), 0.0, 1.0).toVar();
       const ph = t.mul(fD.y).mul(TAU).add(s.mul(40.0)).sub(u.mul(2.4)).toVar();
-      const amp = u.mul(u).mul(0.16).add(0.008);
+      const amp = u.mul(u).mul(0.16).add(0.008).mul(clamp(away.fear, 0.0, 1.0).add(1.0));
       const sw = sin(ph), cw = cos(ph);
       const slope = u.mul(0.32).mul(sw).sub(amp.mul(2.4).mul(cw)).negate();
       const lq = vec3(lp.x, lp.y, lp.z.add(amp.mul(sw)));
@@ -545,7 +482,7 @@ function fishMaterial() {
       vLoc.assign(vec3(lp.y, lp.x, lp.z).mul(L).add(s.mul(3.1)));
     },
     surface: (s, f) => {
-      const lx = f.aux.x, yn = f.aux.z, part = f.aux.w;
+      const lx = f.aux.x, yn = f.aux.z, part = f.aux.w, q = f.obj;
       const pattern = vInfo.y, keep = vInfo.w;
       const body = float(1.0).sub(step(0.5, part)).toVar(), eye = one(part, 4);
       const n0 = s.n;
@@ -555,11 +492,15 @@ function fishMaterial() {
       const col = mix(mix(A, B, second), vC3.rgb, float(1.0).sub(body));
       const stripes = one(pattern, 2).mul(body);
       const F = normalize(vFwd), Up = normalize(vUp);
-      const st = knit(s, f, { color: col, color2: mix(col, B, stripes), stripe: max(vC1.w, 1.0), scale: 40, p: vLoc, frame: [Up, F, cross(F, Up)], k: 1.0 });
-      // a ring of pale felt round each eye, and the bead in it
-      const ring = eyeRing(f.obj, vEye.x, vEye.y, vEye.z, vEye.w).mul(body);
-      s.albedo = mix(s.albedo, lin(0.97, 0.95, 0.9).mul(st.h.mul(0.25).add(0.75)), ring);
-      bead(s, n0, eye);
+      knit(s, f, { color: col, color2: mix(col, B, stripes), stripe: max(vC1.w, 1.0), scale: STITCH, p: vLoc, frame: [Up, F, cross(F, Up)], k: 1.1 });
+      // the face: the bead eyes in their felt rings; a little stitched smile toward the nose,
+      // and a pink felt cheek under each eye
+      const E = vEye, aa = pixel(q);
+      eyes(s, q, n0, { at: [E.x, E.y, E.z, E.w], bead: eye, on: body, ring: 1.8 });
+      const mx = min(E.x.add(0.13), 0.435), my = E.y.sub(0.09);
+      const smile = arc(q.x.sub(mx), q.y.sub(my), float(0.042), float(0.026), float(0.009), aa).mul(body);
+      const cheek = spot(q.x.sub(E.x.sub(0.055)), q.y.sub(E.y.sub(0.098)), E.w.mul(0.42), aa).mul(body).mul(float(1.0).sub(second.mul(0.6)));
+      sew(s, n0, smile, cheek);
       const vv0 = normalize(cameraPosition.sub(f.w));
       s.emis = s.emis.add(s.albedo.mul(vec3(0.5, 0.75, 0.8)).mul(max(dot(s.n, vv0), 0.0).mul(0.6).add(0.4)).mul(U.fill));
       // dissolving: what would be seen through the fish is the water beyond it
@@ -705,7 +646,7 @@ function populate(rng, amt, avoid) {
         A: [at[0], at[1], at[2], w], B: [g.r[0], g.r[1], g.yaw, g.h],
         C: [slot[0], slot[1], slot[2], L],
         D: [rng(), g.wag * rng.range(0.85, 1.15), phase, pattern],
-        E: [...c(body), 2 + Math.floor(rng() * 2)], F: [...c(second), form.rad], G: [...c(fins), 0], H: eyeOf(FISH[shape]),
+        E: [...c(body), 4 + Math.floor(rng() * 3)], F: [...c(second), form.rad], G: [...c(fins), 0], H: eyeOf(FISH[shape]),
       });
     });
   }
@@ -764,28 +705,40 @@ function patches(q, k) {
   return float(1.0).sub(smoothstep(float(0.36).sub(aa), aa.add(0.36), d));
 }
 
-// The turtle: a high domed shell over a flat belly, a big round head on a thick neck, long
-// broad front flippers and short back ones, a stub of a tail. About a metre long. aux.w: 0
-// shell, 1 skin, 2 front flippers, 3 back flippers, 4 eyes.
-const T_EYE = [0.665, 0.115, 0.098, 0.034];
+// The turtle, as a toy turtle is made: a high round dome of a shell over a flat belly, its
+// rim edged with a fat stitched cord; a big round head on a thick neck, with big bead eyes in
+// felt rings set wide on the front of it, a stitched smile and pink cheeks; plump stuffed
+// flippers, broad in front, small behind; a stub of a tail. About a metre long. aux.w: 0
+// shell, 1 skin, 2 front flippers, 3 back flippers, 4 eyes, 5 the shell's rim.
+const T_HEAD = [0.6, 0.08, 0, 0.19, 0.165, 0.16];
+// (a point on the head's surface the way d points from its middle, sunk by k)
+const onHead = (d, k) => {
+  const [hx, hy, hz, rx, ry, rz] = T_HEAD, l = Math.hypot(...d), x = d[0] / l, y = d[1] / l, z = d[2] / l, r = k / Math.hypot(x / rx, y / ry, z / rz);
+  return [hx + x * r, hy + y * r, hz + z * r];
+};
+const T_EYE = [...onHead([0.62, 0.32, 0.72], 0.97), 0.046], T_CHEEK = [...onHead([0.45, -0.25, 0.86], 1.0), 0.036];
 function turtleShape(lod) {
   const m = new Mesh(true), res = [7, 9, 11][lod];
-  blob(m, 0, 0, 0, (dx, dy, dz) => 1 / Math.hypot(dx / 0.45, dy / (dy > 0 ? 0.28 : 0.1), dz / 0.37), res, (dx, dy, dz, o) => { o[3] = 0; });
-  tube(m, [[0.3, -0.01, 0, 0.1], [0.4, 0.015, 0, 0.096], [0.48, 0.04, 0, 0.1]], 8, [0, 0, 1]);
-  ball(m, 0.585, 0.065, 0, 0.17, 0.145, 0.14, Math.max(res - 2, 4), 1);
-  tube(m, [[-0.4, -0.02, 0, 0.05], [-0.5, -0.035, 0, 0.028], [-0.56, -0.04, 0, 0.008]], 6, [0, 0, 1]);
-  for (const side of [1, -1]) ball(m, T_EYE[0], T_EYE[1], side * T_EYE[2], T_EYE[3], T_EYE[3], T_EYE[3], 3, 4);
-  // flippers: long, broad and swept back in front, small behind
+  blob(m, 0, 0, 0, (dx, dy, dz) => 1 / Math.hypot(dx / 0.46, dy / (dy > 0 ? 0.3 : 0.11), dz / 0.38), res, (dx, dy, dz, o) => { o[3] = 0; });
+  // the rim: a fat cord round the shell's edge
+  const rim = [];
+  for (let i = 0, n = [24, 32, 40][lod]; i <= n; i++) { const a = (i / n) * TAU; rim.push([Math.cos(a) * 0.452, 0.004, Math.sin(a) * 0.372, 0.034]); }
+  tube(m, rim, [5, 6, 6][lod], [0, 0, 5]);
+  tube(m, [[0.3, -0.01, 0, 0.105], [0.4, 0.02, 0, 0.1], [0.5, 0.05, 0, 0.11]], 8, [0, 0, 1]);
+  ball(m, T_HEAD[0], T_HEAD[1], T_HEAD[2], T_HEAD[3], T_HEAD[4], T_HEAD[5], Math.max(res - 1, 5), 1);
+  tube(m, [[-0.4, -0.02, 0, 0.055], [-0.48, -0.03, 0, 0.042], [-0.54, -0.035, 0, 0.022]], 6, [0, 0, 1]);
+  for (const side of [1, -1]) ball(m, T_EYE[0], T_EYE[1], side * T_EYE[2], T_EYE[3], T_EYE[3], T_EYE[3], lod ? 4 : 3, 4);
+  // flippers: plump paddles, broad and swept back in front, small behind
   for (const side of [1, -1]) {
     pillow(m, 4, lod ? 7 : 5, [0, 1, 0], 2, (s, t, o) => {
-      const w = 0.2 * (1 - Math.pow(t, 1.5)) + 0.03;
-      o[0] = 0.24 - 0.48 * Math.pow(t, 1.2) + (0.5 - s) * w; o[1] = -0.02 - 0.04 * t; o[2] = side * (0.27 + 0.5 * t);
-      o[3] = 0.036 * (1 - t * t * 0.7) * Math.sqrt(Math.max(4 * s * (1 - s), 0));
+      const w = 0.19 * (1 - Math.pow(t, 1.6) * 0.6) + 0.035;
+      o[0] = 0.22 - 0.34 * Math.pow(t, 1.15) + (0.5 - s) * w; o[1] = -0.03 - 0.035 * t; o[2] = side * (0.3 + 0.42 * t);
+      o[3] = 0.07 * plump(s, t, 0.6);
     });
     pillow(m, 3, 3, [0, 1, 0], 3, (s, t, o) => {
-      const w = 0.12 * (1 - Math.pow(t, 1.5)) + 0.02;
-      o[0] = -0.31 - 0.15 * t + (0.5 - s) * w; o[1] = -0.04; o[2] = side * (0.19 + 0.18 * t);
-      o[3] = 0.028 * (1 - t * t * 0.7) * Math.sqrt(Math.max(4 * s * (1 - s), 0));
+      const w = 0.12 * (1 - Math.pow(t, 1.5) * 0.5) + 0.03;
+      o[0] = -0.3 - 0.12 * t + (0.5 - s) * w; o[1] = -0.04; o[2] = side * (0.2 + 0.15 * t);
+      o[3] = 0.055 * plump(s, t, 0.55);
     });
   }
   return m.build();
@@ -812,7 +765,7 @@ function shellSeam(lp, aa) {
 }
 
 function turtleMaterial() {
-  const FRONT = [0.24, -0.02, 0.27], BACK = [-0.31, -0.04, 0.19], NECK = vec3(0.3, 0.0, 0.0);
+  const FRONT = [0.22, -0.03, 0.3], BACK = [-0.3, -0.04, 0.2], NECK = vec3(0.32, 0.0, 0.0);
   return material({
     aux: true, shadow: false,
     vertex: (v) => {
@@ -825,7 +778,7 @@ function turtleMaterial() {
       const ah = sin(w.mul(0.5).add(0.7)).mul(0.06);
       const pf = turn(lp, vec3(FRONT[0], FRONT[1], side.mul(FRONT[2])), 'x', af), nf = turnN(ln, 'x', af);
       const pb = turn(lp, vec3(BACK[0], BACK[1], side.mul(BACK[2])), 'x', ab), nb = turnN(ln, 'x', ab);
-      const head = step(0.31, lp.x).mul(one(part, 1).add(one(part, 4)));
+      const head = step(0.33, lp.x).mul(one(part, 1).add(one(part, 4)));
       const ph = turn(lp, NECK, 'z', ah), nh = turnN(ln, 'z', ah);
       const front = one(part, 2).greaterThan(0.5), back = one(part, 3).greaterThan(0.5), isHead = head.greaterThan(0.5);
       const q = select(front, pf, select(back, pb, select(isHead, ph, lp)));
@@ -833,45 +786,72 @@ function turtleMaterial() {
       const pl = placed(q, qn);
       v.P.assign(pl.P); v.N.assign(pl.N);
       vA.assign(pl.F); vB.assign(pl.Up); vP.assign(lp.mul(pl.size));
-      vK.assign(vec4(pl0.look, 0.0, 0.0, 0.0));
+      vK.assign(vec4(pl0.look, pl.size, 0.0, 0.0));
     },
     surface: (s, f) => {
-      const part = f.aux.w, lp = f.obj, look = vK.x;
-      const n0 = s.n, F = normalize(vA), Up = normalize(vB), R = cross(F, Up);
-      const shell = one(part, 0), eye = one(part, 4), flip = one(part, 2).add(one(part, 3));
+      const part = f.aux.w, lp = f.obj, look = vK.x, size = vK.y;
+      const n0 = s.n, F = normalize(vA), Up = normalize(vB), R = cross(F, Up), frame = [F, Up, R];
+      const shell = one(part, 0), eye = one(part, 4), rim = one(part, 5), flip = one(part, 2).add(one(part, 3)), skinPart = one(part, 1);
       // the reef's turtle is brown with cream seams and cream skin in brown patches; the one at
-      // the end, coral with teal skin
-      const shellCol = mix(lin(0.6, 0.36, 0.22), lin(0.88, 0.48, 0.38), look), seamCol = mix(lin(0.96, 0.89, 0.74), lin(0.98, 0.9, 0.76), look);
-      const skinCol = mix(lin(0.9, 0.84, 0.72), lin(0.56, 0.72, 0.74), look), spotCol = mix(lin(0.56, 0.36, 0.24), lin(0.3, 0.5, 0.54), look);
+      // the end, coral with teal skin; both edged in cream
+      const shellCol = mix(lin(0.6, 0.36, 0.22), lin(0.9, 0.5, 0.4), look), seamCol = mix(lin(0.96, 0.89, 0.74), lin(0.98, 0.9, 0.76), look);
+      const skinCol = mix(lin(0.9, 0.84, 0.72), lin(0.5, 0.74, 0.76), look), spotCol = mix(lin(0.56, 0.36, 0.24), lin(0.28, 0.52, 0.56), look);
       const bellyCol = mix(lin(0.94, 0.86, 0.68), lin(0.98, 0.88, 0.72), look);
       const under = shell.mul(float(1.0).sub(smoothstep(-0.02, 0.01, lp.y)));
       // the skin's patches: on the flippers, and on top of the head
-      const onHead = one(part, 1).mul(smoothstep(0.42, 0.5, lp.x)).mul(smoothstep(0.08, 0.14, lp.y));
-      const spots = patches(vec2(lp.x, lp.z), 11.0).mul(flip.add(onHead)).mul(float(1.0).sub(eye));
+      const topHead = skinPart.mul(smoothstep(0.5, 0.56, lp.x)).mul(smoothstep(0.13, 0.18, lp.y));
+      const spots = patches(vec2(lp.x, lp.z), 11.0).mul(flip.add(topHead)).mul(float(1.0).sub(eye));
       const aa = fwidth(lp.x).add(fwidth(lp.z)).add(1e-4);
       const sh = shellSeam(lp, aa);
       // each plate a little different
       const plateK = fract(sin(sh.id.mul(12.9898)).mul(43758.5)).sub(0.5).mul(0.18).add(1.0);
       const skin = mix(skinCol, spotCol, spots.mul(0.85));
-      const st = knit(s, f, { color: mix(skin, mix(shellCol.mul(plateK), bellyCol, under), shell), scale: 26, p: vP, frame: [F, Up, R], k: 1.3 });
+      const col = mix(mix(skin, mix(shellCol.mul(plateK), bellyCol, under), shell), seamCol, rim);
+      // the stitches, worked in rounds: the shell (and its rim) round from the top of the dome,
+      // the head round from its nose, the neck and the tail along themselves, each flipper from
+      // its tip
+      const sd = sign(lp.z), onHeadBall = skinPart.mul(step(0.45, lp.x)), body = max(shell, rim);
+      const fin = one(part, 2), toTip = normalize(vec3(-0.34, -0.035, sd.mul(0.42))), toTipB = normalize(vec3(-0.12, 0.0, sd.mul(0.15)));
+      const c = select(body.greaterThan(0.5), vec3(0.0, -0.02, 0.0), select(onHeadBall.greaterThan(0.5), vec3(T_HEAD[0], T_HEAD[1], 0.0),
+        select(fin.greaterThan(0.5), vec3(0.05, -0.05, sd.mul(0.51)), select(flip.greaterThan(0.5), vec3(-0.36, -0.04, sd.mul(0.275)), vec3(0.0, 0.0, 0.0)))));
+      const A = select(body.greaterThan(0.5), vec3(0.0, 1.0, 0.0), select(onHeadBall.greaterThan(0.5), vec3(1.0, 0.0, 0.0), select(fin.greaterThan(0.5), toTip, select(flip.greaterThan(0.5), toTipB, vec3(1.0, 0.0, 0.0)))));
+      const B = normalize(cross(A, vec3(0.0, 0.0, 1.0)).add(vec3(0.0, 0.0, 1e-4)).add(select(body.greaterThan(0.5), vec3(1.0, 0.0, 0.0), vec3(0.0))));
+      const rad = select(body.greaterThan(0.5), float(0.4), select(onHeadBall.greaterThan(0.5), float(0.17), select(flip.greaterThan(0.5), float(0.06), float(0.1))));
+      const tubeK = select(body.add(onHeadBall).greaterThan(0.5), float(0.0), float(1.0));
+      const st = rounds(lp.mul(size), c.mul(size), A, B, rad.mul(size), yarnFor(1.7), tubeK);
+      const h = stitches(s, f, { color: col, st: { ...st, Ta: inWorld(frame, st.Ta), Tb: inWorld(frame, st.Tb) }, k: 1.3 });
       const seam = sh.seam.mul(shell).mul(float(1.0).sub(under));
-      s.albedo = mix(s.albedo, seamCol.mul(st.h.mul(0.4).add(0.6)), seam);
-      const ring = eyeRing(lp, T_EYE[0], T_EYE[1], T_EYE[2], float(T_EYE[3])).mul(one(part, 1));
-      s.albedo = mix(s.albedo, lin(0.96, 0.93, 0.86), ring);
-      bead(s, n0, eye);
-      glint(s, lp, T_EYE[0], T_EYE[1], T_EYE[2], T_EYE[3], eye);
+      s.albedo = mix(s.albedo, seamCol.mul(h.h.mul(0.4).add(0.6)), seam);
+      // the face: bead eyes in felt rings, a smile under them on the front of the head, cheeks
+      eyes(s, lp, n0, { at: T_EYE, bead: eye, on: skinPart });
+      const px = pixel(vec3(lp.z, lp.y, 0.0));
+      const front = skinPart.mul(smoothstep(0.7, 0.74, lp.x));
+      const smile = arc(lp.z, lp.y.sub(0.035), float(0.06), float(0.028), float(0.0075), px).mul(front);
+      const cheek = spot(length(vec3(lp.x.sub(T_CHEEK[0]), lp.y.sub(T_CHEEK[1]), abs(lp.z).sub(T_CHEEK[2]))), float(0.0), float(T_CHEEK[3]), px).mul(skinPart);
+      sew(s, n0, smile, cheek);
     },
   });
 }
 
-// The octopus: a round head, big bead eyes, a stitched smile; eight chunky tentacles. Swimming
-// (or drifting), they curl down and out and wave; at the desk the six behind hang curled and the
-// front two reach over the desk's edge to rest on the letter. About 0.7 high before it is
-// sized. aux.w: 0 head, 2 tentacles (built in the shader: aux = along, round, which), 4 eyes.
+// The octopus (as the painted dive's): a big round head worked in rounds from its top, big
+// bead eyes in felt rings set wide on its face, a stitched smile and pink cheeks; eight fat
+// stuffed arms. Swimming (or drifting), they curl down and out and wave; at the desk the six
+// behind hang curled and the front two reach over the desk's edge to rest on the letter. About
+// 0.7 high before it is sized. aux.w: 0 head, 2 arms (built in the shader: aux = along, round,
+// which), 4 eyes. A happy wiggle (JOY, the cabin's octopus only): its head rocks and bobs, its
+// arms dance and its eyes close into smiles.
+const O_HEAD = [0, 0.4, 0, 0.27, 0.29, 0.25];
+const onOct = (d, k) => {
+  const [hx, hy, hz, rr, up, dn] = O_HEAD, l = Math.hypot(...d), x = d[0] / l, y = d[1] / l, z = d[2] / l, r = k / Math.hypot(x / rr, y / (y > 0 ? up : dn), z / rr);
+  return [hx + x * r, hy + y * r, hz + z * r];
+};
+const O_EYE = [...onOct([0.8, -0.02, 0.6], 0.96), 0.058], O_CHEEK = [...onOct([0.6, -0.42, 0.68], 1.0), 0.04];
+const JOY = uniform(0);
 function octopusShape(lod) {
   const m = new Mesh(true), res = [7, 9, 11][lod];
-  blob(m, 0, 0.4, 0, (dx, dy, dz) => 1 / Math.hypot(dx / 0.26, dy / (dy < 0 ? 0.25 : 0.28), dz / 0.26), res, (dx, dy, dz, o) => { o[3] = 0; });
-  for (const side of [1, -1]) ball(m, 0.232, 0.395, side * 0.105, 0.046, 0.046, 0.046, 3, 4);
+  const [hx, hy, hz, rr, up, dn] = O_HEAD;
+  blob(m, hx, hy, hz, (dx, dy, dz) => 1 / Math.hypot(dx / rr, dy / (dy < 0 ? dn : up), dz / rr), res, (dx, dy, dz, o) => { o[3] = 0; });
+  for (const side of [1, -1]) ball(m, O_EYE[0], O_EYE[1], side * O_EYE[2], O_EYE[3], O_EYE[3], O_EYE[3], lod ? 4 : 3, 4);
   tubes(m, 8, [10, 14, 18][lod], [6, 7, 8][lod], () => 2);
   return m.build();
 }
@@ -887,66 +867,85 @@ function octopusMaterial() {
     vertex: (v) => {
       const t = G.time, lp = v.P.toVar(), ln = v.N.toVar(), part = v.aux.w;
       const pl0 = placed(vec3(0.0), vec3(1.0, 0.0, 0.0));
-      const D = pl0.D, seat = D.x;
+      const D = pl0.D, seat = D.x, joy = JOY.mul(one(cS.x, 2)).toVar();
       const s = v.aux.x, phi = v.aux.y.mul(TAU), k = v.aux.z;
       const a = k.add(0.5).mul(TAU / 8).toVar();
       const front = step(6.5, k).add(step(k, 0.5));
-      const wave = sin(t.mul(1.05).add(k.mul(1.7)).add(pl0.phase)).toVar();
+      // (a happy wiggle: every arm dances, quickly)
+      const wave = sin(t.mul(1.05).add(k.mul(1.7)).add(pl0.phase)).add(sin(t.mul(8.5).add(k.mul(2.1))).mul(joy.mul(1.3))).toVar();
       const base = vec3(cos(a).mul(0.12), 0.16, sin(a).mul(0.12));
       // drifting: every arm curls down and out, waving
       const swim = (ss) => curl(ss, a, wave.mul(0.12).sub(1.0), wave.mul(0.55).add(3.3), float(0.46), base);
       // at the desk: the arms behind hang curled; the front two arch over its edge to the letter
-      const hang = (ss) => curl(ss, a, wave.mul(0.04).sub(1.35), wave.mul(0.15).add(3.9), float(0.4), base);
+      const hang = (ss) => curl(ss, a, wave.mul(0.06).sub(1.35), wave.mul(0.22).add(3.9), float(0.4), base);
       const sd = sign(sin(a)), tip = vec3(D.y, D.z.add(0.035), D.w.add(sd.mul(0.19)));
       const mid = vec3(mix(base.x, tip.x, 0.45), max(base.y, tip.y).add(0.07), mix(base.z, tip.z, 0.45));
       const reach = (ss) => {
         const u = float(1.0).sub(ss);
-        return base.mul(u.mul(u)).add(mid.mul(u.mul(ss).mul(2.0))).add(tip.mul(ss.mul(ss))).add(vec3(0.0, sin(t.mul(0.9).add(k.mul(2.0))).mul(0.012).mul(ss).mul(u), 0.0));
+        return base.mul(u.mul(u)).add(mid.mul(u.mul(ss).mul(2.0))).add(tip.mul(ss.mul(ss))).add(vec3(0.0, sin(t.mul(0.9).add(k.mul(2.0))).mul(joy.mul(0.05).add(0.012)).mul(ss).mul(u), 0.0));
       };
       const at = (ss) => mix(swim(ss), mix(hang(ss), reach(ss), front), seat);
       const C0 = at(s).toVar(), T = normalize(at(s.add(0.02)).sub(C0)).toVar();
-      const r = float(0.084).mul(float(1.0).sub(s.mul(0.45))).mul(sqrt(min(float(1.0).sub(s).mul(12.0), 1.0)));
+      const r = float(0.095).mul(float(1.0).sub(s.mul(0.45))).mul(sqrt(min(float(1.0).sub(s).mul(12.0), 1.0)));
       const rg = ringAt(C0, T, vec3(sin(a).negate(), 0.0, cos(a)), phi, r);
-      // the head breathes
+      // the head breathes (and, happy, rocks from side to side and bobs)
       const breathe = sin(t.mul(1.3).add(pl0.phase)).mul(0.025);
       const head = vec3(lp.x.mul(float(1.0).sub(breathe)), lp.y.sub(0.4).mul(breathe.add(1.0)).add(0.4), lp.z.mul(float(1.0).sub(breathe)));
       const isT = one(part, 2).greaterThan(0.5);
-      const pl = placed(select(isT, rg.p, select(one(part, 0).greaterThan(0.5), head, lp)), select(isT, rg.n, ln));
+      const q0 = select(isT, rg.p, select(one(part, 0).greaterThan(0.5), head, lp)), n1 = select(isT, rg.n, ln);
+      const rock = sin(t.mul(6.5)).mul(joy.mul(0.2)), hop = abs(sin(t.mul(6.5))).mul(joy.mul(0.06));
+      const pl = placed(turn(q0, vec3(0.0, 0.16, 0.0), 'x', rock).add(vec3(0.0, hop, 0.0)), turnN(n1, 'x', rock));
       v.P.assign(pl.P); v.N.assign(pl.N);
-      // the stitches: on the head in the octopus's frame; on a tentacle, along it as if it were straight
-      vA.assign(select(isT, toWorld(pl, rg.S), pl.F));
-      vB.assign(select(isT, toWorld(pl, T), pl.Up));
-      vP.assign(select(isT, vec3(cos(phi).mul(0.06), s.mul(0.46), sin(phi).mul(-0.06)).add(k.mul(1.3)), lp).mul(pl.size));
-      vK.assign(vec4(pl0.look, 0.0, 0.0, 0.0));
+      // the stitches: the head's from its own shape; an arm's along it, round it
+      vA.assign(pl.F); vB.assign(pl.Up);
+      vP.assign(select(isT, toWorld(pl, T), vec3(0.0)));
+      vK.assign(vec4(pl0.look, pl.size, select(isT, v.aux.y, float(-1.0)), s.mul(0.46).add(k.mul(1.7))));
+      vL.assign(vec3(joy, 0.0, 0.0));
     },
     surface: (s, f) => {
-      const part = f.aux.w, lp = f.obj, n0 = s.n;
-      const A = normalize(vA), B = normalize(vB);
-      const eye = one(part, 4), look = vK.x;
+      const part = f.aux.w, lp = f.obj, n0 = s.n, look = vK.x, size = vK.y, joy = vL.x;
+      const F = normalize(vA), Up = normalize(vB), frame = [F, Up, cross(F, Up)];
+      const eye = one(part, 4), head = one(part, 0), arm = step(-0.5, vK.z);
       // (the same pink as in the cabin, where the lantern's warm light is on it; in the open
       // water at the end its yarn is a little warmer and answers the blue-green light more, so
       // it stays pink there too, not lilac)
-      knit(s, f, { color: mix(lin(0.84, 0.54, 0.66), lin(0.94, 0.5, 0.6), look), scale: 30, p: vP, frame: [A, B, cross(A, B)], k: 1.4 });
+      const col = mix(lin(0.84, 0.54, 0.66), lin(0.94, 0.5, 0.6), look);
+      // the stitches: the head in rounds from its top; an arm in rounds along it
+      const hs = rounds(lp.mul(size), vec3(0.0, 0.4, 0.0).mul(size), vec3(0.0, 1.0, 0.0), vec3(1.0, 0.0, 0.0), size.mul(0.27), STITCH);
+      const N = floor(size.mul((2 * Math.PI * 0.08 * STITCH) / 8).add(0.5)).mul(8.0);
+      const aA = vK.z.mul(N), aB = vK.w.mul(size).mul(STITCH), T = normalize(vP.add(Up.mul(1e-4)));
+      const st = {
+        a: select(arm.greaterThan(0.5), aA, hs.a), b: select(arm.greaterThan(0.5), aB, hs.b),
+        ga: select(arm.greaterThan(0.5), vec2(dFdx(aA), dFdy(aA)), hs.ga), gb: select(arm.greaterThan(0.5), vec2(dFdx(aB), dFdy(aB)), hs.gb),
+        Ta: select(arm.greaterThan(0.5), normalize(cross(s.n, T)), inWorld(frame, hs.Ta)), Tb: select(arm.greaterThan(0.5), T, inWorld(frame, hs.Tb)),
+      };
+      stitches(s, f, { color: col, st, k: 1.4 });
       s.fluor = mix(s.fluor, float(1.25), look);
-      // the smile: a short dark arc of stitches under the eyes
-      const aa = fwidth(lp.y).add(fwidth(lp.z)).add(1e-4);
-      const smile = float(1.0).sub(smoothstep(0.009, aa.add(0.009), abs(lp.y.sub(lp.z.mul(lp.z).mul(3.2).add(0.315))))).mul(step(abs(lp.z), 0.058)).mul(step(0.15, lp.x)).mul(one(part, 0));
-      s.albedo = mix(s.albedo, vec3(0.06, 0.03, 0.04), smile);
-      bead(s, n0, eye);
-      glint(s, lp, 0.232, 0.395, 0.105, 0.046, eye);
+      // the face: bead eyes in felt rings (happy: closed into smiles), a smile, pink cheeks
+      // (closed: a lid of the head's own yarn comes up under an arch, so each eye is a ∩)
+      const v = lp.y.sub(O_EYE[1]).div(O_EYE[3]), u = abs(lp.z).sub(O_EYE[2]).div(O_EYE[3]);
+      const arch = mix(float(-2.0), float(0.7), joy).sub(u.mul(u).mul(0.9));
+      const lid = float(1.0).sub(smoothstep(arch.sub(0.05), arch.add(0.05), v)).mul(eye);
+      const lidEdge = float(1.0).sub(smoothstep(0.06, 0.16, abs(v.sub(arch)))).mul(eye).mul(step(0.05, joy));
+      eyes(s, lp, n0, { at: O_EYE, bead: eye.mul(float(1.0).sub(lid)), on: head });
+      const px = pixel(vec3(lp.z, lp.y, 0.0));
+      const smile = arc(lp.z, lp.y.sub(0.288), float(0.065), float(0.032), float(0.0095), px).mul(head).mul(smoothstep(0.14, 0.18, lp.x));
+      const cheek = spot(length(vec3(lp.x.sub(O_CHEEK[0]), lp.y.sub(O_CHEEK[1]), abs(lp.z).sub(O_CHEEK[2]))), float(0.0), float(O_CHEEK[3]).mul(joy.mul(0.25).add(1.0)), px).mul(head);
+      sew(s, n0, max(smile, lidEdge), cheek);
     },
   });
 }
 
-// The anglerfish (z5lit): a round fish of lilac-blue crochet, its rows worked round from the
-// nose; a big bead eye; a wide friendly grin, a pale rolled lip with a little underbite and
-// one small tooth at each corner; purple ruffled fins (a rosette at each side, a crest along
-// the back, a round tail, a small one under the belly); and on a stalk from its forehead a big
-// teal lure, glowing: the only light on it. Half a metre round before it is sized; x forward,
-// y up, its right side +z. aux.w: 0 body, 1 fins, 2 lip, 3 stalk, 4 eyes, 5 teeth, 6 the lure.
-const LURE = [0.55, 0.12, 0], A_EYE = [0.15, 0.09, 0.168, 0.04];
+// The anglerfish (z5lit): a round fish of lilac-blue crochet, its rows worked round and round
+// from the nose; a big bead eye in a felt ring; a wide friendly grin, a pale rolled lip with a
+// little underbite and one soft fang at each corner (as the painted one has); purple ruffled
+// fins, stuffed (a rosette at each side, a crest along the back, a round tail, a small one
+// under the belly); and on a stalk from its forehead a big teal lure, glowing: the only light
+// on it. Half a metre round before it is sized; x forward, y up, its right side +z. aux.w: 0
+// body, 1 fins, 2 lip, 3 stalk, 4 eyes, 5 teeth, 6 the lure.
 // The body's radius in a direction (x, y, z of unit length).
 const aBody = (x, y, z) => 1 / Math.hypot(x / (x > 0 ? 0.27 : 0.25), y / (y > 0 ? 0.25 : 0.24), z / 0.23);
+const LURE = [0.55, 0.12, 0], A_EYE = (() => { const l = Math.hypot(0.6, 0.38, 0.7), x = 0.6 / l, y = 0.38 / l, z = 0.7 / l, r = aBody(x, y, z) * 0.95; return [x * r, y * r, z * r, 0.052]; })();
 // The grin: where the lip runs round the front of the face, as a direction from the middle at
 // angle a round it (0 the nose, +-A_GRIN the corners); the corners turn up.
 const A_GRIN = 1.2;
@@ -972,30 +971,30 @@ function anglerShape(lod) {
     // from the body, facing out and back
     const d = [-0.1, -0.2, side], l = Math.hypot(...d), rb = aBody(d[0] / l, d[1] / l, d[2] / l) + 0.055;
     const c = [d[0] / l * rb, d[1] / l * rb, d[2] / l * rb], N = [-0.5, 0, side * 0.87], nl = Math.hypot(...N);
-    ruffle(m, c, [0.87 / nl, 0, 0.5 * side / nl], [0, 1, 0], [N[0] / nl, 0, N[2] / nl], 0, TAU, (a) => 0.1 + 0.01 * Math.sin(a * 2 + 1), 9, 0.016, 0.02, 1, 18 + 4 * rf, 4);
+    ruffle(m, c, [0.87 / nl, 0, 0.5 * side / nl], [0, 1, 0], [N[0] / nl, 0, N[2] / nl], 0, TAU, (a) => 0.1 + 0.01 * Math.sin(a * 2 + 1), 9, 0.016, 0.032, 1, 18 + 4 * rf, 4);
   }
   // the crest along the back, behind the stalk: three ruffled scallops
   pillow(m, 10 + 6 * rf, 3, [0, 0, 1], 1, (s, t, o) => {
     const x = lerp(0.04, -0.22, s), y0 = 0.25 * Math.sqrt(Math.max(1 - (x / 0.25) ** 2, 0)) * 0.94;
     const h = (0.06 + 0.035 * Math.abs(Math.sin(s * Math.PI * 3))) * Math.sin(Math.PI * Math.min(s * 1.15 + 0.06, 1)) ** 0.6;
     o[0] = x - t * h * 0.35; o[1] = y0 + t * h; o[2] = 0.012 * t * t * Math.sin(s * 19);
-    o[3] = 0.016 * (1 - t * t * 0.8);
+    o[3] = 0.028 * (1 - t * t * 0.7);
   });
   // the tail: a round fan, its edge in scallops
-  ruffle(m, [-0.235, 0.0, 0], [-1, 0, 0], [0, 1, 0], [0, 0, 1], -1.25, 1.25, (a) => 0.17 + 0.012 * Math.cos(a * 7), 7, 0.02, 0.02, 1, 12 + 4 * rf, 3);
+  ruffle(m, [-0.235, 0.0, 0], [-1, 0, 0], [0, 1, 0], [0, 0, 1], -1.25, 1.25, (a) => 0.17 + 0.012 * Math.cos(a * 7), 7, 0.02, 0.034, 1, 12 + 4 * rf, 3);
   // a small fin under the belly
-  ruffle(m, [0.02, -0.225, 0], [-0.6, -0.8, 0], [0.8, -0.6, 0], [0, 0, 1], -0.9, 0.9, () => 0.07, 5, 0.008, 0.012, 1, 6, 2);
+  ruffle(m, [0.02, -0.225, 0], [-0.6, -0.8, 0], [0.8, -0.6, 0], [0, 0, 1], -0.9, 0.9, () => 0.07, 5, 0.008, 0.024, 1, 6, 2);
   // the lip: a rolled cord round the front of the face, and a little tooth at each corner
   {
     const pts = [];
     for (let i = 0; i <= 16; i++) {
       const a = lerp(-A_GRIN, A_GRIN, i / 16), [x, y, z] = grinDir(a), r = aBody(x, y, z) * 1.01;
-      pts.push([x * r, y * r, z * r, 0.022 * (1 - 0.4 * Math.abs(a / A_GRIN) ** 3)]);
+      pts.push([x * r, y * r, z * r, 0.026 * (1 - 0.35 * Math.abs(a / A_GRIN) ** 3)]);
     }
     tube(m, pts, 5, [0, 0, 2]);
     for (const side of [1, -1]) {
       const [x, y, z] = grinDir(side * A_GRIN * 0.86), r = aBody(x, y, z) * 1.02;
-      tube(m, [[x * r, y * r + 0.004, z * r, 0.011], [x * r + 0.004, y * r + 0.03, z * r * 1.02, 0.002]], 4, [0, 0, 5]);
+      tube(m, [[x * r, y * r + 0.004, z * r, 0.013], [x * r + 0.003, y * r + 0.022, z * r * 1.02, 0.008]], 5, [0, 0, 5]);
     }
   }
   // the stalk: from the forehead up, over and down to the lure, thinning
@@ -1045,12 +1044,14 @@ function anglerMaterial() {
       const edge = smoothstep(0.1, 0.3, length(lp.sub(vec3(0.0, 0.0, 0.0))));
       // (the rosettes at its sides magenta, worked round and round from the middle)
       const ros = fins.mul(step(0.15, abs(lp.z))).mul(step(lp.y, 0.1));
-      const rr = length(lp.sub(vec3(-0.026, -0.052, sign(lp.z).mul(0.259))));
-      const rows = smoothstep(0.25, 0.5, abs(fract(rr.mul(46.0)).sub(0.5))).mul(0.3).add(0.7);
-      const finCol = mix(mix(lin(0.64, 0.44, 0.8), lin(0.72, 0.34, 0.72), edge), lin(0.8, 0.36, 0.7).mul(rows), ros);
+      const finCol = mix(mix(lin(0.64, 0.44, 0.8), lin(0.72, 0.34, 0.72), edge), lin(0.82, 0.38, 0.72), ros);
       const col = mix(mix(mix(lin(0.64, 0.62, 0.8), finCol, fins), lin(0.66, 0.6, 0.84), stalk), lin(0.86, 0.85, 0.88), max(lip, teeth));
-      // (rows round the body from the nose back; along the cords)
-      knit(s, f, { color: col, scale: 46, p: vec3(vP.y, vP.x, vP.z), frame: [Up, F, R], k: 1.3, fuzz: 1.4 });
+      // (the body in rounds from its nose; the rosettes in rounds from their middles; the rest
+      // along themselves)
+      const size = vK.x, frame = [F, Up, R], rosC = vec3(-0.026, -0.052, sign(lp.z).mul(0.259));
+      const st = rounds(lp.mul(size), select(ros.greaterThan(0.5), rosC, vec3(0.0)).mul(size), select(ros.greaterThan(0.5), normalize(vec3(-0.5, 0.0, sign(lp.z).mul(0.87))), vec3(1.0, 0.0, 0.0)),
+        vec3(0.0, 1.0, 0.0), select(ros.greaterThan(0.5), float(0.1), float(0.26)).mul(size), yarnFor(0.83));
+      stitches(s, f, { color: col, st: { ...st, Ta: inWorld(frame, st.Ta), Tb: inWorld(frame, st.Tb) }, k: 1.3, fuzz: 1.4 });
       // the mouth: a dark gap just above the lip, widest at the nose, closing at the corners
       const dn = normalize(lp), ang = atan(dn.z, dn.x), u = ang.div(A_GRIN);
       const y0 = u.mul(u).mul(0.13).sub(0.3), yl = y0.div(sqrt(y0.mul(y0).add(1.0)));
@@ -1059,12 +1060,11 @@ function anglerMaterial() {
       const gap = smoothstep(yl.sub(aa), yl.add(aa.mul(2.0)), dn.y).mul(float(1.0).sub(smoothstep(yl.add(open).sub(aa), yl.add(open).add(aa), dn.y)))
         .mul(step(abs(u), 1.0)).mul(step(0.0, dn.x)).mul(body);
       s.albedo = mix(s.albedo, lin(0.12, 0.05, 0.16), gap);
-      bead(s, n0, eye);
-      glint(s, lp, A_EYE[0], A_EYE[1], A_EYE[2], A_EYE[3], eye);
+      eyes(s, lp, n0, { at: A_EYE, bead: eye, on: body, ring: 1.7 });
       // the lure's light on it: on what faces the lure, falling off with distance; a little
       // round its edge; and a dim light of its own colour from the eye's side, so its round
       // shape reads against the dark water (as the pictures have it)
-      const toL = vL.sub(f.w), dl = length(toL), ld = toL.div(dl), size = vK.x;
+      const toL = vL.sub(f.w), dl = length(toL), ld = toL.div(dl);
       const facing = max(dot(s.n, ld).add(0.25), 0.0).div(1.25);
       const vv = normalize(cameraPosition.sub(f.w)), rim = pow(float(1.0).sub(abs(dot(s.n, vv))), 2.5);
       const lit = facing.mul(facing).mul(float(2.2).div(dl.div(size).mul(dl.div(size)).mul(5.0).add(1.0)));
@@ -1165,26 +1165,28 @@ function bottleGlassMaterial() {
 
 // ---- gulls ------------------------------------------------------------------------------------
 
-// A gull of felt: a white body and head, grey wings with dark tips, a yellow beak, bead eyes,
-// a small fan of a tail. About a metre from wing tip to wing tip, x forward. aux.w: 0 body,
-// 1 wings, 2 beak, 3 tail, 4 eyes.
+// A gull of felt, plump as a toy is: a white body and a big round head, soft grey wings with
+// dark tips, a fat yellow beak, bead eyes in felt rings, a small fan of a tail. About a metre
+// from wing tip to wing tip, x forward. aux.w: 0 body, 1 wings, 2 beak, 3 tail, 4 eyes.
+const GL_HEAD = [0.15, 0.045, 0, 0.066, 0.06, 0.058];
+const GL_EYE = (() => { const [hx, hy, , rx, ry, rz] = GL_HEAD, l = Math.hypot(0.55, 0.38, 0.74), x = 0.55 / l, y = 0.38 / l, z = 0.74 / l, r = 0.95 / Math.hypot(x / rx, y / ry, z / rz); return [hx + x * r, hy + y * r, z * r, 0.016]; })();
 function gullShape(lod) {
   const m = new Mesh(true), res = [4, 5, 6][lod];
-  ball(m, 0, 0, 0, 0.17, 0.062, 0.068, res, 0);
-  ball(m, 0.15, 0.04, 0, 0.056, 0.05, 0.048, res, 0);
-  tube(m, [[0.195, 0.034, 0, 0.015], [0.24, 0.026, 0, 0.005]], 5, [0, 0, 2]);
-  for (const side of [1, -1]) ball(m, 0.18, 0.055, side * 0.033, 0.01, 0.01, 0.01, 2, 4);
+  ball(m, 0, 0, 0, 0.17, 0.075, 0.08, res, 0);
+  ball(m, GL_HEAD[0], GL_HEAD[1], GL_HEAD[2], GL_HEAD[3], GL_HEAD[4], GL_HEAD[5], res, 0);
+  tube(m, [[0.2, 0.036, 0, 0.022], [0.235, 0.031, 0, 0.016], [0.258, 0.026, 0, 0.009]], 6, [0, 0, 2]);
+  for (const side of [1, -1]) ball(m, GL_EYE[0], GL_EYE[1], side * GL_EYE[2], GL_EYE[3], GL_EYE[3], GL_EYE[3], 2, 4);
   for (const side of [1, -1]) {
     pillow(m, 3, lod ? 6 : 4, [0, 1, 0], 1, (s, t, o) => {
-      const chord = 0.14 * (1 - 0.55 * Math.pow(t, 1.2));
-      o[0] = 0.04 - 0.07 * t - (s - 0.25) * chord; o[1] = 0.02 + 0.025 * Math.sin(Math.PI * t); o[2] = side * (0.05 + 0.47 * t);
-      o[3] = 0.011 * (1 - 0.6 * t) * Math.sqrt(Math.max(4 * s * (1 - s), 0));
+      const chord = 0.14 * (1 - 0.5 * Math.pow(t, 1.2)) + 0.02;
+      o[0] = 0.04 - 0.07 * t - (s - 0.25) * chord; o[1] = 0.02 + 0.025 * Math.sin(Math.PI * t); o[2] = side * (0.06 + 0.46 * t);
+      o[3] = 0.018 * (1 - 0.45 * t) * plump(s, t, 0.7);
     });
   }
   pillow(m, 3, 2, [0, 1, 0], 3, (s, t, o) => {
     const v = s * 2 - 1;
-    o[0] = -0.14 - 0.09 * t; o[1] = 0.005; o[2] = v * (0.03 + 0.045 * t);
-    o[3] = 0.008 * Math.sqrt(Math.max(1 - v * v, 0));
+    o[0] = -0.14 - 0.09 * t; o[1] = 0.005; o[2] = v * (0.035 + 0.045 * t);
+    o[3] = 0.013 * Math.sqrt(Math.max(1 - v * v, 0));
   });
   return m.build();
 }
@@ -1218,9 +1220,8 @@ function gullMaterial() {
       const wing = one(part, 1), beak = one(part, 2), tail = one(part, 3), eye = one(part, 4);
       const tips = smoothstep(0.4, 0.45, abs(lp.z)).mul(wing);
       const col = mix(mix(mix(lin(0.96, 0.95, 0.92), lin(0.62, 0.65, 0.7), max(wing, tail.mul(0.7))), lin(0.16, 0.16, 0.18), tips), lin(0.98, 0.72, 0.18), beak);
-      const F = normalize(vA), Up = normalize(vB);
-      knit(s, f, { color: col, scale: 70, p: vP, frame: [F, Up, cross(F, Up)], k: 0.9, fuzz: 1.5 });
-      bead(s, n0, eye);
+      felt(s, f, { color: col, p: vP, scale: 9 });
+      eyes(s, lp, n0, { at: GL_EYE, bead: eye, on: one(part, 0), ring: 1.7 });
     },
   });
 }
@@ -1259,10 +1260,14 @@ function jellyAt(t) {
 // What the water leaves of a jelly's light, from here.
 const jellyKeep = (c, fade) => { const d = length(c.sub(cameraPosition)); return exp(SIG.mul(d).negate()).mul(fade).mul(smoothstep(0.5, 1.6, d)).mul(far(d, 32.0, 44.0)); };
 
-// The bell: a crocheted dome in two colours of stripes and a rolled rim. The light is inside
-// it: its lower rows glow through the yarn, brighter as it squeezes, a ring of glowing beads
-// shows through just above the rim, and seen from below the inside of the dome is lit. aux =
-// (from the top 0 to the rim 1 and past it round the rolled edge, round 0..1).
+// The bell: a crocheted dome in two colours of stripes, worked in rounds from its top, and a
+// rolled rim; on its front a face, as an amigurumi jelly has (bead eyes in felt rings, a smile,
+// pink cheeks), turned to where the visitor passes. The light is inside it: its lower rows glow
+// through the yarn, brighter as it squeezes, a ring of glowing beads shows through just above
+// the rim, and seen from below the inside of the dome is lit. aux = (from the top 0 to the rim 1
+// and past it round the rolled edge, round 0..1; for the eyes: their middle, and 4). The bell is
+// a unit wide; its face looks along +x.
+const J_EYE = [0.857, -0.354, 0.322, 0.12], J_CHEEK = [0.759, -0.497, 0.539, 0.075];
 function bellShape(lod) {
   const m = new Mesh(true), nb = [6, 8, 10][lod], na = [14, 18, 24][lod];
   const prof = [];
@@ -1274,8 +1279,12 @@ function bellShape(lod) {
     o[0] = Math.cos(a) * r; o[1] = y; o[2] = Math.sin(a) * r; o[3] = tb; o[4] = s;
   }, true);
   orient(m, i0, base, (x, y, z) => [x, y + 0.2, z]);
+  for (const side of [1, -1]) ball(m, J_EYE[0], J_EYE[1], side * J_EYE[2], J_EYE[3], J_EYE[3], J_EYE[3], lod ? 3 : 2, 4);
   return m.build();
 }
+// (each jelly's which glow (0 teal, 1 pink) and which way its face looks, in jD.w: the glow, and
+// the turn about the vertical as a fraction of a whole one)
+const glowKind = () => floor(jD.w), faceTurn = () => fract(jD.w).mul(TAU);
 function bellMaterial() {
   return material({
     aux: true, twoSided: true, shadow: false, fade: [30, 44],
@@ -1284,25 +1293,40 @@ function bellMaterial() {
       const lp = v.P.toVar(), ln = v.N.toVar(), tb = v.aux.x;
       const sq = float(1.0).sub(con.mul(0.16).mul(pow(min(tb, 1.0), 1.3))), st = con.mul(0.08).add(1.0);
       const tilt = vec2(sin(t.mul(0.37).add(jB.x.mul(17.0))), cos(t.mul(0.31).add(jB.x.mul(11.0)))).mul(0.1);
-      const q = vec3(lp.x.mul(sq).sub(lp.y.mul(tilt.x)), lp.y.mul(st), lp.z.mul(sq).sub(lp.y.mul(tilt.y)));
+      // (turned so that its face looks where the visitor passes)
+      const yw = faceTurn(), cy = cos(yw), sy = sin(yw);
+      const lr = vec3(lp.x.mul(cy).sub(lp.z.mul(sy)), lp.y, lp.x.mul(sy).add(lp.z.mul(cy))), nr = vec3(ln.x.mul(cy).sub(ln.z.mul(sy)), ln.y, ln.x.mul(sy).add(ln.z.mul(cy)));
+      const q = vec3(lr.x.mul(sq).sub(lr.y.mul(tilt.x)), lr.y.mul(st), lr.z.mul(sq).sub(lr.y.mul(tilt.y)));
       v.P.assign(J.c.add(q.mul(R)));
-      v.N.assign(normalize(vec3(ln.x.div(sq), ln.y.div(st), ln.z.div(sq))));
+      v.N.assign(normalize(vec3(nr.x.div(sq), nr.y.div(st), nr.z.div(sq))));
       vJ0.assign(vec4(jellyKeep(J.c, J.fade), con));
-      vJ1.assign(jC); vJ2.assign(jD);
-      vP.assign(lp.mul(R).add(jB.x.mul(5.0)));
+      vJ1.assign(jC); vJ2.assign(vec4(jD.xyz, glowKind()));
+      // (its middle; the stitches' rounds: round it, and down from its top)
+      vP.assign(J.c);
+      vK.assign(vec4(v.aux.y.mul(floor(R.mul((2 * Math.PI * STITCH) / 8).add(0.5)).mul(8.0)), tb.mul(R.mul(1.25 * STITCH)), 0.0, 0.0));
     },
     surface: (s, f) => {
-      const tb = f.aux.x, glow = glowOf(vJ2.w), keep = vJ0.rgb, con = vJ0.w;
-      knit(s, f, { color: vJ1.rgb, color2: vJ2.rgb, stripe: 2, scale: 34, p: vP, frame: [vec3(1.0, 0.0, 0.0), UP, vec3(0.0, 0.0, 1.0)], k: 1.3 });
+      const tb = f.aux.x, glow = glowOf(vJ2.w), keep = vJ0.rgb, con = vJ0.w, n0 = s.n, lp = f.obj;
+      const eye = one(f.aux.w, 4);
       // (which side is seen: the outside of the dome, or its inside, from below)
-      const vv = normalize(cameraPosition.sub(f.w)), inside = step(dot(normalize(vNrm), vv), 0.0);
-      const rim = smoothstep(0.97, 1.03, tb);
+      const vv = normalize(cameraPosition.sub(f.w)), inside = step(dot(normalize(vNrm), vv), 0.0).mul(float(1.0).sub(eye));
+      const Ta = normalize(cross(UP, f.w.sub(vP)).add(vec3(1e-4, 0.0, 0.0)));
+      const st = { a: vK.x, b: vK.y, ga: vec2(dFdx(vK.x), dFdy(vK.x)), gb: vec2(dFdx(vK.y), dFdy(vK.y)), Ta, Tb: normalize(cross(Ta, s.n)) };
+      stitches(s, f, { color: vJ1.rgb, color2: vJ2.rgb, stripe: 5, st, k: 1.3 });
+      // the face, on the outside: bead eyes in felt rings, a smile, pink cheeks
+      const out = float(1.0).sub(inside), px = pixel(vec3(lp.z, lp.y, 0.0));
+      const ring = eyes(s, lp, n0, { at: J_EYE, bead: eye, on: out, ring: 1.65 });
+      const smile = arc(lp.z, lp.y.add(0.6), float(0.15), float(0.06), float(0.022), px).mul(out).mul(smoothstep(0.6, 0.75, lp.x)).mul(float(1.0).sub(eye));
+      const cheek = spot(length(vec3(lp.x.sub(J_CHEEK[0]), lp.y.sub(J_CHEEK[1]), abs(lp.z).sub(J_CHEEK[2]))), float(0.0), float(J_CHEEK[3]), px).mul(out).mul(float(1.0).sub(eye));
+      sew(s, n0, smile, cheek);
+      const face = max(max(ring, smile), cheek.mul(0.6));
+      const rim = smoothstep(0.97, 1.03, tb).mul(float(1.0).sub(eye));
       // a ring of glowing beads under the yarn, a little above the rim
       const cell = vec2(fract(f.aux.y.mul(18.0)).sub(0.5), tb.sub(0.84).mul(6.0));
-      const beads = float(1.0).sub(smoothstep(0.18, 0.34, length(cell))).mul(float(1.0).sub(inside));
+      const beads = float(1.0).sub(smoothstep(0.18, 0.34, length(cell))).mul(out).mul(float(1.0).sub(eye));
       const through = smoothstep(0.35, 1.0, tb).mul(0.45).add(0.06).add(con.mul(0.3));
-      const lightIn = through.mul(float(1.0).sub(inside)).add(inside.mul(float(1.1).add(con.mul(0.4)))).add(rim.mul(0.6));
-      const k = vJ1.w.mul(keep.mul(0.65).add(0.35));
+      const lightIn = through.mul(out).add(inside.mul(float(1.1).add(con.mul(0.4)))).add(rim.mul(0.6)).mul(float(1.0).sub(face.mul(0.8)));
+      const k = vJ1.w.mul(keep.mul(0.65).add(0.35)).mul(float(1.0).sub(eye));
       s.emis = s.emis.add(s.albedo.mul(glow.mul(0.7).add(0.35)).mul(lightIn).add(glow.mul(beads).mul(1.1)).mul(k));
     },
   });
@@ -1347,11 +1371,11 @@ function tentacleMaterial() {
         return J.c.add(mix(cord, coil, arm)).add(vec3(0.0, R.mul(-0.68).sub(ss.mul(len).mul(float(1.0).sub(conL.mul(0.08)))), 0.0)).add(sway);
       };
       const C0 = at(s).toVar(), T = normalize(at(s.add(0.01)).sub(C0)).toVar();
-      const r = R.mul(mix(float(0.024), float(0.052), arm)).mul(float(1.0).sub(s.mul(0.3))).mul(sqrt(min(float(1.0).sub(s).mul(30.0), 1.0)));
+      const r = R.mul(mix(float(0.034), float(0.06), arm)).mul(float(1.0).sub(s.mul(0.3))).mul(sqrt(min(float(1.0).sub(s).mul(30.0), 1.0)));
       const rg = ringAt(C0, T, tang, phi, r);
       v.P.assign(rg.p); v.N.assign(rg.n);
       vJ0.assign(vec4(jellyKeep(J.c, J.fade), s));
-      vJ1.assign(jC); vJ2.assign(jD);
+      vJ1.assign(jC); vJ2.assign(vec4(jD.xyz, glowKind()));
       vA.assign(rg.S); vB.assign(T);
       vP.assign(vec3(cos(phi).mul(0.02), s.mul(len), sin(phi).mul(-0.02)).add(w.mul(7.0)));
     },
@@ -1362,7 +1386,7 @@ function tentacleMaterial() {
       const pick = hashJ(f.aux.z.add(vJ2.w.mul(0.37)), 57.1);
       const strand = mix(mix(lin(0.36, 0.84, 0.84), lin(0.7, 0.62, 0.92), step(0.3, pick)), mix(lin(0.93, 0.44, 0.74), lin(0.6, 0.7, 0.95), step(0.82, pick)), step(0.55, pick));
       const col = mix(strand, lin(0.9, 0.36, 0.64), arm);
-      knit(s, f, { color: col, scale: 60, p: vP, frame: [A, B, cross(A, B)], k: 1.2 });
+      knit(s, f, { color: col, scale: STITCH, p: vP, frame: [A, B, cross(A, B)], k: 1.2 });
       // the bell's light on the yarn, strongest near it; a little of the yarn's own glow; the
       // teal ones glow most
       const near = exp(along.mul(-2.6)), teal = float(1.0).sub(step(0.3, pick)).mul(float(1.0).sub(arm));
@@ -1380,7 +1404,7 @@ function haloMaterial() {
       v.P.assign(J.c.sub(vec3(0.0, jA.w.mul(0.55), 0.0)).add(U.right.mul(c0.x).add(U.up.mul(c0.y)).mul(jA.w.mul(2.6))));
       v.aux.assign(vec4(c0, 0.0, 0.0));
       vJ0.assign(vec4(jellyKeep(J.c, J.fade), 0.0));
-      vJ2.assign(jD); vJ1.assign(jC);
+      vJ2.assign(vec4(jD.xyz, glowKind())); vJ1.assign(jC);
     },
     raw: (f) => {
       const r2 = dot(f.aux.xy, f.aux.xy);
@@ -1486,66 +1510,98 @@ function ventFill(s, f, k = 1, col = vec3(0.17, 0.12, 0.1)) {
   const deep = smoothstep(150.0, 185.0, f.w.y.negate()), v = normalize(cameraPosition.sub(f.w));
   s.emis = s.emis.add(s.albedo.mul(col.mul(k)).mul(max(dot(s.n, v), 0.0).mul(0.65).add(0.35)).mul(deep));
 }
-// Tube worms (z6): fat crocheted tubes, white, their top part solid red, open at the top with
-// a rolled rim; in clumps, leaning out a little from each other. Built in the shader from
-// rings: aux = (along, round). Per worm: wA its foot (x, y, z) and height; wB its lean (x, z),
-// its seed, and how much of it is red. The taller the worm, the fatter.
-const wA = attribute('wA', 'vec4'), wB = attribute('wB', 'vec4');
+// Tube worms (z6, and the painted dive's worms): fat stuffed tubes of crochet, white below,
+// striped red and white up their top part, closed in a round red dome; from the dome a crown
+// of fat red plumes, which pull in fast when the visitor's hand comes near their clump (or the
+// submarine settles by it) and come out again slowly. In clumps, leaning out a little from
+// each other. Built in the shader from rings: aux = (along, round, which plume, 0 the tube or
+// 1 a plume). Per worm: wA its foot (x, y, z) and height; wB its lean (x, z), its seed, and
+// how much of it is striped; wC its clump. The taller the worm, the fatter.
+const wA = attribute('wA', 'vec4'), wB = attribute('wB', 'vec4'), wC = attribute('wC', 'vec4');
+const PLUMES = [4, 5, 5], W_CLUMPS = 32;
+// how far in each clump's plumes are (0 out, 1 in), four clumps to a vec4; set every frame
+const WIN = uniformArray(Array.from({ length: W_CLUMPS / 4 }, () => new Vector4(0, 0, 0, 0)), 'vec4');
 function wormShape(lod) {
   const m = new Mesh(true);
-  tubes(m, 1, [9, 11, 13][lod], [6, 7, 8][lod], () => 0);
+  tubes(m, 1, [9, 11, 12][lod], [6, 7, 8][lod], () => 0);
+  tubes(m, PLUMES[lod], [3, 4, 5][lod], [4, 5, 5][lod], () => 1);
   return m.build();
 }
-function wormMaterial() {
+function wormMaterial(lod) {
+  const nP = PLUMES[lod];
   return material({
-    aux: true, twoSided: true, shadow: false,
+    aux: true, shadow: false,
     vertex: (v) => {
-      const t = G.time, s = v.aux.x, phi = v.aux.y.mul(TAU);
-      const H = wA.w, seed = wB.z, rw = H.mul(0.062).add(0.05);
+      const t = G.time, s = v.aux.x, phi = v.aux.y.mul(TAU), j = v.aux.z, plume = v.aux.w;
+      const seed = wB.z, rw = wA.w.mul(0.062).add(0.05);
+      // its clump's plumes: in (1) or out (0)
+      const ci = wC.x, w4 = WIN.element(int(floor(ci.div(4.0)))), cc = ci.sub(floor(ci.div(4.0)).mul(4.0));
+      const duck = select(cc.lessThan(0.5), w4.x, select(cc.lessThan(1.5), w4.y, select(cc.lessThan(2.5), w4.z, w4.w))).toVar();
+      const H = wA.w.mul(float(1.0).sub(duck.mul(0.05)));
       // (a tall one leans away from the submarine where it passes low over them)
       const lean = awayFrom(wA.xyz.add(vec3(0.0, H, 0.0)), G.subAt.xyz, G.subAt.w.add(0.35)).div(H);
       const sway = vec2(sin(t.mul(0.5).add(seed.mul(20.0))), cos(t.mul(0.43).add(seed.mul(13.0)))).mul(0.04).add(wB.xy).add(lean.xz);
       const stem = (ss) => wA.xyz.add(vec3(sway.x.mul(ss).mul(ss).mul(H), ss.mul(H), sway.y.mul(ss).mul(ss).mul(H)));
-      // the tube, a little wider toward its top, and a rolled rim round its mouth
-      const C0 = stem(s).toVar(), T0 = normalize(stem(s.add(0.02)).sub(C0)).toVar();
-      const roll = sin(smoothstep(0.86, 1.0, s).mul(Math.PI)).mul(0.2);
-      const rg = ringAt(C0, T0, vec3(1.0, 0.0, 0.0), phi, rw.mul(s.mul(0.12).add(0.94).add(roll)));
-      v.P.assign(rg.p); v.N.assign(rg.n);
-      vA.assign(rg.S); vB.assign(T0);
-      vP.assign(vec3(cos(phi).mul(rw), s.mul(H), sin(phi).mul(rw.negate())).add(seed.mul(4.0)));
-      vK.assign(vec4(s, wB.w, phi, 0.0));
+      // the tube, a little wider toward its top, closed in a round dome (the last rings of it)
+      const hs = min(s.div(0.6), 1.0).toVar(), dome = max(s.sub(0.6), 0.0).div(0.4).mul(Math.PI / 2);
+      const C1 = stem(hs).toVar(), T1 = normalize(stem(hs.add(0.02)).sub(stem(hs.sub(0.0)))).toVar();
+      const rT = rw.mul(hs.mul(0.12).add(0.94));
+      const tube = ringAt(C1.add(T1.mul(rT.mul(0.9).mul(sin(dome)))), T1, vec3(1.0, 0.0, 0.0), phi, rT.mul(cos(dome)));
+      // a plume: from inside the dome's top, up and curling out, fat, round at its tip; it
+      // shrinks back in as the worm ducks
+      const out = float(1.0).sub(duck), top = stem(float(1.0)).toVar(), Tt = normalize(top.sub(stem(float(0.97)))).toVar();
+      const S0 = normalize(vec3(1.0, 0.0, 0.0).sub(Tt.mul(Tt.x))).toVar(), B0 = cross(Tt, S0);
+      const aj = j.div(nP).mul(TAU).add(seed.mul(5.0)), O = S0.mul(cos(aj)).add(B0.mul(sin(aj))).toVar();
+      const Lp = H.mul(0.16).add(rw.mul(0.9)).mul(out).add(0.002), base = top.add(Tt.mul(rw.mul(mix(float(-0.6), float(0.55), out)))).add(O.mul(rw.mul(0.3)));
+      const wave = sin(t.mul(1.3).add(j.mul(2.0)).add(seed.mul(9.0))).mul(0.1);
+      const at = (u) => base.add(Tt.mul(Lp.mul(u).mul(0.85))).add(O.mul(Lp.mul(u.mul(u)).mul(wave.add(0.45))));
+      // (the last ring closes it in a round cap as long as it is wide)
+      const r0 = rw.mul(0.5).mul(out.mul(0.5).add(0.5)), cap = step(0.9, s), u0 = min(s, 0.8);
+      const P0w = at(u0).toVar(), Tp = normalize(at(u0.add(0.02)).sub(P0w).add(Tt.mul(1e-4))).toVar();
+      const rEnd = r0.mul(0.78);
+      const P1 = P0w.add(Tp.mul(rEnd.mul(cap)));
+      const rp = mix(r0.mul(float(1.0).sub(u0.mul(0.28))), float(0.0), cap);
+      const fin = ringAt(P1, Tp, O, phi, rp);
+      const isP = plume.greaterThan(0.5);
+      v.P.assign(select(isP, fin.p, tube.p)); v.N.assign(select(isP, fin.n, tube.n));
+      vB.assign(select(isP, Tp, T1));
+      // (stitch coordinates: round, and along in rows; how far up the tube)
+      const N = floor(rw.mul((2 * Math.PI * STITCH) / 8).add(0.5)).mul(8.0);
+      vK.assign(vec4(v.aux.y.mul(select(isP, N.mul(0.5), N)), select(isP, s.mul(Lp), hs.mul(H).add(dome.mul(rT.mul(0.9)))).mul(STITCH), select(isP, float(2.0), s.div(0.6)), wB.w));
     },
     surface: (s, f) => {
-      const A = normalize(vA), B = normalize(vB), red = lin(0.9, 0.33, 0.27), white = lin(0.96, 0.94, 0.9);
-      // red from its top down to a row of stitches; inside the tube, in its own shade
-      const edge = float(1.0).sub(vK.y).add(sin(vK.z.mul(9.0)).mul(0.012));
-      const isRed = smoothstep(edge.sub(0.006), edge.add(0.006), vK.x);
-      knit(s, f, { color: mix(white, red, isRed), scale: 34, p: vP, frame: [A, B, cross(A, B)], k: 1.4 });
-      const vv = normalize(cameraPosition.sub(f.w)), inside = step(dot(normalize(vNrm), vv), 0.0);
-      s.albedo = s.albedo.mul(float(1.0).sub(inside.mul(0.6)));
+      const T = normalize(vB), red = lin(0.9, 0.3, 0.26), white = lin(0.96, 0.94, 0.9);
+      // white below; striped red and white up its top part; the dome and the plumes red
+      const up = vK.z, stripe = step(0.5, fract(vK.y.div(14.0)));
+      const col = mix(white, mix(mix(white, red, stripe), red, step(1.0, up)), step(float(1.0).sub(vK.w), up));
+      const st = { a: vK.x, b: vK.y, ga: vec2(dFdx(vK.x), dFdy(vK.x)), gb: vec2(dFdx(vK.y), dFdy(vK.y)), Ta: normalize(cross(s.n, T)), Tb: T };
+      stitches(s, f, { color: col, st, k: 1.4 });
       ventFill(s, f, 1.6);
     },
   });
 }
 
 // Sea sheep (z6): little fluffy cream creatures of crochet, a round body with a face of two
-// bead eyes, two soft round ears on top, and stubby legs all round, splayed over the rock they
-// sit on. aux.w: 0 wool, 4 eyes. Per sheep: hA where it sits and its size; hB which way it
-// faces, its seed.
+// big bead eyes in felt rings, a stitched smile and pink cheeks, two soft round ears on top,
+// and stubby legs all round, splayed over the rock they sit on. aux.w: 0 wool, 4 eyes. Per
+// sheep: hA where it sits and its size; hB which way it faces, its seed.
 const hA = attribute('hA', 'vec4'), hB = attribute('hB', 'vec4');
+const SH_BODY = [0, 0.11, 0, 0.135, 0.115, 0.13];
+const onSheep = (d, k) => { const [bx, by, bz, rx, ry, rz] = SH_BODY, l = Math.hypot(...d), x = d[0] / l, y = d[1] / l, z = d[2] / l, r = k / Math.hypot(x / rx, y / ry, z / rz); return [bx + x * r, by + y * r, bz + z * r]; };
+const SH_EYE = [...onSheep([0.78, 0.3, 0.55], 0.97), 0.032], SH_CHEEK = [...onSheep([0.555, -0.202, 0.807], 1.0), 0.024];
 function sheepShape(lod) {
   const m = new Mesh(true), rng = makeRng(5), res = [6, 7, 9][lod];
-  ball(m, 0, 0.11, 0, 0.135, 0.115, 0.13, res, 0);
+  ball(m, SH_BODY[0], SH_BODY[1], SH_BODY[2], SH_BODY[3], SH_BODY[4], SH_BODY[5], res, 0);
   // the legs: round the back and the sides (not under the face), splayed out and down
   const legs = [55, 95, 135, 175, 215, 255, 300];
   for (const deg of legs) {
-    const a = (deg + rng.range(-10, 10)) * Math.PI / 180, c = Math.cos(a), s = Math.sin(a), l = rng.range(0.13, 0.17), r = rng.range(0.04, 0.05);
+    const a = (deg + rng.range(-10, 10)) * Math.PI / 180, c = Math.cos(a), s = Math.sin(a), l = rng.range(0.13, 0.17), r = rng.range(0.042, 0.052);
     tube(m, [[c * 0.05, 0.1, s * 0.05, r * 1.05], [c * (0.06 + l * 0.55), 0.075, s * (0.06 + l * 0.55), r], [c * (0.06 + l), 0.035, s * (0.06 + l), r * 0.95]], [5, 6, 7][lod], [0, 0, 0]);
   }
-  // the ears: soft nubs on top, leaning out
+  // the ears: soft nubs on top, leaning out; the eyes
   for (const side of [1, -1]) {
     ball(m, -0.005, 0.225, side * 0.055, 0.032, 0.05, 0.03, Math.max(res - 3, 3), 0);
-    ball(m, 0.114, 0.145, side * 0.048, 0.025, 0.025, 0.025, 3, 4);
+    ball(m, SH_EYE[0], SH_EYE[1], side * SH_EYE[2], SH_EYE[3], SH_EYE[3], SH_EYE[3], 3, 4);
   }
   return m.build();
 }
@@ -1564,11 +1620,15 @@ function sheepMaterial() {
       vA.assign(F); vP.assign(lp.mul(hA.w).add(seed.mul(3.0)));
     },
     surface: (s, f) => {
-      const n0 = s.n, F = normalize(vA), lp = f.obj;
-      knit(s, f, { color: lin(0.96, 0.9, 0.76), scale: 40, p: vP, frame: [F, UP, cross(F, UP)], k: 1.7, fuzz: 2.6 });
-      bead(s, n0, one(f.aux.w, 4));
+      const n0 = s.n, F = normalize(vA), lp = f.obj, eye = one(f.aux.w, 4);
+      knit(s, f, { color: lin(0.96, 0.9, 0.76), scale: STITCH, p: vP, frame: [F, UP, cross(F, UP)], k: 1.7, fuzz: 2.6 });
       ventFill(s, f, 3.0, vec3(0.16, 0.14, 0.13));
-      glint(s, lp, 0.114, 0.145, 0.048, 0.025, one(f.aux.w, 4));
+      // the face: bead eyes in felt rings, a smile, cheeks
+      eyes(s, lp, n0, { at: SH_EYE, bead: eye, on: float(1.0), ring: 1.7 });
+      const px = pixel(vec3(lp.z, lp.y, 0.0)), front = smoothstep(0.1, 0.12, lp.x).mul(float(1.0).sub(eye));
+      const smile = arc(lp.z, lp.y.sub(0.09), float(0.034), float(0.016), float(0.0055), px).mul(front);
+      const cheek = spot(length(vec3(lp.x.sub(SH_CHEEK[0]), lp.y.sub(SH_CHEEK[1]), abs(lp.z).sub(SH_CHEEK[2]))), float(0.0), float(SH_CHEEK[3]), px).mul(float(1.0).sub(eye));
+      sew(s, n0, smile, cheek);
     },
   });
 }
@@ -1955,6 +2015,13 @@ export function buildFauna(ctx) {
   const BELLS = [[[0.3, 0.8, 0.78], [0.6, 0.38, 0.76], 0], [[0.92, 0.5, 0.62], [0.58, 0.32, 0.66], 1], [[0.55, 0.84, 0.82], [0.9, 0.88, 0.84], 0], [[0.66, 0.46, 0.8], [0.93, 0.56, 0.74], 1],
     [[0.66, 0.56, 0.68], [0.6, 0.5, 0.64], 0], [[0.88, 0.46, 0.54], [0.84, 0.42, 0.52], 0]];
   const bellGeo = bellShape(lod), tentGeo = tentacleShape(lod), bellMat = bellMaterial(), tentMat = tentacleMaterial(), haloMat = haloMaterial();
+  // (each one's face turned to the nearest point of the camera's way: a fraction of a turn)
+  const faceToward = (x, y, z) => {
+    let best = 1e12, bx = 1, bz = 0;
+    for (let i = 0; i < TRACK.length; i += 3) { const dx = TRACK[i] - x, dy = TRACK[i + 1] - y, dz = TRACK[i + 2] - z, d = dx * dx + dy * dy + dz * dz; if (d < best) { best = d; bx = dx; bz = dz; } }
+    return Math.min(((Math.atan2(bz, bx) / TAU) % 1 + 1) % 1, 0.999);
+  };
+  const jellies = [];
   // (in three groups, the upper and lower drop-off and the way back up, so each is switched off when it is far)
   const nj = spots.length;
   for (const part of [spots.filter((j) => j[2] > -360 && j[1] > -128), spots.filter((j) => j[2] > -360 && j[1] <= -128), spots.filter((j) => j[2] <= -360)]) {
@@ -1963,16 +2030,43 @@ export function buildFauna(ctx) {
     const ja = new Float32Array(n * 4), jb = new Float32Array(n * 4), jc = new Float32Array(n * 4), jd = new Float32Array(n * 4), boxes = [];
     part.forEach(([x, y, z, R0, Lt], i) => {
       const [c1, c2, glow] = rng.pick(BELLS);
+      const seed = rng(), rate = rng.range(0.32, 0.55), bob = rng.range(0.35, 0.55);
       ja.set([x, y, z, R0], i * 4);
-      jb.set([rng(), rng.range(0.32, 0.55), rng.range(0.35, 0.55), Lt], i * 4);
+      jb.set([seed, rate, bob, Lt], i * 4);
       jc.set([...c1.map(toLin), rng.range(0.85, 1.2)], i * 4);
-      jd.set([...c2.map(toLin), glow], i * 4);
+      jd.set([...c2.map(toLin), glow + faceToward(x, y, z)], i * 4);
+      jellies.push({ x, y, z, R: R0, Lt, seed, rate, bob });
       boxes.push([x - 4, x + 4, y - jLow(R0, Lt) - 4, y + 4, z - 4, z + 4]);
     });
     const sph = sphereOf(boxes), attrs = { jA: new InstancedBufferAttribute(ja, 4), jB: new InstancedBufferAttribute(jb, 4), jC: new InstancedBufferAttribute(jc, 4), jD: new InstancedBufferAttribute(jd, 4) };
     add(solid(copies(bellGeo, n, attrs, sph), bellMat), 46);
     add(solid(copies(tentGeo, n, attrs, sph), tentMat), 46);
     add(solid(cards(n, attrs, sph), haloMat), 46);
+  }
+
+  // The three jellies the twilight's tags name, on either shape of screen: of those in the view
+  // as the visitor goes down through the twilight (clear of the words, below the header), the
+  // biggest there, each at its own moment of the way down, in the order they come.
+  const named = {};
+  for (const scr of [SCREENS.wide, SCREENS.tall]) {
+    const q = [0, 0, 0], cand = [];
+    jellies.forEach((j) => {
+      let best = 0, bp = 0;
+      for (let pp = 5.06; pp <= 5.86; pp += 0.01) {
+        project(camAt(pp, _cA), j.x, j.y - j.R * 0.6, j.z, scr, q);
+        if (q[2] < 3 || q[2] > 24 || q[0] < (scr.kind === 'wide' ? -0.05 : -0.8) || q[0] > 0.86 || q[1] < (scr.kind === 'wide' ? -0.8 : -0.05) || q[1] > scr.top - 0.12) continue;
+        if (j.R / q[2] > best) { best = j.R / q[2]; bp = pp; }
+      }
+      if (best > 0) cand.push({ j, best, bp });
+    });
+    cand.sort((a, b) => b.best - a.best);
+    const pick = [];
+    for (const c of cand) { if (pick.length < 3 && pick.every((o) => Math.abs(o.bp - c.bp) > 0.08)) pick.push(c); }
+    for (const c of cand) { if (pick.length < 3 && !pick.includes(c)) pick.push(c); }
+    while (pick.length < 3 && jellies.length) pick.push({ j: jellies[pick.length % jellies.length], bp: 9 });
+    pick.sort((a, b) => a.bp - b.bp);
+    named[scr.kind] = pick.map((c) => c.j);
+    if (DEV) console.log('fauna: the tags\' jellies (' + scr.kind + ') at p ' + pick.map((c) => c.bp.toFixed(2)).join(', '));
   }
 
   // the siphonophore: its core, its loops and its curls, along a line set every frame
@@ -1983,25 +2077,28 @@ export function buildFauna(ctx) {
   }
 
   // the vents: clumps of tube worms at the chimneys' feet, on the side the camera passes; sea sheep on the rock
-  const chim = chimneys(), worms = [], sheep = [];
+  const chim = chimneys(), worms = [], sheep = [], clumps = [];
+  const addClump = (x, z, h) => { clumps.push({ x, z, g: groundY(x, z), h, at: new Vector3(), on: 0 }); return clumps.length - 1; };
   for (const c of chim) {
     pathAt(ventP(c.z), _o);
     const toward = Math.atan2(_o[2] - c.z, _o[0] - c.x);
     for (let clump = 0; clump < 2; clump++) {
       const a = toward + (clump ? 1.1 : -0.7) + rng.range(-0.3, 0.3), dist = c.radius * 1.25 + rng.range(0.5, 1.2);
       const cx = c.x + Math.cos(a) * dist, cz = c.z + Math.sin(a) * dist;
-      if (offTrack(cx, cz) < 2.2) continue;
+      if (offTrack(cx, cz) < 2.2 || clumps.length >= W_CLUMPS) continue;
+      const ci = addClump(cx, cz, 0.75);
       for (let i = 0, nw = Math.max(3, Math.round(rng.range(5, 8) * Math.sqrt(amt))); i < nw; i++) {
         const x = cx + rng.bell() * 0.45, z = cz + rng.bell() * 0.45;
-        worms.push([x, groundY(x, z) - 0.06, z, rng.range(0.45, 1.0), rng.bell() * 0.12, rng.bell() * 0.12, rng(), rng.range(0.4, 0.56)]);
+        worms.push([x, groundY(x, z) - 0.06, z, rng.range(0.45, 1.0), rng.bell() * 0.12, rng.bell() * 0.12, rng(), rng.range(0.4, 0.56), ci]);
       }
     }
   }
   // and where the camera passes, big clumps close by, low in the right of the view, and sea sheep by two of them
   for (const f of ventForeground(rng, chim)) {
+    const ci = clumps.length < W_CLUMPS ? addClump(f.x, f.z, 1.9) : 0;
     for (let i = 0, nw = Math.max(6, Math.round(rng.range(10, 13) * Math.sqrt(amt))); i < nw; i++) {
       const r = Math.sqrt(rng()) * 0.75, a = rng() * TAU, x = f.x + Math.cos(a) * r, z = f.z + Math.sin(a) * r * 0.8;
-      worms.push([x, groundY(x, z) - 0.08, z, rng.range(1.5, 2.5) * (1 - 0.35 * r), (x - f.x) * 0.12 + rng.bell() * 0.05, (z - f.z) * 0.12 + rng.bell() * 0.05, rng(), rng.range(0.4, 0.56)]);
+      worms.push([x, groundY(x, z) - 0.08, z, rng.range(1.5, 2.5) * (1 - 0.35 * r), (x - f.x) * 0.12 + rng.bell() * 0.05, (z - f.z) * 0.12 + rng.bell() * 0.05, rng(), rng.range(0.4, 0.56), ci]);
     }
     if (f.sheep) {
       // (beside the clump, toward the middle of the view and a little further away)
@@ -2038,9 +2135,9 @@ export function buildFauna(ctx) {
     sheep.push([x, groundY(x, z) + 0.03, z, rng.range(1.5, 1.8), Math.atan2(_o[2] - z, _o[0] - x) + rng.range(-0.6, 0.6), 0, rng(), 0]);
   }
   const ventBox = sphereOf([...chim.map((c) => [c.x - 6, c.x + 6, c.g - 1, c.g + 4, c.z - 6, c.z + 6]), ...worms.map((w) => [w[0] - 1, w[0] + 1, w[1] - 1, w[1] + 2.5, w[2] - 1, w[2] + 1]), ...sheep.map((h) => [h[0] - 1, h[0] + 1, h[1] - 1, h[1] + 1, h[2] - 1, h[2] + 1])]);
-  const wa = new Float32Array(worms.length * 4), wb = new Float32Array(worms.length * 4);
-  worms.forEach((w, i) => { wa.set(w.slice(0, 4), i * 4); wb.set(w.slice(4, 8), i * 4); });
-  add(solid(copies(wormShape(lod), worms.length, { wA: wa, wB: wb }, ventBox), wormMaterial()), 80);
+  const wa = new Float32Array(worms.length * 4), wb = new Float32Array(worms.length * 4), wc = new Float32Array(worms.length * 4);
+  worms.forEach((w, i) => { wa.set(w.slice(0, 4), i * 4); wb.set(w.slice(4, 8), i * 4); wc[i * 4] = w[8]; });
+  add(solid(copies(wormShape(lod), worms.length, { wA: wa, wB: wb, wC: wc }, ventBox), wormMaterial(lod)), 80);
   const ha = new Float32Array(sheep.length * 4), hb = new Float32Array(sheep.length * 4);
   sheep.forEach((h, i) => { ha.set(h.slice(0, 4), i * 4); hb.set([h[4], 0, h[6], 0], i * 4); });
   add(solid(copies(sheepShape(lod), sheep.length, { hA: ha, hB: hb }, ventBox), sheepMaterial()), 70);
@@ -2128,7 +2225,7 @@ export function buildFauna(ctx) {
   // (Snap is on the bow's side); from p 4.655 it rises over the desk, goes out through the
   // hole in the hull on the stern side of the camera's way, and away up and toward the stern.
   let path = null;
-  const LETTER = new Vector3(), OUT = new Vector3(), STERN = new Vector3(), OCT_SIZE = 1.12;
+  const LETTER = new Vector3(), OUT = new Vector3(), STERN = new Vector3(), OCT_SIZE = 1.3;
   if (wreck) {
     OUT.copy(wreck.cabinFacing).setY(0).normalize();
     STERN.set(-OUT.z, 0, OUT.x);                            // (the bow is (out.z, 0, -out.x))
@@ -2160,15 +2257,62 @@ export function buildFauna(ctx) {
     return out;
   };
 
-  // where the creatures other parts of the page point at are, kept every frame (the reef's crop
-  // frame snaps onto the turtle)
-  const marks = { turtle: { at: new Vector3(), r: 0.85, on: false } };
+  // Where the creatures other parts of the page point at are, kept every frame: the reef's crop
+  // frame snaps onto the turtle; the twilight's tags are pinned to what the lamp finds there
+  // (name, score, where, how far round it in metres, and whether it is there to be found now).
+  const tag = (name, score) => ({ name, score, at: new Vector3(0, -1000, 0), r: 1, on: false });
+  const marks = {
+    turtle: { at: new Vector3(), r: 0.85, on: false },
+    twilight: [tag('jellyfish', 0.97), tag('jellyfish', 0.95), tag('glowing worm', 0.84), tag('message in a bottle', 0.96), tag('anglerfish', 0.93), tag('jellyfish', 0.96)],
+  };
+  const tagJelly = [marks.twilight[0], marks.twilight[1], marks.twilight[5]];
+  // where a named jelly is now, as its shader has it (jellyAt: bobbing, drifting, moved aside
+  // level from the submarine and from Snap)
+  const smaxN = (a, b, k) => { const h = Math.max(k - Math.abs(a - b), 0) / k; return Math.max(a, b) + h * h * k * 0.25; };
+  const level = (c, top, low, at, need) => {
+    const v = Math.min(Math.max(at.y, c.y - low), c.y + top) - at.y, dx = c.x - at.x, dz = c.z - at.z, h = Math.max(Math.hypot(dx, dz), 1e-3);
+    const k = smaxN(h, Math.sqrt(Math.max(need * need - v * v, 0)), 0.7) / h - 1;
+    c.x += dx * k; c.z += dz * k;
+  };
+  const JC = new Vector3();
+  const jellyNow = (j, t, out) => {
+    const s0 = j.seed, cyc = t * j.rate + s0 * 7;
+    JC.set(j.x + Math.sin(t * 0.031 + s0 * 6) * J_DRIFT, j.y + Math.sin(t * 0.11 + s0 * 17) * j.bob + Math.sin(cyc * TAU - 1) * 0.03, j.z + Math.cos(t * 0.027 + s0 * 9) * J_DRIFT);
+    const low = j.R * (j.Lt + 0.75), top = j.R * 0.15, sub = G.subAt.value, snap = G.snapAt.value;
+    level(JC, top, low, sub, sub.w + J_SUB + j.R * 1.05 + 0.25);
+    level(JC, top, low, snap, snap.w + J_SNAP + j.R);
+    return out.set(JC.x, JC.y - j.R * 0.45, JC.z);
+  };
+  // the worms' clumps: in fast when the hand comes near (within about half the clump's height of
+  // its plumes, on the screen) or the submarine settles by it, or when startled; out slowly
+  const V1 = new Vector3(), V2 = new Vector3();
+  let duckAt = -1e9, joyAt = -1e9, lastT = 0;
+  const worms4 = (t, dt) => {
+    const h = G.hand.value, sub = G.subAt.value, startle = t - duckAt < 1.4;
+    for (let i = 0; i < clumps.length; i++) {
+      const c = clumps[i];
+      V1.set(c.x, c.g + c.h * 0.85, c.z).project(camera);
+      V2.set(c.x, c.g, c.z).project(camera);
+      const near = h.z > 0.3 && V1.z < 1 && Math.hypot((V1.x - h.x) * h.w, V1.y - h.y) < Math.max(0.55 * Math.abs(V1.y - V2.y), 0.1);
+      const settled = Math.hypot(sub.x - c.x, sub.y - c.g - c.h, sub.z - c.z) < 2.2 + c.h * 0.5;
+      const want = near || settled || startle ? 1 : 0;
+      c.on += (want - c.on) * Math.min(1, dt * (want > c.on ? 9 : 0.9));
+      WIN.array[i >> 2].setComponent(i & 3, c.on);
+    }
+  };
   return {
     spots: marks,
+    // the octopus in the cabin wiggles for joy (2.4 s): when the visitor seals its letter
+    octopusWiggle() { joyAt = lastT; },
+    // every tube worm pulls its plumes in at once (1.4 s), as at the print's pickup
+    wormsDuck() { duckAt = lastT; },
     update(t, dt, p) {
+      lastT = t;
       const e = camera.matrixWorld.elements;
       U.right.value.set(e[0], e[1], e[2]);
       U.up.value.set(e[4], e[5], e[6]);
+      U.fwd.value.set(-e[8], -e[9], -e[10]);
+      U.tanV.value = Math.tan((camera.fov * Math.PI) / 360);
       U.pix.value = (2 * Math.tan((camera.fov * Math.PI) / 360)) / Math.max(engine.height, 1);
       dust.visible = camera.position.y < -45;
       snow.visible = camera.position.y < 0.5 && camera.position.y > -95;
@@ -2182,18 +2326,29 @@ export function buildFauna(ctx) {
       // the anglerfish, and the bottle with a message (tilted, turning slowly as it sinks)
       anglerAt(p, tanV, aspect, hold);
       keyed(4, hold, t, hold.size, 0.5, 0, 0.05, 0.1, 0);
+      const tw = marks.twilight, deep = p > 4.9 && p < 6.1;
+      { const a = POSE.array[16]; tw[4].at.set(a.x, a.y, a.z); tw[4].r = 0.5 * hold.size; tw[4].on = p > ANGLER[0] - 0.05 && p < ANGLER[1] + 0.05; }
       bottleAt(p, tanV, aspect, hold);
       keyed(5, hold, t, 1.6, 0.8, 0, 0.06, 0.08, 0.5 * t);
-      // the siphonophore
+      { const a = POSE.array[20]; tw[3].at.set(a.x, a.y, a.z); tw[3].r = 0.32; tw[3].on = p > BOTTLE[0] - 0.05 && p < BOTTLE[1] + 0.05; }
+      // the siphonophore (the glowing worm of the tags: its middle, up on its arch)
       siphonAt(p, tanV, aspect, hold);
       SI.c.value.set(hold.c[0], hold.c[1], hold.c[2]); SI.d.value.set(hold.d[0], hold.d[1], hold.d[2]); SI.n.value.set(hold.f[0], hold.f[1], hold.f[2]); SI.len.value = hold.len; SI.k.value = hold.k;
       SI.show.value = hold.show;
+      tw[2].at.set(hold.c[0], hold.c[1] + 0.5 * hold.k, hold.c[2]); tw[2].r = 1.1 * hold.k; tw[2].on = hold.show > 0.5 && p < SIPHON[1] + 0.06;
+      // the jellies the tags name: where they are now (on the shape of screen the visitor has)
+      if (deep) { const js = named[aspect >= 1 ? 'wide' : 'tall']; for (let i = 0; i < 3; i++) { const j = js[i]; if (!j) continue; jellyNow(j, t, tagJelly[i].at); tagJelly[i].r = j.R * 1.4; tagJelly[i].on = true; } }
+      else for (let i = 0; i < 3; i++) tagJelly[i].on = false;
+      // the worms at the vents
+      if (camera.position.y < -150 && clumps.length) worms4(t, dt);
+      // the cabin's octopus, happy: a wiggle of 2.4 s
+      { const k = t - joyAt; JOY.value = k >= 0 && k < 2.4 ? smooth(0, 0.25, k) * (1 - smooth(1.9, 2.4, k)) : 0; }
       // (a fill on the fish on the way back up, where they are seen against the surface)
       U.fill.value = 0.35 * smooth(7.2, 7.3, p) * (1 - smooth(7.62, 7.78, p));
       // the end: the turtle, and the octopus swimming, leaning into it
       endingAt(p, tanV, aspect, hold, hold2);
-      keyed(1, hold, t, 1.0, 0.7, 1, 0.08, 0.3, 0);
-      keyed(3, hold2, t, 0.85, 0.6, 1, 0.1, 0.25, 0);
+      keyed(1, hold, t, 1.3, 0.7, 1, 0.08, 0.3, 0);
+      keyed(3, hold2, t, 1.05, 0.6, 1, 0.1, 0.25, 0);
       // (the octopus leans forward as it swims: its head ahead, its arms trailing)
       {
         const a = POSE.array, f = a[3 * 4 + 1], u = a[3 * 4 + 2];
@@ -2236,6 +2391,7 @@ export function buildFauna(ctx) {
 
 // (for dev pages: the pieces, to look at one creature at a time, and the placements to check)
 export const faunaParts = {
+  bellShape, tentacleShape, bellMaterial, tentacleMaterial, haloMaterial, JOY, WIN,
   FISH, COL, KINDS, fishShape, fishMaterial, fishMesh, eyeOf, turtleShape, turtleMaterial, octopusShape, octopusMaterial, anglerShape, anglerMaterial, lureGlowMaterial,
   gullShape, gullMaterial, copies, cards, solid, POSE, SI, toLin, jellySpots, castTrack, populate, camAt, subAt, snapAt, siphonAt, anglerAt, reefTurtleAt, endingAt, SCREENS, rectOf,
   bottleShape, bottleInsideMaterial, bottleGlassMaterial, bottleAt, sheepShape, sheepMaterial, wormShape, wormMaterial, project, onUI,

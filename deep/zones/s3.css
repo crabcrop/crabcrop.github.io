@@ -28,12 +28,60 @@
 #remove-chip.stamp { animation: stamp .45s var(--spring); }
 @keyframes stamp { 0% { transform: scale(1.08); background: var(--sun-soft); color: var(--ink); } 100% { transform: none; } }
 /* the choices' pictures: the three crop shapes, the three finishes */
-.opt .shape, .opt .fin { flex: none; display: inline-block; width: 34px; height: 24px; border-radius: 4px; }
+.opt .shape, .opt .fpic { flex: none; display: inline-block; width: 34px; height: 24px; border-radius: 4px; }
 .shape.s-wide { width: 38px; height: 20px; border: 2px dashed var(--sun-soft); }
 .shape.s-square { width: 24px; height: 24px; border: 2px dashed var(--sun-soft); }
 .shape.s-whole { width: 38px; height: 26px; border: 2px solid var(--sea-glass); background: rgba(143, 227, 225, .14); }
-.fin.f-none { background: linear-gradient(180deg, #7ccbd6 0 55%, #e8d4a6 55%); }
-.fin.f-studio { background: radial-gradient(ellipse 40% 14% at 50% 86%, rgba(20, 40, 50, .35), transparent 70%), linear-gradient(180deg, #FFEBC2, #FFD88A); }
-.fin.f-cut { background: repeating-conic-gradient(#E9D3A1 0 25%, #F6E7C8 0 50%) 0 0 / 8px 8px; }
-.opt .fin::after { content: ""; display: block; width: 12px; height: 9px; margin: 8px auto 0; border-radius: 6px 6px 4px 4px; background: #E8482F; }
+.fpic.f-none { background: linear-gradient(180deg, #F2B98E 0 42%, #5F9DB3 42% 74%, #9A6A47 74%); }
+.fpic.f-studio { background: radial-gradient(ellipse 40% 14% at 50% 86%, rgba(20, 40, 50, .35), transparent 70%), linear-gradient(180deg, #FFEBC2, #FFD88A); }
+.fpic.f-cut { background: repeating-conic-gradient(#E9D3A1 0 25%, #F6E7C8 0 50%) 0 0 / 8px 8px; }
+/* (until Snap's pictures are drawn, and on the page without the scene: a stand-in for him) */
+.opt .fpic::after { content: ""; display: block; width: 12px; height: 9px; margin: 8px auto 0; border-radius: 6px 6px 4px 4px; background: #E8482F; }
 .pick .help { clear: both; padding-top: 8px; font-size: 14.5px; color: var(--ink2); }
+
+/* ---- the zone's stretches of scroll: each station's card is up while the camera passes its
+   thing, and the Clam Studio's while the clam is in view (its pearl from p 3.79 to 3.86) ---- */
+:root:not(.page) #s3 .s3-k0 { --s: 1.02; }
+:root:not(.page) #s3 .s3-k1 { --s: 1.25; }
+:root:not(.page) #s3 .s3-k2 { --s: 2.38; }
+:root:not(.page) #s3 .s3-k3 { --s: 1.12; }
+:root:not(.page) #s3 .s3-k4, :root:not(.page) #s3 .s3-k5 { --s: 1; }
+:root:not(.page) #s3 .s3-k6, :root:not(.page) #s3 .s3-k7 { --s: .75; }
+:root:not(.page) #s3 .s3-k8, :root:not(.page) #s3 .s3-k9 { --s: .81; }
+:root:not(.page) #s3 .s3-k10 { --s: 1.59; }
+
+/* ---- the Clam Studio: Snap's pictures (src/snapshots.js), the before and after, the pearl ---- */
+.spec { padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px 12px 12px 4px; background: rgba(0, 0, 0, .34); color: var(--sea-glass); font: 12px/1.5 var(--mono); overflow-wrap: anywhere; }
+.spec b { color: var(--sun); font-weight: 800; }
+.snapshot { display: block; }
+.spec-studio { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 12px; }
+.spec-studio canvas { width: 104px; height: 88px; border-radius: 10px; background: radial-gradient(ellipse 46% 13% at 50% 88%, rgba(20, 40, 50, .3), transparent 72%), linear-gradient(180deg, #FFEBC2, #FFD88A); }
+.spec-studio code { color: var(--sun); font-size: 12px; font-weight: 700; }
+/* before and after: Snap on a photo of the marina, and cut out on the checkerboard; the range
+   moves the line (--cut) */
+.spec-compare { padding: 8px; }
+.compare { --cut: 50%; position: relative; height: 150px; border-radius: 10px; overflow: hidden; background: repeating-conic-gradient(#E9D3A1 0 25%, #F6E7C8 0 50%) 0 0 / 18px 18px; }
+.compare canvas { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.compare .before { clip-path: inset(0 calc(100% - var(--cut)) 0 0); }
+.compare .after { clip-path: inset(0 0 0 var(--cut)); }
+.compare-line { position: absolute; top: 0; bottom: 0; left: var(--cut); width: 3px; margin-left: -1.5px; background: var(--sun); box-shadow: 0 0 0 1px rgba(13, 32, 46, .4); pointer-events: none; }
+.compare-line::after { content: "\25C2  \25B8"; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); padding: 4px 6px; border-radius: 999px; background: var(--sun); color: var(--ink); font: 900 10px/1 var(--sans); white-space: pre; }
+.compare-range { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: ew-resize; touch-action: pan-y; }
+.compare:has(.compare-range:focus-visible) { outline: 3px solid var(--sun); outline-offset: 3px; }
+.beat .try { margin-top: 10px; }
+/* the pearl's upscale, and again */
+.spec-upscale .again { margin-left: 6px; padding: 3px 10px; border: 2px solid var(--ink); border-radius: 8px; background: var(--sun); color: var(--ink); font: 800 11.5px/1.3 var(--mono); cursor: pointer; }
+.spec-upscale .again:hover { background: var(--sun-soft); }
+/* the finishes: Snap on each, drawn once the scene has him */
+.opt .fpic { width: 58px; height: 44px; border: 1.5px solid rgba(238, 242, 236, .35); border-radius: 9px 9px 9px 3px; overflow: hidden; }
+.opt .fpic canvas { width: 100%; height: 100%; }
+.opt .fpic.pic::after, .opt .fpic:not(.pic) canvas { display: none; }
+@media (max-width: 760px) {
+  .opt .fpic { width: 46px; height: 35px; }
+  .compare { height: 120px; }
+  .spec-studio canvas { width: 78px; height: 66px; }
+}
+@media (max-height: 620px) and (min-width: 761px) {
+  .compare { height: 112px; }
+  .spec-studio canvas { width: 78px; height: 66px; }
+}

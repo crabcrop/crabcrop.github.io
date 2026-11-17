@@ -1,35 +1,74 @@
 <section class="zone" id="s4" aria-labelledby="h4">
-  <div class="slot s-intro"><div class="beat intro">
+  <div class="slot s-intro s4-head"><div class="beat intro">
     <p class="eyebrow"><span class="d">−60 m</span> · The Shipwreck</p>
-    <h2 id="h4" tabindex="-1">Signed, sealed, provable.</h2>
-    <p class="lede">Some links should stay unreadable, some pictures should prove where they came from, and some addresses should never be fetched at all.</p>
+    <h2 id="h4" tabindex="-1">Signed, sealed, <span class="hi">provable.</span></h2>
+    <p class="lede">Some links should stay unreadable, some pictures should prove where they came from, and some addresses should never be fetched at all. Snap squeezes in through the hole in the hull.</p>
+    <div class="can js-only">
+      <p class="can-h">Here you can</p>
+      <ul>
+        <li class="desk gl"><span class="cue flat"><b class="do">Click</b><span>the chest to seal a URL</span></span></li>
+        <li class="phone gl"><span class="cue flat"><b class="do">Tap</b><span>the chest to seal a URL</span></span></li>
+        <li><span class="cue flat"><b class="do">Pick</b><span>sealed or readable <span class="more">· choice 5 of 5</span></span></span></li>
+        <li class="desk gl"><span class="cue flat"><b class="do">Click</b><span>the letter to seal it</span></span></li>
+        <li class="phone gl"><span class="cue flat"><b class="do">Tap</b><span>the letter to seal it</span></span></li>
+      </ul>
+    </div>
   </div></div>
-  <div class="slot"><article class="beat card">
+  <div class="slot s4-sealed"><article class="beat card" id="card-sealed">
+    <div class="spec spec-sealed js-only">
+      <button type="button" class="chest" id="chest" aria-pressed="false">
+        <span class="chest-lid" aria-hidden="true"><span class="band"></span><span class="band r"></span></span>
+        <span class="chest-glow" aria-hidden="true"></span>
+        <span class="chest-body" aria-hidden="true"><span class="band"></span><span class="band r"></span><span class="lock"></span></span>
+        <span class="sr" id="chest-label">Close the chest to seal the URL</span>
+      </button>
+      <p class="sealed-url"><span class="host">https://<wbr>img.example.com/</span><wbr><span id="sealed-rest">3843ad67…/<wbr>crop:<wbr>1200x630:<wbr>smart/<wbr>filters:<wbr>sharpen(1.2):<wbr>saturation(1.1)/<wbr>root:<wbr>photos/<wbr>print.jpg</span></p>
+      <p class="sealed-hint"><span class="cue flat"><b class="do" id="chest-verb">Click</b><span>the chest to seal this URL</span></span></p>
+    </div>
     <h3>Sealed URLs</h3>
-    <p>For links that stay public but unreadable: the whole recipe, operations and source, sealed into one opaque token in the signature’s place. Only the server opens it, and it serves the same render.</p>
+    <p>For links that stay public but unreadable: the whole recipe, operations and source, sealed into one opaque token in the signature slot. Only the server opens it, and it serves the same render.</p>
     <p class="ex"><code>s1.&lt;token&gt;/<wbr>print.jpg</code></p>
     <a class="more" href="https://crabcrop.org/docs.html#sealed">Read the docs<span class="sr"> on sealed URLs</span></a>
   </article></div>
-  <div class="slot s-pick"><div class="beat pick" data-lights="seal">
+  <div class="slot s-pick s4-pick"><div class="beat pick" data-lights="seal">
     <fieldset data-choice="seal">
       <legend><span class="turn">Choice 5 of 5</span>Seal it, or keep it readable</legend>
-      <div class="opts">
-        <label class="opt"><input type="radio" name="seal" value="0" checked><span class="nm">Readable</span><code>crop:…/<wbr>root:…</code></label>
-        <label class="opt"><input type="radio" name="seal" value="1"><span class="nm">Sealed</span><code>s1.&lt;token&gt;</code></label>
+      <p class="help on-wide">Here, or with the wax seal on the captain’s desk.</p>
+      <p class="help on-narrow">Sealed hides the recipe. Readable shows it.</p>
+      <div class="opts seals">
+        <label class="opt"><input type="radio" name="seal" value="0" checked><i class="mini-url" aria-hidden="true">crop:…/root:…</i><span class="nm">Readable</span><span class="sub">the recipe in plain sight</span></label>
+        <label class="opt"><input type="radio" name="seal" value="1"><i class="wax" aria-hidden="true"></i><span class="nm">Sealed</span><code>s1.&lt;token&gt;</code></label>
       </div>
+      <p class="aside">Readable is the right default for most links. Seal the ones that must be public and still keep their recipe to themselves.</p>
     </fieldset>
     <p class="status" aria-live="polite" id="st-seal">Readable: the recipe stays in plain sight. It is the right default for most links.</p>
   </div></div>
-  <div class="slot"><article class="beat card">
+  <div class="slot s4-log"><article class="beat card" id="card-provenance">
+    <div class="spec spec-log">
+      <p class="log-title">The ship’s log of your picture</p>
+      <ol class="shiplog" id="ship-log" aria-label="What your picture’s Content Credentials record">
+        <li style="--i:0"><span class="when">Ingredient</span><span class="what">root:photos/print.jpg, its hash recorded</span></li>
+        <li style="--i:1"><span class="when">Transformed</span><span class="what">crop:1200x630:smart · sharpen(1.2):saturation(1.1)</span></li>
+        <li style="--i:2"><span class="when">Signed</span><span class="what">as served, with your certificate</span></li>
+      </ol>
+    </div>
     <h3>Provenance, checked and signed</h3>
     <p>Meta reports the Content Credentials a source carries. With your own certificate, outputs are signed as served, the source recorded as an ingredient, so the chain survives the transform.</p>
     <p class="ex"><code>CRABCROP_C2PA_CERT · CRABCROP_C2PA_KEY</code></p>
     <a class="more" href="https://crabcrop.org/docs.html#provenance">Read the docs<span class="sr"> on provenance</span></a>
   </article></div>
-  <div class="slot"><article class="beat card">
+  <div class="slot s4-ledger"><article class="beat card" id="card-private">
+    <div class="spec spec-private">
+      <ol class="ledger" aria-label="Sources the loader was asked to fetch">
+        <li><code>photos.example.com/<wbr>print.jpg</code><b class="ok">fetched</b></li>
+        <li><code>10.0.0.7/<wbr>admin.png</code><b class="no">403</b></li>
+        <li><code>169.254.169.254/<wbr>latest/<wbr>meta-data</code><b class="no">403</b></li>
+        <li><code>localhost:9000/<wbr>backup.jpg</code><b class="no">403</b></li>
+      </ol>
+    </div>
     <h3>Private sources blocked by default</h3>
-    <p>The loader refuses sources on loopback, private and other non-public addresses, checked again on every redirect. Allowlisting a host is how you vouch for an internal one.</p>
-    <p class="ex"><code>403 source_forbidden · CRABCROP_ALLOWED_SOURCES</code></p>
+    <p>The loader refuses sources on loopback, private, and other non-public addresses, checked again on every redirect. Allowlisting a host is how you vouch for an internal one.</p>
+    <p class="ex chips"><code>403 source_forbidden</code> <code>CRABCROP_ALLOWED_SOURCES</code></p>
     <a class="more" href="https://crabcrop.org/docs.html#private-sources">Read the docs<span class="sr"> on private sources</span></a>
   </article></div>
 </section>

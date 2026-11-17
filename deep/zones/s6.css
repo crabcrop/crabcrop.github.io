@@ -1,0 +1,59 @@
+/* ---- s6: the vents (src/zones/s6.js), as in the painted dive ---- */
+.vt-defs { position: absolute; width: 0; height: 0; overflow: hidden; }
+.vt-mk { flex: none; width: 13px; height: 13px; fill: currentColor; vertical-align: -2px; }
+.vt-loaders li { display: inline-flex; align-items: center; gap: 6px; }
+
+/* the cards' specimens: the terminal, the SDKs' code, the agent's tool calls */
+.vt-spec { padding: 11px 13px 12px; background: rgba(0, 0, 0, .36); border: 1px solid rgba(143, 227, 225, .22); border-radius: 14px 14px 14px 4px; font: 12px/1.5 var(--mono); color: var(--sea-glass); overflow-wrap: anywhere; }
+.vt-spec .spec-note { margin: 0; font: 600 11.5px/1.4 var(--sans); color: rgba(143, 227, 225, .8); }
+.vt-card .vt-spec + h3 { margin-top: 14px; }
+.vt-term { background: #0B1622; }
+.vt-line { margin: 0; font: 11.5px/1.5 var(--mono); color: #E8FFFC; overflow-wrap: anywhere; }
+.vt-line + .vt-line { margin-top: 4px; }
+.vt-line .ps { margin-right: 6px; color: var(--sun); }
+.vt-line.vt-said { margin-top: 6px; color: #9BE7A9; }
+/* typed in: each character waits its turn (the script wraps them), one line a second */
+.vt-ch { opacity: 0; }
+.vt-card.in .vt-ch { animation: vt-type .01s steps(1) forwards; animation-delay: var(--d); }
+@keyframes vt-type { to { opacity: 1; } }
+.vt-caret { display: inline-block; width: .6em; height: 1.1em; margin-left: 2px; vertical-align: -.2em; background: var(--sun); opacity: 0; }
+.vt-card.in .vt-caret { animation: vt-caret 1.05s steps(1) infinite; animation-delay: var(--d); }
+@keyframes vt-caret { 0% { opacity: 1; } 50% { opacity: 0; } }
+/* the SDKs: a tab for each language, the call that builds the visitor's own URL, and the URL */
+.vt-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 9px; }
+.vt-tabs[hidden] { display: none; }
+.vt-tabs button { display: inline-flex; align-items: center; gap: 6px; min-height: 30px; padding: 3px 10px; font: 800 11.5px/1 var(--mono); color: var(--sea-glass); background: transparent; border: 1.5px solid rgba(143, 227, 225, .35); border-radius: 8px; cursor: pointer; }
+.vt-tabs button:hover { background: rgba(143, 227, 225, .1); }
+.vt-tabs button[aria-selected="true"] { color: #04121a; background: var(--sea-glass); border-color: var(--sea-glass); }
+.vt-tabs button:focus-visible { outline: 2px solid var(--sand); outline-offset: 2px; }
+.vt-code { margin: 0; font: 11.5px/1.5 var(--mono); white-space: pre-wrap; overflow-wrap: anywhere; color: #E8FFFC; }
+.vt-out { margin: 8px 0 0; font: 11px/1.45 var(--mono); color: var(--sun); overflow-wrap: anywhere; }
+.vt-same { color: rgba(143, 227, 225, .75); white-space: nowrap; }
+#vt-install.swap { animation: vt-swap .45s cubic-bezier(.34, 1.4, .64, 1); }
+@keyframes vt-swap { 0% { transform: scale(1.06); background: rgba(255, 216, 138, .35); } 100% { transform: none; } }
+/* the agent's log: its calls in sun, crabcrop's answers in green; one by one */
+.vt-mcp { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 5px; }
+.vt-mcp li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; font: 11.5px/1.45 var(--mono); }
+.vt-mcp .who { flex: none; width: 5.6em; font-size: 9.5px; letter-spacing: .06em; text-transform: uppercase; color: rgba(143, 227, 225, .75); }
+.vt-mcp code { font-weight: 800; color: var(--sun); }
+.vt-mcp .what { flex: 1 1 12em; min-width: 0; color: #E8FFFC; overflow-wrap: anywhere; }
+.vt-mcp li.answer .what { color: #9BE7A9; }
+@keyframes vt-line { from { opacity: 0; transform: translateY(5px); } }
+@media (scripting: enabled) and (prefers-reduced-motion: no-preference) {
+  :root:not(.page) .vt-mcp li { opacity: 0; }
+  :root:not(.page) .vt-card.in .vt-mcp li { opacity: 1; animation: vt-line .4s ease-out backwards; animation-delay: calc(var(--i) * .5s + .3s); }
+  /* the print's story is told when the pincer lifts it (a note); as a page, here */
+  :root:not(.page) .vt-tale { visibility: hidden; }
+}
+@media (max-width: 760px) {
+  .vt-spec { padding: 8px 10px 9px; }
+  .vt-line, .vt-code, .vt-mcp li { font-size: 10.5px; line-height: 1.4; }
+  .vt-out { font-size: 10px; }
+  .vt-tabs button { min-height: 28px; font-size: 11px; }
+}
+
+/* over the scene: the agent speaks */
+.vt-bubble { position: absolute; left: 0; top: 0; margin: -54px 0 0; padding: 6px 11px; font: 800 13px/1.3 var(--mono); color: var(--ink); white-space: nowrap; background: var(--cream); border: 2px solid var(--ink); border-radius: 13px 13px 3px 13px; box-shadow: 0 3px 0 rgba(13, 32, 46, .35), 0 10px 26px rgba(0, 0, 0, .3); opacity: 0; transition: opacity .35s; pointer-events: none; }
+.vt-bubble.on { opacity: 1; }
+.vt-bubble code { font: inherit; }
+.vt-bubble b { color: #2E9E4F; }

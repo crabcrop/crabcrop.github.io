@@ -36,7 +36,7 @@
 import { BufferAttribute, InstancedBufferAttribute, InstancedBufferGeometry, Mesh as ThreeMesh, Sphere, Vector3 } from 'three/webgpu';
 import {
   abs, attribute, cameraPosition, clamp, cos, cross, dFdx, dFdy, dot, exp, float, floor, fract, fwidth, int, ivec3, length, max, min, mix, normalize, pow,
-  reflect, select, sign, sin, smoothstep, step, texture, varyingProperty, vec2, vec3, vec4,
+  reflect, select, sign, sin, smoothstep, step, texture, uniform, varyingProperty, vec2, vec3, vec4,
 } from 'three/tsl';
 import { ANCHOR, BUOY, MOORING, anchorRing, centerX, floorY, groundY } from './layout.js';
 import { Mesh, TAU, blob, clamp as clampN, lerp, makeRng, noise3 } from './math.js';
@@ -1143,6 +1143,10 @@ function buildClam(ctx, q) {
   // the jellyfish lamps in the shell: crochet bells, glowing through their stitches, hung on
   // yarn from its upper rim; long wavy tentacles and two curly arms below each
   const jy = new TMesh(), lamps = [], lampCols = [], glows = [];
+  // how lit each lamp is (0 off, 1 on): the studio (zones/s3.js) puts them out and lights them
+  // one after another as Snap arrives, through clam.lampLevel(i, k)
+  const LAMP = uniform(new Vector3(1, 1, 1));
+  const lampOf = (k) => select(k.lessThan(0.5), LAMP.x, select(k.lessThan(1.5), LAMP.y, LAMP.z));
   const JEL = [[-0.5, 0.62, 0.16, [1.0, 0.88, 0.66], [2.2, 1.5, 0.75]], [-0.14, 0.78, 0.14, [0.50, 0.93, 0.86], [0.5, 1.8, 1.55]], [0.22, 0.66, 0.15, [0.80, 0.64, 1.0], [1.4, 0.95, 2.2]]];
   JEL.forEach(([x0, h0, r0, col, light], k) => {
     const x = x0 * S, hgt = h0 * S, r = r0 * S;
@@ -1206,7 +1210,7 @@ function buildClam(ctx, q) {
       // skirt; the tentacles a little
       const bell = f.aux.w, tent = step(f.aux.x, -0.5).mul(step(-1.5, f.aux.x));
       const through = float(1).sub(Y.h).mul(1.3).add(0.75).mul(float(1.0).sub(f.aux.x.mul(0.35)));
-      s.emis = s.emis.add(vT.rgb.mul(bell.mul(through).mul(1.5).add(tent.mul(0.3))));
+      s.emis = s.emis.add(vT.rgb.mul(bell.mul(through).mul(1.5).add(tent.mul(0.3))).mul(lampOf(f.aux.z)));
     },
   }), 98);
   // the pearl
@@ -1226,15 +1230,21 @@ function buildClam(ctx, q) {
   {
     const geo = halos(lamps, 1.3);
     geo.setAttribute('hc', new InstancedBufferAttribute(new Float32Array(lampCols), 3));
+    geo.setAttribute('hk', new InstancedBufferAttribute(new Float32Array([0, 1, 2]), 1));
     const vHC = varyingProperty('vec3', 'v_set_hc');
     addMesh(ctx, geo, material({
       additive: true, shadow: false, fade: [70, 90],
-      vertex: (v) => { vHC.assign(attribute('hc', 'vec3')); haloVertex(v, 1.3); },
+      vertex: (v) => { vHC.assign(attribute('hc', 'vec3').mul(lampOf(attribute('hk', 'float')))); haloVertex(v, 1.3); },
       raw: (f) => { const d = length(vHalo); return { color: vHC.mul(exp(d.mul(d).mul(-4.0)).mul(0.85)).mul(exp(SIG.mul(f.dist).negate())), alpha: float(1.0) }; },
     }), 90, { noShadow: true });
   }
   const normal = V(ez[0] * 0.75, 0.66, ez[2] * 0.75).normalize();
-  return { position: V(pearlAt[0], pearlAt[1] + 0.26, pearlAt[2]), normal, glows };
+  const level = [1, 1, 1];
+  return {
+    position: V(pearlAt[0], pearlAt[1] + 0.26, pearlAt[2]), normal, glows, level,
+    // lamp i at k (0..1): its bell's glow, its haze and the light it throws (buildSets lends it)
+    lampLevel(i, k) { if (level[i] === k) return; level[i] = k; LAMP.value.setComponent(i, k); },
+  };
 }
 
 // ---- the wreck --------------------------------------------------------------------------------
@@ -2534,11 +2544,13 @@ export function buildSets(ctx) {
   // nothing of theirs can be seen) they are lent to the clam's three lamps
   const deepGlows = [1, 2, 3].map((i) => [G.glowPos.array[i].toArray(), G.glowCol.array[i].toArray()]);
   let lent = -1;
+  const lit = [-1, -1, -1];
   const lend = (reef) => {
     lent = reef;
     for (let i = 0; i < 3; i++) {
       G.glowPos.array[i + 1].fromArray(reef ? clamGlows[i * 2] : deepGlows[i][0]);
       G.glowCol.array[i + 1].fromArray(reef ? clamGlows[i * 2 + 1] : deepGlows[i][1]);
+      lit[i] = -1;
     }
   };
   return {
@@ -2546,6 +2558,8 @@ export function buildSets(ctx) {
       chain.setTime(t);
       const reef = p < 4.15 ? 1 : 0;
       if (reef !== lent) lend(reef);
+      // (on the reef, the light each lamp throws is as bright as the lamp: clam.lampLevel)
+      if (reef) for (let i = 0; i < 3; i++) if (lit[i] !== clam.level[i]) { lit[i] = clam.level[i]; G.glowCol.array[i + 1].fromArray(clamGlows[i * 2 + 1]).multiplyScalar(lit[i]); }
     },
     chainAt: chain.chainAt,
     clam, geode, wreck,

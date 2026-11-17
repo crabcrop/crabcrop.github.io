@@ -1,0 +1,113 @@
+/* ---- s4: the wreck and the captain's cabin (src/zones/s4.js, src/props/cabin.js), as in the painted dive ---- */
+/* the zone's stretch of scroll: the heading while the camera comes over the stern and down to the
+   hole; the chest's card as it looks into the cabin; the choice at its deepest, by the desk; the log
+   as it comes out past the bow; the ledger while Snap boards the submarine */
+#s4 .s4-head { --s: 3.07; }
+#s4 .s4-sealed { --s: 1.47; }
+#s4 .s4-pick { --s: 1.3; }
+#s4 .s4-log { --s: 1.13; }
+#s4 .s4-ledger { --s: 1.43; }
+
+/* a card's live specimen, on the abyss (as the painted cards had them) */
+#s4 .spec { padding: 12px 14px; border-radius: 14px 14px 14px 4px; background: #0D202E; box-shadow: inset 0 0 0 1px rgba(143, 227, 225, .16); color: var(--sea-glass); font: 12px/1.5 var(--mono); overflow-wrap: anywhere; }
+#s4 .spec .cue.flat { font: 650 13.5px/1.3 var(--sans); color: var(--sea-glass); }
+#s4 .spec .do { color: var(--ink); }
+
+/* the chest that seals the URL: shut the lid (a click, Enter or Space, or drag it down) and the
+   recipe scrambles into a sealed token */
+#s4 .spec-sealed { display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 14px; align-items: center; }
+.chest { position: relative; grid-row: span 2; width: 104px; height: 96px; padding: 0; border: 0; background: none; cursor: grab; touch-action: none; perspective: 240px; --open: 1; -webkit-tap-highlight-color: transparent; }
+.chest:active { cursor: grabbing; }
+.chest:focus-visible { outline: 3px solid var(--sun); outline-offset: 4px; border-radius: 10px; }
+.chest-body, .chest-lid { position: absolute; left: 6px; right: 6px; border: 2px solid #24160c; background: repeating-linear-gradient(180deg, #8d5d3b 0 9px, #7a4f32 9px 10px); }
+.chest-body { bottom: 5px; height: 46px; border-radius: 3px 3px 7px 7px; box-shadow: inset 0 -7px 0 rgba(0, 0, 0, .2), 0 4px 0 rgba(0, 0, 0, .25); }
+.chest-lid { bottom: 49px; height: 30px; border-radius: 50px 50px 3px 3px / 30px 30px 3px 3px; transform-origin: 50% 100%; transform: rotateX(calc(var(--open) * 112deg)); filter: brightness(calc(1 - var(--open) * .4)); z-index: 1; }
+.chest .band { position: absolute; top: -1px; bottom: -1px; left: 15px; width: 9px; background: linear-gradient(90deg, #8f6d26, #e7c977 50%, #8f6d26); border-left: 1px solid #24160c; border-right: 1px solid #24160c; border-radius: inherit; }
+.chest .band.r { left: auto; right: 15px; }
+.chest-glow { position: absolute; left: 12px; right: 12px; bottom: 49px; height: 20px; border-radius: 50% 50% 0 0; background: radial-gradient(ellipse 60% 100% at 50% 100%, rgba(255, 216, 138, .95), rgba(255, 176, 32, .35) 55%, transparent 75%); opacity: var(--open); }
+.chest .lock { position: absolute; left: 50%; top: 6px; width: 18px; height: 16px; margin-left: -9px; background: linear-gradient(#ecd182, #a5822e); border: 1.5px solid #24160c; border-radius: 3px; }
+.chest .lock::before { content: ""; position: absolute; left: 1.5px; right: 1.5px; top: -8px; height: 9px; border: 2px solid #c9a24a; border-bottom: 0; border-radius: 6px 6px 0 0; transform: translateY(-3px); transition: transform .2s var(--spring); }
+.chest .lock::after { content: ""; position: absolute; left: 50%; top: 4px; width: 3px; height: 5px; margin-left: -1.5px; background: #24160c; border-radius: 2px; }
+.chest.locked .lock::before { transform: none; }
+.chest.locked .chest-body { animation: thunk .3s var(--spring); }
+@keyframes thunk { 40% { transform: translateY(2px) scale(1.02, .97); } }
+.sealed-url { margin: 0; font-size: 12px; line-height: 1.45; overflow-wrap: anywhere; }
+.sealed-url .host { opacity: .65; }
+#sealed-rest.sealed { color: var(--sun); }
+#s4 .spec .sealed-hint { margin-top: 10px; }
+:root.page #s4 .spec-sealed { display: none; }
+
+/* Choice 5's two tiles: the readable recipe on a little dark strip, and a blob of red wax */
+#s4 .opt .mini-url { flex: none; display: inline-grid; place-items: center; height: 26px; padding: 0 7px; border-radius: 7px; background: #0D202E; box-shadow: inset 0 0 0 1px rgba(143, 227, 225, .25); color: var(--sea-glass); font: 600 10.5px/1 var(--mono); font-style: normal; }
+#s4 .opt .wax { flex: none; display: inline-block; width: 28px; height: 28px; border-radius: 47% 53% 50% 50% / 52% 48% 52% 48%; background: radial-gradient(circle at 50% 50%, transparent 38%, rgba(0, 0, 0, .16) 40%, transparent 47%), radial-gradient(circle at 34% 28%, #e86a5a, #b3201a 58%, #7d140f); box-shadow: 0 2px 0 rgba(0, 0, 0, .3); }
+#s4 .opt:has(input:checked) .wax { animation: wax .45s var(--spring); }
+@keyframes wax { 0% { transform: scale(1.5); } 100% { transform: none; } }
+#s4 .opt .sub { flex: 1 1 auto; min-width: 0; text-align: right; font-size: 13px; color: var(--ink3); }
+#s4 .opt:has(input:checked) .sub { color: var(--paper); }
+#s4 .pick .help { clear: both; padding-top: 8px; font-size: 14.5px; color: var(--ink2); }
+#s4 .pick .aside { margin-top: 10px; font-size: 13.5px; color: var(--ink2); }
+#s4 .help.on-wide { display: none; }
+:root.wide:not(.page) #s4 .help.on-wide { display: block; }
+:root.wide:not(.page) #s4 .help.on-narrow { display: none; }
+
+/* the ship's log of the picture: lined parchment, its rows written in one by one */
+#s4 .spec-log { padding: 12px 14px 14px; background: #F3E3C0 repeating-linear-gradient(180deg, transparent 0 20px, rgba(107, 78, 55, .16) 20px 21px); box-shadow: none; color: #3a2a1c; font-family: var(--sans); }
+#s4 .log-title { margin: 0 0 6px; font-weight: 800; font-size: 14.5px; color: #6B4E37; }
+.shiplog { display: grid; gap: 3px; margin: 0; padding: 0; list-style: none; }
+.shiplog li { display: grid; grid-template-columns: 7.2em minmax(0, 1fr); gap: 8px; font-size: 11.5px; line-height: 1.55; }
+.shiplog .when { padding-top: 2px; color: #A2471D; font: 800 9.5px/1.55 var(--mono); letter-spacing: .06em; text-transform: uppercase; }
+.shiplog .what { font-family: var(--mono); overflow-wrap: anywhere; }
+#s4.live .shiplog li { opacity: 0; clip-path: inset(0 100% 0 0); }
+#s4.live .card.in .shiplog li { animation: write .8s cubic-bezier(.23, 1, .32, 1) forwards; animation-delay: calc(var(--i) * .3s + .2s); }
+@keyframes write { to { opacity: 1; clip-path: inset(0 0 0 0); } }
+
+/* the loader's ledger: each row slides up and its badge is stamped */
+.ledger { display: grid; gap: 7px; margin: 0; padding: 0; list-style: none; }
+.ledger li { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 11.5px; }
+.ledger code { font-size: 11.5px; overflow-wrap: anywhere; }
+.ledger b { flex: none; padding: 1px 7px; border: 1.5px solid; border-radius: 6px; font: 800 10px/1.5 var(--mono); letter-spacing: .06em; text-transform: uppercase; }
+.ledger b.ok { color: #9BE7A9; border-color: rgba(155, 231, 169, .55); }
+.ledger b.no { color: #FF9A84; border-color: rgba(255, 154, 132, .6); }
+#s4.live .ledger li { opacity: 0; transform: translateY(5px); }
+#s4.live .card.in .ledger li { animation: line .45s cubic-bezier(.23, 1, .32, 1) forwards; }
+#s4.live .card.in .ledger b { animation: stamp2 .4s var(--spring) both; }
+#s4.live .card.in .ledger li:nth-child(2), #s4.live .card.in .ledger li:nth-child(2) b { animation-delay: .45s; }
+#s4.live .card.in .ledger li:nth-child(3), #s4.live .card.in .ledger li:nth-child(3) b { animation-delay: .9s; }
+#s4.live .card.in .ledger li:nth-child(4), #s4.live .card.in .ledger li:nth-child(4) b { animation-delay: 1.35s; }
+@keyframes line { to { opacity: 1; transform: none; } }
+@keyframes stamp2 { 0% { transform: scale(1.8) rotate(-8deg); opacity: 0; } 60% { opacity: 1; } 100% { transform: none; opacity: 1; } }
+
+/* ---- in the scene (the hands-on layer) ---- */
+/* where the chest in the cabin takes the pointer: a click shuts (or opens) it, a drag moves its lid */
+.chest-hit { position: absolute; left: 0; top: 0; border-radius: 12px; cursor: grab; touch-action: pan-y; pointer-events: none; }
+.chest-hit.on { pointer-events: auto; }
+.chest-hit.on:active { cursor: grabbing; }
+/* the tip by the chest, the wax seal's tip */
+.tip.s4-tip { transition: opacity .2s; white-space: normal; }
+.tip.s4-tip b { font: 800 10.5px/1 var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--ink-2); margin-bottom: 5px; }
+.tip.s4-tip code { display: block; max-width: 236px; overflow-wrap: anywhere; }
+.tip.s4-tip code.sealed { color: var(--sun); }
+.tip.s4-tip span { display: block; }
+/* the button by the octopus's letter: hung under it by a stitch of yarn */
+.cue.letter-cue { position: absolute; left: 0; top: 0; z-index: 2; opacity: 0; visibility: hidden; transition: opacity .3s, visibility 0s .3s, background .15s; }
+.cue.letter-cue.on { opacity: 1; visibility: visible; transition: opacity .3s, background .15s; }
+.cue.letter-cue::after { content: ""; position: absolute; left: var(--yx, 40px); bottom: 100%; height: var(--yarn, 26px); margin-left: -1.25px; border-left: 2.5px dashed #fff; filter: drop-shadow(0 1px 1px rgba(13, 32, 46, .55)); }
+.cue.letter-cue:hover { background: var(--sun-soft); }
+.cue.letter-cue:focus-visible { outline: 2px solid var(--sun-soft); outline-offset: 3px; }
+
+@media (max-width: 760px) {
+  .chest { width: 88px; height: 82px; }
+  .chest-body { height: 40px; }
+  .chest-lid { bottom: 43px; height: 26px; }
+  .chest-glow { bottom: 43px; }
+  #s4 .spec { padding: 10px 12px; }
+  .sealed-url { font-size: 11px; }
+  #s4 .spec .cue.flat { font-size: 13px; }
+}
+@media (max-height: 620px) and (min-width: 761px) {
+  .chest { width: 88px; height: 82px; }
+  .chest-body { height: 40px; }
+  .chest-lid { bottom: 43px; height: 26px; }
+  .chest-glow { bottom: 43px; }
+  .shiplog li, .ledger li { font-size: 11px; }
+}

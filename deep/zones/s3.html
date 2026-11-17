@@ -1,5 +1,5 @@
 <section class="zone" id="s3" aria-labelledby="h3">
-  <div class="slot s-intro"><div class="beat intro">
+  <div class="slot s-intro s3-k0"><div class="beat intro">
     <p class="eyebrow"><span class="d">−30 m</span> · The Coral Reef</p>
     <h2 id="h3" tabindex="-1">It sees <span class="hi">what matters.</span></h2>
     <p class="lede">Smart crops that keep faces whole, face detection, redaction, and object removal. Snap swims the reef past all four.</p>
@@ -15,13 +15,13 @@
       </ul>
     </div>
   </div></div>
-  <div class="slot"><article class="beat card">
+  <div class="slot s3-k1"><article class="beat card">
     <h3>Smart crop, face safe</h3>
     <p>Ask for any shape and the crop window moves to the subject. Faces stay whole, never cut at the edge.</p>
     <p class="ex"><code id="crop-chip">crop:1200x630:smart</code></p>
     <a class="more" href="https://crabcrop.org/docs.html#size">Read the docs<span class="sr"> on smart crop</span></a>
   </article></div>
-  <div class="slot s-pick"><div class="beat pick" data-lights="crop">
+  <div class="slot s-pick s3-k2"><div class="beat pick" data-lights="crop">
     <fieldset data-choice="crop">
       <legend><span class="turn">Choice 3 of 5</span>Pick a crop</legend>
       <p class="help">Three shapes. The frame finds the turtle in each.</p>
@@ -33,43 +33,73 @@
     </fieldset>
     <p class="status" aria-live="polite" id="st-crop">1200 × 630, the window moved to the subject.</p>
   </div></div>
-  <div class="slot"><article class="beat card">
+  <div class="slot s3-k3"><article class="beat card">
     <h3>Face detection</h3>
     <p>A YuNet model finds every face in a picture. Crop to them or blur them. All seven of these fish count.</p>
     <p class="ex"><code>crop:760x760:face</code> <code>filters:blurfaces</code></p>
     <a class="more" href="https://crabcrop.org/docs.html#ai">Read the docs<span class="sr"> on face detection</span></a>
   </article></div>
-  <div class="slot"><article class="beat card">
+  <div class="slot s3-k4"><article class="beat card">
     <h3>Redaction</h3>
     <p>Blur a whole class of thing, like people, before a picture goes out. It never guesses: if detection fails, so does the request. <em>Privacy is a kindness.</em></p>
     <p class="ex"><code>filters:blurclass(person)</code></p>
     <a class="more" href="https://crabcrop.org/docs.html#ai">Read the docs<span class="sr"> on redaction</span></a>
   </article></div>
-  <div class="slot"><article class="beat card">
+  <div class="slot s3-k5"><article class="beat card">
     <h3>Object removal</h3>
     <p>Mark a box and an inpainting model fills it in with what should be behind it. The reef keeps its coral, not the can.</p>
     <p class="ex"><code id="remove-chip">filters:remove_region(40,<wbr>120,<wbr>300,<wbr>200)</code></p>
     <div class="go js-only"><button class="btn" id="remove-can" type="button">Remove the can</button><a class="more" href="https://crabcrop.org/docs.html#ai">Read the docs<span class="sr"> on object removal</span></a></div>
   </article></div>
-  <div class="slot s-intro"><article class="beat clam" aria-labelledby="h3b">
+  <div class="slot s3-k6"><article class="beat intro clam" aria-labelledby="h3b">
     <p class="eyebrow"><span class="d">−30 m</span> · The Clam Studio</p>
     <h3 id="h3b">A studio <span class="hi">in a shell.</span></h3>
-    <p>Studio light for product shots, clean cut-outs, and sharper small pictures. Each one is one more step in the URL, run in process on a model you supply.</p>
-    <ul class="uses">
-      <li><code>studio(product,<wbr>bg:brand,<wbr>shadow:soft,<wbr>pad:10)</code><span>One filter cuts the product out, sets it on a brand backdrop with a soft shadow, and pads it to shape.</span></li>
-      <li><code>removebg</code><span>The background dissolves and only the subject stays, on transparency.</span></li>
-      <li><code>upscale(2)</code><span>Small or blocky pictures come back at twice the size, with real detail instead of blur.</span></li>
-    </ul>
+    <p class="lede">Studio light for product shots, clean cut-outs, and sharper small pictures. Each one is one more step in the URL, run in process on a model you supply.</p>
+    <div class="can js-only">
+      <p class="can-h">Here you can</p>
+      <ul>
+        <li class="gl"><span class="cue flat"><b class="do">Drag</b><span>across Snap to cut him out</span></span></li>
+        <li><span class="cue flat"><b class="do">Pick</b><span>a finish <span class="more">· choice 4 of 5</span></span></span></li>
+      </ul>
+    </div>
+  </article></div>
+  <div class="slot s3-k7"><article class="beat card">
+    <div class="spec spec-studio dive-only" aria-hidden="true"><canvas class="snapshot" data-pic="studio" width="208" height="176"></canvas><code>studio(product,<wbr>bg:brand,<wbr>shadow:soft,<wbr>pad:10)</code></div>
+    <h3>Studio mode</h3>
+    <p>One filter cuts the product out, sets it on a brand backdrop with a soft shadow, and pads it to shape.</p>
+    <p class="ex"><code>filters:studio(product,<wbr>bg:brand,<wbr>shadow:soft,<wbr>pad:10)</code></p>
     <a class="more" href="https://crabcrop.org/docs.html#studio">Read the docs<span class="sr"> on studio mode</span></a>
   </article></div>
-  <div class="slot s-pick"><div class="beat pick" data-lights="finish">
+  <div class="slot s3-k8"><article class="beat card">
+    <div class="spec spec-compare dive-only">
+      <div class="compare" id="compare">
+        <canvas class="snapshot before" data-pic="photo" width="680" height="300" aria-hidden="true"></canvas>
+        <canvas class="snapshot after" data-pic="cut" width="680" height="300" aria-hidden="true"></canvas>
+        <span class="compare-line" aria-hidden="true"></span>
+        <input class="compare-range" id="compare-range" type="range" min="0" max="100" value="50" aria-label="Before and after background removal">
+      </div>
+    </div>
+    <p class="try dive-only"><span class="cue flat"><b class="do">Drag</b><span>across Snap to cut him out</span></span></p>
+    <h3>Background removal</h3>
+    <p>The background dissolves and only the subject stays, on transparency.</p>
+    <p class="ex"><code>filters:removebg:<wbr>format(webp)</code></p>
+    <a class="more" href="https://crabcrop.org/docs.html#ai">Read the docs<span class="sr"> on background removal</span></a>
+  </article></div>
+  <div class="slot s3-k9"><article class="beat card">
+    <p class="spec spec-upscale dive-only"><span>Watch the pearl in the shell: </span><b>upscale(2)</b> <button type="button" class="again" id="upscale-again">Do it again</button></p>
+    <h3>AI upscale</h3>
+    <p>Small or blocky pictures come back at twice the size, with real detail instead of blur.</p>
+    <p class="ex"><code>filters:upscale(2)</code></p>
+    <a class="more" href="https://crabcrop.org/docs.html#ai">Read the docs<span class="sr"> on upscaling</span></a>
+  </article></div>
+  <div class="slot s3-k10"><div class="beat pick" data-lights="finish">
     <fieldset data-choice="finish">
       <legend><span class="turn">Choice 4 of 5</span>Pick a finish</legend>
       <p class="help">How the picture leaves the studio.</p>
       <div class="opts">
-        <label class="opt"><input type="radio" name="finish" value="0" checked><i class="fin f-none" aria-hidden="true"></i><span class="nm">None</span><code>nothing added</code></label>
-        <label class="opt"><input type="radio" name="finish" value="1"><i class="fin f-studio" aria-hidden="true"></i><span class="nm">Studio</span><code>studio(product,<wbr>bg:brand,<wbr>shadow:soft,<wbr>pad:10)</code></label>
-        <label class="opt"><input type="radio" name="finish" value="2"><i class="fin f-cut" aria-hidden="true"></i><span class="nm">Cut out</span><code>removebg</code></label>
+        <label class="opt"><input type="radio" name="finish" value="0" checked><i class="fpic f-none" aria-hidden="true"><canvas class="snapshot" data-pic="photo" width="116" height="88"></canvas></i><span class="nm">None</span><code>nothing added</code></label>
+        <label class="opt"><input type="radio" name="finish" value="1"><i class="fpic f-studio" aria-hidden="true"><canvas class="snapshot" data-pic="studio" width="116" height="88"></canvas></i><span class="nm">Studio</span><code>studio(product,<wbr>bg:brand,<wbr>shadow:soft,<wbr>pad:10)</code></label>
+        <label class="opt"><input type="radio" name="finish" value="2"><i class="fpic f-cut" aria-hidden="true"><canvas class="snapshot" data-pic="cut" width="116" height="88"></canvas></i><span class="nm">Cut out</span><code>removebg</code></label>
       </div>
     </fieldset>
     <p class="status" aria-live="polite" id="st-finish">Nothing added: the picture leaves as photographed.</p>

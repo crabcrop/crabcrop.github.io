@@ -7,7 +7,7 @@
 import { Mesh, PlaneGeometry, Quaternion, Vector3 } from 'three/webgpu';
 import { faceDirection, float, select, texture, uv, vec3 } from 'three/tsl';
 import { feltPrint } from './feltprint.js';
-import { RIDE, SLOTS, groundY, rideU } from './layout.js';
+import { RIDE, RIDE_LEFT, SLOTS, groundY, rideU } from './layout.js';
 import { clamp, smooth } from './math.js';
 import { G, material } from './shaders.js';
 import { Snap } from './snap.js';
@@ -44,11 +44,12 @@ const driftAt = (p, out) => {
   return out;
 };
 // The story's beats along p: Snap dives onto the mooring's chain just under its buoy, rides
-// it down to the anchor's ring (RIDE in layout.js) and lets go there; past the wreck the
+// it down to the anchor's ring (RIDE in layout.js) and lets go there (CHAIN_LEAVES, while the
+// camera holds: then they set off together, RIDE_LEFT); past the wreck the
 // submarine comes and turns its cockpit to him, its canopy lifting (OPENS); he climbs in and
 // sits (SNAP_BOARDS); the canopy shuts (SHUTS) and its latch locks (LOCKS: the lights go green,
 // a clunk); and away they go, over the drop.
-const CHAIN_LEAVES = [RIDE[2], RIDE[2] + 0.18], SUB_COMES = [4.68, 4.82], OPENS = [4.76, 4.84], SNAP_BOARDS = [4.84, 4.93];
+const CHAIN_LEAVES = [RIDE[2], RIDE[2] + 0.09], SUB_COMES = [4.68, 4.82], OPENS = [4.76, 4.84], SNAP_BOARDS = [4.84, 4.93];
 const SHUTS = [4.935, 4.97];
 export const LOCKS = [4.975, 4.992];
 // The homecoming: at the surface the submarine comes up, its tower and the top of its hull out
@@ -62,6 +63,9 @@ const chainS = (p) => rideU(p);
 // the water; a gust snatches it, it flies and falls in ahead and sinks, leading the way down;
 // he hops and dives after it.
 const GUST = [0.035, 0.15], DIVE = [0.075, 0.2], PRINT_GONE = 1.55;
+// In the Clam Studio he swims into the open shell and poses under its lamps while its cards are
+// up (STUDIO_IN), and comes out again as the camera leaves for the wreck (STUDIO_OUT).
+const STUDIO_IN = [3.74, 3.8], STUDIO_OUT = [3.975, 4.02];
 
 const REACTIONS = ['poke', 'hop', 'snap', 'wave', 'spin'];
 const R = new Vector3(), U = new Vector3(), F = new Vector3(), A = new Vector3(), B = new Vector3(), C = new Vector3();
@@ -108,6 +112,7 @@ export function buildCast(ctx) {
     snap, sub, loading,
     chainAt: null,                 // set when the chain exists: chainAt(s, out) writes x, y, z and its direction
     geodeAt: null,                 // the geode's position (a Vector3), if the set has one: the submarine parks by it
+    studioAt: null,                // where he poses in the Clam Studio (a Vector3), if the set has the clam
     // things worth a look on the way: { from, to, at } (p range, a Vector3); he glances at
     // one while the camera passes it, and back at the visitor between glances
     sights: [],
@@ -234,6 +239,9 @@ export function buildCast(ctx) {
         A.y += Math.sin(a2 * Math.PI) * 0.16;
       }
       if (board >= 1) A.copy(B);
+      // in the Clam Studio: to the front of the shell, where he poses for his picture
+      const studio = cast.studioAt ? smooth(STUDIO_IN[0], STUDIO_IN[1], p) * (1 - smooth(STUDIO_OUT[0], STUDIO_OUT[1], p)) : 0;
+      if (studio > 0) { A.lerp(cast.studioAt, studio); A.y += Math.sin(studio * Math.PI) * 0.22; }
       // and home: out over the cockpit's lip and up onto the submarine's back, in front of its
       // tower, where he stands with his print held up
       const out = smooth(CLIMBS_OUT[0], CLIMBS_OUT[1], p);
@@ -257,12 +265,12 @@ export function buildCast(ctx) {
         // (his middle hangs a little below his grip; the dive carries him there)
         B.copy(GRIP); B.y -= 0.12;
         A.lerp(B, onChain * dive);
-        // the claw closes on the chain as the dive ends, and lets go as he leaves it
-        grip = smooth(DIVE[1] - 0.025, DIVE[1] + 0.01, p) * smooth(0.5, 0.75, onChain);
+        // the claw closes on the chain as the dive ends, and opens slowly as he leaves it
+        grip = smooth(DIVE[1] - 0.025, DIVE[1] + 0.01, p) * smooth(0.12, 0.88, onChain);
       }
       const hang = grip > 0.5;
       // (free to visit a card: swimming in his place, not on the chain, in the cabin or aboard)
-      st.free = grip <= 0 && board <= 0 && cabin <= 0 && p > RIDE[2] + 0.2 && p < 4.4;
+      st.free = grip <= 0 && board <= 0 && cabin <= 0 && studio <= 0 && p > RIDE_LEFT[1] && p < 4.4;
       const vk = st.visiting && st.free ? smooth(0, 0.6, st.t - st.visitFrom) : st.visitK > 0 && st.free ? 1 - smooth(0, 0.5, st.t - st.visitFrom) : 0;
       if (st.visiting || vk <= 0) st.visitK = vk; else st.visitK = Math.min(st.visitK, vk);
       if (st.visitK > 0) { A.lerp(st.visitAt, st.visitK); A.y += Math.sin(st.visitK * Math.PI) * 0.35; }
@@ -273,7 +281,9 @@ export function buildCast(ctx) {
         A.y = atTop + (A.y - atTop) * dive + Math.sin(dive * Math.PI) * 0.32;
       }
       st.last.copy(st.pos);
-      follow(st.pos, st.rel, A, board >= 1 || dive < 0.5 ? 30 : dive < 1 ? 12 : grip > 0 ? 14 : 4.5);
+      // (as the camera sets off from the anchor he keeps close to his place: it moves fast there)
+      const leaving = p > RIDE[2] ? Math.max(1 - smooth(RIDE_LEFT[1], RIDE_LEFT[1] + 0.15, p), smooth(STUDIO_OUT[0], STUDIO_OUT[1], p) * (1 - smooth(4.12, 4.22, p))) : 0;
+      follow(st.pos, st.rel, A, board >= 1 || dive < 0.5 ? 30 : dive < 1 ? 12 : grip > 0 ? 14 : 4.5 + 9.5 * leaving);
       snap.group.position.copy(st.pos);
       G.snapAt.value.set(st.pos.x, st.pos.y, st.pos.z, 0.45);
       // how he moves: paddling harder the faster he goes, leaning into it
@@ -309,13 +319,13 @@ export function buildCast(ctx) {
       qa.setFromUnitVectors(Z, C);
       // (now and then, swimming, he turns his body toward where he goes, his eyes still on
       // the visitor; on the chain, in the cabin and in the submarine he faces them)
-      const turnAway = hang || inSub || cabin > 0.5 || p < DIVE[1] ? 0 : smooth(0.55, 0.95, Math.sin(t * 0.37 + 1.3)) * 0.75;
+      const turnAway = hang || inSub || cabin > 0.5 || studio > 0.5 || p < DIVE[1] ? 0 : smooth(0.55, 0.95, Math.sin(t * 0.37 + 1.3)) * 0.75;
       const spin = pk && rk === 'spin' ? smooth(0, 0.7, pk) * Math.PI * 2 : 0;
       qb.setFromAxisAngle(UP, -0.35 - turnAway + snap.life.swing * 0.15 + spin);
       snap.group.quaternion.copy(qa).multiply(qb);
       // head-first as he dives after the print, and a forward lean when he swims hard
       const plunge = smooth(0.075, 0.15, p) * (1 - smooth(0.36, 0.62, p));
-      const swims = hang || inSub || cabin > 0.5 || p < 0.62 ? 0 : 0.28 + clamp(speed * 0.08, 0, 0.2);
+      const swims = hang || inSub || cabin > 0.5 || studio > 0.9 || p < 0.62 ? 0 : 0.28 + clamp(speed * 0.08, 0, 0.2);
       const pitchDown = (Math.max(Math.sin(dive * Math.PI) * 1.05, plunge * 0.95) + swims) * (1 - grip);
       if (pitchDown > 0.001) { qa.setFromAxisAngle(R, -pitchDown); snap.group.quaternion.premultiply(qa); }
       if (grip > 0) {

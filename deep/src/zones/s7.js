@@ -7,10 +7,10 @@
 import { Vector3 } from 'three/webgpu';
 import { OPTIONS, remainder, seal, sign } from '../content.js';
 import { feltPrint } from '../feltprint.js';
+import { CLIMB } from '../layout.js';
 import { smooth } from '../math.js';
 
-// The climb: from the vents' floor (p 7) to the surface (about p 7.78).
-const CLIMB = [7.0, 7.78];
+// The climb: from the vents' floor (p 7) to the surface (about p 7.78): layout.js CLIMB.
 // The steps, in the order the server works through a URL: the crop, the filters as written
 // (the look, then the finish), the format it encodes to, and last the signature or the seal.
 // Each goes onto the print at this share of the climb.
