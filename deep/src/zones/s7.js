@@ -88,7 +88,7 @@ export default {
       // the view: as the camera turns up from the geode the submarine is out of it for a moment)
       const climbing = q > 0.03 && q < 0.93;
       if (climbing) { world.cast.pincerAt(v); stage.project(v, P); }
-      const show = climbing && P[2] > 0 && stage.onScreen(P[0], P[1], on ? 160 : 40);
+      const show = climbing && P[2] > 0 && stage.onScreen(P[0], P[1], on ? 160 : -30);
       stage.printFigure = climbing || p > 7.86;  // (the 3D print on the pincer stays hidden meanwhile)
       if (show !== on) { on = show; fig.classList.toggle('on', show); if (show) { w = 0; shown = -2; } }
       if (on) {
