@@ -281,19 +281,21 @@ function reefTurtleAt(p, tanV, aspect, o) {
   }
   return o;
 }
-// The end: under the waterline, the turtle and the octopus swim to the right across the
-// view, turned to the visitor, close and big: on a wide screen the turtle below the submarine
-// (clear of the words) and the octopus right of it; on a phone, where the words fill the view
-// below the waterline, either side of the submarine at the surface, their heads just out.
+// The end: under the waterline, the turtle and the octopus, turned to the visitor, close and
+// big: on a wide screen right of the submarine's pincer (and the print hung from it), the
+// turtle looking back at the submarine, and the octopus further right; on a phone, where the
+// words fill the view below the waterline, either side of the submarine at the surface, their
+// heads just out.
 function endingAt(p, tanV, aspect, turtle, octo) {
   // (on a phone the view turns a little left at the end, so the pier is in it: app.js)
   const pc = clampN(p, ENDING[0], ENDING[1]), wide = aspect >= 1, c = camAt(pc, _cA, wide ? 0 : -13 * smooth(7.84, 7.95, pc));
   // (`d` ahead, at nx across the screen, at a depth below the submarine, which stays a metre down)
   const put = (o, d, nx, y) => { inViewAt(o.c, c, 0, nx * d * tanV * aspect, 0); o.c[0] += c.L[0] * d; o.c[1] = y; o.c[2] += c.L[2] * d; };
-  put(turtle, 4.8, wide ? 0.07 : -0.46, wide ? -2.0 : -0.28);
+  put(turtle, 4.8, wide ? 0.42 : -0.46, wide ? -2.0 : -0.28);
   put(octo, wide ? 5.0 : 5.6, wide ? 0.78 : 0.56, wide ? -2.3 : -0.42);
   // (turned to the visitor, so their faces show)
-  dirOf(turtle.f, 0.7 * c.R[0] - 0.7 * c.L[0], 0, 0.7 * c.R[2] - 0.7 * c.L[2]);
+  const tr = wide ? -0.7 : 0.7;
+  dirOf(turtle.f, tr * c.R[0] - 0.7 * c.L[0], 0, tr * c.R[2] - 0.7 * c.L[2]);
   dirOf(octo.f, 0.4 * c.R[0] - 0.9 * c.L[0], 0, 0.4 * c.R[2] - 0.9 * c.L[2]);
 }
 
@@ -1289,7 +1291,7 @@ function bellShape(lod) {
     o[0] = Math.cos(a) * r; o[1] = y; o[2] = Math.sin(a) * r; o[3] = tb; o[4] = s;
   }, true);
   orient(m, i0, base, (x, y, z) => [x, y + 0.2, z]);
-  for (const side of [1, -1]) ball(m, J_EYE[0], J_EYE[1], side * J_EYE[2], J_EYE[3], J_EYE[3], J_EYE[3], lod ? 3 : 2, 4);
+  for (const side of [1, -1]) ball(m, J_EYE[0], J_EYE[1], side * J_EYE[2], J_EYE[3], J_EYE[3], J_EYE[3], 2, 4);
   return m.build();
 }
 // (each jelly's which glow (0 teal, 1 pink) and which way its face looks, in jD.w: the glow, and
@@ -1346,9 +1348,9 @@ function bellMaterial() {
 // point follows the bell as it was a moment before, so the pulse runs down them. They are lit
 // by the bell's light, most near it. aux = (along, round, where round the bell 0..1, kind: 0 a
 // strand, 1 an arm, plus half its length 0.3..0.5).
-const J_STRANDS = [9, 13, 18], J_ARMS = [3, 3, 4];
+const J_STRANDS = [8, 11, 14], J_ARMS = [3, 3, 4];
 function tentacleShape(lod) {
-  const m = new Mesh(true), rng = makeRng(31), ns = [9, 12, 15][lod], nside = [3, 4, 4][lod], na = [26, 34, 44][lod];
+  const m = new Mesh(true), rng = makeRng(31), ns = [9, 12, 15][lod], nside = [3, 4, 4][lod], na = [24, 30, 36][lod];
   const n = J_STRANDS[lod], nArm = J_ARMS[lod];
   tubes(m, n, ns, nside, () => rng.range(0.6, 1.0) * 0.5);
   const first = m.count;
@@ -1528,13 +1530,13 @@ function ventFill(s, f, k = 1, col = vec3(0.17, 0.12, 0.1)) {
 // 1 a plume). Per worm: wA its foot (x, y, z) and height; wB its lean (x, z), its seed, and
 // how much of it is striped; wC its clump. The taller the worm, the fatter.
 const wA = attribute('wA', 'vec4'), wB = attribute('wB', 'vec4'), wC = attribute('wC', 'vec4');
-const PLUMES = [4, 4, 5], W_CLUMPS = 32;
+const PLUMES = [3, 4, 4], W_CLUMPS = 32;
 // how far in each clump's plumes are (0 out, 1 in), four clumps to a vec4; set every frame
 const WIN = uniformArray(Array.from({ length: W_CLUMPS / 4 }, () => new Vector4(0, 0, 0, 0)), 'vec4');
 function wormShape(lod) {
   const m = new Mesh(true);
-  tubes(m, 1, [9, 11, 12][lod], [6, 7, 8][lod], () => 0);
-  tubes(m, PLUMES[lod], [4, 5, 6][lod], [4, 5, 5][lod], () => 1);
+  tubes(m, 1, [8, 9, 10][lod], [6, 7, 7][lod], () => 0);
+  tubes(m, PLUMES[lod], [3, 4, 4][lod], [4, 4, 4][lod], () => 1);
   return m.build();
 }
 function wormMaterial(lod) {
@@ -2037,7 +2039,7 @@ export function buildFauna(ctx) {
   };
   const jellies = [];
   // (in three groups, the upper and lower drop-off and the way back up, so each is switched off when it is far)
-  const nj = spots.length;
+  const nj = spots.length, jGroups = [];
   for (const part of [spots.filter((j) => j[2] > -360 && j[1] > -128), spots.filter((j) => j[2] > -360 && j[1] <= -128), spots.filter((j) => j[2] <= -360)]) {
     const n = part.length;
     if (!n) continue;
@@ -2053,9 +2055,10 @@ export function buildFauna(ctx) {
       boxes.push([x - 4, x + 4, y - jLow(R0, Lt) - 4, y + 4, z - 4, z + 4]);
     });
     const sph = sphereOf(boxes), attrs = { jA: new InstancedBufferAttribute(ja, 4), jB: new InstancedBufferAttribute(jb, 4), jC: new InstancedBufferAttribute(jc, 4), jD: new InstancedBufferAttribute(jd, 4) };
-    add(solid(copies(bellGeo, n, attrs, sph), bellMat), 46);
-    add(solid(copies(tentGeo, n, attrs, sph), tentMat), 46);
-    add(solid(cards(n, attrs, sph), haloMat), 46);
+    jGroups.push({
+      meshes: [add(solid(copies(bellGeo, n, attrs, sph), bellMat), 46), add(solid(copies(tentGeo, n, attrs, sph), tentMat), 46), add(solid(cards(n, attrs, sph), haloMat), 46)],
+      hang: part.map(([x, y, z, R0, Lt]) => [x, y + R0 * 0.2 + J_DRIFT + 0.6, z, y - jLow(R0, Lt) - 0.6]),
+    });
   }
 
   // The three jellies the twilight's tags name, on either shape of screen: one for each stretch
@@ -2103,7 +2106,7 @@ export function buildFauna(ctx) {
       const cx = c.x + Math.cos(a) * dist, cz = c.z + Math.sin(a) * dist;
       if (offTrack(cx, cz) < 2.2 || clumps.length >= W_CLUMPS) continue;
       const ci = addClump(cx, cz, 0.75);
-      for (let i = 0, nw = Math.max(3, Math.round(rng.range(5, 8) * Math.sqrt(amt))); i < nw; i++) {
+      for (let i = 0, nw = Math.max(3, Math.round(rng.range(4, 7) * Math.sqrt(amt))); i < nw; i++) {
         const x = cx + rng.bell() * 0.45, z = cz + rng.bell() * 0.45;
         worms.push([x, groundY(x, z) - 0.06, z, rng.range(0.45, 1.0), rng.bell() * 0.12, rng.bell() * 0.12, rng(), rng.range(0.4, 0.56), ci]);
       }
@@ -2112,7 +2115,7 @@ export function buildFauna(ctx) {
   // and where the camera passes, big clumps close by, low in the right of the view, and sea sheep by two of them
   for (const f of ventForeground(rng, chim)) {
     const ci = clumps.length < W_CLUMPS ? addClump(f.x, f.z, 1.9) : 0;
-    for (let i = 0, nw = Math.max(6, Math.round(rng.range(10, 13) * Math.sqrt(amt))); i < nw; i++) {
+    for (let i = 0, nw = Math.max(5, Math.round(rng.range(8, 11) * Math.sqrt(amt))); i < nw; i++) {
       const r = Math.sqrt(rng()) * 0.75, a = rng() * TAU, x = f.x + Math.cos(a) * r, z = f.z + Math.sin(a) * r * 0.8;
       worms.push([x, groundY(x, z) - 0.08, z, rng.range(1.5, 2.5) * (1 - 0.35 * r), (x - f.x) * 0.12 + rng.bell() * 0.05, (z - f.z) * 0.12 + rng.bell() * 0.05, rng(), rng.range(0.4, 0.56), ci]);
     }
@@ -2127,7 +2130,7 @@ export function buildFauna(ctx) {
   // does; both duck at the pickup). (Their own random numbers: the rest stays as it was.)
   {
     const c = camAt(6.9, _cA), rg = makeRng(4242);
-    for (const [r, f, n, h0, h1, reach] of [[-2.6, -4.0, 9, 0.8, 1.4, 0], [4.6, 0.4, 7, 0.7, 1.2, 0.8]]) {
+    for (const [r, f, n, h0, h1, reach] of [[-2.6, -4.0, 9, 0.8, 1.4, 0], [5.4, 0.4, 7, 0.7, 1.2, 1.3]]) {
       const cx = GEODE.x + c.R[0] * r + c.L[0] * f, cz = GEODE.z + c.R[2] * r + c.L[2] * f;
       if (offTrack(cx, cz) < 2.2 || clumps.length >= W_CLUMPS) continue;
       const ci = addClump(cx, cz, (h0 + h1) / 2, reach);
@@ -2139,6 +2142,7 @@ export function buildFauna(ctx) {
   }
   // and one large, close by, on a rock in the foreground as the camera comes to the vents: low in
   // the view, right of its middle, under the submarine, looking at the visitor
+  let rockMesh = null;
   const sheepRock = (() => {
     const c = camAt(6.33), q = [0, 0, 0];
     for (let k = 0; k < 30; k++) {
@@ -2157,6 +2161,7 @@ export function buildFauna(ctx) {
     m.position.set(x, g + 0.1, z); m.scale.set(0.78, 0.48, 0.66); m.rotation.set(0, -a, 0);
     m.updateMatrix();
     add(m, 70);
+    rockMesh = m;
   }
   for (const k of [0, 2, 5]) {
     const c = chim[k];
@@ -2168,10 +2173,10 @@ export function buildFauna(ctx) {
   const ventBox = sphereOf([...chim.map((c) => [c.x - 6, c.x + 6, c.g - 1, c.g + 4, c.z - 6, c.z + 6]), ...worms.map((w) => [w[0] - 1, w[0] + 1, w[1] - 1, w[1] + 2.5, w[2] - 1, w[2] + 1]), ...sheep.map((h) => [h[0] - 1, h[0] + 1, h[1] - 1, h[1] + 1, h[2] - 1, h[2] + 1])]);
   const wa = new Float32Array(worms.length * 4), wb = new Float32Array(worms.length * 4), wc = new Float32Array(worms.length * 4);
   worms.forEach((w, i) => { wa.set(w.slice(0, 4), i * 4); wb.set(w.slice(4, 8), i * 4); wc[i * 4] = w[8]; });
-  add(solid(copies(wormShape(lod), worms.length, { wA: wa, wB: wb, wC: wc }, ventBox), wormMaterial(lod)), 80);
+  const ventMeshes = [add(solid(copies(wormShape(lod), worms.length, { wA: wa, wB: wb, wC: wc }, ventBox), wormMaterial(lod)), 80)];
   const ha = new Float32Array(sheep.length * 4), hb = new Float32Array(sheep.length * 4);
   sheep.forEach((h, i) => { ha.set(h.slice(0, 4), i * 4); hb.set([h[4], 0, h[6], 0], i * 4); });
-  add(solid(copies(sheepShape(lod), sheep.length, { hA: ha, hB: hb }, ventBox), sheepMaterial()), 70);
+  ventMeshes.push(add(solid(copies(sheepShape(lod), sheep.length, { hA: ha, hB: hb }, ventBox), sheepMaterial()), 70));
 
   // specks, round the eye wherever it is: pale in the light, gold and teal in the dark
   const everywhere = new Sphere(new Vector3(0, 0, 0), 1e6);
@@ -2253,8 +2258,9 @@ export function buildFauna(ctx) {
 
   // In the wreck's cabin (when the set gives it): behind the desk, facing the visitor across
   // it, its front arms on the letter, nearly behind it (a little toward the stern; Snap is on
-  // the bow's side), where the cabin's view shows it best; from p 4.655 it rises over the desk, goes out through the
-  // hole in the hull on the stern side of the camera's way, and away up and toward the stern.
+  // the bow's side), where the cabin's view shows it best; from p 4.655 it rises over the
+  // desk, goes out through the hole in the hull on the stern side of the camera's way, and away
+  // up and toward the stern.
   let path = null;
   const LETTER = new Vector3(), OUT = new Vector3(), STERN = new Vector3(), OCT_SIZE = 1.3;
   if (wreck) {
@@ -2349,6 +2355,21 @@ export function buildFauna(ctx) {
       snow.visible = camera.position.y < 0.5 && camera.position.y > -95;
       // gulls only while the eye is out of the water
       if (camera.position.y < -0.6) for (let i = 0; i < gulls.length; i++) gulls[i].visible = false;
+      // (what the world's culling switched on by its group's whole sphere but cannot be seen from
+      // here: a group of jellies all past the distance where the water has taken them, the vents'
+      // worms and sea sheep while the eye is still far above the vents)
+      const cx = camera.position.x, cy = camera.position.y, cz = camera.position.z;
+      for (let g = 0; g < jGroups.length; g++) {
+        const G0 = jGroups[g];
+        if (!G0.meshes[0].visible) continue;
+        let near = 1e9;
+        for (let i = 0; i < G0.hang.length; i++) {
+          const h = G0.hang[i], dy = cy > h[1] ? cy - h[1] : cy < h[3] ? h[3] - cy : 0, d = (h[0] - cx) * (h[0] - cx) + dy * dy + (h[2] - cz) * (h[2] - cz);
+          if (d < near) near = d;
+        }
+        if (near > 46 * 46) for (let k = 0; k < 3; k++) G0.meshes[k].visible = false;
+      }
+      if (cy > -150) { for (let k = 0; k < ventMeshes.length; k++) ventMeshes[k].visible = false; if (rockMesh) rockMesh.visible = false; }
       const tanV = Math.tan((camera.fov * Math.PI) / 360), aspect = camera.aspect;
       // the turtle over the reef
       reefTurtleAt(p, tanV, aspect, hold);
