@@ -84,9 +84,12 @@ export default {
       const amount = q > 0 && q < 1 ? smooth(0, 0.065, q) * (1 - smooth(0.84, 0.97, q)) : 0;
       world.engine.ascent(amount, Math.min(Math.max(q, 0), 1));
 
-      // the print on the pincer, with its ticket, while the bands are up
-      const show = q > 0.03 && q < 0.93;
-      stage.printFigure = show || p > 7.86;      // (the 3D print on the pincer stays hidden meanwhile)
+      // the print on the pincer, with its ticket, while the bands are up (and the pincer is in
+      // the view: as the camera turns up from the geode the submarine is out of it for a moment)
+      const climbing = q > 0.03 && q < 0.93;
+      if (climbing) { world.cast.pincerAt(v); stage.project(v, P); }
+      const show = climbing && P[2] > 0 && stage.onScreen(P[0], P[1], on ? 160 : 40);
+      stage.printFigure = climbing || p > 7.86;  // (the 3D print on the pincer stays hidden meanwhile)
       if (show !== on) { on = show; fig.classList.toggle('on', show); if (show) { w = 0; shown = -2; } }
       if (on) {
         let n = -1;
@@ -97,8 +100,6 @@ export default {
           floor = climbBeat && climbBeat.offsetHeight ? stage.H - (parseFloat(getComputedStyle(climbBeat).bottom) || 8) - climbBeat.offsetHeight : 0;
         }
         // it hangs from the pincer by its top corner, kept on screen (its ticket above the bottom edge)
-        world.cast.pincerAt(v);
-        stage.project(v, P);
         const right = stage.W - w - (stage.wide ? 64 : 14);
         // (on a phone, above the words' sheet along the bottom: under the pincer, so the cockpit
         // and Snap in it show, where the climb's card leaves room)
