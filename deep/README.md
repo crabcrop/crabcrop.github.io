@@ -84,9 +84,22 @@ with neither, or a visitor who prefers reduced motion, gets the page as plain te
   visitor's hand (a cursor counts for 2.5 s after it moves, a tap for 1.4 s); its cues (a verb on
   a sun badge, tied to things by yarn), rings, the dock and Snap's story notes look as they did
   there (`zones/core.css`). Each zone has a module, `src/zones/<id>.js`, with its scene pieces and
-  page pieces (the reef's crop frame on the turtle, face boxes, the cuttlefish's blur, the can to
-  erase; the climb's print and ticket; ...), its words in `zones/<id>.html` and its styles in
-  `zones/<id>.css`, which the build puts into the page.
+  page pieces, its words in `zones/<id>.html` and its styles in `zones/<id>.css`, which the build
+  puts into the page; bigger 3D pieces are in `src/props/`. The shallows: six schools of format
+  fish (the picked one gathers by Snap's claw; Auto races AVIF, JPEG XL and WebP to it) and the
+  cargo of sources with their rings. The kelp: three silk curtains that try a look on the whole
+  forest and keep it on a click, and a little fish tangled in fishing line to cut free. The reef:
+  the crop frame on the turtle, face boxes on the school, the cuttlefish's blur, the can to erase;
+  the Clam Studio, where Snap poses in front of the open shell while its jellyfish lamps come on
+  one by one, a before/after to cut him out (`src/snapshots.js` draws him once for the cards) and
+  the pearl rebuilt from a mosaic by `upscale(2)`. The cabin: the chest that seals the visitor's
+  own URL into a token, the wax seal on the desk, the octopus's letter, the lantern and the dust.
+  The twilight: the lamp follows the hand and names what it finds (tags with scores, the meta
+  answer and its alt text), the bottle's message read line by line. The vents: the install typed
+  out, the SDK tabs, an agent's little submarine calling the MCP tools about the visitor's URL,
+  the print picked up at the geode. The way up: the print on the pincer and its ticket.
+- `src/amigurumi.js`: the crochet kit every creature is made with, as Snap is: rows of stitches
+  worked round each body, felt, big bead eyes in white rings, a sewn smile.
 
 No frame allocates in the dive's own code: buffers, vectors and matrices are made once, and
 motion lives in the vertex shaders wherever it can.
