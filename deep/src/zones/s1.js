@@ -52,6 +52,8 @@ const S = {
   fish: null, list: [], schools: [], cargo: null, glint: null, camera: null, cast: null,
   focus: null, picked: null, raceAt: -1, raced: false, time: 0, placed: false, phone: false,
 };
+// (dev builds only: for probes)
+if (DEV) window.__s1 = S;
 // camera frame and scratch vectors (no frame allocates)
 const R = new Vector3(), U = new Vector3(), F = new Vector3(), P = new Vector3(), FW = new Vector3(), UP = new Vector3(), GRIP = new Vector3();
 const H2 = [0, 0], PR = [0, 0, 0], O5 = [0, 0, 0, 0, 0];

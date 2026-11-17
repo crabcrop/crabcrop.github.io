@@ -64,6 +64,9 @@ export function createUI(opts = {}) {
     mode: why ? 'page' : 'dive',
     pTo: 0,
     choices: { format: 0, look: 0, crop: 0, finish: 0, seal: 0 },
+    // the sealed token minted for the recipe while Choice 5 is sealed (null while it is being
+    // minted, '' where this page cannot seal): the cabin's chest shows the same one as the bar
+    get token() { return token; },
     statsOn: false,
     loading, ready, failed, frame, stats,
     // pick option i of a choice from elsewhere (a curtain in the forest, the wax seal): its

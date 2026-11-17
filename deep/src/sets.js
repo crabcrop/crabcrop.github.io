@@ -27,8 +27,12 @@
 //                    as the chain hangs at this frame (after update(t)).
 //   clam             { position, normal }: where an object sits in the open clam, and the way the
 //                    clam opens (unit vector out of its mouth).
-//   wreck            { lantern, envelope, cabin, cabinFacing }: the lantern, the desk's top, the
-//                    cabin's middle, and the way out through the hole in its side.
+//   wreck            { lantern, envelope, cabin, cabinFacing, desk, loose }: where the lantern
+//                    hangs, the desk's top, the cabin's middle, the way out through the hole in its
+//                    side, and the desk's frame ({ at: the foot of its middle, x, y, z: unit axes:
+//                    across toward the port wall, up the deck, toward the bow }). loose: the
+//                    cabin's loose things (the lantern, the chest, the desk's stamp, the wax on the
+//                    letter) are not built here: zones/s4.js makes them (props/cabin.js), movable.
 //   geode            { position, normal, size }: the spot on the bed in the geode's hollow where
 //                    the picture lies, the way it faces (out of the hollow, up and toward the
 //                    camera at p = 7), and the widest picture (metres) that fits there, square or
@@ -1762,43 +1766,19 @@ function buildWreck(ctx, q) {
     const kn = W(desk.x - 0.4, desk.y + 0.66, desk.z + sz);
     ball(b, kn[0], kn[1], kn[2], () => 0.025, 2);
   }
-  // on the desk: the envelope (sealed with red wax), a scroll, the seal's stamp, an inkwell
+  // on the desk: the envelope (its wax, the stamp, the chest and the lantern are the cabin's
+  // loose things: zones/s4.js), a scroll, an inkwell
   {
     const top = desk.y + 0.865;
     y.paint([0.94, 0.90, 0.80], [0.94, 0.90, 0.80, 0]);
     const e = W(desk.x - 0.05, top + 0.012, desk.z - 0.25);
     rbox(y, e, dX, dY, Wd(0, 0, 1), [0.17, 0.012, 0.26], 0.008, [1, 1, 1]);
-    y.paint([0.78, 0.12, 0.10], [0.78, 0.12, 0.10, 0]);
-    const s2 = W(desk.x - 0.05, top + 0.03, desk.z - 0.25);
-    ball(y, s2[0], s2[1], s2[2], (dx, dy, dz) => (Math.abs(dy) > 0.7 ? 0.012 : 0.04), 4);
     y.paint([0.92, 0.86, 0.72], [0.92, 0.86, 0.72, 0]);
     const sc0 = W(desk.x + 0.12, top + 0.05, desk.z + 0.2), sc1 = W(desk.x + 0.12, top + 0.05, desk.z + 0.62);
     sweep(y, [[...sc0, 0.05], [...sc1, 0.05]], 10, { caps: true });
-    paintIn([0.36, 0.20, 0.11]);
     const st = W(desk.x - 0.15, top, desk.z + 0.32);
-    sweep(w, [[st[0], st[1] + 0.06, st[2], 0.025], [st[0], st[1] + 0.16, st[2], 0.02], [st[0], st[1] + 0.22, st[2], 0.035]], 8, { caps: true });
-    sweep(b, [[st[0], st[1], st[2], 0.04], [st[0], st[1] + 0.06, st[2], 0.04]], 10, { caps: true });
     gl.paint([1, 1, 1, 0]);
     sweep(gl, [[st[0] + 0.02, st[1], st[2] + 0.5, 0.045], [st[0] + 0.02, st[1] + 0.09, st[2] + 0.5, 0.04]], 10, { caps: true, aux: (kk, j, x, yy, z, o) => { o[0] = 0; o[1] = 0; o[2] = 0; o[3] = 3; } });
-  }
-  // a small chest by the desk, bound in brass
-  {
-    paintIn([0.44, 0.28, 0.16]);
-    const c0 = W(desk.x - 0.05, cab.floor + 0.2, desk.z + 1.35);
-    rbox(w, c0, dX, dY, dZ, [0.3, 0.2, 0.4], 0.04, [1, 1, 1], (lx, ly, lz, o) => { o[0] = ly * 3 + lx; o[1] = lz; o[2] = 1; o[3] = 1; });
-    const c1 = W(desk.x - 0.05, cab.floor + 0.42, desk.z + 1.35);
-    sweep(w, [[c1[0] - dZ[0] * 0.4, c1[1], c1[2] - dZ[2] * 0.4, 0.3], [c1[0] + dZ[0] * 0.4, c1[1], c1[2] + dZ[2] * 0.4, 0.3]], 12, { caps: true, radius: (kk, j, ang) => (Math.sin(ang) > 0 ? 1 : 0.15), aux: (kk, j, x, yy, z, o) => { o[0] = j / 12; o[1] = kk * 0.8; o[2] = 1; o[3] = 1; } });
-    // (its bands flat straps hugging the box and the lid)
-    b.paint([0.72, 1, 1, 0]);
-    for (const sz of [-0.26, 0.26]) {
-      const at = (lx, ly) => W(desk.x - 0.05 + lx, cab.floor + ly, desk.z + 1.35 + sz), path = [[...at(0.31, 0.03), 1], [...at(0.31, 0.3), 1]];
-      for (let i = 0; i <= 10; i++) { const a = Math.PI * (i / 10); path.push([...at(Math.cos(a) * 0.31, 0.42 + Math.sin(a) * 0.31), 1]); }
-      path.push([...at(-0.31, 0.3), 1], [...at(-0.31, 0.03), 1]);
-      sweep(b, path, 8, { up: dZ, radius: (kk, j, ang) => 1 / Math.max(Math.abs(Math.cos(ang)) / 0.009, Math.abs(Math.sin(ang)) / 0.03) });
-    }
-    b.paint([1, 1, 1, 0]);
-    const lk = W(desk.x - 0.37, cab.floor + 0.36, desk.z + 1.35);
-    rbox(b, lk, dX, dY, dZ, [0.02, 0.06, 0.05], 0.01);
   }
   // portholes in the back (port) wall: thick brass rings, bolts, glass that shows the water
   for (const zz of [-9.3, -6.5]) {
@@ -1826,23 +1806,10 @@ function buildWreck(ctx, q) {
     }
     b.paint([1, 1, 1, 0]);
   }
-  // the lantern: hangs on a short chain from the deck overhead, to the left of the desk's
-  // middle as the camera sees it; its glass glows orange-gold round the flame
+  // where the lantern hangs (on a short rope from the deck overhead, to the left of the desk's
+  // middle as the camera sees it): its light is glow slot 0; the lantern itself is the cabin's
+  // (zones/s4.js), so that it can swing
   const lanL = [desk.x + 0.2, castleY - 0.72, desk.z - 0.62], lan = W(...lanL);
-  {
-    const L0 = (x, yy, z) => W(lanL[0] + x, lanL[1] + yy, lanL[2] + z);
-    b.paint([1, 1, 1, 1]);
-    const S = (pts, sides) => sweep(b, pts.map(([x, yy, z, rr]) => [...L0(x, yy, z), rr]), sides, { caps: true });
-    S([[0, -0.21, 0, 0.11], [0, -0.18, 0, 0.13], [0, -0.14, 0, 0.1]], 10);
-    S([[0, 0.17, 0, 0.1], [0, 0.22, 0, 0.12], [0, 0.29, 0, 0.06], [0, 0.34, 0, 0.03]], 10);
-    for (let kk = 0; kk < 4; kk++) { const a = (kk / 4) * TAU + 0.4; S([[Math.cos(a) * 0.105, -0.15, Math.sin(a) * 0.105, 0.011], [Math.cos(a) * 0.09, 0.18, Math.sin(a) * 0.09, 0.011]], 4); }
-    const ring = []; for (let i = 0; i < 12; i++) { const a = (i / 12) * TAU; ring.push([...L0(Math.cos(a) * 0.06, 0.41 + Math.sin(a) * 0.06, 0), 0.012]); }
-    sweep(b, ring, 5, { closed: true, up: [0, 0, 1] });
-    hangRope(b, L0(0, 0.47, 0), W(lanL[0], castleY - 0.12, lanL[2]), 0.012, 0.0, 4);
-    b.paint([1, 1, 1, 0]);
-    gl.paint([1, 1, 1, 0]);
-    sweep(gl, [[...L0(0, -0.14, 0), 0.06], [...L0(0, -0.02, 0), 0.09], [...L0(0, 0.1, 0), 0.08], [...L0(0, 0.17, 0), 0.05]], 12, { caps: true, aux: (kk, j, x, yy, z, o) => { o[0] = 0; o[1] = kk / 3; o[2] = 0; o[3] = 2; } });
-  }
   // drifted sand in the cabin's corners, under the broken planks: low drifts banked against
   // the wall, thinning out over the floor, combed into ripples; a few blades of felt kelp
   // growing in them by the wall. [x, z, half length across, half length along, height, which
@@ -1897,7 +1864,6 @@ function buildWreck(ctx, q) {
 
   // ---- the meshes
   const fade = [100, 118], range = 118;
-  const tl = [lan[0], lan[1], lan[2]];
   addMesh(ctx, sphereOf(w.build(), 1), material({
     aux: true, twoSided: true, fade,
     vertex: () => tintIn(),
@@ -1966,16 +1932,14 @@ function buildWreck(ctx, q) {
       s.emis = warm.mul(win).add(sea.mul(port)).add(fl.mul(flame)).add(vec3(0.02, 0.03, 0.03).mul(dark));
     },
   }), range);
-  // the lantern's light: on everything round it (slot 0), and a warm haze
+  // the lantern's light: on everything round it (slot 0; the cabin swings it, and its haze)
   G.glowPos.array[0].set(lan[0], lan[1], lan[2], 6.5);
   G.glowCol.array[0].set(1.6, 0.8, 0.3, 0);
-  addMesh(ctx, halos(tl, 0.75), material({
-    additive: true, shadow: false, fade: [80, 100],
-    vertex: (v) => haloVertex(v, 0.75),
-    raw: (f) => { const d = length(vHalo); return { color: vec3(1.0, 0.48, 0.12).mul(exp(d.mul(d).mul(-5.5)).mul(0.45)).mul(exp(SIG.mul(f.dist).negate())), alpha: float(1.0) }; },
-  }), 100, { noShadow: true });
   const deskTop = W(desk.x - 0.05, desk.y + 0.88, desk.z - 0.25);
-  return { lantern: V(...lan), envelope: V(...deskTop), cabin: V(...W(0, cab.floor + 1.2, cz)), cabinFacing: V(...Wd(-1, 0, 0)) };
+  return {
+    lantern: V(...lan), envelope: V(...deskTop), cabin: V(...W(0, cab.floor + 1.2, cz)), cabinFacing: V(...Wd(-1, 0, 0)),
+    desk: { at: V(...W(desk.x, desk.y, desk.z)), x: V(...dX), y: V(...dY), z: V(...dZ) }, loose: true,
+  };
 }
 const smoothN = (a, b, x) => { const t = clampN((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
 

@@ -2232,8 +2232,8 @@ export function buildFauna(ctx) {
   };
 
   // In the wreck's cabin (when the set gives it): behind the desk, facing the visitor across
-  // it, its front arms on the letter, a little away from under the lantern toward the stern
-  // (Snap is on the bow's side); from p 4.655 it rises over the desk, goes out through the
+  // it, its front arms on the letter, nearly behind it (a little toward the stern; Snap is on
+  // the bow's side), where the cabin's view shows it best; from p 4.655 it rises over the desk, goes out through the
   // hole in the hull on the stern side of the camera's way, and away up and toward the stern.
   let path = null;
   const LETTER = new Vector3(), OUT = new Vector3(), STERN = new Vector3(), OCT_SIZE = 1.3;
@@ -2241,7 +2241,7 @@ export function buildFauna(ctx) {
     OUT.copy(wreck.cabinFacing).setY(0).normalize();
     STERN.set(-OUT.z, 0, OUT.x);                            // (the bow is (out.z, 0, -out.x))
     LETTER.copy(wreck.envelope);
-    const seat = wreck.envelope.clone().addScaledVector(OUT, -0.76).addScaledVector(STERN, 0.32);
+    const seat = wreck.envelope.clone().addScaledVector(OUT, -0.76).addScaledVector(STERN, 0.1);
     seat.y = wreck.envelope.y - 0.16 * OCT_SIZE + 0.02;
     const k1 = seat.clone().addScaledVector(OUT, 1.0).add(new Vector3(0, 0.42, 0));
     const k2 = wreck.cabin.clone().addScaledVector(OUT, 2.95).addScaledVector(STERN, 0.3).add(new Vector3(0, -0.25, 0));
