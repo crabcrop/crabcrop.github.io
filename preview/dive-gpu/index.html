@@ -122,11 +122,6 @@ p { text-wrap: pretty; }
 .hero { padding-top: clamp(24px, 10vh, 120px); }
 .hero .lede + .lede { margin-top: 8px; }
 .lede strong { font-weight: 720; color: var(--paper); }
-/* the speed, measured: the benchmark's two medians, as the home page says them */
-.proof { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 9px; font-size: 14.5px; color: var(--ink2); }
-.proof b { font-weight: 760; color: var(--sand); font-variant-numeric: tabular-nums; white-space: nowrap; }
-.proof span { color: var(--ink3); }
-.hero .lede + .proof { margin-top: 8px; }
 .go { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
 .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 0 18px; border: 1px solid var(--line2); border-radius: 12px; background: rgba(238, 242, 236, .06); color: var(--paper); font: 700 15px/1 var(--sans); text-decoration: none; cursor: pointer; }
 .btn:hover { background: rgba(238, 242, 236, .14); }
@@ -1059,7 +1054,6 @@ h1 .hi, h2 .hi, h3 .hi { color: var(--coral); }
     <p class="eyebrow"><span class="d">0 m · </span>The Marina</p>
     <h1 id="h0" tabindex="-1">Blazing fast,<br><span class="hi"><span class="nw">on-demand</span> images.</span></h1>
     <p class="lede"><strong>The URL is the API.</strong> Write the operations into it, sign it, and crabcrop answers with the picture. A Rust-built image server in one binary: no pre-generated thumbnails, no build step.</p>
-    <p class="proof">First resize in <b>22.6&nbsp;ms</b><span aria-hidden="true">·</span><a href="https://github.com/dayvson/crabcrop/blob/main/benchmark/results/2026-11-06.md">How it was measured</a></p>
     <div class="cmd hero-cmd"><code id="hero-cmd">curl --proto '=https' --tlsv1.2 -LsSf https://<wbr>github.com/<wbr>dayvson/<wbr>crabcrop/<wbr>releases/<wbr>latest/<wbr>download/<wbr>crabcrop-installer.sh | sh</code><button class="ib js-only" id="copy-hero" type="button" aria-label="Copy the install command"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="5.5" y="5.5" width="8" height="8" rx="1.6"/><path d="M10.5 3.2v-.1a1.6 1.6 0 0 0-1.6-1.6H4.1a1.6 1.6 0 0 0-1.6 1.6v4.8a1.6 1.6 0 0 0 1.6 1.6h.1"/></svg><span>Copy</span></button></div>
     <ol class="steps" aria-label="How the dive works"><li>Scroll to dive</li><li>Make 5 choices</li><li>Copy your URL</li></ol>
     <p class="note" id="mode-note" hidden></p>
