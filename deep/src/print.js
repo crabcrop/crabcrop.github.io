@@ -18,8 +18,8 @@ export const CROPS = [
   { name: 'Whole picture', w: Math.round(630 * PHOTO.aspect), h: 630 },
 ];
 for (const c of CROPS) c.aspect = c.w / c.h;
-// studio(product, …, pad:10): the subject, cut out, takes the middle with a tenth of the
-// picture clear on each side
+// studio(product), with its default pad of 10: the subject, cut out, takes the middle with a
+// tenth of the picture clear on each side
 const PAD = 0.1;
 
 // The window of the photo a crop takes, as fractions of the photo from its top left

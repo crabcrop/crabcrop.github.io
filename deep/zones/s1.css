@@ -25,8 +25,8 @@
 }
 .pick .race { clear: both; font-size: 13.5px; line-height: 1.45; color: var(--ink2); }
 #s1 .pick .help { clear: both; padding-top: 8px; font-size: 14.5px; color: var(--ink2); }
-/* the cargo: on wide screens the rings in the scene name each source; on narrow ones (and as a
-   page) this list does, a tap opening one */
+/* the cargo: the rings in the scene name each source (wide screens), and so does this list, a
+   click or tap opening one; as a page, a plain list */
 .cargo-list { margin-top: 12px !important; }
 .cargo-list ul { display: grid; gap: 6px; }
 .cargo-list li { font-size: 14px; color: var(--ink2); }
@@ -34,18 +34,19 @@
 .cargo-list .src-tip code { color: var(--sand); }
 .cargo-h { display: none; }
 @media (scripting: enabled) and (prefers-reduced-motion: no-preference) {
-  :root:not(.page) .cargo-list { display: none; }
-}
-@media (max-width: 760px) {
-  :root:not(.page) .cargo-list { display: block; }
-  :root:not(.page) .cargo-h { display: block; margin-bottom: 8px; }
+  :root:not(.page) .cargo-h.desk { display: block; margin-bottom: 8px; }
   :root:not(.page) .cargo-list ul { display: flex; flex-wrap: wrap; gap: 6px; }
   :root:not(.page) .cargo-list li { display: contents; }
   :root:not(.page) .cargo-list .src { display: inline-flex; align-items: center; min-height: 32px; padding: 0 11px; border: 1.5px solid var(--line2); border-radius: 999px; background: rgba(238, 242, 236, .06); font: 700 12.5px/1 var(--mono); color: var(--paper); cursor: pointer; }
+  :root:not(.page) .cargo-list .src:hover { border-color: var(--sun-soft); }
   :root:not(.page) .cargo-list .src[aria-expanded="true"] { border-color: var(--sun); background: rgba(255, 176, 32, .18); }
   :root:not(.page) .cargo-list .src-tip { display: none; order: 9; flex-basis: 100%; padding: 8px 11px; border-radius: 12px 12px 12px 4px; background: var(--cream); color: var(--ink); font-size: 13.5px; }
   :root:not(.page) .cargo-list .src-tip code { color: var(--ink); background: var(--sun-soft); padding: 0 5px; border-radius: 5px; }
   :root:not(.page) .cargo-list .open + .src-tip { display: block; }
+}
+@media (max-width: 760px) {
+  :root:not(.page) .cargo-h.desk { display: none; }
+  :root:not(.page) .cargo-h.phone { display: block; margin-bottom: 8px; }
   :root:not(.page) .fishes .opt { column-gap: 6px; padding: 5px 8px; }
   :root:not(.page) .fishes .opt .fish { width: 42px; height: 26px; }
   :root:not(.page) .fishes .opt .fish svg { width: 42px; height: 25px; }

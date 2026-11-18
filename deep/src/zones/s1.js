@@ -5,8 +5,8 @@
 //     and the picked one stays there; when the choice first comes into view, and whenever Auto
 //     is picked, AVIF, JPEG XL and WebP race to the claw, 0.45 s apart. Fish dart from the hand.
 //   - Five things lie on the sand: the five kinds of source. On wide screens each wears a
-//     stitched ring that opens its tip (hover, focus or click); on narrow ones the Sources
-//     card lists them, a tap opening one.
+//     stitched ring that opens its tip (hover, focus or click); the Sources card lists them too,
+//     a click or tap opening one (and, on wide screens, its tip at the thing on the sand).
 //   - The sun's glint follows the hand over the sand.
 //   - The Signed URLs card shows the visitor's own URL with its signature lit; the Formats
 //     card weighs the visitor's own picture in the formats this browser can write.
@@ -247,22 +247,19 @@ export default {
       ring.el.setAttribute('aria-expanded', 'false');
       ring.el.setAttribute('aria-describedby', tip.id);
       ring.el.tabIndex = -1;
-      const r = { ring, tip, i, hover: false, focus: false, open: false, x: -1e4, y: -1e4, w: 0, shown: false, tipOn: false, last: '' };
+      const r = { ring, tip, i, hover: false, focus: false, x: -1e4, y: -1e4, w: 0, shown: false, tipOn: false, last: '' };
       ring.el.addEventListener('pointerenter', (e) => { if (e.pointerType !== 'touch' && stage.live()) r.hover = true; });
       ring.el.addEventListener('pointermove', (e) => { if (e.pointerType !== 'touch') r.hover = true; });
       ring.el.addEventListener('pointerleave', () => { r.hover = false; });
       ring.el.addEventListener('focus', () => { if (ring.el.matches(':focus-visible')) r.focus = true; });
       ring.el.addEventListener('blur', () => { r.focus = false; });
-      ring.el.addEventListener('click', () => {
-        const open = !r.open;
-        for (const o of S.rings) { o.open = false; o.ring.el.setAttribute('aria-expanded', 'false'); }
-        r.open = open; ring.el.setAttribute('aria-expanded', String(open));
-      });
+      ring.el.addEventListener('click', () => { S.pinned = S.pinned === i ? -1 : i; });
       return r;
     });
     S.cueCargo = stage.cue({ verb: 'Hover', text: 'the cargo', more: '· five kinds of source', done: { text: 'Five kinds of source' }, tie: true, knot: 44, yarn: 22 });
     S.seen = -1;
-    // narrow screens (and the page): the Sources card's list, a tap opening one
+    // the Sources card's list: a click or tap opens one (the one a ring opened is open here too)
+    S.pinned = -1; S.chipOpen = -1; S.chips = [];
     const list = doc.getElementById('cargo-list');
     if (list) {
       const items = [...list.querySelectorAll('li')];
@@ -275,15 +272,10 @@ export default {
         tip.id = 'src-tip-' + i;
         btn.setAttribute('aria-controls', tip.id);
         b.replaceWith(btn);
-        btn.addEventListener('click', () => {
-          const open = !btn.classList.contains('open');
-          for (const o of list.querySelectorAll('.src')) { o.classList.remove('open'); o.setAttribute('aria-expanded', 'false'); }
-          btn.classList.toggle('open', open); btn.setAttribute('aria-expanded', String(open));
-          S.listOpen = open ? i : -1;
-        });
+        btn.addEventListener('click', () => { S.pinned = S.pinned === i ? -1 : i; S.seen = S.seen < 0 ? stage.t : S.seen; });
+        S.chips.push(btn);
       });
     }
-    S.listOpen = -1;
   },
 
   frame(stage) {
@@ -294,9 +286,10 @@ export default {
     if (p > ON[0] - 0.02 && p < ON[1] + 0.02) swim(stage, p);
     else S.placed = false;
 
-    // ---- the cargo's rings and tips
+    // ---- the cargo's rings and tips, and the card's list: one source open at a time, the one
+    // the hand is over (or the keyboard is on), else the one last clicked, on the sand or in the card
     const onRings = stage.wide && p > CARGO_RINGS[0] && p < CARGO_RINGS[1];
-    let any = false;
+    let over = -1;
     for (let i = 0; i < S.rings.length; i++) {
       const r = S.rings[i];
       let show = false;
@@ -305,9 +298,16 @@ export default {
         show = PR[2] > 1.5 && PR[2] < 24 && stage.onScreen(PR[0], PR[1], -30) && PR[1] < stage.H - 40;
         if (show) { r.x = PR[0]; r.y = PR[1]; r.ring.at(PR[0], PR[1]); }
       }
-      if (show !== r.shown) { r.shown = show; r.ring.show(show); r.ring.el.tabIndex = show ? 0 : -1; if (!show) { r.open = false; r.hover = false; r.ring.el.setAttribute('aria-expanded', 'false'); } }
-      if (r.hover && !stage.live()) r.hover = false;
-      const tipOn = show && (r.hover || r.focus || r.open);
+      if (show !== r.shown) { r.shown = show; r.ring.show(show); r.ring.el.tabIndex = show ? 0 : -1; if (!show) r.hover = false; }
+      // (a cursor resting on a ring keeps its tip open; one the ring has drifted away from does not)
+      if (r.hover && Math.hypot(stage.pointer.x - r.x, stage.pointer.y - r.y) > 40) r.hover = false;
+      if (show && (r.hover || r.focus) && over < 0) over = i;
+    }
+    const open = over >= 0 ? over : S.pinned;
+    let any = false;
+    for (let i = 0; i < S.rings.length; i++) {
+      const r = S.rings[i];
+      const tipOn = r.shown && i === open;
       if (tipOn) {
         any = true;
         if (!r.w) r.w = r.tip.offsetWidth || 220;
@@ -316,11 +316,15 @@ export default {
         const key = Math.round(x) + ',' + Math.round(y) + (left ? 'l' : 'r');
         if (key !== r.last) { r.last = key; r.tip.style.transform = 'translate(' + Math.round(x) + 'px,' + Math.round(y) + 'px)'; r.tip.classList.toggle('left', left); }
       }
-      if (tipOn !== r.tipOn) { r.tipOn = tipOn; r.tip.classList.toggle('on', tipOn); }
+      if (tipOn !== r.tipOn) { r.tipOn = tipOn; r.tip.classList.toggle('on', tipOn); r.ring.el.setAttribute('aria-expanded', String(tipOn)); }
     }
-    // the cue hangs over the pails until a ring has been tried, then says so and goes
+    if (open !== S.chipOpen) {
+      S.chipOpen = open;
+      S.chips.forEach((b, i) => { b.classList.toggle('open', i === open); b.setAttribute('aria-expanded', String(i === open)); });
+    }
+    // the cue hangs over the pails until a source has been opened, then says so and goes
     if (any && S.seen < 0) S.seen = stage.t;
-    const pails = S.rings[2], cueOn = pails.shown && (S.seen < 0 || stage.t - S.seen < 2.2);
+    const pails = S.rings[2], cueOn = pails.shown && (S.seen < 0 || stage.t - S.seen < 4);
     if (cueOn) S.cueCargo.at(pails.x, pails.y - 26);
     S.cueCargo.show(cueOn).done(S.seen >= 0);
     if ((S.seen >= 0) !== S.cueGone) { S.cueGone = S.seen >= 0; S.cueCargo.gone(S.cueGone); }

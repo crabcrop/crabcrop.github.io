@@ -1,6 +1,6 @@
 <section class="zone" id="s3" aria-labelledby="h3">
   <div class="slot s-intro s3-k0"><div class="beat intro">
-    <p class="eyebrow"><span class="d">−30 m</span> · The Coral Reef</p>
+    <p class="eyebrow"><span class="d">−30 m · </span>The Coral Reef</p>
     <h2 id="h3" tabindex="-1">It sees <span class="hi">what matters.</span></h2>
     <p class="lede">Smart crops that keep faces whole, face detection, redaction, and object removal. Snap swims the reef past all four.</p>
     <div class="can js-only">
@@ -8,7 +8,7 @@
       <ul>
         <li><span class="cue flat"><b class="do">Scroll</b><span>to swim the reef <span class="more">· four stops</span></span></span></li>
         <li><span class="cue flat"><b class="do">Pick</b><span>a crop <span class="more">· choice 3 of 5</span></span></span></li>
-        <li class="desk"><span class="cue flat"><b class="do">Hover</b><span>the fish and the cuttlefish</span></span></li>
+        <li class="desk"><span class="cue flat"><b class="do">Hover</b><span>the fish to find their faces, and the cuttlefish to blur it</span></span></li>
         <li class="phone"><span class="cue flat"><b class="do">Tap</b><span>the cuttlefish to blur it</span></span></li>
         <li class="desk"><span class="cue flat"><b class="do">Drag</b><span>a box over the can to erase it</span></span></li>
         <li class="phone"><span class="cue flat"><b class="do">Tap</b><span>the can to erase it</span></span></li>
@@ -41,7 +41,7 @@
   </article></div>
   <div class="slot s3-k4"><article class="beat card">
     <h3>Redaction</h3>
-    <p>Blur a whole class of thing, like people, before a picture goes out. It never guesses: if detection fails, so does the request. <em>Privacy is a kindness.</em></p>
+    <p>Blur a whole class of thing, like people (the cuttlefish stands in for one here), before a picture goes out. It never guesses: if detection fails, so does the request. <em>Privacy is a kindness.</em></p>
     <p class="ex"><code>filters:blurclass(person)</code></p>
     <a class="more" href="https://crabcrop.org/docs.html#ai">Read the docs<span class="sr"> on redaction</span></a>
   </article></div>
@@ -52,9 +52,9 @@
     <div class="go js-only"><button class="btn" id="remove-can" type="button">Remove the can</button><a class="more" href="https://crabcrop.org/docs.html#ai">Read the docs<span class="sr"> on object removal</span></a></div>
   </article></div>
   <div class="slot s3-k6"><article class="beat intro clam" aria-labelledby="h3b">
-    <p class="eyebrow"><span class="d">−30 m</span> · The Clam Studio</p>
+    <p class="eyebrow"><span class="d">−30 m · </span>The Clam Studio</p>
     <h3 id="h3b">A studio <span class="hi">in a shell.</span></h3>
-    <p class="lede">Studio light for product shots, clean cut-outs, and sharper small pictures. Each one is one more step in the URL, run in process on a model you supply.</p>
+    <p class="lede">Studio light for product shots, clean cut-outs, and sharper small pictures, like the blocky pearl in the shell. Each is one more step in the URL, run by a model you install on your server.</p>
     <div class="can js-only">
       <p class="can-h">Here you can</p>
       <ul>
@@ -64,10 +64,10 @@
     </div>
   </article></div>
   <div class="slot s3-k7"><article class="beat card">
-    <div class="spec spec-studio dive-only" aria-hidden="true"><canvas class="snapshot" data-pic="studio" width="208" height="176"></canvas><code>studio(product,<wbr>bg:brand,<wbr>shadow:soft,<wbr>pad:10)</code></div>
+    <div class="spec spec-studio dive-only" aria-hidden="true"><canvas class="snapshot" data-pic="studio" width="208" height="176"></canvas><code>studio(product)</code></div>
     <h3>Studio mode</h3>
-    <p>One filter cuts the product out, sets it on a brand backdrop with a soft shadow, and pads it to shape.</p>
-    <p class="ex"><code>filters:studio(product,<wbr>bg:brand,<wbr>shadow:soft,<wbr>pad:10)</code></p>
+    <p>One filter cuts the product out and sets it on your brand color with a soft shadow, padded: its defaults. The color is set once on the server.</p>
+    <p class="ex"><code>filters:studio(product)</code></p>
     <a class="more" href="https://crabcrop.org/docs.html#studio">Read the docs<span class="sr"> on studio mode</span></a>
   </article></div>
   <div class="slot s3-k8"><article class="beat card">
@@ -98,7 +98,7 @@
       <p class="help">How the picture leaves the studio.</p>
       <div class="opts">
         <label class="opt"><input type="radio" name="finish" value="0" checked><i class="fpic f-none" aria-hidden="true"><canvas class="snapshot" data-pic="photo" width="116" height="88"></canvas></i><span class="nm">None</span><code>nothing added</code></label>
-        <label class="opt"><input type="radio" name="finish" value="1"><i class="fpic f-studio" aria-hidden="true"><canvas class="snapshot" data-pic="studio" width="116" height="88"></canvas></i><span class="nm">Studio</span><code>studio(product,<wbr>bg:brand,<wbr>shadow:soft,<wbr>pad:10)</code></label>
+        <label class="opt"><input type="radio" name="finish" value="1"><i class="fpic f-studio" aria-hidden="true"><canvas class="snapshot" data-pic="studio" width="116" height="88"></canvas></i><span class="nm">Studio</span><code>studio(product)</code></label>
         <label class="opt"><input type="radio" name="finish" value="2"><i class="fpic f-cut" aria-hidden="true"><canvas class="snapshot" data-pic="cut" width="116" height="88"></canvas></i><span class="nm">Cut out</span><code>removebg</code></label>
       </div>
     </fieldset>

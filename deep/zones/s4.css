@@ -78,22 +78,12 @@
 @keyframes stamp2 { 0% { transform: scale(1.8) rotate(-8deg); opacity: 0; } 60% { opacity: 1; } 100% { transform: none; opacity: 1; } }
 
 /* ---- in the scene (the hands-on layer) ---- */
-/* where the chest in the cabin takes the pointer: a click shuts (or opens) it, a drag moves its lid */
-.chest-hit { position: absolute; left: 0; top: 0; border-radius: 12px; cursor: grab; touch-action: pan-y; pointer-events: none; }
-.chest-hit.on { pointer-events: auto; }
-.chest-hit.on:active { cursor: grabbing; }
-/* the tip by the chest, the wax seal's tip */
+/* the wax seal's tip */
 .tip.s4-tip { transition: opacity .2s; white-space: normal; }
 .tip.s4-tip b { font: 800 10.5px/1 var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--ink-2); margin-bottom: 5px; }
 .tip.s4-tip code { display: block; max-width: 236px; overflow-wrap: anywhere; }
 .tip.s4-tip code.sealed { color: var(--sun); }
 .tip.s4-tip span { display: block; }
-/* the button by the octopus's letter: hung under it by a stitch of yarn */
-.cue.letter-cue { position: absolute; left: 0; top: 0; z-index: 2; opacity: 0; visibility: hidden; transition: opacity .3s, visibility 0s .3s, background .15s; }
-.cue.letter-cue.on { opacity: 1; visibility: visible; transition: opacity .3s, background .15s; }
-.cue.letter-cue::after { content: ""; position: absolute; left: var(--yx, 40px); bottom: 100%; height: var(--yarn, 26px); margin-left: -1.25px; border-left: 2.5px dashed #fff; filter: drop-shadow(0 1px 1px rgba(13, 32, 46, .55)); }
-.cue.letter-cue:hover { background: var(--sun-soft); }
-.cue.letter-cue:focus-visible { outline: 2px solid var(--sun-soft); outline-offset: 3px; }
 
 @media (max-width: 760px) {
   .chest { width: 88px; height: 82px; }

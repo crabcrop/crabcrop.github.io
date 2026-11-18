@@ -54,14 +54,19 @@ code { font: .84em/1.5 var(--mono); }
 .lab { flex: none; font-size: 11px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: var(--coral); }
 .url { min-width: 0; font: 12.5px/1.5 var(--mono); color: var(--ink3); overflow-wrap: anywhere; }
 .part { color: var(--paper); transition: color .6s; }
-.part.new { animation: glow 1.8s ease-out; }
+.part.new { border-radius: 4px; -webkit-box-decoration-break: clone; box-decoration-break: clone; animation: glow 2.4s ease-out; }
 .p-sig.new, .p-seal.new { animation-name: glow-soft; }
-@keyframes glow { 0%, 30% { color: var(--sand); text-shadow: 0 0 14px rgba(255, 216, 138, .8); } 100% { text-shadow: 0 0 14px rgba(255, 216, 138, 0); } }
-@keyframes glow-soft { 0% { color: var(--sand); } }
+/* (the part a choice just changed: lit up in the bar, so the visitor sees their URL change) */
+@keyframes glow { 0%, 35% { color: var(--sand); background-color: rgba(255, 176, 32, .26); text-shadow: 0 0 14px rgba(255, 216, 138, .8); } 100% { background-color: rgba(255, 176, 32, 0); text-shadow: 0 0 14px rgba(255, 216, 138, 0); } }
+@keyframes glow-soft { 0%, 35% { color: var(--sand); background-color: rgba(255, 176, 32, .2); } 100% { background-color: rgba(255, 176, 32, 0); } }
 .tools { display: flex; gap: 8px; flex: none; position: relative; }
 .ib { flex: none; display: inline-flex; align-items: center; justify-content: center; gap: 7px; height: 36px; min-width: 36px; padding: 0 12px; border: 1px solid var(--line); border-radius: 10px; background: rgba(238, 242, 236, .06); color: var(--paper); font: 600 13px/1 var(--sans); cursor: pointer; }
 .ib:hover { background: rgba(238, 242, 236, .14); }
 .ib svg { width: 16px; height: 16px; flex: none; }
+/* (copied: a tick in the icon's place, so a button that is only an icon says it too) */
+.ib.copied { border-color: var(--sea-glass); }
+.ib.copied svg { display: none; }
+.ib.copied::before { content: "\2713"; font: 800 15px/1 var(--sans); color: var(--sea-glass); }
 .ib[aria-pressed="true"], .ib[aria-expanded="true"] { border-color: var(--accent); background: rgba(232, 72, 47, .2); }
 #sound[aria-pressed="false"] .on, #sound[aria-pressed="true"] .off { display: none; }
 .settings { position: absolute; right: 0; top: calc(100% + 10px); z-index: 6; width: 268px; padding: 14px 16px; border: 1px solid var(--line2); border-radius: 14px; background: rgba(4, 18, 26, .96); box-shadow: 0 18px 50px rgba(0, 0, 0, .45); font-size: 14px; }
@@ -78,6 +83,8 @@ code { font: .84em/1.5 var(--mono); }
 /* ---- the words, as a page ---- */
 main { display: block; max-width: 1120px; margin: 0 auto; padding: 0 max(var(--gut), env(safe-area-inset-right)) 72px max(var(--gut), env(safe-area-inset-left)); }
 main:focus { outline: none; }
+/* (a heading the page moves the focus to, when it jumps there, is not a control: no ring) */
+h1[tabindex="-1"]:focus, h2[tabindex="-1"]:focus { outline: none; }
 .zone { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); align-items: start; gap: 16px; padding-top: clamp(48px, 9vh, 88px); }
 .slot { display: contents; }
 .beat { min-width: 0; padding: 20px 22px; border: 1px solid var(--line); border-radius: 18px; background: rgba(238, 242, 236, .04); }
@@ -85,6 +92,8 @@ main:focus { outline: none; }
 .hero, .intro { padding: 0; border: 0; background: none; }
 .beat > * + * { margin-top: 12px; }
 .eyebrow .d { text-transform: none; letter-spacing: .02em; }
+/* (in the dive the gauge says how deep, so the cards only name the place) */
+@media (scripting: enabled) and (prefers-reduced-motion: no-preference) { :root:not(.page) .eyebrow .d { display: none; } }
 .eyebrow { font-size: 12px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: var(--coral); }
 h1 { font-size: clamp(36px, 5.4vw, 64px); line-height: 1.02; font-weight: 820; letter-spacing: -.028em; text-wrap: balance; }
 h2 { font-size: clamp(28px, 3.6vw, 44px); line-height: 1.06; font-weight: 800; letter-spacing: -.022em; text-wrap: balance; }
@@ -111,6 +120,12 @@ p { text-wrap: pretty; }
 /* the hero */
 .hero { padding-top: clamp(24px, 10vh, 120px); }
 .hero .lede + .lede { margin-top: 8px; }
+.lede strong { font-weight: 720; color: var(--paper); }
+/* the speed, measured: the benchmark's two medians, as the home page says them */
+.proof { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 9px; font-size: 14.5px; color: var(--ink2); }
+.proof b { font-weight: 760; color: var(--sand); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.proof span { color: var(--ink3); }
+.hero .lede + .proof { margin-top: 8px; }
 .go { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
 .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 0 18px; border: 1px solid var(--line2); border-radius: 12px; background: rgba(238, 242, 236, .06); color: var(--paper); font: 700 15px/1 var(--sans); text-decoration: none; cursor: pointer; }
 .btn:hover { background: rgba(238, 242, 236, .14); }
@@ -118,11 +133,10 @@ p { text-wrap: pretty; }
 .btn.main:hover { background: var(--accent-hi); }
 .btn svg { width: 16px; height: 16px; flex: none; }
 .note { padding: 9px 13px; border: 1px solid var(--line); border-radius: 12px; background: rgba(238, 242, 236, .06); font-size: 14px; color: var(--ink2); }
-.load, .hint { display: flex; align-items: center; gap: 10px; min-height: 20px; font-size: 13px; color: var(--ink2); }
+.load { display: flex; align-items: center; gap: 10px; min-height: 20px; font-size: 13px; color: var(--ink2); }
 .track { flex: 0 0 120px; height: 4px; border-radius: 4px; background: var(--line); overflow: hidden; }
 .fill { display: block; height: 100%; background: var(--sand); transform-origin: 0 50%; transform: scaleX(0); transition: transform .3s linear; }
 .pc { min-width: 3.2em; font: 600 12px/1 var(--mono); font-variant-numeric: tabular-nums; color: var(--paper); }
-.hint::before { content: ""; width: 7px; height: 7px; margin: 0 2px 4px 4px; border: solid var(--sand); border-width: 0 2px 2px 0; transform: rotate(45deg); }
 .quiet { font-size: 14px; color: var(--ink3); }
 
 /* a choice: a real radio group */
@@ -149,6 +163,7 @@ p { text-wrap: pretty; }
 .cmd .ib { height: auto; min-height: 36px; }
 .links { display: flex; flex-wrap: wrap; gap: 6px 18px; font-weight: 650; }
 .foot { font-size: 13px; color: var(--ink3); }
+.narrow-only { display: none; }
 
 .gauge, .stats { display: none; }
 .stats:not([hidden]) { display: block; position: fixed; right: 10px; bottom: 10px; z-index: 8; margin: 0; padding: 6px 9px; border-radius: 8px; background: rgba(0, 0, 0, .66); font: 11px/1.45 var(--mono); color: var(--paper); white-space: pre; pointer-events: none; }
@@ -197,7 +212,7 @@ p { text-wrap: pretty; }
   :root:not(.page) h1 { font-size: clamp(34px, 3.7vw, 52px); }
   :root:not(.page) h2 { font-size: clamp(26px, 2.5vw, 34px); }
   :root:not(.page) .lede { font-size: 16.5px; }
-  :root:not(.page).ready .load, :root:not(.page):not(.ready) .hint { display: none !important; }
+  :root:not(.page).ready .load { display: none !important; }
 
   /* the gauge: how deep, and which zone */
   :root:not(.page) .gauge { display: block; position: fixed; right: max(20px, env(safe-area-inset-right)); top: 50%; z-index: 3; width: 14px; height: min(50vh, 420px); transform: translateY(-50%); pointer-events: none; }
@@ -240,7 +255,6 @@ p { text-wrap: pretty; }
     :root:not(.page) h1 { font-size: 32px; }
     :root:not(.page) h2 { font-size: 24px; }
     :root:not(.page) .opt { min-height: 36px; padding: 5px 10px; }
-    :root:not(.page) .hint { display: none !important; }
   }
   @media (max-height: 520px) and (min-width: 761px) {
     :root:not(.page) { --col: min(500px, 56vw); --col-wide: min(540px, 60vw); --low: 8px; }
@@ -273,12 +287,13 @@ p { text-wrap: pretty; }
     :root:not(.page) .bar { top: max(8px, env(safe-area-inset-top)); left: max(8px, env(safe-area-inset-left)); right: max(8px, env(safe-area-inset-right)); padding: 7px 10px; border-radius: 14px; background: rgba(4, 18, 26, .84); }
     :root:not(.page) .tools { position: absolute; right: 0; top: calc(100% + 8px); }
     :root:not(.page) .tools .ib { background: rgba(4, 18, 26, .8); }
-    :root:not(.page) .beat .eyebrow, :root:not(.page) .hint, :root:not(.page) #page-link { display: none !important; }
+    :root:not(.page) .beat .eyebrow, :root:not(.page) #page-link { display: none !important; }
     :root:not(.page) .beat, :root:not(.page) .hero, :root:not(.page) .fin { width: auto; max-height: 50vh; max-height: 50svh; margin: 0 max(8px, env(safe-area-inset-right)) 0 max(8px, env(safe-area-inset-left)); bottom: max(8px, env(safe-area-inset-bottom)); padding: 13px 15px; border-radius: 16px; background: rgba(4, 18, 26, .86); }
     :root:not(.page) .fin { max-height: 56vh; max-height: 56svh; }
     :root:not(.page) .beat > * + * { margin-top: 8px; }
-    /* (the bar above shows the URL as it grows: the card need not repeat it) */
-    :root:not(.page) .so-far { display: none; }
+    /* (the bar is the visitor's URL, and says so, small, above it) */
+    :root:not(.page) .bar .u { flex-direction: column; align-items: stretch; gap: 1px; }
+    :root:not(.page) .bar .lab { position: static; width: auto; height: auto; overflow: visible; clip-path: none; font-size: 9.5px; letter-spacing: .12em; line-height: 1.25; }
     :root:not(.page) h1 { font-size: 29px; }
     :root:not(.page) h2 { font-size: 23px; }
     :root:not(.page) .lede, :root:not(.page) .tale p { font-size: 15px; }
@@ -293,10 +308,14 @@ p { text-wrap: pretty; }
     :root:not(.page) .stats:not([hidden]) { right: 8px; top: calc(var(--top) + 52px); }
     /* the finale keeps to its room: the install command scrolls sideways in its box */
     :root:not(.page) .final code { font-size: 11.5px; padding: 6px 9px; }
-    :root:not(.page) .fin .fine { font-size: 12.5px; line-height: 1.45; }
+    :root:not(.page) .fin .fine { font-size: 12px; line-height: 1.4; }
     :root:not(.page) .fin .cmd code { white-space: nowrap; overflow-x: auto; scrollbar-width: none; }
     :root:not(.page) .fin .cmd wbr { display: none; }
-    :root:not(.page) .fin .foot, :root:not(.page) .fin .again-note { display: none; }
+    :root:not(.page) .fin .foot { display: none; }
+    /* (what Dive again does, and the fine print, said short) */
+    :root:not(.page) .fin .again-note { font-size: 13px; }
+    :root:not(.page) .fin .wide-only { display: none; }
+    :root:not(.page) .fin .narrow-only { display: inline; }
   }
   /* small phones: a little smaller still, and up to 54% of a short screen */
   @media (max-width: 760px) and (max-height: 700px) {
@@ -324,6 +343,18 @@ p { text-wrap: pretty; }
 .fin .served { margin: 4px 0 12px; }
 .fin .served canvas { display: block; width: 100%; max-width: 300px; height: auto; border-radius: 10px; box-shadow: 0 6px 24px rgba(0, 0, 0, .35); }
 @media (max-width: 600px) { .fin .served canvas { max-width: 150px; } }
+/* the finale keeps to its room on laptop screens too: under 900 px tall the sign-off line goes and
+   the picture is smaller; under 760 px the parts sit closer */
+@media (min-width: 761px) and (max-height: 900px) {
+  :root:not(.page) .fin .foot { display: none; }
+  :root:not(.page) .fin .served canvas { max-width: 240px; }
+}
+@media (min-width: 761px) and (max-height: 760px) {
+  :root:not(.page) .fin > * + * { margin-top: 8px; }
+  :root:not(.page) .fin .served { margin: 2px 0 6px; }
+  :root:not(.page) .fin .served canvas { max-width: 200px; }
+  :root:not(.page) .fin .fine { font-size: 13px; line-height: 1.45; }
+}
 </style>
 </head>
 <body>

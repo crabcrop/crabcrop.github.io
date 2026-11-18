@@ -100,7 +100,7 @@ button.cue:hover { background: #fff; }
 .pick legend .turn .dots { margin-left: auto; display: flex; gap: 6px; }
 .pick legend .turn .dots i { width: 9px; height: 9px; border-radius: 50%; border: 1.5px solid var(--sun-soft); }
 .pick legend .turn .dots i.on { background: var(--sun-soft); }
-.pick legend .turn .dots i.now { background: var(--cream); box-shadow: 0 0 0 2.5px var(--sun), 0 0 0 4px var(--ink); border-color: var(--ink); }
+.pick legend .turn .dots i.cur { background: var(--cream); box-shadow: 0 0 0 2.5px var(--sun), 0 0 0 4px var(--ink); border-color: var(--ink); }
 .so-far { margin-top: 10px !important; padding: 8px 11px 9px; background: rgba(0, 0, 0, .34); border: 1px solid var(--line); border-radius: 12px 12px 12px 4px; }
 .so-far:empty { display: none; }
 .so-far .lab { display: block; margin-bottom: 3px; font: 800 10.5px/1.3 var(--mono); letter-spacing: .14em; text-transform: uppercase; color: rgba(143, 227, 225, .7); }
@@ -109,7 +109,15 @@ button.cue:hover { background: #fff; }
 .so-far mark { padding: 1px 4px; border-radius: 4px; background: var(--sun); color: var(--ink); font-weight: 800; }
 .so-far.pop mark { animation: chip .45s var(--spring); }
 @keyframes chip { 0% { transform: scale(.4); opacity: 0; } 100% { transform: none; opacity: 1; } }
-@media (max-width: 760px) { .so-far .lab { display: none; } .so-far code { font-size: 11px; } }
+/* (on phones one line: the part this choice set, with a little of the URL either side) */
+.so-far .far-short { display: none; }
+@media (max-width: 760px) {
+  .so-far { padding: 6px 10px 7px; }
+  .so-far .lab { position: static; width: auto; height: auto; overflow: visible; clip-path: none; display: block; margin-bottom: 2px; font-size: 9.5px; }
+  .so-far .far-long { display: none; }
+  .so-far .far-short { display: block; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .so-far .far-short wbr { display: none; }
+}
 
 /* sparkles: a burst of little sun stars (stage.sparkle) */
 .spark { position: absolute; width: 12px; height: 12px; margin: -6px 0 0 -6px; background: var(--sun); clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%); filter: drop-shadow(0 0 3px rgba(255, 216, 138, .9)); animation: spark .8s ease-out both; pointer-events: none; }

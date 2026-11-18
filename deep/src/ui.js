@@ -14,7 +14,7 @@
 // Every length is a share of the window's height, so a beat sits at the same p on any
 // screen.
 import { CLIMB, P_MAX, ZONES, storyDepth } from './layout.js';
-import { BASE, KEYS, NAME, NOTES, OPTIONS, SRC, remainder, seal, sign } from './content.js';
+import { BASE, KEYS, NAME, OPTIONS, SRC, noteFor, remainder, seal, sign } from './content.js';
 
 const LEAD = 0.85;
 const FADE = 0.2;          // a rising beat is gone after this share of the window's height
@@ -160,7 +160,7 @@ export function createUI(opts = {}) {
       input.addEventListener('focus', () => { if (input.matches(':focus-visible')) preview(key, i); });
       input.addEventListener('blur', () => preview(key, null));
     });
-    if (ui.choices[key]) status[key].textContent = NOTES[key][ui.choices[key]];
+    if (ui.choices[key]) status[key].textContent = noteFor(key, ui.choices);
   }
 
   // Each choice's panel: "Your turn · Choice N of 5" with five dots (the ones before filled),
@@ -171,7 +171,7 @@ export function createUI(opts = {}) {
     const fs = words.querySelector('fieldset[data-choice="' + key + '"]');
     if (!fs) return;
     const turn = fs.querySelector('legend .turn');
-    if (turn) turn.innerHTML = '<span class="yt">Your turn</span> <span class="of">Choice ' + (n + 1) + ' of 5</span><span class="dots" aria-hidden="true">' + [0, 1, 2, 3, 4].map((d) => '<i' + (d < n ? ' class="on"' : d === n ? ' class="now"' : '') + '></i>').join('') + '</span>';
+    if (turn) turn.innerHTML = '<span class="yt">Your turn</span> <span class="of">Choice ' + (n + 1) + ' of 5</span><span class="dots" aria-hidden="true">' + [0, 1, 2, 3, 4].map((d) => '<i' + (d < n ? ' class="on"' : d === n ? ' class="cur"' : '') + '></i>').join('') + '</span>';
     const far = doc.createElement('p');
     far.className = 'so-far js-only';
     fs.after(far);
@@ -189,10 +189,19 @@ export function createUI(opts = {}) {
       finish: dim('…/' + crop + '/filters:' + look) + (fin ? dim(':') + mark(fin) : '') + dim(tail),
       seal: c.seal && token !== '' ? dim(BASE) + mark(token ? token.slice(0, 14) + '…' : 's1.…') + dim('/' + NAME) : dim(BASE + sign(rem).slice(0, 8) + '…/') + soft(rem),
     };
+    // (and short, for phones: the part, with a little of the URL either side)
+    const sig8 = sign(rem).slice(0, 8);
+    const short = {
+      format: fmt ? dim('…/filters:…:') + mark(fmt) + dim(src) : dim('…' + src),
+      look: dim('…/filters:') + mark(look) + dim('…'),
+      crop: dim('…/') + mark(crop) + dim('/filters:…'),
+      finish: fin ? dim('…/filters:…:') + mark(fin) + dim('…') : dim('…/filters:' + look + '…'),
+      seal: c.seal && token !== '' ? dim(BASE) + mark(token ? token.slice(0, 14) + '…' : 's1.…') + dim('/' + NAME) : dim(BASE) + mark(sig8 + '…') + dim('/' + OPTIONS.crop[c.crop] + '/…'),
+    };
     for (const k of KEYS) {
       const el = farEls[k];
       if (!el) continue;
-      const html = '<span class="lab">Your URL so far</span><code>' + lines[k] + '</code>';
+      const html = '<span class="lab">Your URL so far</span><code class="far-long">' + lines[k] + '</code><code class="far-short">' + short[k] + '</code>';
       if (el.innerHTML !== html) el.innerHTML = html;
       if (k === changedKey) { el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); }
     }
@@ -202,7 +211,9 @@ export function createUI(opts = {}) {
   function choose(key, i) {
     changedKey = key;
     ui.choices[key] = i;
-    status[key].textContent = NOTES[key][i];
+    status[key].textContent = noteFor(key, ui.choices);
+    // (Cut out's line says what the format does with its transparency: a new format changes it)
+    if (key === 'format' && ui.choices.finish && status.finish) status.finish.textContent = noteFor('finish', ui.choices);
     fresh = key === 'seal' ? (i ? 'seal' : 'sig') : key;
     lit.add(fresh);
     render();
@@ -237,7 +248,7 @@ export function createUI(opts = {}) {
       html = HOST + part('seal', token ? esc(token.slice(0, 14)) + '…' : 's1.…', 'The sealed token, shortened here') + '/<wbr>' + part('src', NAME);
       full = token ? BASE + token + '/' + NAME : '';
       finalEl.innerHTML = token ? soft(full) : 'Sealing…';
-      finalNote.innerHTML = 'Sealed in your browser with the sample secret <code>demo-secret</code> and a fresh nonce, on a stand-in host. Seal the same recipe with your own secret, on a server with a <code>photos</code> source root, and it opens and serves it.';
+      finalNote.innerHTML = 'Sealed in your browser with the sample secret <code>demo-secret</code> and a fresh nonce, on a stand-in host.<span class="wide-only"> Seal the same recipe with your own secret, on a server with a <code>photos</code> source root, and it opens and serves it.</span><span class="narrow-only"> Seal it with your own to serve it.</span>';
     } else {
       const f = OPTIONS.finish[c.finish], fm = OPTIONS.format[c.format];
       html = HOST + part('sig', sig.slice(0, 8) + '…', 'The signature, shortened here') + '/<wbr>' + part('crop', soft(OPTIONS.crop[c.crop])) + '/<wbr>filters:<wbr>' + part('look', soft(OPTIONS.look[c.look]))
@@ -246,7 +257,7 @@ export function createUI(opts = {}) {
       finalEl.innerHTML = soft(full);
       finalNote.innerHTML = c.seal
         ? 'This page cannot seal here (it needs a secure page), so this is the readable URL. Seal the recipe with <code>crabcrop seal</code> and your own secret.'
-        : 'Signed in your browser with the sample secret <code>demo-secret</code>, on a stand-in host. Sign the same path with your own secret, on a server with a <code>photos</code> source root (and a background-removal model for a finish), and it serves the picture.';
+        : 'Signed in your browser with the sample secret <code>demo-secret</code>, on a stand-in host.<span class="wide-only"> Sign the same path with your own secret, on a server with a <code>photos</code> source root (and a background-removal model for a finish), and it serves the picture.</span><span class="narrow-only"> Sign it with your own to serve it.</span>';
     }
     urlEl.innerHTML = html;
     soFar();
@@ -269,16 +280,20 @@ export function createUI(opts = {}) {
     clearTimeout(sayTimer);
     sayTimer = setTimeout(() => { sayEl.textContent = text; }, 60);
   }
-  function flash(btn, text) {
+  // (the button says so, and an icon-only one, as on a phone, shows a tick in its icon's place)
+  function flash(btn, text, ok = true) {
     const label = btn.querySelector('span') || btn;
     if (!btn.dataset.label) btn.dataset.label = label.textContent;
     label.textContent = text;
+    btn.classList.toggle('copied', ok);
     clearTimeout(btn._t);
-    btn._t = setTimeout(() => { label.textContent = btn.dataset.label; }, 1600);
+    btn._t = setTimeout(() => { label.textContent = btn.dataset.label; btn.classList.remove('copied'); }, 1800);
   }
   async function copy(btn, text) {
     let ok = false;
-    try { await navigator.clipboard.writeText(text); ok = true; } catch (e) {
+    // (a clipboard that never answers counts as one that refused: the old way is tried)
+    const late = new Promise((_, no) => setTimeout(() => no(new Error('no answer')), 1500));
+    try { await Promise.race([navigator.clipboard.writeText(text), late]); ok = true; } catch (e) {
       try {
         const ta = doc.createElement('textarea');
         ta.value = text;
@@ -290,7 +305,7 @@ export function createUI(opts = {}) {
         ta.remove();
       } catch (e2) { /* nothing more to try */ }
     }
-    flash(btn, ok ? 'Copied' : 'Not copied');
+    flash(btn, ok ? 'Copied' : 'Not copied', ok);
     say(ok ? 'Copied.' : 'Could not copy. Select the text to copy it.');
   }
   $('copy-url').addEventListener('click', (e) => copy(e.currentTarget, full));
@@ -537,7 +552,7 @@ export function createUI(opts = {}) {
     if (d !== shownD) { shownD = d; depthEl.textContent = DEPTHS[d]; }
     const z = p >= 7 ? 7 : Math.floor(p);
     // (between the places, the readout names the way: as in the painted dive)
-    const way = p > 0.22 && p < 1.05 ? 'The plunge' : p > 2.88 && p < 3.06 ? 'To the reef' : p > 4.36 && p < 4.5 ? 'Into the wreck' : p > 5.0 && p < 5.32 ? 'The drop' : p > 7.02 && p < 7.74 ? 'The ascent' : '';
+    const way = p > 0.22 && p < 1.05 ? 'The plunge' : p > 2.88 && p < 3.06 ? 'To the reef' : p > 4.36 && p < 4.5 ? 'Into the wreck' : p > 5.0 && p < 5.1 ? 'The drop' : p > 7.02 && p < 7.74 ? 'The ascent' : '';
     if (way !== shownWay) { shownWay = way; zoneEl.textContent = way || NAMES[z]; }
     // below the wreck what floats over the scene turns to night colours
     const night = depthAt(p) < -140;

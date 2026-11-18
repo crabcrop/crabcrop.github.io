@@ -6,8 +6,9 @@
 // saying "sign_url ✓" while its card is up; and the pickup: once Snap's submarine has settled by
 // the geode it nudges forward, stars burst where the print lay, Snap hops in his seat, the tube
 // worms duck, and the print rises out of the geode into the pincer, where it stays for the climb
-// (stage.printOnPincer; hidden while the page shows it there itself, stage.printFigure), and
-// Snap's story says so.
+// (stage.printOnPincer; hidden while the page shows it there itself, stage.printFigure), while
+// the card under it says so (its words are a card like the others, so they are there whenever
+// the visitor stops by the geode).
 // Its words are in zones/s6.html, its styles in zones/s6.css; the agent is props/vents.js.
 import { Matrix4, Quaternion, Vector3 } from 'three/webgpu';
 import { SRC, remainder, sign } from '../content.js';
@@ -18,7 +19,6 @@ import { buildAgent } from '../props/vents.js';
 const INSTALL = ['npm install @crabcrop/url', 'pip install crabcrop_url', 'cargo add crabcrop-url'];
 // (with no format named, the agent's requests keep the source's: print.jpg is a JPEG)
 const SIZE = ['1200 × 630', '760 × 760', '945 × 630'], FMT = ['JPEG', 'AVIF', 'JPEG XL', 'WebP'];
-const PRINT_STORY = 'There it is, in the glow of the geode: Snap’s print. The submarine’s pincer lifts it out. It is the last part of your URL: <code>root:photos/print.jpg</code>, the source.';
 // the pickup: the submarine has parked by the geode from p 6.87 (cast.js); the climb starts at 7
 const PARKED = 6.87, CLIMB = 7.02;
 // the print as the pincer holds it: this much of its size in the geode, hanging below the claw
@@ -84,7 +84,6 @@ export default {
   mount(stage, world) {
     const doc = document, cast = world.cast, camera = stage.camera;
     const P = [0, 0, 0], v = new Vector3();
-    const noteEl = doc.getElementById('note');
     const narrowMQ = matchMedia('(max-width: 760px)');
 
     // ---- the terminal: typed in, a line a second, once its card is in view --------------------
@@ -176,7 +175,7 @@ export default {
     // ---- the pickup -----------------------------------------------------------------------------
     const gp = world.geodePrint;
     const home = gp ? { pos: gp.position.clone(), quat: gp.quaternion.clone(), scale: gp.scale.clone() } : null;
-    const pk = { taken: false, at: -10, settledAt: -1, lastSub: new Vector3(), noteAt: -10 };
+    const pk = { taken: false, at: -10, settledAt: -1, lastSub: new Vector3() };
     const pin = new Vector3(), hold = new Vector3(), holdQ = new Quaternion(), up = new Vector3(), lift = new Vector3(), look = new Matrix4();
     stage.printOnPincer = false;
 
@@ -237,23 +236,15 @@ export default {
       if (!pk.taken && p >= CLIMB) { pk.taken = true; pk.at = t - 10; }            // (arrived from above the vents: held already)
       if (!pk.taken && ((pk.settledAt >= 0 && t - pk.settledAt > 0.8) || p > 6.97)) {
         // it nudges forward for it: stars where the print lay, Snap hops in his seat, the
-        // print rises into the pincer; the story says so
+        // print rises into the pincer
         pk.taken = true; pk.at = t;
         stage.sparkle(home.pos, 12);
         cast.react('hop');
         if (world.fauna && world.fauna.wormsDuck) world.fauna.wormsDuck();
         cast.lunge();
-        stage.note(PRINT_STORY, 7);
-        pk.noteAt = t;
       }
       stage.printOnPincer = pk.taken;
       const age = t - pk.at;
-      // (the story goes when the visitor leaves the vents)
-      if (pk.noteAt > 0 && (p > CLIMB + 0.1 || p < 6.6) && t - pk.noteAt < 7) {
-        const np = noteEl.querySelector('p');
-        if (np && np.textContent.startsWith('There it is')) noteEl.classList.remove('on');
-        pk.noteAt = -10;
-      }
       // the print: in the geode, or rising into the pincer and held there, facing the visitor,
       // swinging a little; hidden while the page shows it on the pincer itself
       if (!pk.taken) {

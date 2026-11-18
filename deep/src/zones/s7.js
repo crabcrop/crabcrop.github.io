@@ -58,13 +58,16 @@ export default {
     };
     stage.onChoice(setRecipe);
     setRecipe();
+    // (sealed, the print shows the bar's own token, once the page has minted it)
+    const barToken = () => { const t = stage.ui && stage.ui.token; return typeof t === 'string' && t.startsWith('s1.') ? t : ''; };
+    let barTk = '';
 
     // The URL as far as it has been applied: its lines top to bottom as the URL reads (each path
     // segment starts with a slash, each filter after the first with a colon), the one just
     // added marked; sealed, at the last step the whole recipe folds into one token.
     const ticket = (n) => {
       const c = stage.choices, done = (i) => i <= n, rows = [];
-      if (done(4) && c.seal === 1) return [{ text: 's1.' + (token ? token.slice(3, 14) : '…') + '…', now: true }, { text: '/print.jpg' }];
+      if (done(4) && c.seal === 1) { const tk = barToken() || token; return [{ text: 's1.' + (tk ? tk.slice(3, 14) : '…') + '…', now: true }, { text: '/print.jpg' }]; }
       if (done(4)) rows.push({ text: sign(remainder(c)).slice(0, 8) + '…', of: 4 });
       if (done(0)) rows.push({ text: '/' + OPTIONS.crop[c.crop], of: 0 });
       if (done(1)) rows.push({ text: '/filters:' + OPTIONS.look[c.look], of: 1 });
@@ -106,6 +109,7 @@ export default {
         let n = -1;
         for (let i = 0; i < STEPS.length; i++) { const d = q >= STEPS[i].at; frame.classList.toggle(STEPS[i].cls, d); if (d) n = i; }
         showCut(n >= 2 ? stage.choices.finish : 0);
+        if (stage.choices.seal === 1 && barToken() !== barTk) { barTk = barToken(); shown = -2; }
         if (n !== shown) { shown = n; paintTicket(n); }
         if (!w) {
           w = fig.offsetWidth; h = fig.offsetHeight;

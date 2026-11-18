@@ -13,7 +13,7 @@
 // The rules the painted dive settled on, kept: a cursor counts as the visitor's hand only if
 // it moved in the last 2.5 s (a resting cursor finds and dismisses nothing), a tap counts for
 // 1.4 s, a touch that turns into a scroll is not a tap; a cue goes only once the visitor has
-// done what it asks, says so with a tick for 1.6 s, then fades; labels are kept inside the
+// done what it asks, says so with a tick for 4 s, then fades; labels are kept inside the
 // view while their yarn stays on the thing; on narrow screens nothing is tied to things (the
 // dock asks instead).
 import { Vector3 } from 'three/webgpu';

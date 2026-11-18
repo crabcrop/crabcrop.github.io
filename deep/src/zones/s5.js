@@ -30,7 +30,9 @@ const FMT = ['JPEG', 'AVIF', 'JPEG XL', 'WebP'], FMT_JSON = ['jpeg', 'avif', 'jx
 const CROP_GLOSS = ['a 1200 × 630 window, moved to the subject', 'a 760 × 760 window, moved to the subject', 'fit inside 1200 × 630, nothing cut'];
 const LOOK_GLOSS = ['sharpen 1.2, then saturation 1.1', 'duotone, from deep blue to sand', 'sepia'];
 const FINISH_GLOSS = ['', 'the product cut out onto a brand backdrop with a soft shadow, padded', 'the background removed'];
-const FISH_STORY = 'A tiny fish was lost in the dark. It followed your light all the way to Snap, and now he is taking it home.';
+// (as it happened: found by the visitor's light, or not)
+const FISH_FOUND = 'A tiny fish was lost in the dark. It followed your light all the way to Snap, and now it swims home with him, by his lamp.';
+const FISH_MISSED = 'A tiny fish was lost in the dark, below the light. Snap spots it anyway, and now it swims home with him, by his lamp.';
 
 const esc = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 // code as HTML that breaks only after a slash, a colon or a comma
@@ -242,7 +244,10 @@ export default {
         const kf = dt > 0 ? 1 - Math.exp(-dt * 3) : 1;
         focus += (Math.min(Math.max(aimD, 3.5), 16) - focus) * kf;
         ray.set((L[0] / W) * 2 - 1, 1 - (L[1] / Hh) * 2, 0.5).unproject(camera).sub(camera.position).normalize();
-        aim.copy(camera.position).addScaledVector(ray, focus).sub(G.lampPos.value);
+        // (never back at the eye: on a thing nearer than the lamp, the beam still goes out past
+        // it, into the sea, or the water between would glare white with it)
+        const past = v.copy(G.lampPos.value).sub(camera.position).dot(ray) + 2.5;
+        aim.copy(camera.position).addScaledVector(ray, Math.max(focus, past)).sub(G.lampPos.value);
         reachM = aim.length();
         G.lampDir.value.lerp(aim.normalize(), owned).normalize();
       }
@@ -263,8 +268,9 @@ export default {
       if (p < 4.6) { fish.state = 'lost'; fish.placed = false; }
       // (at 72 % of the zone it goes home with Snap, found or not; the story while the zone is up)
       if (fish.placed && fish.state !== 'home' && p > 5.72) {
+        const found = fish.state === 'follow';
         fish.state = 'home';
-        if (zone > 0.2) stage.note(FISH_STORY, 6);
+        if (zone > 0.2) stage.note(found ? FISH_FOUND : FISH_MISSED, 6);
       }
       const show = p > 4.99 && p < 7.02 && (zone > 0.01 || fish.state === 'home') && !!F;
       if (F) F.mesh.visible = show;

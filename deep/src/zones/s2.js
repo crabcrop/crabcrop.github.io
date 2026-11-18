@@ -9,7 +9,7 @@
 //   - A little fish is caught in an old fishing line by Snap's raised claw: click (tap) it, or
 //     its button, and Snap snips the line; the line springs away, the fish spins free and
 //     swims loops by Snap for the rest of the forest. If nobody does, he snips it himself
-//     three quarters of a screen into the forest. Snap's story says so for 5 s.
+//     three quarters of a screen into the forest. Snap's story says which for 5 s.
 //   - The Chained filters card shows the visitor's print in the look being tried or kept, and
 //     its filters; the look tiles show the print in each look; the Size card frames one print
 //     three ways.
@@ -26,7 +26,9 @@ import { photoReady } from '../photo.js';
 const CURTAINS = { centre: [-8.4, -92.0], along: [1, 0], facing: [0, 1], high: 12.2, drop: 7.0, width: 1.75, gap: 2.45 };
 const CURTAIN_PILLS = ['Vintage <code>sepia</code>', 'Deep sea <code>duotone</code>', 'Crisp <code>sharpen · saturation</code>'];
 const FISH_LEN = 0.24;
+// (as it happened: the visitor's click or tap, or Snap by himself once they have scrolled on)
 const NOTE = 'A little fish is caught in an old fishing line. Snap clicks his claw, snips it, and the fish spins free. It follows him for a while.';
+const NOTE_HIMSELF = 'A little fish was caught in an old fishing line, so Snap snipped it free himself. It follows him for a while.';
 
 const S = {
   fish: null, line: null, curtains: null, camera: null, cast: null,
@@ -229,7 +231,7 @@ export default {
       if (hot !== o.hotShown) { o.hotShown = hot; o.el.classList.toggle('hot', hot); }
     }
     if (hotC >= 0 && S.tried < 0) S.tried = stage.t;
-    const mid = S.silks[1], cueOn = mid.on && (S.tried < 0 || stage.t - S.tried < 2.2);
+    const mid = S.silks[1], cueOn = mid.on && (S.tried < 0 || stage.t - S.tried < 4);
     // (over the middle curtain's pill, which sits 76 px up from its hem)
     if (cueOn) S.cueSilk.at(mid.x, mid.y - 124);
     S.cueSilk.show(cueOn).done(S.tried >= 0);
@@ -240,7 +242,7 @@ export default {
     // (tangled again when the visitor goes back into the shallows; and, if he snipped it by
     // himself, when they scroll back above where he did, so they can free it themselves)
     if (S.state !== 'tangled' && (p < 1.93 || (S.byHimself && p < S.pAuto - 0.06))) { S.state = 'tangled'; S.rho = 0; S.byHimself = false; }
-    if (S.state === 'tangled' && p >= S.pAuto && p < 2.95) { snip(stage); S.byHimself = true; }
+    if (S.state === 'tangled' && p >= S.pAuto && p < 2.95) { snip(stage, true); S.byHimself = true; }
     // a click or tap on the fish itself frees it too
     if (stage.pointer.tapAt > (S.lastTap || 0)) {
       S.lastTap = stage.pointer.tapAt;
@@ -288,12 +290,12 @@ export default {
 
 // Snap snips the line: his pincer, a sparkle where it parts, the line springs away, the fish
 // spins free; his story says so.
-function snip(stage) {
+function snip(stage, himself = false) {
   if (S.state !== 'tangled') return;
   S.state = 'snip'; S.since = G.time.value; S.rho = 0;
   if (S.cast) S.cast.react('snap');
   if (S.fishAt && stage.sparkle) { V.copy(S.fishAt).addScaledVector(UP, FISH_LEN * 0.55); stage.sparkle(V, 9); }
-  stage.note(NOTE, 5);
+  stage.note(himself ? NOTE_HIMSELF : NOTE, 5);
 }
 
 // The print photographed in each look (and whole, for the Size card) by the page's own print

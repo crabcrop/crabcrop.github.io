@@ -1,16 +1,14 @@
 <section class="zone" id="s4" aria-labelledby="h4">
   <div class="slot s-intro s4-head"><div class="beat intro">
-    <p class="eyebrow"><span class="d">−60 m</span> · The Shipwreck</p>
+    <p class="eyebrow"><span class="d">−60 m · </span>The Shipwreck</p>
     <h2 id="h4" tabindex="-1">Signed, sealed, <span class="hi">provable.</span></h2>
     <p class="lede">Some links should stay unreadable, some pictures should prove where they came from, and some addresses should never be fetched at all. Snap squeezes in through the hole in the hull.</p>
     <div class="can js-only">
       <p class="can-h">Here you can</p>
       <ul>
-        <li class="desk gl"><span class="cue flat"><b class="do">Click</b><span>the chest to seal a URL</span></span></li>
-        <li class="phone gl"><span class="cue flat"><b class="do">Tap</b><span>the chest to seal a URL</span></span></li>
         <li><span class="cue flat"><b class="do">Pick</b><span>sealed or readable <span class="more">· choice 5 of 5</span></span></span></li>
-        <li class="desk gl"><span class="cue flat"><b class="do">Click</b><span>the letter to seal it</span></span></li>
-        <li class="phone gl"><span class="cue flat"><b class="do">Tap</b><span>the letter to seal it</span></span></li>
+        <li class="desk gl"><span class="cue flat"><b class="do">Click</b><span>the chest, or the wax seal on the desk <span class="more">· to seal your URL</span></span></span></li>
+        <li class="phone gl"><span class="cue flat"><b class="do">Tap</b><span>the chest <span class="more">· to seal your URL</span></span></span></li>
       </ul>
     </div>
   </div></div>
@@ -20,10 +18,10 @@
         <span class="chest-lid" aria-hidden="true"><span class="band"></span><span class="band r"></span></span>
         <span class="chest-glow" aria-hidden="true"></span>
         <span class="chest-body" aria-hidden="true"><span class="band"></span><span class="band r"></span><span class="lock"></span></span>
-        <span class="sr" id="chest-label">Close the chest to seal the URL</span>
+        <span class="sr" id="chest-label">Close the chest to seal your URL</span>
       </button>
       <p class="sealed-url"><span class="host">https://<wbr>img.example.com/</span><wbr><span id="sealed-rest">3843ad67…/<wbr>crop:<wbr>1200x630:<wbr>smart/<wbr>filters:<wbr>sharpen(1.2):<wbr>saturation(1.1)/<wbr>root:<wbr>photos/<wbr>print.jpg</span></p>
-      <p class="sealed-hint"><span class="cue flat"><b class="do" id="chest-verb">Click</b><span>the chest to seal this URL</span></span></p>
+      <p class="sealed-hint"><span class="cue flat" id="chest-hint"><span class="ask"><b class="do chest-verb">Click</b><span>the chest to seal your URL <span class="more">· choice 5 of 5</span></span></span><span class="did"><b class="do">✓</b><span>Sealed: the URL in the bar is one opaque token now <span class="more">· <span class="chest-verb lc">click</span> again to open it</span></span></span></span></p>
     </div>
     <h3>Sealed URLs</h3>
     <p>For links that stay public but unreadable: the whole recipe, operations and source, sealed into one opaque token in the signature slot. Only the server opens it, and it serves the same render.</p>
@@ -33,7 +31,7 @@
   <div class="slot s-pick s4-pick"><div class="beat pick" data-lights="seal">
     <fieldset data-choice="seal">
       <legend><span class="turn">Choice 5 of 5</span>Seal it, or keep it readable</legend>
-      <p class="help on-wide">Here, or with the wax seal on the captain’s desk.</p>
+      <p class="help on-wide">Here, with the chest, or with the wax seal on the captain’s desk.</p>
       <p class="help on-narrow">Sealed hides the recipe. Readable shows it.</p>
       <div class="opts seals">
         <label class="opt"><input type="radio" name="seal" value="0" checked><i class="mini-url" aria-hidden="true">crop:…/root:…</i><span class="nm">Readable</span><span class="sub">the recipe in plain sight</span></label>
@@ -41,7 +39,7 @@
       </div>
       <p class="aside">Readable is the right default for most links. Seal the ones that must be public and still keep their recipe to themselves.</p>
     </fieldset>
-    <p class="status" aria-live="polite" id="st-seal">Readable: the recipe stays in plain sight. It is the right default for most links.</p>
+    <p class="status" aria-live="polite" id="st-seal">Readable: the recipe stays in plain sight.</p>
   </div></div>
   <div class="slot s4-log"><article class="beat card" id="card-provenance">
     <div class="spec spec-log">
@@ -53,7 +51,7 @@
       </ol>
     </div>
     <h3>Provenance, checked and signed</h3>
-    <p>Meta reports the Content Credentials a source carries. With your own certificate, still JPEG, PNG, WebP, and AVIF outputs are signed as served, the source recorded as the parent ingredient with how its own credentials validated.</p>
+    <p>Pictures can carry Content Credentials, a signed record of where they came from. crabcrop reports the record a source carries, and with your own certificate it signs every still JPEG, PNG, WebP, and AVIF it serves, with the source as its parent.</p>
     <p class="ex"><code>CRABCROP_C2PA_CERT · CRABCROP_C2PA_KEY</code></p>
     <a class="more" href="https://crabcrop.org/docs.html#provenance">Read the docs<span class="sr"> on provenance</span></a>
   </article></div>

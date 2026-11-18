@@ -1,7 +1,8 @@
 // The hands-on pieces of the marina (see src/stage.js for what a zone module is; its words are
 // in zones/s0.html, its styles in zones/s0.css), and the ways the world answers the visitor's
 // hand along the whole dive that belong to no one zone:
-//   - the dock's "Scroll to dive with Snap" while the visitor is at the very top (wide screens)
+//   - the dock's "Scroll to dive with Snap" once the visitor has stayed at the very top for 3 s
+//     (wide screens: the marina's card says it first, in its steps)
 //   - the splash where Snap dives in (drops and a burst of bubbles, and its sound)
 //   - rings on the water under the hand at both marinas (sea.js draws them)
 //   - the heat over the vents wavering round the hand (the engine's last pass)
@@ -14,10 +15,11 @@ export default {
   mount(stage, world) {
     stage.dock.ask('scroll', { verb: 'Scroll', text: 'to dive with Snap' });
     const ray = new Vector3(), at = new Vector3(), H = [0, 0];
-    let lastP = stage.p, ripple = 0;
+    let lastP = stage.p, ripple = 0, topSince = -1;
     this.tick = () => {
       const p = stage.p, cam = world.camera;
-      const want = p < 0.03 && stage.wide ? 'scroll' : null;
+      if (p >= 0.03) topSince = -1; else if (topSince < 0) topSince = stage.t;
+      const want = p < 0.03 && stage.wide && stage.t - topSince > 3 ? 'scroll' : null;
       if (want) stage.dock.show('scroll');
       else if (stage.dock.current === 'scroll') stage.dock.show(null);
 
