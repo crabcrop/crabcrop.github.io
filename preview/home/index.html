@@ -567,19 +567,19 @@ footer .wrap { display: grid; gap: 22px; }
       <h2>Three parts, always in this order.</h2>
       <p>Every image request is <code>GET /&lt;signature&gt;/<wbr>&lt;operations&gt;/<wbr>&lt;source&gt;</code>. That strip is the whole grammar.</p>
     </div>
-    <p class="anatomy" aria-label="An example URL with its three parts coloured">https://<wbr>img.example.com/<wbr><span class="seg sig">3c1f6c18…</span>/<wbr><span class="seg op">exp:<wbr>1893456000</span>/<wbr><span class="seg op">crop:<wbr>1200x630:<wbr>smart</span>/<wbr><span class="seg op">filters:<wbr>grayscale:<wbr>quality(80)</span>/<wbr><span class="seg src">https://<wbr>example.com/<wbr>photo.jpg</span></p>
+    <p class="anatomy" aria-label="An example URL with its three parts coloured">https://<wbr>img.example.com/<wbr><span class="seg sig">5b9fc0ad…</span>/<wbr><span class="seg op">crop:<wbr>1200x630:<wbr>smart</span>/<wbr><span class="seg op">filters:<wbr>grayscale</span>/<wbr><span class="seg src">https://<wbr>example.com/<wbr>photo.jpg</span></p>
     <ol class="parts">
       <li class="part" style="--c: var(--sig)">
         <p class="name">Signature <span>1 of 3</span></p>
         <p>Proof the URL came from you. The server recomputes the HMAC-SHA256 over the operations and the source exactly as they appear. A match serves the image. A miss gets a 403.</p>
         <p class="also">A sealed URL keeps its whole recipe in this slot, as one opaque token.</p>
-        <p class="chips"><code class="chip sig">ca3d1f22…</code><code class="chip sig">s1.&lt;token&gt;</code></p>
+        <p class="chips"><code class="chip sig">5b9fc0ad…</code><code class="chip sig">s1.&lt;token&gt;</code></p>
       </li>
       <li class="part" style="--c: var(--ops)">
         <p class="name">Operations <span>2 of 3</span></p>
         <p>Zero or more segments, applied in path order. Resize, crop, fit-in, and pad are their own segments. Filters chain inside one <code>filters:</code> segment.</p>
         <p class="also">An expiry and a server-side preset are segments too.</p>
-        <p class="chips"><code class="chip op">300x200</code><code class="chip op">crop:1200x630:smart</code><code class="chip op">filters:grayscale:quality(80)</code><code class="chip op">exp:1893456000</code><code class="chip op">preset:og-card</code></p>
+        <p class="chips"><code class="chip op">300x200</code><code class="chip op">crop:1200x630:smart</code><code class="chip op">filters:grayscale:format(webp)</code><code class="chip op">exp:1893456000</code><code class="chip op">preset:og-card</code></p>
       </li>
       <li class="part" style="--c: var(--src)">
         <p class="name">Source <span>3 of 3</span></p>
@@ -612,14 +612,14 @@ footer .wrap { display: grid; gap: 22px; }
 
       <article class="tile s5">
         <h3>Studio mode</h3>
-        <p>The listing shot in one filter: cut out, backdrop, contact shadow, margin. Backdrops resolve on the server, brand color included.</p>
+        <p>The listing shot in one filter: cut out, backdrop, contact shadow, margin. Backdrops resolve on the server: your brand color by default, or white, or none.</p>
         <div class="shots three">
           <figure><div class="pic sq"><img src="/studio-white.webp" alt="Snap on a white backdrop with a soft shadow" width="1000" height="667" loading="lazy"></div><figcaption>white</figcaption></figure>
           <figure><div class="pic sq"><img src="/studio-brand.webp" alt="Snap on a tide green brand backdrop" width="1000" height="667" loading="lazy"></div><figcaption>brand</figcaption></figure>
           <figure><div class="pic sq alpha"><img src="/studio-none.webp" alt="Snap with no backdrop, over transparency" width="1000" height="667" loading="lazy"></div><figcaption>no backdrop</figcaption></figure>
         </div>
         <p>Or keep the photo: scene mode reframes on the subject and corrects the light and color.</p>
-        <p class="chips"><code class="chip op">filters:studio(product,bg:brand)</code><code class="chip op">filters:studio(scene)</code></p>
+        <p class="chips"><code class="chip op">filters:studio(product)</code><code class="chip op">filters:studio(scene)</code></p>
       </article>
 
       <article class="tile s6">
@@ -738,36 +738,31 @@ curl -H "Accept: application/json" \
             <button class="tab" type="button" role="tab" id="tab-py" aria-controls="pane-py" aria-selected="false" tabindex="-1"><svg aria-hidden="true"><use href="#m-py"/></svg>Python</button>
             <button class="tab" type="button" role="tab" id="tab-rs" aria-controls="pane-rs" aria-selected="false" tabindex="-1"><svg aria-hidden="true"><use href="#m-rs"/></svg>Rust</button>
           </div><button class="copy" type="button" id="copy-snippet">Copy snippet</button></div>
-<pre role="tabpanel" id="pane-curl" aria-labelledby="tab-curl" tabindex="0">printf '%s' '<span class="t-ops">crop:1200x630:smart/filters:format(webp):quality(80)</span>/<span class="t-src">https://example.com/photo.jpg</span>' \
+<pre role="tabpanel" id="pane-curl" aria-labelledby="tab-curl" tabindex="0">printf '%s' '<span class="t-ops">crop:1200x630:smart/filters:grayscale</span>/<span class="t-src">https://example.com/photo.jpg</span>' \
   | openssl dgst -sha256 -hmac 'demo-secret'
-<span class="c"># SHA2-256(stdin)= </span><span class="t-sig">ca3d1f22f4cc3860926608df02383f46dcf74af9a4e1bc26b1a00c644f55f300</span></pre>
+<span class="c"># SHA2-256(stdin)= </span><span class="t-sig">5b9fc0ad8492552ef2c0c8af53d26851f958a213d95b1024754a311f48443e05</span></pre>
 <pre role="tabpanel" id="pane-ts" aria-labelledby="tab-ts" tabindex="0" hidden><span class="k">import</span> { buildURL } <span class="k">from</span> "@crabcrop/url";
 
-<span class="c">// buildURL(base, secret, operations, source, options?)</span>
 <span class="k">const</span> url = buildURL(
   "https://img.example.com",
   "demo-secret",
-  "<span class="t-ops">crop:1200x630:smart/filters:format(webp):quality(80)</span>",
+  "<span class="t-ops">crop:1200x630:smart/filters:grayscale</span>",
   "<span class="t-src">https://example.com/photo.jpg</span>",
 );</pre>
 <pre role="tabpanel" id="pane-py" aria-labelledby="tab-py" tabindex="0" hidden><span class="k">from</span> crabcrop_url <span class="k">import</span> build_url
 
 url = build_url(
-    base="https://img.example.com",
-    secret="demo-secret",
-    operations="<span class="t-ops">crop:1200x630:smart/filters:format(webp):quality(80)</span>",
-    source="<span class="t-src">https://example.com/photo.jpg</span>",
+    "https://img.example.com",
+    "demo-secret",
+    "<span class="t-ops">crop:1200x630:smart/filters:grayscale</span>",
+    "<span class="t-src">https://example.com/photo.jpg</span>",
 )</pre>
-<pre role="tabpanel" id="pane-rs" aria-labelledby="tab-rs" tabindex="0" hidden><span class="k">use</span> crabcrop_url::{build_url, sign};
+<pre role="tabpanel" id="pane-rs" aria-labelledby="tab-rs" tabindex="0" hidden><span class="k">use</span> crabcrop_url::build_url;
 
-<span class="k">let</span> secret: &amp;[u8] = b"demo-secret";
-<span class="k">let</span> signature = sign(secret, "<span class="t-ops">crop:1200x630:smart/filters:format(webp):quality(80)</span>/<span class="t-src">https://example.com/photo.jpg</span>")?;
-
-<span class="c">// build_url(base, secret, operations, source, expires)</span>
 <span class="k">let</span> url = build_url(
     "https://img.example.com",
-    Some(secret),
-    "<span class="t-ops">crop:1200x630:smart/filters:format(webp):quality(80)</span>",
+    Some(b"demo-secret"),
+    "<span class="t-ops">crop:1200x630:smart/filters:grayscale</span>",
     "<span class="t-src">https://example.com/photo.jpg</span>",
     None,
 )?;</pre>
@@ -933,8 +928,8 @@ CRABCROP_ALLOW_UNSAFE=1 crabcrop
       <div class="box ways">
         <h3>Other routes</h3>
         <dl class="kv">
-          <dt>Docker</dt><dd><code>docker pull <span class="nw">ghcr.io/dayvson/crabcrop:0.12.0</span></code></dd>
-          <dt>With AI</dt><dd><code>docker pull <span class="nw">ghcr.io/dayvson/crabcrop-ai:0.12.0</span></code></dd>
+          <dt>Docker</dt><dd><code>docker pull <span class="nw">ghcr.io/dayvson/crabcrop:0.13.0</span></code></dd>
+          <dt>With AI</dt><dd><code>docker pull <span class="nw">ghcr.io/dayvson/crabcrop-ai:0.13.0</span></code></dd>
           <dt>Cargo</dt><dd><code>cargo install crabcrop</code></dd>
           <dt>Binaries</dt><dd><a href="https://github.com/dayvson/crabcrop/releases">Release tarballs on GitHub</a></dd>
         </dl>
@@ -956,7 +951,7 @@ CRABCROP_ALLOW_UNSAFE=1 crabcrop
         <a href="https://crates.io/crates/crabcrop">crates.io</a>
       </nav>
     </div>
-    <p class="fine"><span>v0.12.0 · MIT licensed · Snapped, not generated.</span><span>A preview of the next home page. The live site is <a href="https://crabcrop.org/">crabcrop.org</a>.</span></p>
+    <p class="fine"><span>v0.13.0 · MIT licensed · Snapped, not generated.</span><span>A preview of the next home page. The live site is <a href="https://crabcrop.org/">crabcrop.org</a>.</span></p>
   </div>
 </footer>
 </body>
