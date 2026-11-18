@@ -23,7 +23,7 @@
         <button type="button" role="tab" id="vt-tab-rs" data-lang="2" aria-selected="false" aria-controls="vt-panel" tabindex="-1"><svg class="vt-mk" aria-hidden="true" focusable="false"><use href="#vt-m-rs"/></svg>Rust</button>
       </div>
       <div id="vt-panel" aria-labelledby="vt-tab-ts">
-        <pre class="vt-code" id="vt-code"><span class="ln" style="--in: 0">// @crabcrop/<wbr>url</span><span class="ln" style="--in: 0">const url = buildURL(base, secret,</span><span class="ln" style="--in: 2">"crop:<wbr>1200x630:<wbr>smart/<wbr>filters:<wbr>sharpen(1.2):<wbr>saturation(1.1)",</span><span class="ln" style="--in: 2">"root:<wbr>photos/<wbr>print.jpg");</span></pre>
+        <pre class="vt-code" id="vt-code"><span class="ln" style="--in: 0">import { buildURL } from "@crabcrop/url";</span><span class="ln" style="--in: 0">const url = buildURL(base, secret,</span><span class="ln" style="--in: 2">"crop:<wbr>1200x630:<wbr>smart/<wbr>filters:<wbr>sharpen(1.2):<wbr>saturation(1.1)",</span><span class="ln" style="--in: 2">"root:<wbr>photos/<wbr>print.jpg");</span></pre>
         <p class="vt-out" id="vt-out">→ https://<wbr>img.example.com/<wbr>3843ad67…/<wbr>crop:<wbr>1200x630:<wbr>smart/<wbr>filters:<wbr>sharpen(1.2):<wbr>saturation(1.1)/<wbr>root:<wbr>photos/<wbr>print.jpg <span class="vt-same">(the same from all three)</span></p>
       </div>
     </div>
@@ -37,12 +37,12 @@
     <div class="vt-spec">
       <p class="spec-note">The other little submarine down here is an agent. Its tool calls:</p>
       <ol class="vt-mcp" id="vt-log">
-        <li class="ask" style="--i: 0"><span class="who">agent</span><code>sign_url</code><span class="what">crop:<wbr>1200x630:<wbr>smart · sharpen(1.2):<wbr>saturation(1.1) · root:<wbr>photos/<wbr>print.jpg</span></li>
+        <li class="ask" style="--i: 0"><span class="who">agent</span><code>sign_url</code><span class="what">crop:<wbr>1200x630:<wbr>smart/<wbr>filters:<wbr>sharpen(1.2):<wbr>saturation(1.1) · root:<wbr>photos/<wbr>print.jpg</span></li>
         <li class="answer" style="--i: 1"><span class="who">crabcrop</span><span class="what">https://<wbr>img.example.com/<wbr>3843ad67…/<wbr>crop:<wbr>1200x630:<wbr>smart/<wbr>filters:<wbr>sharpen(1.2):<wbr>saturation(1.1)/<wbr>root:<wbr>photos/<wbr>print.jpg</span></li>
         <li class="ask" style="--i: 2"><span class="who">agent</span><code>explain_url</code><span class="what">is it right?</span></li>
-        <li class="answer" style="--i: 3"><span class="who">crabcrop</span><span class="what">valid · key 1 · 1200 × 630 · AVIF</span></li>
+        <li class="answer" style="--i: 3"><span class="who">crabcrop</span><span class="what">valid · current key · 1200 × 630 · JPEG</span></li>
         <li class="ask" style="--i: 4"><span class="who">agent</span><code>fetch_meta</code><span class="what">what does it show?</span></li>
-        <li class="answer" style="--i: 5"><span class="who">crabcrop</span><span class="what">1200 × 630 · AVIF · a sun over two hills, stitched</span></li>
+        <li class="answer" style="--i: 5"><span class="who">crabcrop</span><span class="what">1200 × 630 · JPEG · a crochet crab at a skate park, holding up a photo</span></li>
       </ol>
     </div>
     <h3>MCP server for agents</h3>

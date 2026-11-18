@@ -34,16 +34,16 @@
   <div class="slot"><article class="beat card">
     <div class="specimen spec-size dive-only" aria-hidden="true">
       <figure><span class="frame crop"><canvas width="240" height="126"></canvas></span><figcaption>crop:1200x630:<wbr>smart</figcaption></figure>
-      <figure><span class="frame fit"><canvas width="240" height="126"></canvas></span><figcaption>fit-in</figcaption></figure>
-      <figure><span class="frame pad"><canvas width="240" height="126"></canvas></span><figcaption>pad</figcaption></figure>
+      <figure><span class="frame fit"><canvas width="240" height="126"></canvas></span><figcaption>fit-in:<wbr>1200x630</figcaption></figure>
+      <figure><span class="frame pad"><canvas width="240" height="126"></canvas></span><figcaption>pad:<wbr>1200x630:<wbr>ffd88a</figcaption></figure>
     </div>
     <h3>Size, crop, fit, and pad</h3>
     <p>Resize to exact pixels, crop to a window that finds the subject, fit inside a box, or pad out to a shape. Each is its own path segment.</p>
-    <p class="ex"><code>crop:1200x630:smart · fit-in · pad</code></p>
+    <p class="ex"><code>crop:1200x630:smart · fit-in:1200x630 · pad:1200x630:ffd88a</code></p>
     <a class="more" href="https://crabcrop.org/docs.html#size">Read the docs<span class="sr"> on sizing</span></a>
   </article></div>
   <div class="slot"><article class="beat card">
-    <p class="specimen spec-preset" aria-hidden="true"><b>preset:og-card</b><span> = crop:1200x630:smart/<wbr>filters:format(webp)</span></p>
+    <p class="specimen spec-preset" aria-hidden="true"><b>preset:og-card</b><span> = crop:1200x630:smart/<wbr>filters:format(webp):<wbr>quality(80)</span></p>
     <h3>Presets and purge</h3>
     <p>Server-side preset names keep templates short. Purge one result, or a whole preset group, with signatures from their own subkey.</p>
     <p class="ex chips"><code>preset:og-card</code> <code>POST /purge-group</code></p>

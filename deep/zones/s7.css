@@ -24,7 +24,8 @@
 .recipe-img.s-finish[data-finish="studio"] { background: radial-gradient(ellipse 34% 8% at 50% 86%, rgba(0, 24, 26, .45), transparent 72%), #0E7C79; }
 .recipe-img.s-finish[data-finish="studio"] img { object-fit: contain; padding: 8% 12% 14%; }
 .recipe-img.s-finish[data-finish="cutout"] { background: repeating-conic-gradient(#E9D3A1 0 25%, #F6E7C8 0 50%) 0 0 / 14px 14px; }
-.recipe-img.s-finish[data-finish="cutout"] img { object-fit: contain; padding: 6%; }
+.recipe-img.s-finish[data-finish="cutout"] img { object-fit: cover; padding: 0; }
+.recipe-img.s-crop[data-crop="whole"].s-finish[data-finish="cutout"] img { object-fit: contain; }
 /* (the format changes the bytes, not the look: the picture gets a label for what it was encoded as) */
 .recipe-img.s-fmt::before { content: "AVIF"; position: absolute; left: 5%; top: 7%; z-index: 1; padding: 1px 6px; font: 800 10px/1.5 var(--mono); letter-spacing: .05em; color: var(--ink); background: var(--sun); border: 1.5px solid var(--ink); border-radius: 5px; animation: chip .45s var(--spring); }
 .recipe-img.s-fmt[data-fmt="webp"]::before { content: "WebP"; }
@@ -70,3 +71,7 @@
 }
 @keyframes flash { 0% { opacity: .92; } 100% { opacity: 0; } }
 .again-note { font-size: 14px; color: var(--ink2); }
+/* the finale's picture as a page (page.js): the photo through the visitor's choices */
+.served-pic { width: 100%; max-width: 300px; aspect-ratio: 1200 / 630; border-radius: 10px; box-shadow: 0 6px 24px rgba(0, 0, 0, .35); }
+.served-pic[data-crop="square"] { max-width: 200px; aspect-ratio: 1; }
+.served-pic[data-crop="whole"] { max-width: 260px; aspect-ratio: 945 / 630; }

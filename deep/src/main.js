@@ -8,6 +8,7 @@ import { createAudio } from './audio.js';
 import { LOCKS, buildCast } from './cast.js';
 import { buildFauna } from './fauna.js';
 import { PHOTO, photoPrint, photoReady } from './photo.js';
+import { startPage } from './page.js';
 import { createPrint } from './print.js';
 import { buildSets } from './sets.js';
 import { material } from './shaders.js';
@@ -32,6 +33,8 @@ const ui = createUI({
     if (key === 'look' || key === 'crop' || key === 'finish') { printDirty = true; printRead = false; }
   },
   onStart() { audio.cue('start'); },
+  // as a page (asked for, or where the scene cannot run): the cards that follow the choices
+  onPage() { startPage(ui); },
 });
 
 // Snap's print in the geode's hollow, where the story finds it: the photo he chased down,

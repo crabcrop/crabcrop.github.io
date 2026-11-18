@@ -47,7 +47,7 @@ export const NOTES = {
   finish: [
     'Nothing added: the picture leaves as photographed.',
     'Cut out, set on your brand color with a soft shadow, a 10% margin per side.',
-    'The background removed: only the subject stays, on transparency.',
+    'The background removed: only the subject stays, on transparency, so it needs a format that carries alpha. Browsers ask for one; for curl, name format(webp).',
   ],
   seal: [
     'Readable: the recipe stays in plain sight. It is the right default for most links.',

@@ -16,7 +16,8 @@ import { smooth } from '../math.js';
 import { buildAgent } from '../props/vents.js';
 
 const INSTALL = ['npm install @crabcrop/url', 'pip install crabcrop_url', 'cargo add crabcrop-url'];
-const SIZE = ['1200 × 630', '760 × 760', '945 × 630'], FMT = ['AVIF', 'AVIF', 'JPEG XL', 'WebP'];
+// (with no format named, the agent's requests keep the source's: print.jpg is a JPEG)
+const SIZE = ['1200 × 630', '760 × 760', '945 × 630'], FMT = ['JPEG', 'AVIF', 'JPEG XL', 'WebP'];
 const PRINT_STORY = 'There it is, in the glow of the geode: Snap’s print. The submarine’s pincer lifts it out. It is the last part of your URL: <code>root:photos/print.jpg</code>, the source.';
 // the pickup: the submarine has parked by the geode from p 6.87 (cast.js); the climb starts at 7
 const PARKED = 6.87, CLIMB = 7.02;
@@ -27,7 +28,8 @@ const esc = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replac
 const soft = (t) => esc(t).replace(/([/:,])(?=[^/\s])/g, '$1<wbr>');
 // code as lines that keep their indent when they wrap: each line a block, its continuation hanging
 // two characters further in
-const codeLines = (text) => text.split('\n').map((l) => { const n = l.length - l.trimStart().length; return '<span class="ln" style="--in: ' + n + '">' + soft(l.trimStart()) + '</span>'; }).join('');
+// (an import line breaks at its spaces, not inside the package's name)
+const codeLines = (text) => text.split('\n').map((l) => { const n = l.length - l.trimStart().length, t = l.trimStart(); return '<span class="ln" style="--in: ' + n + '">' + (/^(import|from|use) /.test(t) ? esc(t) : soft(t)) + '</span>'; }).join('');
 
 // The camera on its path at p (without the visitor's nudge): where it is, its forward, right, up.
 const O6 = [0, 0, 0, 0, 0];
@@ -43,6 +45,34 @@ function pathCam(p, c) {
 const inCam = (c, f, r, u, out) => out.set(c.x + c.F[0] * f + c.R[0] * r + c.U[0] * u, c.y + c.F[1] * f + c.U[1] * u, c.z + c.F[2] * f + c.R[2] * r + c.U[2] * u);
 
 const S = { agent: null };
+
+// The SDK card: the call that builds the visitor's own URL in one library (lang: 0 TypeScript,
+// 1 Python, 2 Rust), the URL it gives, and the line that installs that library. Also the page's
+// (page.js). Returns { code, out } as HTML and { install } as text.
+export function sdkHTML(c, lang) {
+  const rem = remainder(c), ops = rem.slice(0, rem.length - SRC.length - 1);
+  const call = [
+    'import { buildURL } from "@crabcrop/url";\nconst url = buildURL(base, secret,\n  "' + ops + '",\n  "' + SRC + '");',
+    'from crabcrop_url import build_url\nurl = build_url(base, secret,\n    "' + ops + '",\n    "' + SRC + '")',
+    'use crabcrop_url::build_url;\nlet url = build_url(base, Some(secret),\n    "' + ops + '",\n    "' + SRC + '", None)?;',
+  ][lang];
+  return { code: codeLines(call), out: soft('→ https://img.example.com/' + sign(rem).slice(0, 8) + '…/' + rem) + ' <span class="vt-same">(the same from all three)</span>', install: INSTALL[lang] };
+}
+// The MCP card: what the agent asks crabcrop about the visitor's URL, and the answers, as the
+// log's HTML. Also the page's (page.js).
+export function mcpHTML(c) {
+  const rem = remainder(c), ops = rem.slice(0, rem.length - SRC.length - 1);
+  const size = SIZE[c.crop], fmt = FMT[c.format];
+  const rows = [
+    ['agent', 'sign_url', ops + ' · ' + SRC],
+    ['crabcrop', '', 'https://img.example.com/' + sign(rem).slice(0, 8) + '…/' + rem],
+    ['agent', 'explain_url', 'is it right?'],
+    ['crabcrop', '', 'valid · current key · ' + size + ' · ' + fmt],
+    ['agent', 'fetch_meta', 'what does it show?'],
+    ['crabcrop', '', size + ' · ' + fmt + ' · a crochet crab at a skate park, holding up a photo'],
+  ];
+  return rows.map(([who, tool, what], i) => '<li class="' + (who === 'agent' ? 'ask' : 'answer') + '" style="--i: ' + i + '"><span class="who">' + who + '</span>' + (tool ? '<code>' + tool + '</code>' : '') + '<span class="what">' + soft(what) + '</span></li>').join('');
+}
 
 export default {
   id: 's6',
@@ -80,16 +110,11 @@ export default {
     const panel = doc.getElementById('vt-panel'), codeEl = doc.getElementById('vt-code'), outEl = doc.getElementById('vt-out'), installEl = doc.getElementById('vt-install');
     let lang = 0;
     const renderSdk = () => {
-      const rem = remainder(stage.choices), ops = rem.slice(0, rem.length - SRC.length - 1);
-      const call = [
-        '// @crabcrop/url\nconst url = buildURL(base, secret,\n  "' + ops + '",\n  "' + SRC + '");',
-        '# crabcrop_url\nurl = build_url(base, secret,\n    "' + ops + '",\n    "' + SRC + '")',
-        '// crabcrop-url\nlet url = build_url(base, Some(secret),\n    "' + ops + '",\n    "' + SRC + '", None)?;',
-      ][lang];
-      codeEl.innerHTML = codeLines(call);
-      outEl.innerHTML = soft('→ https://img.example.com/' + sign(rem).slice(0, 8) + '…/' + rem) + ' <span class="vt-same">(the same from all three)</span>';
-      if (installEl.textContent !== INSTALL[lang]) {
-        installEl.textContent = INSTALL[lang];
+      const h = sdkHTML(stage.choices, lang);
+      codeEl.innerHTML = h.code;
+      outEl.innerHTML = h.out;
+      if (installEl.textContent !== h.install) {
+        installEl.textContent = h.install;
         installEl.classList.remove('swap'); void installEl.offsetWidth; installEl.classList.add('swap');
       }
     };
@@ -118,17 +143,7 @@ export default {
     // ---- the agent's tool calls about the visitor's URL -----------------------------------------
     const logEl = doc.getElementById('vt-log');
     const renderLog = () => {
-      const c = stage.choices, rem = remainder(c), ops = rem.slice(0, rem.length - SRC.length - 1);
-      const size = SIZE[c.crop], fmt = FMT[c.format];
-      const rows = [
-        ['agent', 'sign_url', ops.replace('/filters:', ' · ') + ' · ' + SRC],
-        ['crabcrop', '', 'https://img.example.com/' + sign(rem).slice(0, 8) + '…/' + rem],
-        ['agent', 'explain_url', 'is it right?'],
-        ['crabcrop', '', 'valid · key 1 · ' + size + ' · ' + fmt],
-        ['agent', 'fetch_meta', 'what does it show?'],
-        ['crabcrop', '', size + ' · ' + fmt + ' · a crochet crab at a skate park, holding up a photo'],
-      ];
-      logEl.innerHTML = rows.map(([who, tool, what], i) => '<li class="' + (who === 'agent' ? 'ask' : 'answer') + '" style="--i: ' + i + '"><span class="who">' + who + '</span>' + (tool ? '<code>' + tool + '</code>' : '') + '<span class="what">' + soft(what) + '</span></li>').join('');
+      logEl.innerHTML = mcpHTML(stage.choices);
       talkFrom = stage.t;
     };
     let talkFrom = -10;

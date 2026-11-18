@@ -40,7 +40,7 @@ const NAMES = [
   ['Film reel', 'frame:50%', 'One frame of a video'],
   ['Folded pages', 'page:2', 'One page of a PDF'],
   ['Sand pails', 's3:// · gs://', 'Objects in S3 and GCS'],
-  ['Shoebox', 'file://', 'A local file'],
+  ['Shoebox', 'file:///path', 'A local file'],
   ['Mooring buoy', 'root:photos/print.jpg', 'A short root reference'],
 ];
 

@@ -109,8 +109,12 @@ export function createUI(opts = {}) {
   }
   root.classList.add(ui.mode);
 
+  let paged = false;
   function toPage(reason, detail) {
     ui.mode = 'page';
+    // (the cards that follow the choices are kept up by page.js from here: once, after this
+    // page's own set-up has finished)
+    if (!paged && opts.onPage) { paged = true; setTimeout(() => opts.onPage(), 0); }
     root.classList.remove('dive', 'ready');
     root.classList.add('page');
     const note = $('mode-note'), link = $('page-link');
@@ -233,7 +237,7 @@ export function createUI(opts = {}) {
       html = HOST + part('seal', token ? esc(token.slice(0, 14)) + '…' : 's1.…', 'The sealed token, shortened here') + '/<wbr>' + part('src', NAME);
       full = token ? BASE + token + '/' + NAME : '';
       finalEl.innerHTML = token ? soft(full) : 'Sealing…';
-      finalNote.innerHTML = 'Sealed in your browser with the sample secret <code>demo-secret</code> and a fresh nonce, on a stand-in host. Seal the same recipe with your own secret and your crabcrop server opens it.';
+      finalNote.innerHTML = 'Sealed in your browser with the sample secret <code>demo-secret</code> and a fresh nonce, on a stand-in host. Seal the same recipe with your own secret, on a server with a <code>photos</code> source root, and it opens and serves it.';
     } else {
       const f = OPTIONS.finish[c.finish], fm = OPTIONS.format[c.format];
       html = HOST + part('sig', sig.slice(0, 8) + '…', 'The signature, shortened here') + '/<wbr>' + part('crop', soft(OPTIONS.crop[c.crop])) + '/<wbr>filters:<wbr>' + part('look', soft(OPTIONS.look[c.look]))
@@ -242,7 +246,7 @@ export function createUI(opts = {}) {
       finalEl.innerHTML = soft(full);
       finalNote.innerHTML = c.seal
         ? 'This page cannot seal here (it needs a secure page), so this is the readable URL. Seal the recipe with <code>crabcrop seal</code> and your own secret.'
-        : 'Signed in your browser with the sample secret <code>demo-secret</code>, on a stand-in host. Sign the same path with your own secret and your crabcrop server serves the picture.';
+        : 'Signed in your browser with the sample secret <code>demo-secret</code>, on a stand-in host. Sign the same path with your own secret, on a server with a <code>photos</code> source root (and a background-removal model for a finish), and it serves the picture.';
     }
     urlEl.innerHTML = html;
     soFar();

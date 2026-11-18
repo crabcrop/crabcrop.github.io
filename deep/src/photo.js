@@ -70,12 +70,15 @@ function load() {
   return loading;
 }
 
-// The cut-out for the page's own pictures (the climb's print): the photo through crabcrop's
-// mask, drawn once on a canvas, as a data URL; null where the photo did not load.
-let cut = null;
-export function cutoutURL() {
-  if (cut) return cut;
-  cut = load().then((ok) => {
+// The cut-out for the page's own pictures (the climb's print, the finale as a page): the photo
+// through crabcrop's mask, drawn once on a canvas, as a data URL; null where the photo did not
+// load. Whole, as removebg leaves it (the frame kept, the background gone), or cut to the
+// subject's box, which studio(…) then sets in the middle of its backdrop.
+const cuts = [null, null];
+export function cutoutURL(subject = false) {
+  const k = subject ? 1 : 0;
+  if (cuts[k]) return cuts[k];
+  cuts[k] = load().then((ok) => {
     if (!ok) return null;
     const c = document.createElement('canvas'); c.width = PHOTO.w; c.height = PHOTO.h;
     const g = c.getContext('2d');
@@ -86,9 +89,13 @@ export function cutoutURL() {
     g.putImageData(d, 0, 0);
     g.globalCompositeOperation = 'source-in';
     g.drawImage(got.photo.img, 0, 0, PHOTO.w, PHOTO.h);
-    return c.toDataURL('image/webp', 0.86);
+    if (!subject) return c.toDataURL('image/webp', 0.86);
+    const [x0, y0, x1, y1] = PHOTO.box, x = Math.floor(x0 * PHOTO.w), y = Math.floor(y0 * PHOTO.h), w = Math.ceil((x1 - x0) * PHOTO.w), h = Math.ceil((y1 - y0) * PHOTO.h);
+    const b = document.createElement('canvas'); b.width = w; b.height = h;
+    b.getContext('2d').drawImage(c, x, y, w, h, 0, 0, w, h);
+    return b.toDataURL('image/webp', 0.86);
   });
-  return cut;
+  return cuts[k];
 }
 
 // The photo as a print, for the scene (Snap's claw, the water, the geode, the pincer): inside a

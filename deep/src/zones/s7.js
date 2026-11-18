@@ -26,10 +26,17 @@ export default {
     // the photo, as a picture the page's CSS can grade: framed on its subject, as smart crop
     // frames it; at the finish, crabcrop's own cut-out of it (on the brand backdrop, or nothing)
     const img = frame.querySelector('img');
-    let cutSrc = null, picSrc = '';
+    const cutSrc = [null, null, null];
+    let picSrc = '';
     img.style.objectPosition = Math.round(PHOTO.mid[0] * 100) + '% ' + Math.round(PHOTO.mid[1] * 100) + '%';
-    photoReady().then((ok) => { if (!ok) return; picSrc = photoFile(); img.src = picSrc; cutoutURL().then((u) => { cutSrc = u; }); });
-    const showCut = (cut) => { const want = cut && cutSrc ? cutSrc : picSrc; if (want && img.getAttribute('src') !== want) img.src = want; };
+    photoReady().then((ok) => {
+      if (!ok) return;
+      picSrc = photoFile(); img.src = picSrc;
+      cutoutURL(true).then((u) => { cutSrc[1] = u; });
+      cutoutURL(false).then((u) => { cutSrc[2] = u; });
+    });
+    // (the studio's cut-out is the subject's box, set in the middle; removebg's keeps the frame)
+    const showCut = (finish) => { const want = cutSrc[finish] || picSrc; if (want && img.getAttribute('src') !== want) img.src = want; };
     let token = null, tokenFor = '', shown = -2, recipe = '', flashed = false, on = false, w = 0, h = 0, last = '';
     // (on a phone the print hangs down to the top of the climb's own card, measured with it)
     const climbBeat = doc.querySelector('#s7 .s-climb > *');
@@ -57,7 +64,7 @@ export default {
     // added marked; sealed, at the last step the whole recipe folds into one token.
     const ticket = (n) => {
       const c = stage.choices, done = (i) => i <= n, rows = [];
-      if (done(4) && c.seal === 1) return [{ text: 's1.' + (token ? token.slice(3, 15) : '…') + '…', now: true }, { text: '/print.jpg' }];
+      if (done(4) && c.seal === 1) return [{ text: 's1.' + (token ? token.slice(3, 14) : '…') + '…', now: true }, { text: '/print.jpg' }];
       if (done(4)) rows.push({ text: sign(remainder(c)).slice(0, 8) + '…', of: 4 });
       if (done(0)) rows.push({ text: '/' + OPTIONS.crop[c.crop], of: 0 });
       if (done(1)) rows.push({ text: '/filters:' + OPTIONS.look[c.look], of: 1 });
@@ -98,7 +105,7 @@ export default {
       if (on) {
         let n = -1;
         for (let i = 0; i < STEPS.length; i++) { const d = q >= STEPS[i].at; frame.classList.toggle(STEPS[i].cls, d); if (d) n = i; }
-        showCut(n >= 2 && stage.choices.finish > 0);
+        showCut(n >= 2 ? stage.choices.finish : 0);
         if (n !== shown) { shown = n; paintTicket(n); }
         if (!w) {
           w = fig.offsetWidth; h = fig.offsetHeight;
