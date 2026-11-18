@@ -8,8 +8,9 @@ and back up, building a crabcrop URL on the way.
 
 Nothing in it is a picture, a model, a video or a sound file: the sea, the light, the sand,
 the crochet kelp and corals, the creatures, the boats, the wreck, the submarine and the
-music are made by the page when it loads. The one exception is Snap himself, who keeps his
-own 3D model (`media/`). The scenes follow the current dive's pictures (see
+music are made by the page when it loads. The exceptions are Snap himself, who keeps his
+own 3D model, and the visitor's picture, a real photo from the site's samples with crabcrop's
+own cut-out of it (`media/`). The scenes follow the current dive's pictures (see
 `preview/dive/media/z0` to `z7`): the marina at sunset from the waterline, the shallows, the
 kelp, the reef and its Clam Studio, the wreck and its cabin, the twilight, the vents and the
 geode, and the marina again.
@@ -19,8 +20,8 @@ is [PROMPT.md](PROMPT.md).
 
 | | The painted dive (`preview/dive/`) | This dive |
 |---|---|---|
-| Files | about 270 images and videos, 44 MB | one HTML file, and Snap's model (214 KB) and texture (79 to 186 KB) |
-| A visit downloads | 9.6 MB on desktop, 5.5 to 7.2 MB on a phone | about 0.75 to 0.85 MB (the page is 435 KB compressed) |
+| Files | about 270 images and videos, 44 MB | one HTML file, Snap's model (214 KB) and texture (79 to 186 KB), the photo (63 KB) and its mask (8 KB) |
+| A visit downloads | 9.6 MB on desktop, 5.5 to 7.2 MB on a phone | about 0.8 to 0.9 MB (the page is 438 KB compressed) |
 
 ## Build
 
@@ -41,7 +42,8 @@ three.js's **WebGPURenderer**, with every shader written in **TSL**, three.js's 
 language. On a browser with WebGPU (about 84% of page views worldwide in late 2026: Chrome,
 Edge, Safari 26, Firefox on Windows and Apple Silicon Macs) it runs on WebGPU; elsewhere
 three.js switches to its WebGL 2 backend by itself and the same TSL becomes GLSL. A browser
-with neither, or a visitor who prefers reduced motion, gets the page as plain text.
+with neither, or a visitor who prefers reduced motion, gets the page as plain text; `src/page.js`
+keeps its code examples and the finale's picture following the visitor's choices there.
 
 - `src/shaders.js`: the water and the light, in one place. Light coming down loses red
   first, per metre of depth; along a line of sight the water takes light out again and
@@ -71,9 +73,14 @@ with neither, or a visitor who prefers reduced motion, gets the page as plain te
   canopy that lifts, shuts and locks. `src/cast.js`: where they are at each point of the dive
   (the gust that takes his print, the ride down the chain, the wreck's cabin, the boarding, the
   homecoming on the submarine's back), his reactions and card visits, and the lamp. Both follow
-  their places relative to the camera, so a fast scroll never leaves them behind. `src/feltprint.js`: his print, the little felt
-  picture, drawn on a canvas at load. `src/print.js`: the visitor's image, that print
-  photographed by the page itself with the chosen crop, finish and look.
+  their places relative to the camera, so a fast scroll never leaves them behind.
+  `src/photo.js`: the visitor's picture, a real photo from the site's samples (Snap at a skate
+  park, `ai-skate-before.jpg`) and the subject's mask, which is crabcrop's own background removal
+  of it (`ai-skate-removebg.webp`); it is also the print Snap carries, in a white border.
+  `src/print.js`: the visitor's image, that photo put through their choices in the order the
+  server works: the crop (smart: the window on the subject), the look, then the finish (the
+  cut-out on the brand colour with a soft shadow for the studio, on transparency for removebg).
+  `src/feltprint.js`: the little felt picture that stands in until the photo has loaded.
 - `src/pace.js`: keeps the frame rate by trading resolution first, in small steps, and
   remembers where it settled. `src/app.js`: builds the world and runs the loop.
 - `src/ui.js`, `src/audio.js`, `template.html`: the page around the scene (each choice with
