@@ -204,9 +204,9 @@ h3 { font-size: 20px; font-weight: 700; line-height: 1.2; letter-spacing: -.012e
 .chip.src { color: var(--src); border-color: transparent; background: var(--src-wash); }
 .chip.sig { color: var(--sig); border-color: transparent; background: var(--sig-wash); }
 
-/* Speed: a first request, the figure and the table by operation against the other two, and how it was measured.
-   No cached repeats: every figure is a first request, which does the whole job. Figures are set in the body face;
-   text stays in text colours. */
+/* Speed: a first request, the figure and the table by operation against the other two, a short warm note,
+   and how it was measured. The headline figures are first requests, which do the whole job; the warm note
+   is labelled as repeats. Figures are set in the body face; text stays in text colours. */
 .stat .label { font-size: 15px; font-weight: 600; color: var(--text); }
 .stat .value { font: 600 clamp(42px, 4.3vw, 54px)/1 var(--body); letter-spacing: -.035em; color: var(--text); }
 .stat .value span { margin-left: 7px; font-size: .37em; font-weight: 500; letter-spacing: 0; color: var(--muted); }
@@ -221,6 +221,7 @@ h3 { font-size: 20px; font-weight: 700; line-height: 1.2; letter-spacing: -.012e
 .nums tbody th { font-weight: 500; color: var(--text); }
 .nums td { color: var(--muted); }
 .nums td.us { font-weight: 600; color: var(--text); }
+.nums td.win { font-weight: 600; color: var(--text); }
 .nums td.na { color: var(--dim); }
 .tile .note { font-size: 13.5px; line-height: 1.5; color: var(--dim); }
 .how .kv dd { color: var(--muted); }
@@ -439,7 +440,7 @@ footer .wrap { display: grid; gap: 22px; }
         <p class="eyebrow"><span class="tri" aria-hidden="true"><i></i><i></i><i></i></span>Written in Rust · MIT licensed</p>
         <h1>Blazing fast,<br><span class="keep">on-demand</span> images.</h1>
         <p class="lede"><strong>The URL is the API.</strong> Write the operations into it, sign it, and crabcrop answers with the picture. A Rust-built image server in one binary: no pre-generated thumbnails, no build step.</p>
-        <p class="proof">First resize in <b>22.6&nbsp;ms</b><i>·</i><a href="#speed">How it was measured</a></p>
+        <p class="proof"><b>Faster than the alternatives</b><i>·</i><a href="#speed">How it was measured</a></p>
         <p class="cta"><a class="btn go" href="#install">Get it running</a><a class="btn quiet" href="https://crabcrop.org/docs.html">Read the docs</a></p>
       </div>
       <div class="snap" role="img" aria-label="Snap, a crochet crab, standing on the address bar and pointing down at the URL">
@@ -870,12 +871,12 @@ url = build_url(
     <div class="head">
       <p class="kicker"><span class="tri" aria-hidden="true"><i></i><i></i><i></i></span>Speed</p>
       <h2>Blazing fast, in numbers.</h2>
-      <p>A first request does the whole job: fetch the source, decode it, transform it, encode the answer. These are medians from the benchmark kept in the repo.</p>
+      <p>A first request does the whole job: fetch the source, decode it, transform it, encode the answer. These are medians from the benchmark kept in the repo, and crabcrop leads or ties eight of the ten operations.</p>
     </div>
     <div class="bento">
       <div class="tile s5 stat">
         <p class="label">A first request</p>
-        <p class="value">22.6<span>ms</span></p>
+        <p class="value">18.6<span>ms</span></p>
         <p>Fetch a 2400 by 1600 JPEG, decode it, resize it to 800 wide, encode it.</p>
       </div>
       <figure class="tile s7 tall">
@@ -888,27 +889,31 @@ url = build_url(
             <tr><th scope="col">Operation</th><th scope="col" class="us">crabcrop</th><th scope="col">Thumbor</th><th scope="col">imgproxy</th></tr>
           </thead>
           <tbody>
-            <tr><th scope="row">Resize, JPEG</th><td class="us">22.6</td><td>38.4</td><td>18.0</td></tr>
-            <tr><th scope="row">Crop to 400 by 300, JPEG</th><td class="us">58.5</td><td>71.0</td><td>12.1</td></tr>
-            <tr><th scope="row">Resize, WebP</th><td class="us">64.4</td><td>82.0</td><td>62.3</td></tr>
-            <tr><th scope="row">Resize and grayscale, JPEG</th><td class="us">25.3</td><td>38.2</td><td class="na"><span aria-hidden="true">—</span><span class="sr">not supported</span></td></tr>
-            <tr><th scope="row">Resize, AVIF</th><td class="us">112.4</td><td class="na"><span aria-hidden="true">—</span><span class="sr">not supported</span></td><td class="na"><span aria-hidden="true">—</span><span class="sr">not available on the benchmark host</span></td></tr>
-            <tr><th scope="row">Resize, JPEG XL</th><td class="us">34.0</td><td class="na"><span aria-hidden="true">—</span><span class="sr">not supported</span></td><td>43.8</td></tr>
+            <tr><th scope="row">Resize, JPEG</th><td class="us">18.6</td><td>42.4</td><td>19.5</td></tr>
+            <tr><th scope="row">Crop to 400 by 300, JPEG</th><td class="us">19.0</td><td>71.8</td><td class="win">13.4</td></tr>
+            <tr><th scope="row">Resize, WebP q80</th><td class="us">59.8</td><td>84.1</td><td>67.5</td></tr>
+            <tr><th scope="row">Resize and grayscale, JPEG</th><td class="us">15.4</td><td>40.1</td><td class="na"><span aria-hidden="true">—</span><span class="sr">not supported</span></td></tr>
+            <tr><th scope="row">Resize, AVIF q80</th><td class="us">113.0</td><td class="na"><span aria-hidden="true">—</span><span class="sr">not supported</span></td><td class="na"><span aria-hidden="true">—</span><span class="sr">not available on the benchmark host</span></td></tr>
+            <tr><th scope="row">Resize, JPEG XL q80</th><td class="us">53.8</td><td class="na"><span aria-hidden="true">—</span><span class="sr">not supported</span></td><td class="win">45.8</td></tr>
+            <tr><th scope="row">Resize, JPEG q60</th><td class="us">14.0</td><td>38.5</td><td>18.2</td></tr>
+            <tr><th scope="row">Resize, JPEG q95</th><td class="us">14.4</td><td>42.4</td><td>19.8</td></tr>
+            <tr><th scope="row">Resize, WebP q60</th><td class="us">57.6</td><td>79.3</td><td>62.7</td></tr>
+            <tr><th scope="row">Resize, WebP q95</th><td class="us">69.8</td><td>93.7</td><td>75.1</td></tr>
           </tbody>
         </table>
-        <p class="note">A dash is an operation that server could not run. Thumbor 7.8.0 has no AVIF or JPEG XL encoder. Open-source imgproxy has no grayscale option, and its AVIF needs an encoder the benchmark host did not have: a limit of the host, not of imgproxy.</p>
+        <p class="note">imgproxy still wins two rows: the crop to 400 by 300 (13.4 against 19.0) and JPEG XL (45.8 against 53.8), where crabcrop's encoder makes notably smaller files at the same nominal settings and pays for it in speed. A dash is an operation that server could not run. Thumbor 7.8.0 has no AVIF or JPEG XL encoder. Open-source imgproxy has no grayscale option, and its AVIF needs an encoder this host's libheif did not have: a limit of the host, not of imgproxy.</p>
       </figure>
 
       <div class="tile s5 how">
         <h3>How it was measured</h3>
-        <dl class="kv">
-          <dt>Servers</dt><dd>crabcrop 0.9.9, Thumbor 7.8.0 and imgproxy 3.31.4, one at a time. Their configurations are in the repo.</dd>
-          <dt>Host</dt><dd>One shared VM with 4 cores and 7.7 GiB of memory. Client, origin and server on the same machine.</dd>
-          <dt>Sources</dt><dd>25 JPEGs, 2400 by 1600, about 205 KB each.</dd>
-          <dt>Timing</dt><dd>A fresh connection per request, signature checks off, medians across repeated runs.</dd>
-          <dt>Date</dt><dd>6 November 2026.</dd>
-        </dl>
-        <p class="links"><a class="more" href="https://github.com/dayvson/crabcrop/tree/main/benchmark">The harness</a><a class="more" href="https://github.com/dayvson/crabcrop/blob/main/benchmark/results/2026-11-06.md">Full results and raw data</a></p>
+        <p>Every server got the same 25 source images and the same ten operations, served from one local origin. Cold means the first request for each image, before any cache can help. Each figure is the median of repeated runs.</p>
+        <p class="note">Measured 15 November 2026. crabcrop 0.13.0, imgproxy 4.0.24, Thumbor 7.8.0. Host: one small shared VM, 4 cores (AMD EPYC 9D25), 7.7 GiB RAM, Ubuntu 24.04.5 LTS. Small differences are noise; the rankings are the robust part.</p>
+        <p class="links"><a class="more" href="https://github.com/dayvson/crabcrop/tree/main/benchmark">The harness</a><a class="more" href="https://github.com/dayvson/crabcrop/blob/main/benchmark/results/2026-11-15-imgproxy4.md">Full results and raw data</a></p>
+      </div>
+
+      <div class="tile s12 warm">
+        <h3>Warm repeats, briefly</h3>
+        <p>Repeat requests matter less than they look: a CDN in front of any of these servers serves most repeats before they arrive. crabcrop answers warm repeats at a 0.2 to 0.4 ms median on every operation, and its warm resize throughput medians 1,874 requests per second at 8 workers. Thumbor medians 25.8 and imgproxy 56.0, neither caching results in these configurations. The full warm data is in the raw JSON beside the results document.</p>
       </div>
     </div>
   </div>
