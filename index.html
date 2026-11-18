@@ -125,12 +125,6 @@ h1 { margin-top: 18px; font-size: clamp(30px, min(4.9vw, 9.4vh), 64px); font-wei
 h1 .keep { white-space: nowrap; }
 .lede { margin-top: 24px; max-width: 54ch; font-size: clamp(17px, 1.45vw, 20px); line-height: 1.55; color: var(--muted); text-wrap: pretty; }
 .lede strong { color: var(--text); font-weight: 500; }
-/* (the claim in the headline, with its two numbers and the way to the rest) */
-.proof { margin-top: 16px; font: 500 13px/1.6 var(--mono); color: var(--dim); }
-.proof b { font-weight: 700; color: var(--text); }
-.proof i { font-style: normal; margin-inline: .5em; }
-.proof a { color: var(--muted); text-underline-offset: 4px; text-decoration-color: var(--line); white-space: nowrap; }
-.proof a:hover { color: var(--text); text-decoration-color: var(--muted); }
 .cta { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 22px; }
 
 /* Snap stands at the right end of a bar, just behind its top edge: on the address bar here, pointing down at the
@@ -150,6 +144,7 @@ h1 .keep { white-space: nowrap; }
 #snap-cheer { aspect-ratio: 850 / 640; }
 
 .bench { position: relative; z-index: 1; }
+.sample-note { margin-top: 16px; font-size: 14px; color: var(--dim); }
 /* (the bar keeps room for two lines of URL, so the picture below does not jump as the operations change) */
 .bar { display: flex; align-items: center; min-height: calc(2 * 1.8 * clamp(15px, 1.36vw, 19.5px) + 30px); padding: 15px 22px; background: var(--panel); border: 1px solid var(--line); border-radius: 18px; box-shadow: 0 30px 60px -36px var(--shadow); }
 .url { min-width: 0; font: 500 clamp(15px, 1.36vw, 19.5px)/1.8 var(--mono); color: var(--dim); overflow-wrap: normal; word-break: normal; }
@@ -310,12 +305,11 @@ pre { margin: 0; padding: 18px 20px; overflow-x: auto; font-size: 13.5px; line-h
 .list li { padding: 11px 0; border-top: 1px solid var(--line-soft); font-size: 14.5px; line-height: 1.5; color: var(--muted); }
 .list li b { display: block; color: var(--text); font-weight: 600; font-size: 15px; }
 .list li code { font-size: 13px; color: var(--text); }
-.nap { display: flex; flex-wrap: wrap; align-items: center; gap: 14px 26px; margin-top: 16px; padding: 14px 24px 14px 22px; background: var(--panel); border: 1px solid var(--line-soft); border-radius: 18px; }
-/* (asleep, and breathing: the picture swells a touch from the feet up) */
-.nap img { flex: none; width: auto; height: 124px; mix-blend-mode: lighten; transform-origin: 50% 100%; animation: doze 4.8s ease-in-out infinite; }
+/* (Snap asleep beside the heading, and breathing: the picture swells a touch from the feet up) */
+#ship .lead { --snap-h: clamp(120px, 13vw, 176px); margin-bottom: clamp(26px, 3.4vw, 42px); }
+#ship h2 { margin-top: 14px; }
+#ship .snap img { display: block; height: 100%; width: auto; mix-blend-mode: lighten; transform-origin: 50% 100%; animation: doze 4.8s ease-in-out infinite; }
 @keyframes doze { 50% { transform: scale(1.012, 1.034); } }
-.nap p { flex: 1 1 320px; min-width: 0; font-size: 15.5px; color: var(--muted); }
-.nap code { font-size: 13.5px; color: var(--text); overflow-wrap: anywhere; }
 
 /* Coming from */
 .from { list-style: none; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 0; padding: 0; }
@@ -393,7 +387,6 @@ footer .wrap { display: grid; gap: 22px; }
   .rows li { grid-template-columns: minmax(0, 1fr) auto; }
   .rows .who { grid-column: 1 / -1; }
   .from { grid-template-columns: minmax(0, 1fr); }
-  .nap img { height: 104px; }
 }
 @media (max-width: 380px) {
   .hero .lead { --snap-h: 122px; }
@@ -440,7 +433,6 @@ footer .wrap { display: grid; gap: 22px; }
         <p class="eyebrow"><span class="tri" aria-hidden="true"><i></i><i></i><i></i></span>Written in Rust · MIT licensed</p>
         <h1>Blazing fast,<br><span class="keep">on-demand</span> images.</h1>
         <p class="lede"><strong>The URL is the API.</strong> Write the operations into it, sign it, and crabcrop answers with the picture. A Rust-built image server in one binary: no pre-generated thumbnails, no build step.</p>
-        <p class="proof"><b>Faster than the alternatives</b><i>·</i><a href="#speed">How it was measured</a></p>
         <p class="cta"><a class="btn go" href="#install">Get it running</a><a class="btn quiet" href="https://crabcrop.org/docs.html">Read the docs</a></p>
       </div>
       <div class="snap" role="img" aria-label="Snap, a crochet crab, standing on the address bar and pointing down at the URL">
@@ -504,6 +496,7 @@ footer .wrap { display: grid; gap: 22px; }
           </figcaption>
         </figure>
       </div>
+      <p class="sample-note">Just a small sample: crabcrop has 51 filters in all, and the size, look and format picks above are only a few of the operations. The docs list every one.</p>
     </div>
   </div>
 </section>
@@ -634,7 +627,7 @@ CRABCROP_ALLOW_UNSAFE=1 crabcrop
         <p class="chips"><code class="chip op">filters:blurclass(person)</code><code class="chip op">filters:blurfaces</code></p>
       </article>
 
-      <article class="tile">
+      <article class="tile s3">
         <img class="patch" src="media/patch-fish.webp" alt="" width="384" height="384" loading="lazy">
         <h3>All major formats, in and out</h3>
         <dl class="kv">
@@ -645,18 +638,25 @@ CRABCROP_ALLOW_UNSAFE=1 crabcrop
         <p class="chips"><code class="chip op">filters:format(avif)</code></p>
       </article>
 
-      <article class="tile">
+      <article class="tile s3">
         <img class="patch" src="media/patch-drops.webp" alt="" width="384" height="384" loading="lazy">
         <h3>51 filters, one chain</h3>
         <p>Resize, crop, fit-in, and pad are their own path segments. The 51 filters chain inside one <code>filters:</code> segment and run in the order written.</p>
         <p class="chips"><code class="chip op">filters:sharpen(1.2):saturation(1.1)</code></p>
       </article>
 
-      <article class="tile">
+      <article class="tile s3">
         <img class="patch" src="media/patch-reel.webp" alt="" width="384" height="384" loading="lazy">
         <h3>More than photos</h3>
-        <p>The source can be one frame of a video, one page of a PDF, an object in S3 or GCS, a local file, or a short <code>root:</code> reference.</p>
-        <p class="chips"><code class="chip op">frame:50%</code><code class="chip op">page:2</code><code class="chip src">root:photos/print.jpg</code></p>
+        <p>The input does not have to be a photo. crabcrop decodes one frame of a video or one page of a PDF and serves it as an image, like any other source.</p>
+        <p class="chips"><code class="chip op">frame:50%</code><code class="chip op">page:2</code></p>
+      </article>
+
+      <article class="tile s3">
+        <img class="patch" src="media/patch-link.webp" alt="" width="384" height="384" loading="lazy">
+        <h3>Sources, wherever they live</h3>
+        <p>The source in the URL can be a plain https address, an object in S3 or GCS, a file on local disk, or a short <code>root:</code> reference the server resolves against the storage you configured.</p>
+        <p class="chips"><code class="chip src">s3://bucket/key</code><code class="chip src">root:photos/print.jpg</code></p>
       </article>
 
       <article class="tile s12">
@@ -817,10 +817,15 @@ url = build_url(
 
 <section id="ship" class="band">
   <div class="wrap">
-    <div class="head">
-      <p class="kicker"><span class="tri" aria-hidden="true"><i></i><i></i><i></i></span>Production</p>
-      <h2>Ship it where you already run.</h2>
-      <p>One recipe per platform and one per CDN, each a complete walkthrough in the repo. Every recipe follows the same flow: create the signing secret, deploy, run the smoke checklist.</p>
+    <div class="lead">
+      <div class="say">
+        <p class="kicker"><span class="tri" aria-hidden="true"><i></i><i></i><i></i></span>Production</p>
+        <h2>Ship it where you already run.</h2>
+        <p class="sub">One recipe per platform and one per CDN, each a complete walkthrough in the repo. Every recipe follows the same flow: create the signing secret, deploy, run the smoke checklist.</p>
+      </div>
+      <div class="snap" role="img" aria-label="Snap fast asleep">
+        <img src="media/snap-asleep.webp" alt="" width="383" height="420">
+      </div>
     </div>
     <div class="ship">
       <div class="list">
@@ -859,10 +864,6 @@ url = build_url(
         </ul>
       </div>
     </div>
-    <div class="nap">
-      <img src="media/snap-asleep.webp" alt="Snap fast asleep" width="383" height="420" loading="lazy">
-      <p>A signed URL's bytes never change, so image responses carry <code>Cache-Control: public, max-age=31536000, immutable</code>. A CDN in front can hold on to them for a year.</p>
-    </div>
   </div>
 </section>
 
@@ -875,9 +876,8 @@ url = build_url(
     </div>
     <div class="bento">
       <div class="tile s5 stat">
-        <p class="label">A first request</p>
+        <p class="label">Fetch a 2400 by 1600 JPEG, decode it, resize it to 800 wide, encode it</p>
         <p class="value">18.6<span>ms</span></p>
-        <p>Fetch a 2400 by 1600 JPEG, decode it, resize it to 800 wide, encode it.</p>
       </div>
       <figure class="tile s7 tall">
         <figcaption class="fig-head">
@@ -946,10 +946,10 @@ url = build_url(
     <div class="foot">
       <a class="logo" href="#top" aria-label="crabcrop, top of page"><svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true"><circle class="mk" cx="16" cy="18" r="11"/><circle class="mk-eye" cx="11" cy="13" r="4.5"/><circle class="mk" cx="24" cy="6" r="3.4"/><circle class="mk" cx="8" cy="6" r="3"/></svg>crabcrop</a>
       <nav aria-label="Footer">
-        <a href="https://crabcrop.org/docs.html">Documentation</a>
+        <a href="https://crabcrop.org/docs.html">Docs</a>
         <a href="https://play.crabcrop.org">Playground</a>
         <a href="https://github.com/dayvson/crabcrop">GitHub</a>
-        <a href="https://crates.io/crates/crabcrop">crates.io</a>
+        <a href="#install">Install</a>
       </nav>
     </div>
     <p class="fine"><span>v0.13.1 · MIT licensed · Snapped, not generated.</span></p>
