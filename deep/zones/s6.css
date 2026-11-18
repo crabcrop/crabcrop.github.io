@@ -45,10 +45,17 @@
 }
 @media (max-width: 760px) {
   .vt-spec { padding: 8px 10px 9px; }
-  #s6 .vt-line, .vt-code, .vt-mcp li { font-size: 10.5px; line-height: 1.4; }
+  #s6 .vt-line, .vt-code, .vt-mcp li { font-size: 10.5px; line-height: 1.32; }
+  /* (so the cards keep to their half of the screen: the loaders in one row that scrolls
+     sideways, and the agent's log without its heading line, which the card's own says) */
+  :root:not(.page) .vt-loaders { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+  :root:not(.page) .vt-loaders li { flex: none; }
+  :root:not(.page) #vt-mcp .spec-note { display: none; }
   #s6 .vt-out { font-size: 10px; }
   #s6 .vt-spec .spec-note { font-size: 11px; }
-  .vt-tabs button { min-height: 28px; font-size: 11px; }
+  .vt-tabs { margin-bottom: 6px; }
+  .vt-tabs button { min-height: 25px; padding: 2px 9px; font-size: 11px; }
+  #s6 .vt-out { margin-top: 5px; }
 }
 
 /* over the scene: the agent speaks */

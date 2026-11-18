@@ -40,7 +40,10 @@
 }
 @media (max-width: 760px) {
   .tw-spec { padding: 8px 10px 9px; }
-  .tw-json, #s5 .tw-req, .tw-report { font-size: 10.5px; line-height: 1.4; }
+  .tw-json, #s5 .tw-req, .tw-report { font-size: 10.5px; line-height: 1.32; }
+  /* (the report's rows closer together, so the card keeps to its half of the screen) */
+  .tw-report { gap: 1px 8px; }
+  .tw-report dt { padding-top: 1px; font-size: 9px; }
   #s5 .tw-spec .spec-note { font-size: 11px; }
   .tw-ocr { padding: 8px 9px 7px; gap: 3px; }
   .tw-ocr .line { font-size: 13.5px; }
