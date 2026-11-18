@@ -16,10 +16,9 @@
 //     preview/dive-gpu/ and preview/home/,
 //   - or a Markdown file is published.
 //
-// The site publishes three previews on purpose. preview/home/ is a
-// candidate for the next home page, written by hand (its notes are in
-// design/home/). It is plain HTML, so its images are held to the same
-// rule as the site's: each one has to be referenced. preview/dive/ is
+// The site publishes two previews on purpose (preview/home/, a third,
+// became the home page and is gone; it stays allowed, held to the same
+// rule as the site's pages: each image referenced). preview/dive/ is
 // the "All the Way Down" dive, built from experience/: its page, the
 // bundles the build writes next to it, and the media its scripts load.
 // Every file there has to be used, whatever its type. preview/dive-gpu/

@@ -1,9 +1,9 @@
 # crabcrop.org is two pages, / (index.html) and /docs.html, plus the
-# files they load, and three previews, /preview/dive/, /preview/dive-gpu/
-# and /preview/home/, each carrying its own noindex. Crawlers may read
-# all of it.
+# files they load, and two previews, /preview/dive/ and /preview/dive-gpu/,
+# each carrying its own noindex. Crawlers may read all of it.
 #
-# The old /preview/ design experiments were deleted. They are not listed
+# The old /preview/ design experiments were deleted, and so was
+# /preview/home/ when that page became the home page. They are not listed
 # under Disallow on purpose: a deleted page answers 404, and the 404 is
 # what drops it from search indexes. A Disallow would hide that 404 from
 # crawlers and keep stale entries listed. The previews are not

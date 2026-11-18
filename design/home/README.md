@@ -1,9 +1,9 @@
-# The home preview
+# The home page
 
-A candidate for the next crabcrop home page, published as a preview at
-`https://crabcrop.org/preview/home/`, beside the live site and the dive.
-It carries `noindex`, nothing links to it, and the live `index.html` and
-`docs.html` are untouched.
+The crabcrop home page: `index.html` at the site's root, served at
+`https://crabcrop.org/`. It replaced the old home page in November 2026.
+Until then it was a preview at `/preview/home/`, which is gone; the old
+page and the pictures only it used are in git history (`a72fe3f`).
 
 It came out of three directions tried side by side (a white photo studio,
 a crochet-pattern leaflet, and this one, the address bar); this is the one
@@ -15,29 +15,28 @@ working image URL as its centrepiece.
 
 | Section | What it shows |
 | --- | --- |
-| Opening | The live site's headline, "Blazing fast, on-demand images.", with the two figures that back it. Snap stands on the right end of the address bar and points down at the URL. Three groups of choices (size, look, format) rewrite the URL, and a picture answers |
-| Speed (`#speed`) | The published benchmark: two headline figures, a chart of repeat requests a second, the table of first requests by operation against Thumbor and imgproxy, and how it was measured |
+| Install (`#install`) | First on the page: the install command, with Snap standing on it, the first three steps, and the other routes |
+| Opening | The site's headline, "Blazing fast, on-demand images.", with the figure that backs it. Snap stands on the right end of the address bar and points down at the URL. Three groups of choices (size, look, format) rewrite the URL, and a picture answers |
+| Speed (`#speed`) | The published benchmark, first requests only: the headline figure, the table of first requests by operation against Thumbor and imgproxy, and how it was measured |
 | Three parts (`#parts`) | The grammar: signature, operations, source |
 | What it does (`#features`) | Twelve tiles, with the site's own example photos |
 | Sign (`#sign`) | The four signing snippets, the SDKs, the framework loaders, the MCP server |
 | Ship it (`#ship`) | Platforms, CDNs, the limits the server sets itself, and the cache note with Snap asleep |
 | Coming from (`#from`) | The migration guides |
-| Install (`#install`) | The install command, with Snap standing on it, the first three steps, and the other routes |
 
 Colour has one job on the page: wherever a URL appears, coral is the
 signature, sun is the operations and sea glass is the source. Nothing else
-uses those three. In the benchmark chart crabcrop's bar is the crab's red
-and the others are grey.
+uses those three.
 
 ## The files
 
 | Where | What |
 | --- | --- |
-| `preview/home/index.html` | The page: markup and styles. Written by hand, no build step |
-| `preview/home/home.js` | Its script: the URL builder, copy buttons, the signing tabs, and when Snap moves |
-| `preview/home/fonts/` | The three faces, cut down, each with its licence |
-| `preview/home/media/` | The page's own pictures and films: Snap (two films with their first frames, and the sleeper) and eight embroidered patches |
-| `/scene-camera.jpg`, `/ai-*.jpg`, `/ai-skate-removebg.webp`, `/studio-*.webp` | The site's example photos, used from the root where the live page already has them |
+| `index.html` | The page: markup and styles. Written by hand, no build step |
+| `home.js` | Its script: the URL builder, copy buttons, the signing tabs, and when Snap moves |
+| `fonts/` | The three faces, cut down, each with its licence (beside the docs page's Fraunces) |
+| `media/` | The page's own pictures and films: Snap (two films with their first frames, and the sleeper) and eight embroidered patches |
+| `/scene-camera.jpg`, `/ai-*.jpg`, `/ai-skate-removebg.webp`, `/studio-*.webp` | The site's example photos, which the docs page shows too |
 | `design/home/tools/make-media.py` | Makes everything in `media/` |
 | `design/home/tools/sources.json` | The generated originals `make-media.py` starts from |
 | `design/home/tools/subset-fonts.py` | Cuts the fonts |
@@ -45,22 +44,26 @@ and the others are grey.
 
 ## Changing it
 
-Edit `preview/home/index.html` and `preview/home/home.js` directly, then
-run the two checks that need no crabcrop checkout:
+Edit `index.html` and `home.js` directly, then run the two checks that
+need no crabcrop checkout:
 
 ```sh
 node .github/site-checks/assets.mjs    # every picture is used, every file the page names exists
 node .github/site-checks/scripts.mjs   # the page's Content-Security-Policy holds
 ```
 
-- **No inline script.** The page carries a Content-Security-Policy like
-  the main pages': scripts from this site only, no hashes to keep in
-  step. A `<script>` block in the page would be blocked, and the check
-  says so. Styles may be inline.
-- **Pictures.** A picture under `preview/home/` has to be referenced by
-  the page, like the site's own. The dive is held to more: every file
-  under `preview/dive/`, whatever its type, has to be used by its page,
-  its stylesheet or its scripts.
+- **One inline script.** The page carries the site's
+  Content-Security-Policy: scripts from this site, the Google Analytics
+  loader, and one inline script, Google Analytics' config, by its hash.
+  Another `<script>` block would be blocked until its hash is in the
+  policy; the scripts check prints the hash it needs. Styles may be
+  inline. The privacy note in the footer (`id="privacy"`) has to stay
+  while the page loads Google Analytics.
+- **Pictures.** Every published picture has to be referenced by a page,
+  so one the page stops using is deleted (git history keeps it), as the
+  old home page's were. The dive is held to more: every file under
+  `preview/dive/`, whatever its type, has to be used by its page, its
+  stylesheet or its scripts.
 - **Fonts.** The fonts hold ASCII, Latin-1, the dashes, quotes, ellipsis
   and arrows. A character outside that (the script lists what the page
   has beyond it) needs `python3 design/home/tools/subset-fonts.py` run
@@ -74,32 +77,37 @@ node .github/site-checks/scripts.mjs   # the page's Content-Security-Policy hold
 
 ## Keeping it true
 
-The site's checks cover `index.html` and `docs.html`, not this page. What
-it says has to be kept in step by hand:
+As `index.html`, the page is covered by the site's checks: the snippets
+check runs its four signing panes against the SDKs of the latest release
+(they are in the `code-pane` markup it reads), and the scripts check holds
+its Content-Security-Policy, its Google Analytics tag and its privacy note.
+The rest of what it says has to be kept in step by hand:
 
 | On the page | Comes from | When it changes |
 | --- | --- | --- |
-| The four signing snippets | Copies of the four panes on `index.html`, which the checks run against the SDKs | Copy them again when those change |
-| `v0.12.0` in the footer, and the two `docker pull` tags | The release the live pages name | At each release |
+| The four signing snippets | The simplest call in each SDK, all four signing the anatomy strip's example, `crop:1200x630:smart/filters:grayscale/https://example.com/photo.jpg`, with `demo-secret` (`5b9fc0ad…`). The builders take the same four arguments in the same order: base, secret, operations, source; Rust adds the expiry, `None` | When a builder changes: the snippets check fails |
+| `v0.13.0` in the footer, and the two `docker pull` tags | The release, as `docs.html` names it | At each release |
 | The benchmark figures | `benchmark/results/2026-11-06.md` in `dayvson/crabcrop`: crabcrop 0.9.9, Thumbor 7.8.0, imgproxy 3.31.4 | When a newer run is published there |
-| Formats, filters, limits, error codes, recipes, guides | `index.html` and `docs.html` as of 0.12.0 | When those pages change |
+| Formats, filters, limits, error codes, recipes, guides | `docs.html` as of 0.13.0 | When it changes |
 | The signatures in the address bar | Real ones, for all 48 states: HMAC-SHA256 with the sample secret `demo-secret` over `<operations>/root:photos/print.jpg`, in `home.js` | When a choice is added or renamed |
 
 The benchmark figures, as they are on the page:
 
 | Figure | In the results file |
 | --- | --- |
-| 0.2 ms, a repeat request (0.2 to 0.3 across six operations) | Warm latency, crabcrop p50 |
-| 22.6 ms, a first request | Cold latency, resize 800w JPEG, crabcrop p50 |
-| 1,918, 61.5 and 24.4 repeat requests a second | Warm throughput, resize, 25 requests at 8 workers |
-| 16.9 ms and 38.8 ms a repeat (the chart's notes) | Warm latency, resize, imgproxy and Thumbor p50 |
+| 22.6 ms, a first request (the opening and the speed section) | Cold latency, resize 800w JPEG, crabcrop p50 |
 | The table of six operations | Cold latency, p50 of each system |
+
+Only first requests are on the page. The results file also has repeat
+requests, answered from crabcrop's in-memory result cache (warm latency
+and throughput), where the other two servers, as configured there, keep
+no results and render again; the page leaves those out.
 
 The table shows the rows where imgproxy answers a first request sooner
 (resize, crop, WebP): they are in the published results, so they are on
 the page. The run measured 0.9.9. Work on the crop and JPEG paths has
-landed in the server since and is not in a release or a published run
-yet, so those rows are due a refresh.
+landed in the server since; until a newer run is published, those rows
+are due a refresh.
 
 A new signature, in Python:
 
@@ -254,12 +262,8 @@ What this round taught:
   covering them. For a few frames in motion it reads as a blink; it is
   why the sleeper is a still, not a film.
 
-## Before it could be the home page
+## Still open
 
-- It has no analytics. The live pages load Google Analytics and carry a
-  privacy note; the scripts check requires the two to go together.
-- It has no Open Graph or Twitter tags and no canonical link, and it
-  carries `noindex`.
 - The benchmark figures are from 0.9.9; see above.
 - It has been checked in Chromium at phone, tablet and desktop sizes. It
   has not been seen in Safari or on a real phone, which is where the
