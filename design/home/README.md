@@ -13,16 +13,22 @@ working image URL as its centrepiece.
 
 ## What is on the page
 
+The sections, in the order the page shows them:
+
 | Section | What it shows |
 | --- | --- |
-| Install (`#install`) | First on the page: the install command, with Snap standing on it, the first three steps, and the other routes |
 | Opening | The site's headline, "Blazing fast, on-demand images.", with the figure that backs it. Snap stands on the right end of the address bar and points down at the URL. Three groups of choices (size, look, format) rewrite the URL, and a picture answers |
-| Speed (`#speed`) | The published benchmark, first requests only: the headline figure, the table of first requests by operation against Thumbor and imgproxy, and how it was measured |
+| Install (`#install`) | Right under the opening: the install command, with Snap standing on it, the first three steps, and the other routes |
 | Three parts (`#parts`) | The grammar: signature, operations, source |
 | What it does (`#features`) | Twelve tiles, with the site's own example photos |
 | Sign (`#sign`) | The four signing snippets, the SDKs, the framework loaders, the MCP server |
 | Ship it (`#ship`) | Platforms, CDNs, the limits the server sets itself, and the cache note with Snap asleep |
+| Speed (`#speed`) | The published benchmark, first requests only: the headline figure, the table of first requests by operation against Thumbor and imgproxy, and how it was measured. The opening's figure links down to it |
 | Coming from (`#from`) | The migration guides |
+
+The sections alternate between the page's two backgrounds (a section with
+`class="band"` is the lighter one); moving a section means moving its band
+with it, so no two neighbours share one.
 
 Colour has one job on the page: wherever a URL appears, coral is the
 signature, sun is the operations and sea glass is the source. Nothing else
