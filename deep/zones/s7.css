@@ -20,7 +20,8 @@
 .recipe-img.s-look[data-look="deep"] img { filter: url(#duotone); }
 .recipe-img.s-look[data-look="vintage"] img { filter: sepia(.9) contrast(.96); }
 .recipe-img.s-crop[data-crop="whole"] img { object-fit: contain; }
-.recipe-img.s-finish[data-finish="studio"] { background: radial-gradient(ellipse 44% 10% at 50% 90%, rgba(20, 40, 50, .3), transparent 72%), linear-gradient(180deg, #FFEBC2, #FFD88A); }
+/* (studio: crabcrop's cut-out on its brand backdrop, a soft shadow under it; removebg: on nothing) */
+.recipe-img.s-finish[data-finish="studio"] { background: radial-gradient(ellipse 34% 8% at 50% 86%, rgba(0, 24, 26, .45), transparent 72%), #0E7C79; }
 .recipe-img.s-finish[data-finish="studio"] img { object-fit: contain; padding: 8% 12% 14%; }
 .recipe-img.s-finish[data-finish="cutout"] { background: repeating-conic-gradient(#E9D3A1 0 25%, #F6E7C8 0 50%) 0 0 / 14px 14px; }
 .recipe-img.s-finish[data-finish="cutout"] img { object-fit: contain; padding: 6%; }
@@ -30,12 +31,14 @@
 .recipe-img.s-fmt[data-fmt="jxl"]::before { content: "JPEG XL"; }
 .recipe-img.s-seal[data-sealed="true"]::after { content: ""; position: absolute; right: 7%; bottom: 9%; width: 18%; aspect-ratio: 1; border-radius: 47% 53% 50% 50% / 52% 48% 52% 48%; background: radial-gradient(circle at 50% 50%, transparent 38%, rgba(0, 0, 0, .14) 40%, transparent 47%), radial-gradient(circle at 34% 28%, #e86a5a, #b3201a 58%, #7d140f); box-shadow: 0 2px 0 rgba(20, 40, 50, .3); animation: chip .45s var(--spring); }
 @keyframes chip { 0% { transform: scale(.4); opacity: 0; } 100% { transform: none; opacity: 1; } }
-.ap-frame { width: 220px; height: 172px; border: 3px solid #fff; box-shadow: 0 10px 26px rgba(0, 0, 0, .4); transition: width .6s var(--spring), height .6s var(--spring), background .6s; }
-.ap-frame.s-crop[data-crop="wide"], .ap-frame.s-crop[data-crop="whole"] { width: 250px; height: 131px; }
+.ap-frame { width: 220px; height: 147px; border: 3px solid #fff; box-shadow: 0 10px 26px rgba(0, 0, 0, .4); transition: width .6s var(--spring), height .6s var(--spring), background .6s; }
+.ap-frame.s-crop[data-crop="wide"] { width: 250px; height: 131px; }
+.ap-frame.s-crop[data-crop="whole"] { width: 197px; height: 131px; }
 .ap-frame.s-crop[data-crop="square"] { width: 180px; height: 180px; }
 @media (max-width: 760px) {
-  .ap-frame { width: 170px; height: 133px; }
-  .ap-frame.s-crop[data-crop="wide"], .ap-frame.s-crop[data-crop="whole"] { width: 196px; height: 103px; }
+  .ap-frame { width: 170px; height: 113px; }
+  .ap-frame.s-crop[data-crop="wide"] { width: 196px; height: 103px; }
+  .ap-frame.s-crop[data-crop="whole"] { width: 155px; height: 103px; }
   .ap-frame.s-crop[data-crop="square"] { width: 146px; height: 146px; }
   .ap-ticket { max-width: 230px; }
 }
@@ -50,6 +53,7 @@
   :root:not(.page) .polaroid figcaption { margin-top: 10px; font-style: italic; font-size: 14px; color: var(--ink-2); text-align: center; }
   :root:not(.page) .pol-img { aspect-ratio: 1200 / 630; }
   :root:not(.page) .pol-img[data-crop="square"] { aspect-ratio: 1; }
+  :root:not(.page) .pol-img[data-crop="whole"] { aspect-ratio: 945 / 630; }
   :root:not(.page) .pol-img.s-fmt::before, :root:not(.page) .pol-img.s-seal::after { display: none; }
   /* "Dive again", and the bottom of the page: the view fades to the next morning while the page
      goes back to the top */

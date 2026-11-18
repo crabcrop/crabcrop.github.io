@@ -126,7 +126,7 @@ export default {
         ['agent', 'explain_url', 'is it right?'],
         ['crabcrop', '', 'valid · key 1 · ' + size + ' · ' + fmt],
         ['agent', 'fetch_meta', 'what does it show?'],
-        ['crabcrop', '', size + ' · ' + fmt + ' · a sun over two hills, stitched'],
+        ['crabcrop', '', size + ' · ' + fmt + ' · a crochet crab at a skate park, holding up a photo'],
       ];
       logEl.innerHTML = rows.map(([who, tool, what], i) => '<li class="' + (who === 'agent' ? 'ask' : 'answer') + '" style="--i: ' + i + '"><span class="who">' + who + '</span>' + (tool ? '<code>' + tool + '</code>' : '') + '<span class="what">' + soft(what) + '</span></li>').join('');
       talkFrom = stage.t;

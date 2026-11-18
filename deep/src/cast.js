@@ -5,8 +5,8 @@
 // leave the wreck the submarine comes for him; from the drop-off on he rides in its glass
 // bubble, and its lamp is the visitor's light in the dark.
 import { Mesh, PlaneGeometry, Quaternion, Vector3 } from 'three/webgpu';
-import { faceDirection, float, select, texture, uv, vec3 } from 'three/tsl';
-import { feltPrint } from './feltprint.js';
+import { faceDirection, float, select, vec3 } from 'three/tsl';
+import { PHOTO, photoPrint } from './photo.js';
 import { RIDE, RIDE_LEFT, SLOTS, groundY, rideU } from './layout.js';
 import { clamp, smooth } from './math.js';
 import { G, material } from './shaders.js';
@@ -76,18 +76,17 @@ const HELD = new Vector3(), UP3 = new Vector3(), SNAP_AT = [0, 0, 0], DRIFT_AT =
 const FLY = [new Vector3(), new Vector3(), new Vector3()], TUMBLE = new Vector3(0.35, 1, 0.5).normalize(), qt = new Quaternion();
 const bez = (out, a, b, c, u) => out.copy(a).multiplyScalar((1 - u) * (1 - u)).addScaledVector(b, 2 * (1 - u) * u).addScaledVector(c, u * u);
 
-// Snap's photo print: the felt picture (feltprint.js) on the front, plain felt on the back.
-// 0.3 by 0.21 m.
-const PRINT_W = 0.3, PRINT_H = 0.21;
+// Snap's photo print: the photo (photo.js) in its white border on the front, plain paper on
+// the back. 0.3 m wide.
+const PRINT_W = 0.3, PRINT_H = PRINT_W / PHOTO.aspect;
 function buildPrint() {
-  const pic = texture(feltPrint());
+  const pic = photoPrint();
   const mat = material({
     twoSided: true, shadow: false,
     surface(s) {
-      const img = pic.sample(uv()).rgb;
-      s.albedo = select(faceDirection.greaterThan(0.0), img, vec3(0.86, 0.80, 0.68));
-      s.spec = float(0.05); s.gloss = float(8.0); s.fluor = float(0.2);
-      s.emis = s.albedo.mul(0.3);                 // (pale felt catches the light from all round)
+      s.albedo = select(faceDirection.greaterThan(0.0), pic, vec3(0.9, 0.89, 0.86));
+      s.spec = float(0.12); s.gloss = float(18.0); s.fluor = float(0.2);
+      s.emis = s.albedo.mul(0.3);                 // (a pale print catches the light from all round)
     },
   });
   const mesh = new Mesh(new PlaneGeometry(PRINT_W, PRINT_H), mat);

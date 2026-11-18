@@ -1,132 +1,111 @@
-// The visitor's image: what the URL they built would serve. The source is Snap's print, the
-// felt picture he chased down to the geode (feltprint.js); the page photographs it itself,
-// framed by the crop they chose, set against the finish they chose (the water it was found
-// in, a studio backdrop with a soft shadow, or cut out), and graded with the look they
-// chose. It is drawn into a target whenever a choice changes; the finale shows it.
-import { Mesh, PerspectiveCamera, PlaneGeometry, RenderTarget, Scene, UnsignedByteType, Vector4 } from 'three/webgpu';
-import { abs, clamp, dot, float, floor, length, max, mix, mod, normalize, pow, select, smoothstep, texture, uniform, uv, vec2, vec3, vec4 } from 'three/tsl';
-import { feltPrint, FELT_ASPECT } from './feltprint.js';
-import { G, material, pass } from './shaders.js';
+// The visitor's image: what the URL they built would serve. The source is a real photo from
+// crabcrop.org's samples (photo.js: Snap at a skate park); the page puts it through the
+// visitor's choices in the order the server works through a URL: the crop (a window around
+// the subject, as smart crop finds it, or the whole picture fitted in), then the filters as
+// written: the look, then the finish (crabcrop's own cut-out of the photo, on the brand
+// backdrop with a soft shadow for the studio, or on nothing for removebg). It is drawn into a
+// target whenever a choice changes; the formats card, the looks and the finale show it.
+import { RenderTarget, UnsignedByteType, Vector2, Vector4 } from 'three/webgpu';
+import { clamp, dot, exp, float, mix, pow, select, smoothstep, step, texture, uniform, uv, vec2, vec3, vec4 } from 'three/tsl';
+import { BRAND, PHOTO, maskTexture, photoTexture } from './photo.js';
+import { pass } from './shaders.js';
 
-// the crops: aspect, and how much of the print the frame holds (the camera's distance)
+// the crops, as the URL has them: crop:1200x630:smart, crop:760x760:smart, fit-in:1200x630
+// (the whole photo, fitted inside 1200 by 630)
 export const CROPS = [
-  { name: 'Wide card', aspect: 1200 / 630, dist: 2.0 },
-  { name: 'Square', aspect: 1, dist: 1.55 },
-  { name: 'Whole picture', aspect: 4 / 3, dist: 2.6 },
+  { name: 'Wide card', w: 1200, h: 630 },
+  { name: 'Square', w: 760, h: 760 },
+  { name: 'Whole picture', w: Math.round(630 * PHOTO.aspect), h: 630 },
 ];
-const W = 1200;   // (the wide card is the URL's own 1200 x 630)
+for (const c of CROPS) c.aspect = c.w / c.h;
+// studio(product, …, pad:10): the subject, cut out, takes the middle with a tenth of the
+// picture clear on each side
+const PAD = 0.1;
 
-// (the studio stands far outside the world, beyond the shadow map's reach)
-const AT = [600, 0, 600];
+// The window of the photo a crop takes, as fractions of the photo from its top left
+// [x, y, w, h] (it may run past the photo's edges for the studio, where the backdrop fills in)
+export function windowFor(crop, finish) {
+  const C = CROPS[crop], PW = PHOTO.w, PH = PHOTO.h, [bx0, by0, bx1, by1] = PHOTO.box;
+  const cx = ((bx0 + bx1) / 2) * PW, cy = ((by0 + by1) / 2) * PH, bw = (bx1 - bx0) * PW, bh = (by1 - by0) * PH;
+  let w, h, x, y;
+  if (finish === 1) {
+    w = Math.max(bw, bh * C.aspect) / (1 - 2 * PAD); h = w / C.aspect;
+    x = cx - w / 2; y = cy - h / 2;
+  } else if (crop === 2) {
+    w = PW; h = PH; x = 0; y = 0;
+  } else {
+    // smart: the biggest window of the crop's shape, its middle on the subject's, kept inside
+    w = Math.min(PW, PH * C.aspect); h = w / C.aspect;
+    x = Math.min(Math.max(cx - w / 2, 0), PW - w); y = Math.min(Math.max(cy - h / 2, 0), PH - h);
+  }
+  return [x / PW, y / PH, w / PW, h / PH];
+}
 
 export function createPrint(engine) {
-  const scene = new Scene();
-  const studio = new Mesh();
-  studio.position.set(...AT);
-  scene.add(studio);
   const finish = uniform(0), look = uniform(0);
-  // the backdrop: water and sand, a studio sweep in the brand's night teal, or the
-  // checkerboard that means "nothing here"
-  const back = new Mesh(new PlaneGeometry(8, 5), pass(null));
-  back.material.depthTest = true; back.material.depthWrite = true;
-  back.material.fragmentNode = (() => {
-    const q = uv();
-    // (colours as seen: the grade turns them back after)
-    const glow = float(1).sub(length(q.sub(vec2(0.5, 0.62))).mul(0.7));
-    const water = mix(vec3(0.10, 0.31, 0.38), vec3(0.34, 0.66, 0.70), smoothstep(0.2, 1.0, q.y)).mul(glow.mul(0.35).add(0.75));
-    const sand = mix(vec3(0.66, 0.60, 0.48), vec3(0.50, 0.45, 0.36), smoothstep(0.0, 0.32, q.y));
-    const outside = mix(sand, water, smoothstep(0.24, 0.40, q.y));
-    const sweep = mix(vec3(0.20, 0.36, 0.42), vec3(0.42, 0.60, 0.65), smoothstep(0.0, 0.9, q.y)).mul(glow.mul(0.4).add(0.7));
-    const cell = mod(floor(q.x.mul(48)).add(floor(q.y.mul(30))), 2.0);
-    const checker = mix(vec3(0.78), vec3(0.6), cell);
-    const c = select(finish.lessThan(0.5), outside, select(finish.lessThan(1.5), sweep, checker));
-    return vec4(pow(c, vec3(2.2)), 1.0);
+  // the window in the photo's texture (v up), the step to a neighbouring pixel, and the soft
+  // shadow under the subject on the studio floor (its middle and size, in the picture's own uv)
+  const win = uniform(new Vector4(0, 0, 1, 1)), texel = uniform(new Vector2(1 / PHOTO.w, 1 / PHOTO.h)), shadow = uniform(new Vector4(0.5, 0.1, 0.3, 0.05));
+  const P = texture(photoTexture()), M = texture(maskTexture());
+  const brand = vec3(...BRAND), duoDark = vec3(0x0d / 255, 0x20 / 255, 0x2e / 255), duoLight = vec3(0xff / 255, 0xd8 / 255, 0x8a / 255);
+  const luma = (c) => dot(c, vec3(0.2126, 0.7152, 0.0722));
+  const quad = pass(null);
+  quad.fragmentNode = (() => {
+    // (a full-screen pass writes the target top row first, so its v runs down the picture;
+    // turned here so that everything below runs up it, as the photo's texture does)
+    const q = vec2(uv().x, float(1).sub(uv().y));
+    const p = win.xy.add(q.mul(win.zw)).toVar();
+    // (the photo's own pixels, in the sRGB values filters work on)
+    const at = (o) => pow(P.sample(clamp(p.add(o), 0.0, 1.0)).rgb, vec3(1 / 2.2));
+    const c = at(vec2(0, 0)).toVar();
+    // the look: sharpen(1.2):saturation(1.1); duotone(0d202e,ffd88a); sepia
+    const blur = at(texel.mul(vec2(1, 0))).add(at(texel.mul(vec2(-1, 0)))).add(at(texel.mul(vec2(0, 1)))).add(at(texel.mul(vec2(0, -1)))).mul(0.25);
+    const sharp = c.add(c.sub(blur).mul(1.2));
+    const crisp = mix(vec3(luma(sharp)), sharp, 1.1);
+    const deep = mix(duoDark, duoLight, smoothstep(0.03, 0.97, luma(c)));
+    const sepia = vec3(dot(c, vec3(0.393, 0.769, 0.189)), dot(c, vec3(0.349, 0.686, 0.168)), dot(c, vec3(0.272, 0.534, 0.131)));
+    const g = clamp(select(look.lessThan(0.5), crisp, select(look.lessThan(1.5), deep, sepia)), 0.0, 1.0);
+    // the finish: the subject is crabcrop's own mask of the photo (none past its edges)
+    const inside = step(0.0, p.x).mul(step(p.x, 1.0)).mul(step(0.0, p.y)).mul(step(p.y, 1.0));
+    const m = M.sample(clamp(p, 0.0, 1.0)).r.mul(inside);
+    const d = q.sub(shadow.xy).div(shadow.zw), shade = exp(dot(d, d).negate()).mul(0.42);
+    const backdrop = brand.mul(float(1).sub(shade));
+    const studio = mix(backdrop, g, m);
+    return select(finish.lessThan(0.5), vec4(g, 1.0), select(finish.lessThan(1.5), vec4(studio, 1.0), vec4(g, m)));
   })();
-  back.position.set(0, 0.6, -1.4);
-  studio.add(back);
-  // the print itself, standing a little turned, 0.9 m wide in the picture's own scale
-  // (lit as in a studio: a soft key light from the upper left and an even fill, so its own
-  // colours come through; the backdrop and the grade make the rest)
-  const card = new Mesh(new PlaneGeometry(0.9, 0.9 / FELT_ASPECT), material({
-    shadow: false,
-    raw: (f) => {
-      const key = max(dot(f.n, normalize(vec3(-0.45, 0.55, 0.7))), 0.0);
-      return pow(texture(feltPrint()).sample(uv()).rgb, vec3(2.2)).mul(key.mul(0.55).add(0.62)).mul(select(finish.lessThan(0.5), float(0.85), float(1.0)));
-    },
-  }));
-  card.rotation.set(-0.1, -0.28, 0.025);
-  card.frustumCulled = false;
-  studio.add(card);
-  // a soft shadow under it on the studio floor (none in the water, none when cut out)
-  const shade = new Mesh(new PlaneGeometry(1.4, 0.7).rotateX(-Math.PI / 2), pass(null));
-  shade.material.transparent = true;
-  shade.material.fragmentNode = (() => {
-    const d = length(uv().sub(0.5).mul(vec2(1.0, 1.6)));
-    const a = float(1).sub(smoothstep(0.05, 0.5, d)).mul(0.45).mul(select(abs(finish.sub(1.0)).lessThan(0.5), float(1), float(0)));
-    return vec4(0.0, 0.02, 0.03, a);
-  })();
-  shade.position.set(0, -0.31, 0);
-  studio.add(shade);
 
-  const camera = new PerspectiveCamera(30, CROPS[0].aspect, 0.05, 20);
   let target = null, crop = 0;
-  const grade = pass(null);
-  const src = texture(engine.water.texture); src.mergeable = false;
-  grade.fragmentNode = (() => {
-    const x = src.sample(uv()).rgb.mul(1.1);
-    const c = clamp(x.mul(x.mul(2.51).add(0.03)).div(x.mul(x.mul(2.43).add(0.59)).add(0.14)), 0.0, 1.0).toVar();
-    const l = dot(c, vec3(0.2126, 0.7152, 0.0722)).toVar();
-    const crisp = mix(vec3(l), c, 1.25).sub(0.5).mul(1.12).add(0.5);
-    const deep = mix(vec3(0.051, 0.125, 0.180), vec3(1.0, 0.847, 0.541), smoothstep(0.02, 0.9, l));
-    const sepia = mix(c, vec3(dot(c, vec3(0.393, 0.769, 0.189)), dot(c, vec3(0.349, 0.686, 0.168)), dot(c, vec3(0.272, 0.534, 0.131))), 0.86);
-    const k = select(look.lessThan(0.5), crisp, select(look.lessThan(1.5), deep, sepia));
-    return vec4(pow(clamp(k, 0.0, 1.0), vec3(1 / 2.2)), 1.0);
-  })();
-  const keep = { opt: new Vector4(), light: new Vector4(), lamp: new Vector4(), scat: null, amb: null };
-
   return {
     // draw the picture for these choices: { look, crop, finish } as indices. Returns the
-    // target holding it (sRGB, 8 bits), and its size.
+    // target holding it (sRGB, 8 bits; alpha where it is cut out), and its size.
     draw(choices) {
       crop = choices.crop | 0;
-      const C = CROPS[crop];
-      const w = W, h = Math.round(W / C.aspect);
-      if (!target || target.width !== w || target.height !== h) {
-        if (target) { target.raw.dispose(); target.out.dispose(); }
-        target = { raw: new RenderTarget(w, h, { type: UnsignedByteType, samples: 4 }), out: new RenderTarget(w, h, { type: UnsignedByteType }) };
-        target.width = w; target.height = h;
+      const C = CROPS[crop], f = choices.finish | 0;
+      if (!target || target.width !== C.w || target.height !== C.h) {
+        if (target) target.dispose();
+        target = new RenderTarget(C.w, C.h, { type: UnsignedByteType, depthBuffer: false });
       }
-      finish.value = choices.finish | 0;
+      finish.value = f;
       look.value = choices.look | 0;
-      camera.aspect = C.aspect;
-      studio.updateMatrixWorld(true);
-      camera.position.set(AT[0] + 0.15, AT[1] + 0.12, AT[2] + C.dist);
-      camera.lookAt(AT[0], AT[1], AT[2]);
-      camera.updateProjectionMatrix();
-      camera.updateMatrixWorld(true);
-      // light it as a photograph in shallow water (no caustics in the studio or cut out)
-      keep.opt.copy(G.opt.value); keep.light.copy(G.light.value); keep.lamp.copy(G.lampCol.value);
-      G.opt.value.set(4, 1, 60, 3.2);
-      G.light.value.set(1.15, 1.2, finish.value === 0 ? 0.8 : 0, 0);
-      G.lampCol.value.set(0, 0, 0, 0.8);
-      const r = engine.renderer;
-      r.setRenderTarget(target.raw);
-      r.render(scene, camera);
-      G.opt.value.copy(keep.opt); G.light.value.copy(keep.light); G.lampCol.value.copy(keep.lamp);
-      src.value = target.raw.texture;
-      engine.drawQuad(grade, target.out);
-      return target.out;
+      const [x, y, w, h] = windowFor(crop, f);
+      win.value.set(x, 1 - y - h, w, h);
+      texel.value.set(Math.max(1, (w * PHOTO.w) / C.w) / PHOTO.w, Math.max(1, (h * PHOTO.h) / C.h) / PHOTO.h);
+      // (the shadow: under the subject's feet, as wide as most of it)
+      const [bx0, , bx1, by1] = PHOTO.box;
+      shadow.value.set(((bx0 + bx1) / 2 - x) / w, 1 - (by1 - 0.035 - y) / h, ((bx1 - bx0) * 0.42) / w, 0.05 / h);
+      engine.drawQuad(quad, target);
+      return target;
     },
     // read the last picture back, for a canvas on the page (returns ImageData, top row first)
     async read() {
       if (!target) return null;
       const r = engine.renderer, w = target.width, h = target.height;
-      const px = await r.readRenderTargetPixelsAsync(target.out, 0, 0, w, h);
+      const px = await r.readRenderTargetPixelsAsync(target, 0, 0, w, h);
       const img = new ImageData(w, h), row = w * 4, stride = px.length / h;
       for (let y = 0; y < h; y++) { const from = (engine.webgpu ? y : h - 1 - y) * stride; img.data.set(px.subarray(from, from + row), y * row); }
       return img;
     },
-    get texture() { return target ? target.out.texture : null; },
+    get texture() { return target ? target.texture : null; },
     get aspect() { return CROPS[crop].aspect; },
   };
 }
