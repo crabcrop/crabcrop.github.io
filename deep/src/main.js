@@ -2,12 +2,13 @@
 // everything in it. Where the scene cannot run (reduced motion, no WebGPU and no WebGL 2,
 // ?page), the words are the page and nothing else starts.
 import { Mesh, PlaneGeometry, Vector3 } from 'three/webgpu';
-import { float, texture, uv } from 'three/tsl';
+import { float } from 'three/tsl';
 import { startDive } from './app.js';
 import { createAudio } from './audio.js';
 import { LOCKS, buildCast } from './cast.js';
 import { buildFauna } from './fauna.js';
-import { FELT_ASPECT, feltPrint } from './feltprint.js';
+import { PHOTO, photoPrint, photoReady } from './photo.js';
+import { startPage } from './page.js';
 import { createPrint } from './print.js';
 import { buildSets } from './sets.js';
 import { material } from './shaders.js';
@@ -32,18 +33,20 @@ const ui = createUI({
     if (key === 'look' || key === 'crop' || key === 'finish') { printDirty = true; printRead = false; }
   },
   onStart() { audio.cue('start'); },
+  // as a page (asked for, or where the scene cannot run): the cards that follow the choices
+  onPage() { startPage(ui); },
 });
 
-// Snap's print in the geode's hollow, where the story finds it: the felt picture he chased
-// down, lying on the crystals, a little lit by them.
+// Snap's print in the geode's hollow, where the story finds it: the photo he chased down,
+// printed with a white border, lying on the crystals, a little lit by them.
 let hung = null;
 function hangPrint(scene) {
   if (!sets || !sets.geode || hung) return hung;
-  const g = sets.geode, w = Math.min(g.size || 1, 0.75), h = w / FELT_ASPECT;
-  const pic = texture(feltPrint());
+  const g = sets.geode, w = Math.min(g.size || 1, 0.75), h = w / PHOTO.aspect;
+  const pic = photoPrint();
   const mat = material({
     shadow: false,
-    surface(s) { s.albedo = pic.sample(uv()).rgb; s.spec = float(0.05); s.gloss = float(8.0); s.emis = s.albedo.mul(0.18); },
+    surface(s) { s.albedo = pic; s.spec = float(0.05); s.gloss = float(8.0); s.emis = s.albedo.mul(0.18); },
   });
   const plane = new Mesh(new PlaneGeometry(w, h), mat);
   plane.position.copy(g.position);
@@ -108,7 +111,7 @@ function onFrame(p, dt) {
 }
 
 // (dev builds only: the cast and the sets, for probes)
-if (DEV) window.__dbg = { get cast() { return cast; }, get sets() { return sets; }, get fauna() { return fauna; }, get stage() { return stage; } };
+if (DEV) window.__dbg = { get cast() { return cast; }, get sets() { return sets; }, get fauna() { return fauna; }, get stage() { return stage; }, get print() { return print; } };
 
 // (for the end-to-end test only: where the page says the camera should be)
 if (new URLSearchParams(location.search).has('e2e')) window.__pTo = () => ui.pTo;
@@ -140,6 +143,8 @@ export function start() {
       dive = d;
       print = createPrint(d.engine);
       print.draw(ui.choices); printDirty = false;
+      // (drawn again once the photo is in: until then the felt print stands in)
+      photoReady().then(() => { printDirty = true; printRead = false; });
       const geodePrint = hangPrint(d.scene);
       // the zones' hands-on pieces: mounted once the scene runs, run every frame after the camera
       stage = createStage({ camera: d.camera, ui });

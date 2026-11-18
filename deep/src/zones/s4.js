@@ -53,6 +53,22 @@ function scramble(a, b, p) {
 
 const S = { cabin: null };
 
+// The ship's log: what the visitor's picture's Content Credentials record (still JPEG, PNG, WebP
+// and AVIF outputs are signed; JPEG XL ones are served unsigned, with no manifest to record
+// anything). Also the page's (page.js). Returns the list's HTML.
+export function shipLogHTML(c) {
+  const rows = [];
+  if (c.format === 2) rows.push(['Unsigned', 'JPEG XL outputs are served unsigned in this version: no Content Credentials']);
+  else {
+    rows.push(['Ingredient', 'root:photos/print.jpg, the parent, named by its format'], ['Transformed', OPTIONS.crop[c.crop] + ' · ' + OPTIONS.look[c.look]]);
+    if (c.finish) rows.push(['AI edit', OPTIONS.finish[c.finish] + ', marked as made with a trained model']);
+    rows.push(['Signed', 'as served, with your certificate']);
+  }
+  return rows.map(([w, x], i) => '<li style="--i:' + i + '"><span class="when">' + w + '</span><span class="what">' + esc(x) + '</span></li>').join('');
+}
+// The Sealed URLs card's URL, readable: the shortened signature and the recipe.
+export const readableURL = (c) => { const r = remainder(c); return sign(r).slice(0, 8) + '…/' + r; };
+
 export default {
   id: 's4',
   build(ctx) {
@@ -197,10 +213,7 @@ export default {
     const logEl = doc.getElementById('ship-log');
     let logHTML = '';
     const writeLog = () => {
-      const c = stage.choices, rows = [['Ingredient', 'root:photos/print.jpg, its hash recorded'], ['Transformed', OPTIONS.crop[c.crop] + ' · ' + OPTIONS.look[c.look]]];
-      if (c.finish) rows.push(['AI edit', OPTIONS.finish[c.finish] + ', marked as made with a trained model']);
-      rows.push(c.format === 2 ? ['Unsigned', 'JPEG XL outputs are served unsigned in this version'] : ['Signed', 'as served, with your certificate']);
-      const html = rows.map(([w, x], i) => '<li style="--i:' + i + '"><span class="when">' + w + '</span><span class="what">' + esc(x) + '</span></li>').join('');
+      const html = shipLogHTML(stage.choices);
       if (html !== logHTML) { logHTML = html; logEl.innerHTML = html; }
     };
     writeLog();

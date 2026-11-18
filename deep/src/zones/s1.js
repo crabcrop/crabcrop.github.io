@@ -16,6 +16,7 @@ import { groundY, pathAt } from '../layout.js';
 import { smooth } from '../math.js';
 import { G } from '../shaders.js';
 import { buildCargo, buildGlint, createFish } from '../props/shallows.js';
+import { photoReady } from '../photo.js';
 
 // where the schools live in the view, as shares of its width and height (home: wide screens;
 // tall: phones, in rows above and beside Snap, who is in the middle there); how many fish each
@@ -39,7 +40,7 @@ const NAMES = [
   ['Film reel', 'frame:50%', 'One frame of a video'],
   ['Folded pages', 'page:2', 'One page of a PDF'],
   ['Sand pails', 's3:// · gs://', 'Objects in S3 and GCS'],
-  ['Shoebox', 'file://', 'A local file'],
+  ['Shoebox', 'file:///path', 'A local file'],
   ['Mooring buoy', 'root:photos/print.jpg', 'A short root reference'],
 ];
 
@@ -210,6 +211,8 @@ export default {
     // ---- the Formats card: the visitor's picture, encoded here as each format (by this browser)
     const fmtSpec = doc.getElementById('fmt-spec'), card = doc.getElementById('card-format');
     let fmtStale = true, measuring = false;
+    // (measured again once the photo is in: until then the felt print stands in)
+    photoReady().then(() => { fmtStale = true; });
     const blob = (cv, type, q) => new Promise((res) => { try { cv.toBlob((b) => res(b), type, q); } catch (e) { res(null); } });
     const measure = async () => {
       if (measuring || !fmtStale || !world.print || !fmtSpec) return;

@@ -19,6 +19,7 @@ import { smooth } from '../math.js';
 import { G } from '../shaders.js';
 import { createFish } from '../props/shallows.js';
 import { CURTAIN_LOOK, LOOK_NAMES, buildCurtains, buildLine, fitInto } from '../props/kelp.js';
+import { photoReady } from '../photo.js';
 
 // the curtains: hung across the way, ahead of the camera as the look is chosen; the camera
 // passes under their hems near p 2.74
@@ -185,6 +186,8 @@ export default {
     // ---- the print in each look, for the card and the tiles; and whole, for the Size card
     S.tiles = [...doc.querySelectorAll('#s2 .looks .swatch')];
     S.frames = [...doc.querySelectorAll('#s2 .spec-size canvas')];
+    // (drawn again once the photo is in: until then the felt print stands in)
+    photoReady().then(() => { S.stale = true; S.wholeStale = true; });
   },
 
   frame(stage) {

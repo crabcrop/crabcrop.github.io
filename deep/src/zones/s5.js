@@ -24,7 +24,9 @@ const SCORE = [0.97, 0.84, 0.96, 0.93];
 const NOUN = ['glowing jellyfish', 'a glowing worm', 'a message in a bottle', 'an anglerfish'];
 // the visitor's URL in the words of a meta answer and an explain report
 const SIZE = [[1200, 630], [760, 760], [945, 630]];
-const FMT = ['AVIF', 'AVIF', 'JPEG XL', 'WebP'], FMT_JSON = ['avif', 'avif', 'jxl', 'webp'];
+// (with no format named, a meta request, which asks for JSON, and the explain forecast keep the
+// source's: print.jpg is a JPEG; a browser's own request would get AVIF)
+const FMT = ['JPEG', 'AVIF', 'JPEG XL', 'WebP'], FMT_JSON = ['jpeg', 'avif', 'jxl', 'webp'];
 const CROP_GLOSS = ['a 1200 × 630 window, moved to the subject', 'a 760 × 760 window, moved to the subject', 'fit inside 1200 × 630, nothing cut'];
 const LOOK_GLOSS = ['sharpen 1.2, then saturation 1.1', 'duotone, from deep blue to sand', 'sepia'];
 const FINISH_GLOSS = ['', 'the product cut out onto a brand backdrop with a soft shadow, padded', 'the background removed'];
@@ -36,6 +38,45 @@ const soft = (t) => esc(t).replace(/([/:,])(?=[^/\s])/g, '$1<wbr>');
 // text as lines that keep their indent when they wrap (a narrow card): each line a block, its
 // continuation hanging two characters further in
 const lines = (text) => text.split('\n').map((l) => { const n = l.length - l.trimStart().length; return '<span class="ln" style="--in: ' + n + '">' + esc(l.trimStart()) + '</span>'; }).join('');
+
+// The Metadata card: the visitor's picture as a meta answer describes it, with the tags found
+// so far (labels, in the order found) and a line of alt text built from them. Also the page's
+// (page.js), where every creature counts as found. Returns { html, alt }.
+export function metaHTML(c, found) {
+  const [w, h] = SIZE[c.crop];
+  let alt = null;
+  if (found.length) {
+    const parts = found.map((l) => NOUN[l]);
+    const list = parts.length === 1 ? parts[0] : parts.slice(0, -1).join(', ') + ' and ' + parts[parts.length - 1];
+    alt = list[0].toUpperCase() + list.slice(1) + ' in the dark of the deep sea.';
+  }
+  const tags = found.slice().sort((a, b) => SCORE[b] - SCORE[a]).map((l) => '    { "label": "' + LABEL[l] + '", "score": ' + SCORE[l].toFixed(2) + ' }');
+  const text = '{\n  "width": ' + w + ', "height": ' + h + ', "format": "' + FMT_JSON[c.format] + '",\n  "tags": [' + (tags.length ? '\n' + tags.join(',\n') + '\n  ' : '') + '],\n  "alt_text": ' + (alt ? '"' + alt + '"' : 'null') + '\n}';
+  return { html: lines(text), alt, text };
+}
+export const ALL_FOUND = [0, 2, 3, 1];
+// The Explain card: the request and the report on the visitor's URL (or the 403 a sealed one
+// gets; token: its own, shortened). Returns { req, report } as HTML.
+export function explainHTML(c, token) {
+  const rows = [];
+  let req;
+  if (c.seal === 1) {
+    req = 'GET /explain/' + token + '/print.jpg';
+    rows.push(['403', 'explain refuses sealed URLs rather than decrypt them.'], ['to debug', 'unseal it locally, then explain the plain form.']);
+  } else {
+    const rem = remainder(c), [w, h] = SIZE[c.crop];
+    req = 'GET /explain/' + sign(rem).slice(0, 8) + '…/' + rem;
+    rows.push(
+      ['signature', 'valid · current key · never expires'],
+      ['source', 'root:photos/print.jpg · image · 2400 × 1600'],
+      [c.crop === 2 ? 'fit-in' : 'crop', CROP_GLOSS[c.crop]],
+      ['filters', [LOOK_GLOSS[c.look], FINISH_GLOSS[c.finish]].filter(Boolean).join(', then ')],
+      ['format', OPTIONS.format[c.format] ? FMT[c.format] : 'none named: kept from the source, JPEG'],
+      ['forecast', w + ' × ' + h + ' · ' + FMT[c.format]],
+    );
+  }
+  return { req: soft(req), report: rows.map(([k, d], i) => '<dt style="--i: ' + i + '">' + esc(k) + '</dt><dd style="--i: ' + i + '">' + esc(d) + '</dd>').join(''), key: req + rows.join('|') };
+}
 
 // The camera on its path at p (without the visitor's nudge): where it is, and its forward, right
 // and up. out: { x, y, z, F, R, U }.
@@ -79,53 +120,28 @@ export default {
     // ---- the cards: the meta answer, the explain report ------------------------------------------
     const jsonEl = doc.getElementById('tw-json'), reqEl = doc.getElementById('tw-req'), reportEl = doc.getElementById('tw-report');
     const found = [];                  // the labels found so far, in the order found (for the alt text)
-    const altText = () => {
-      if (!found.length) return null;
-      const parts = found.map((l) => NOUN[l]);
-      const list = parts.length === 1 ? parts[0] : parts.slice(0, -1).join(', ') + ' and ' + parts[parts.length - 1];
-      return list[0].toUpperCase() + list.slice(1) + ' in the dark of the deep sea.';
-    };
     let lastJson = '';
     const renderJson = (pop) => {
-      const c = stage.choices, [w, h] = SIZE[c.crop], alt = altText();
-      const tags = found.slice().sort((a, b) => SCORE[b] - SCORE[a]).map((l) => '    { "label": "' + LABEL[l] + '", "score": ' + SCORE[l].toFixed(2) + ' }');
-      const text = '{\n  "width": ' + w + ', "height": ' + h + ', "format": "' + FMT_JSON[c.format] + '",\n  "tags": [' + (tags.length ? '\n' + tags.join(',\n') + '\n  ' : '') + '],\n  "alt_text": ' + (alt ? '"' + alt + '"' : 'null') + '\n}';
-      if (text === lastJson) return;
-      lastJson = text;
-      jsonEl.innerHTML = lines(text);
-      altQ.textContent = alt || '';
+      const m = metaHTML(stage.choices, found);
+      if (m.text === lastJson) return;
+      lastJson = m.text;
+      jsonEl.innerHTML = m.html;
+      altQ.textContent = m.alt || '';
       if (pop) { jsonEl.classList.remove('pop'); void jsonEl.offsetWidth; jsonEl.classList.add('pop'); }
     };
     // (a sealed URL's token is the bar's own: the page mints it once per recipe)
     const tokenText = () => {
       const t = doc.querySelector('#url .p-seal');
       const s = t ? t.textContent : '';
-      return s.startsWith('s1.') && s.length > 5 ? s.slice(0, 13) + '…' : 's1.…';
+      return s.startsWith('s1.') && s.length > 5 ? s : 's1.…';   // (the bar's own, shortened as it shortens it)
     };
     let lastReport = '';
     const renderReport = () => {
-      const c = stage.choices, rows = [];
-      let req;
-      if (c.seal === 1) {
-        req = 'GET /explain/' + tokenText() + '/print.jpg';
-        rows.push(['403', 'explain refuses sealed URLs rather than decrypt them.'], ['to debug', 'unseal it locally, then explain the plain form.']);
-      } else {
-        const rem = remainder(c), [w, h] = SIZE[c.crop];
-        req = 'GET /explain/' + sign(rem).slice(0, 8) + '…/' + rem;
-        rows.push(
-          ['signature', 'valid · key 1 · never expires'],
-          ['source', 'root:photos/print.jpg · image · 2400 × 1600'],
-          [c.crop === 2 ? 'fit-in' : 'crop', CROP_GLOSS[c.crop]],
-          ['filters', [LOOK_GLOSS[c.look], FINISH_GLOSS[c.finish]].filter(Boolean).join(', then ')],
-          ['format', OPTIONS.format[c.format] ? FMT[c.format] : 'none named: the Accept header picks AVIF'],
-          ['forecast', w + ' × ' + h + ' · ' + FMT[c.format]],
-        );
-      }
-      const key = req + rows.join('|');
-      if (key === lastReport) return;
-      lastReport = key;
-      reqEl.innerHTML = soft(req);
-      reportEl.innerHTML = rows.map(([k, d], i) => '<dt style="--i: ' + i + '">' + esc(k) + '</dt><dd style="--i: ' + i + '">' + esc(d) + '</dd>').join('');
+      const r = explainHTML(stage.choices, tokenText());
+      if (r.key === lastReport) return;
+      lastReport = r.key;
+      reqEl.innerHTML = r.req;
+      reportEl.innerHTML = r.report;
     };
     stage.onChoice(() => { renderJson(false); renderReport(); });
     renderJson(false); renderReport();

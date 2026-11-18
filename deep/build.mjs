@@ -90,7 +90,8 @@ if (!charset) throw new Error('template.html has no <meta charset="utf-8">');
 html = html.replace(charset[0], (m) => `${m.trimEnd()}\n${csp}\n`);
 mkdirSync(outDir, { recursive: true });
 writeFileSync(outFile, html);
-// Snap's model and its texture: the only files besides the page (media/), copied beside it.
+// Snap's model and its texture, and the visitor's photo and its mask: the only files besides
+// the page (media/), copied beside it.
 let media = 0;
 for (const f of readdirSync(join(here, 'media'))) {
   const from = join(here, 'media', f), to = join(outDir, f);
@@ -100,4 +101,4 @@ for (const f of readdirSync(join(here, 'media'))) {
   media += statSync(from).size;
 }
 const kb = (n) => (n / 1024).toFixed(1) + ' KB';
-console.log(`${basename(outFile)}: ${kb(Buffer.byteLength(html))} (${kb(gzipSync(html).length)} gzipped), of which script ${kb(Buffer.byteLength(js))}; Snap's files beside it: ${kb(media)} in all`);
+console.log(`${basename(outFile)}: ${kb(Buffer.byteLength(html))} (${kb(gzipSync(html).length)} gzipped), of which script ${kb(Buffer.byteLength(js))}; the files beside it (Snap, the photo): ${kb(media)} in all`);
