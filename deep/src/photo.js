@@ -13,8 +13,8 @@ import { feltPrint } from './feltprint.js';
 // its size, and the subject: the mask's box (alpha over a half) and its middle, as fractions
 // of the photo from its top left (measured once from the mask)
 export const PHOTO = { w: 1000, h: 667, aspect: 1000 / 667, box: [0.053, 0.136, 0.62, 0.889], mid: [0.338, 0.538] };
-// crabcrop's brand colour, the backdrop studio(…, bg:brand) puts behind the subject (as in
-// the site's own render of this photo, studio-brand.webp)
+// crabcrop's brand colour, the backdrop studio(product) puts behind the subject by default on a
+// server with a brand colour set (as in the site's own render of this photo, studio-brand.webp)
 export const BRAND = [14 / 255, 124 / 255, 121 / 255];
 
 async function bitmap(names) {

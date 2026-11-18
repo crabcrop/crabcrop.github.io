@@ -23,7 +23,7 @@ export const OPTIONS = {
   format: ['', 'format(avif)', 'format(jxl)', 'format(webp)'],
   look: ['sharpen(1.2):saturation(1.1)', 'duotone(0d202e,ffd88a)', 'sepia'],
   crop: ['crop:1200x630:smart', 'crop:760x760:smart', 'fit-in:1200x630'],
-  finish: ['', 'studio(product,bg:brand,shadow:soft,pad:10)', 'removebg'],
+  finish: ['', 'studio(product)', 'removebg'],
   seal: ['', 's1'],
 };
 // What each option does, said once it is picked (the line under the choice reads it out).
@@ -46,7 +46,7 @@ export const NOTES = {
   ],
   finish: [
     'Nothing added: the picture leaves as photographed.',
-    'Cut out, set on your brand color with a soft shadow, a 10% margin per side.',
+    'Cut out, set on your brand color with a soft shadow, a 10% margin per side: studio’s defaults.',
     'The background removed: only the subject stays, on transparency, so it needs a format that carries alpha. Browsers ask for one; for curl, name format(webp).',
   ],
   seal: [
