@@ -330,6 +330,18 @@ p { text-wrap: pretty; }
 .fin .served { margin: 4px 0 12px; }
 .fin .served canvas { display: block; width: 100%; max-width: 300px; height: auto; border-radius: 10px; box-shadow: 0 6px 24px rgba(0, 0, 0, .35); }
 @media (max-width: 600px) { .fin .served canvas { max-width: 150px; } }
+/* the finale keeps to its room on laptop screens too: under 900 px tall the sign-off line goes and
+   the picture is smaller; under 760 px the parts sit closer */
+@media (min-width: 761px) and (max-height: 900px) {
+  :root:not(.page) .fin .foot { display: none; }
+  :root:not(.page) .fin .served canvas { max-width: 240px; }
+}
+@media (min-width: 761px) and (max-height: 760px) {
+  :root:not(.page) .fin > * + * { margin-top: 8px; }
+  :root:not(.page) .fin .served { margin: 2px 0 6px; }
+  :root:not(.page) .fin .served canvas { max-width: 200px; }
+  :root:not(.page) .fin .fine { font-size: 13px; line-height: 1.45; }
+}
 </style>
 </head>
 <body>
