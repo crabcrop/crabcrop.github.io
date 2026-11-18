@@ -24,7 +24,7 @@
 <link rel="preload" as="font" type="font/woff2" href="fonts/bricolage-grotesque.woff2" crossorigin>
 <link rel="preload" as="font" type="font/woff2" href="fonts/inter.woff2" crossorigin>
 <link rel="preload" as="font" type="font/woff2" href="fonts/jetbrains-mono.woff2" crossorigin>
-<link rel="preload" as="image" type="image/webp" href="media/snap-cheer.webp" fetchpriority="high">
+<link rel="preload" as="image" type="image/webp" href="media/snap-point.webp" fetchpriority="high">
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-56Q9ZPMWLX"></script>
 <script>
   window.dataLayer = window.dataLayer || [];
@@ -432,50 +432,6 @@ footer .wrap { display: grid; gap: 22px; }
 
 <main id="top">
 
-<section id="install" class="band">
-  <div class="wrap">
-    <div class="lead">
-      <div class="say">
-        <p class="kicker"><span class="tri" aria-hidden="true"><i></i><i></i><i></i></span>Install</p>
-        <h2>Running in a minute.</h2>
-        <p class="sub">Prebuilt for macOS and Linux, on x86_64 and arm64.</p>
-      </div>
-      <div class="snap" role="img" aria-label="Snap standing on the install command, cheering with both claws in the air">
-        <video id="snap-cheer" muted playsinline preload="none" poster="media/snap-cheer.webp" width="850" height="640" aria-hidden="true">
-          <source src="media/snap-cheer.av1.mp4" type="video/mp4; codecs=av01.0.05M.08">
-          <source src="media/snap-cheer.mp4" type="video/mp4">
-        </video>
-      </div>
-    </div>
-    <div class="cmd">
-      <code id="install-cmd">curl --proto '=https' --tlsv1.2 -LsSf https://github.com/dayvson/crabcrop/releases/latest/download/crabcrop-installer.sh | sh</code>
-      <button class="copy" type="button" data-select="install-cmd">Copy</button>
-    </div>
-    <div class="after">
-      <ol class="steps">
-        <li><b>Start the server with a new secret.</b>
-<pre>export CRABCROP_SECRET="$(openssl rand -hex 16)"
-CRABCROP_ALLOW_UNSAFE=1 crabcrop
-<span class="c"># crabcrop listening on port 3000</span></pre></li>
-        <li><b>Request an image: a source photo at 300 by 200.</b>
-<pre>curl "http://localhost:3000/unsafe/<span class="t-ops">300x200</span>/<span class="t-src">https://example.com/photo.jpg</span>" \
-  --output photo.jpg</pre></li>
-        <li><b>In production, drop the unsafe switch and sign the URL.</b>
-<pre>curl "$(crabcrop sign <span class="t-ops">300x200</span>/<span class="t-src">https://example.com/photo.jpg</span>)" --output photo.jpg</pre></li>
-      </ol>
-      <div class="box ways">
-        <h3>Other routes</h3>
-        <dl class="kv">
-          <dt>Docker</dt><dd><code>docker pull <span class="nw">ghcr.io/dayvson/crabcrop:0.13.1</span></code></dd>
-          <dt>With AI</dt><dd><code>docker pull <span class="nw">ghcr.io/dayvson/crabcrop-ai:0.13.1</span></code></dd>
-          <dt>Cargo</dt><dd><code>cargo install crabcrop</code></dd>
-          <dt>Binaries</dt><dd><a href="https://github.com/dayvson/crabcrop/releases">Release tarballs on GitHub</a></dd>
-        </dl>
-      </div>
-    </div>
-  </div>
-</section>
-
 <section class="hero">
   <div class="wrap">
     <div class="lead">
@@ -551,50 +507,45 @@ CRABCROP_ALLOW_UNSAFE=1 crabcrop
   </div>
 </section>
 
-<section id="speed" class="band">
+<section id="install" class="band">
   <div class="wrap">
-    <div class="head">
-      <p class="kicker"><span class="tri" aria-hidden="true"><i></i><i></i><i></i></span>Speed</p>
-      <h2>Blazing fast, in numbers.</h2>
-      <p>A first request does the whole job: fetch the source, decode it, transform it, encode the answer. These are medians from the benchmark kept in the repo.</p>
-    </div>
-    <div class="bento">
-      <div class="tile s5 stat">
-        <p class="label">A first request</p>
-        <p class="value">22.6<span>ms</span></p>
-        <p>Fetch a 2400 by 1600 JPEG, decode it, resize it to 800 wide, encode it.</p>
+    <div class="lead">
+      <div class="say">
+        <p class="kicker"><span class="tri" aria-hidden="true"><i></i><i></i><i></i></span>Install</p>
+        <h2>Running in a minute.</h2>
+        <p class="sub">Prebuilt for macOS and Linux, on x86_64 and arm64.</p>
       </div>
-      <figure class="tile s7 tall">
-        <figcaption class="fig-head">
-          <h3>A first request, by operation</h3>
-          <p>Median milliseconds. Output is 800 wide unless said. Lower is better.</p>
-        </figcaption>
-        <table class="nums">
-          <thead>
-            <tr><th scope="col">Operation</th><th scope="col" class="us">crabcrop</th><th scope="col">Thumbor</th><th scope="col">imgproxy</th></tr>
-          </thead>
-          <tbody>
-            <tr><th scope="row">Resize, JPEG</th><td class="us">22.6</td><td>38.4</td><td>18.0</td></tr>
-            <tr><th scope="row">Crop to 400 by 300, JPEG</th><td class="us">58.5</td><td>71.0</td><td>12.1</td></tr>
-            <tr><th scope="row">Resize, WebP</th><td class="us">64.4</td><td>82.0</td><td>62.3</td></tr>
-            <tr><th scope="row">Resize and grayscale, JPEG</th><td class="us">25.3</td><td>38.2</td><td class="na"><span aria-hidden="true">—</span><span class="sr">not supported</span></td></tr>
-            <tr><th scope="row">Resize, AVIF</th><td class="us">112.4</td><td class="na"><span aria-hidden="true">—</span><span class="sr">not supported</span></td><td class="na"><span aria-hidden="true">—</span><span class="sr">not available on the benchmark host</span></td></tr>
-            <tr><th scope="row">Resize, JPEG XL</th><td class="us">34.0</td><td class="na"><span aria-hidden="true">—</span><span class="sr">not supported</span></td><td>43.8</td></tr>
-          </tbody>
-        </table>
-        <p class="note">A dash is an operation that server could not run. Thumbor 7.8.0 has no AVIF or JPEG XL encoder. Open-source imgproxy has no grayscale option, and its AVIF needs an encoder the benchmark host did not have: a limit of the host, not of imgproxy.</p>
-      </figure>
-
-      <div class="tile s5 how">
-        <h3>How it was measured</h3>
+      <div class="snap" role="img" aria-label="Snap standing on the install command, cheering with both claws in the air">
+        <video id="snap-cheer" muted playsinline preload="none" poster="media/snap-cheer.webp" width="850" height="640" aria-hidden="true">
+          <source src="media/snap-cheer.av1.mp4" type="video/mp4; codecs=av01.0.05M.08">
+          <source src="media/snap-cheer.mp4" type="video/mp4">
+        </video>
+      </div>
+    </div>
+    <div class="cmd">
+      <code id="install-cmd">curl --proto '=https' --tlsv1.2 -LsSf https://github.com/dayvson/crabcrop/releases/latest/download/crabcrop-installer.sh | sh</code>
+      <button class="copy" type="button" data-select="install-cmd">Copy</button>
+    </div>
+    <div class="after">
+      <ol class="steps">
+        <li><b>Start the server with a new secret.</b>
+<pre>export CRABCROP_SECRET="$(openssl rand -hex 16)"
+CRABCROP_ALLOW_UNSAFE=1 crabcrop
+<span class="c"># crabcrop listening on port 3000</span></pre></li>
+        <li><b>Request an image: a source photo at 300 by 200.</b>
+<pre>curl "http://localhost:3000/unsafe/<span class="t-ops">300x200</span>/<span class="t-src">https://example.com/photo.jpg</span>" \
+  --output photo.jpg</pre></li>
+        <li><b>In production, drop the unsafe switch and sign the URL.</b>
+<pre>curl "$(crabcrop sign <span class="t-ops">300x200</span>/<span class="t-src">https://example.com/photo.jpg</span>)" --output photo.jpg</pre></li>
+      </ol>
+      <div class="box ways">
+        <h3>Other routes</h3>
         <dl class="kv">
-          <dt>Servers</dt><dd>crabcrop 0.9.9, Thumbor 7.8.0 and imgproxy 3.31.4, one at a time. Their configurations are in the repo.</dd>
-          <dt>Host</dt><dd>One shared VM with 4 cores and 7.7 GiB of memory. Client, origin and server on the same machine.</dd>
-          <dt>Sources</dt><dd>25 JPEGs, 2400 by 1600, about 205 KB each.</dd>
-          <dt>Timing</dt><dd>A fresh connection per request, signature checks off, medians across repeated runs.</dd>
-          <dt>Date</dt><dd>6 November 2026.</dd>
+          <dt>Docker</dt><dd><code>docker pull <span class="nw">ghcr.io/dayvson/crabcrop:0.13.1</span></code></dd>
+          <dt>With AI</dt><dd><code>docker pull <span class="nw">ghcr.io/dayvson/crabcrop-ai:0.13.1</span></code></dd>
+          <dt>Cargo</dt><dd><code>cargo install crabcrop</code></dd>
+          <dt>Binaries</dt><dd><a href="https://github.com/dayvson/crabcrop/releases">Release tarballs on GitHub</a></dd>
         </dl>
-        <p class="links"><a class="more" href="https://github.com/dayvson/crabcrop/tree/main/benchmark">The harness</a><a class="more" href="https://github.com/dayvson/crabcrop/blob/main/benchmark/results/2026-11-06.md">Full results and raw data</a></p>
       </div>
     </div>
   </div>
@@ -914,7 +865,56 @@ url = build_url(
   </div>
 </section>
 
-<section id="from">
+<section id="speed">
+  <div class="wrap">
+    <div class="head">
+      <p class="kicker"><span class="tri" aria-hidden="true"><i></i><i></i><i></i></span>Speed</p>
+      <h2>Blazing fast, in numbers.</h2>
+      <p>A first request does the whole job: fetch the source, decode it, transform it, encode the answer. These are medians from the benchmark kept in the repo.</p>
+    </div>
+    <div class="bento">
+      <div class="tile s5 stat">
+        <p class="label">A first request</p>
+        <p class="value">22.6<span>ms</span></p>
+        <p>Fetch a 2400 by 1600 JPEG, decode it, resize it to 800 wide, encode it.</p>
+      </div>
+      <figure class="tile s7 tall">
+        <figcaption class="fig-head">
+          <h3>A first request, by operation</h3>
+          <p>Median milliseconds. Output is 800 wide unless said. Lower is better.</p>
+        </figcaption>
+        <table class="nums">
+          <thead>
+            <tr><th scope="col">Operation</th><th scope="col" class="us">crabcrop</th><th scope="col">Thumbor</th><th scope="col">imgproxy</th></tr>
+          </thead>
+          <tbody>
+            <tr><th scope="row">Resize, JPEG</th><td class="us">22.6</td><td>38.4</td><td>18.0</td></tr>
+            <tr><th scope="row">Crop to 400 by 300, JPEG</th><td class="us">58.5</td><td>71.0</td><td>12.1</td></tr>
+            <tr><th scope="row">Resize, WebP</th><td class="us">64.4</td><td>82.0</td><td>62.3</td></tr>
+            <tr><th scope="row">Resize and grayscale, JPEG</th><td class="us">25.3</td><td>38.2</td><td class="na"><span aria-hidden="true">—</span><span class="sr">not supported</span></td></tr>
+            <tr><th scope="row">Resize, AVIF</th><td class="us">112.4</td><td class="na"><span aria-hidden="true">—</span><span class="sr">not supported</span></td><td class="na"><span aria-hidden="true">—</span><span class="sr">not available on the benchmark host</span></td></tr>
+            <tr><th scope="row">Resize, JPEG XL</th><td class="us">34.0</td><td class="na"><span aria-hidden="true">—</span><span class="sr">not supported</span></td><td>43.8</td></tr>
+          </tbody>
+        </table>
+        <p class="note">A dash is an operation that server could not run. Thumbor 7.8.0 has no AVIF or JPEG XL encoder. Open-source imgproxy has no grayscale option, and its AVIF needs an encoder the benchmark host did not have: a limit of the host, not of imgproxy.</p>
+      </figure>
+
+      <div class="tile s5 how">
+        <h3>How it was measured</h3>
+        <dl class="kv">
+          <dt>Servers</dt><dd>crabcrop 0.9.9, Thumbor 7.8.0 and imgproxy 3.31.4, one at a time. Their configurations are in the repo.</dd>
+          <dt>Host</dt><dd>One shared VM with 4 cores and 7.7 GiB of memory. Client, origin and server on the same machine.</dd>
+          <dt>Sources</dt><dd>25 JPEGs, 2400 by 1600, about 205 KB each.</dd>
+          <dt>Timing</dt><dd>A fresh connection per request, signature checks off, medians across repeated runs.</dd>
+          <dt>Date</dt><dd>6 November 2026.</dd>
+        </dl>
+        <p class="links"><a class="more" href="https://github.com/dayvson/crabcrop/tree/main/benchmark">The harness</a><a class="more" href="https://github.com/dayvson/crabcrop/blob/main/benchmark/results/2026-11-06.md">Full results and raw data</a></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="from" class="band">
   <div class="wrap">
     <div class="head">
       <p class="kicker"><span class="tri" aria-hidden="true"><i></i><i></i><i></i></span>Migrating</p>
@@ -933,7 +933,6 @@ url = build_url(
     </ul>
   </div>
 </section>
-
 
 </main>
 

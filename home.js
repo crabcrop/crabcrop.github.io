@@ -59,8 +59,8 @@
   }
 
   // Snap moves when there is a reason to. Each film ends on the frame it began with, so it plays once and he is
-  // at rest again: on the install command at the top of the page when he comes into view and when the command is
-  // copied, and in the hero now and then and whenever the URL changes. A tap on him plays it too. With reduced motion he stays still.
+  // at rest again: in the hero now and then and whenever the URL changes, on the install command just below it when
+  // he comes into view and when the command is copied. A tap on him plays it too. With reduced motion he stays still.
   const calm = matchMedia('(prefers-reduced-motion: reduce)');
   const point = $('snap-point'), cheer = $('snap-cheer');
   function act(film) {
