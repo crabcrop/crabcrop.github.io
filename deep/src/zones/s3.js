@@ -1,13 +1,16 @@
 // The reef's four stations (zone s3), as in the painted dive (experience/src/reef-ui.ts), on the
 // 3D reef: things in the scene are projected onto the screen every frame and the page's pieces
 // follow them. Its words are in zones/s3.html, its styles in zones/s3.css.
-//   1  the crop frame hunts the visitor's cursor and snaps round the turtle: the third choice
-//      shown live (a wide card, a square, the whole picture), and previewed while an option is
-//      hovered or focused
-//   2  stitched boxes on the faces of a school of seven fish
+//   1  the crop frame snaps round the turtle: the third choice shown live (a wide card, a
+//      square, the whole picture), and previewed while an option is hovered or focused. It
+//      hunts for a moment as its card comes up, then finds the turtle and stays; a cursor pulls
+//      it away, and near the turtle it snaps back
+//   2  stitched boxes on the faces of a school of seven fish, found one after another as the
+//      card comes up; then (wide screens) on the faces near the cursor
 //   3  a ring on a cuttlefish: the visitor's hand over it blurs it (redaction)
 //   4  a soda can in the coral: a box dragged over it (or a tap on it, or the button) erases
-//      it, and the card's chip gets the box: filters:remove_region(x,y,w,h)
+//      it, and the card's chip gets the box: filters:remove_region(x,y,w,h); the button puts it
+//      back
 // The scene's pieces (the can, the cuttlefish, the school) are built here too.
 // Then the Clam Studio (as in the painted dive: reef-ui.ts, world/reef.ts): its three jellyfish
 // softboxes flicker on one after another as Snap arrives; its pearl is a mosaic until the AI
@@ -206,9 +209,9 @@ export default {
     const frame = el('crop-frame', '<span class="crop-label">crop:1200x630:smart</span>');
     frame.setAttribute('aria-hidden', 'true');
     const label = frame.firstChild;
-    const cueCrop = stage.cue({ verb: 'Move', text: 'the cursor: the frame keeps the turtle', tie: true, under: true, knot: 60, yarn: 26 });
+    const cueCrop = stage.cue({ verb: 'Move', text: 'the cursor to pull the frame', more: '· it snaps back to the turtle', tie: true, under: true, knot: 60, yarn: 26 });
     const rect = { x: -999, y: 0, w: 10, h: 10 }, target = { x: 0, y: 0, w: 0, h: 0 };
-    let preview = null, drove = 0, lastFrame = '', lastLabel = '';
+    let preview = null, drove = 0, lastFrame = '', lastLabel = '', arrived1 = -1;
     stage.onPreview((key, i) => { if (key === 'crop') preview = i; });
     const chip = doc.getElementById('crop-chip');
     const setChip = () => { chip.textContent = OPTIONS.crop[stage.choices.crop]; };
@@ -246,7 +249,14 @@ export default {
       if (world.cast) world.cast.react('snap');
     };
     const presetErase = () => erase({ x: canBox.x - 8, y: canBox.y - 8, w: canBox.w + 16, h: canBox.h + 16 });
-    doc.getElementById('remove-can').addEventListener('click', () => { if (S.erased) return; if (canBox.w < 2) { canBox = { x: stage.W * 0.42, y: stage.H * 0.45, w: stage.W * 0.08, h: stage.H * 0.2 }; } presetErase(); });
+    const removeBtn = doc.getElementById('remove-can');
+    removeBtn.addEventListener('click', () => {
+      // (once it is gone, the button puts it back)
+      if (S.erased) { S.erased = false; S.canK = 1; goneAt = -1; removeChip.innerHTML = DEFAULT.replace(/,/g, ',<wbr>'); return; }
+      if (canBox.w < 2) { canBox = { x: stage.W * 0.42, y: stage.H * 0.45, w: stage.W * 0.08, h: stage.H * 0.2 }; }
+      presetErase();
+    });
+    let btnErased = null;
     const norm = (a, b) => ({ x: Math.min(a[0], b[0]), y: Math.min(a[1], b[1]), w: Math.abs(a[0] - b[0]), h: Math.abs(a[1] - b[1]) });
     drag.addEventListener('pointerdown', (e) => { start = [e.clientX, e.clientY]; if (e.pointerType !== 'touch') drag.setPointerCapture(e.pointerId); });
     drag.addEventListener('pointermove', (e) => {
@@ -319,12 +329,17 @@ export default {
               if (n1 > 0.8) drove += dt;
               hx = hand[0]; hy = hand[1];
             } else {
-              // no cursor: wander for a moment, then find it again
-              snapped = (t % 4.2) / 4.2 > 0.38;
-              hx = cx - fw * 0.9 + Math.sin(t * 2.1) * fw * 0.5; hy = cy + Math.cos(t * 1.7) * fh * 0.6;
+              // no cursor: it hunts near the turtle for a moment as the card comes up, then
+              // finds it and stays
+              snapped = arrived1 >= 0 && t - arrived1 > 1.3;
+              hx = cx - fw * 0.4 + Math.sin(t * 2.1) * fw * 0.2; hy = cy + Math.cos(t * 1.7) * fh * 0.25;
             }
             if (snapped) { target.x = sx; target.y = sy; target.w = fw; target.h = fh; }
-            else { target.x = hx - fw * 0.4; target.y = hy - fh * 0.4; target.w = fw * 0.8; target.h = fh * 0.8; }
+            else {
+              target.w = fw * 0.8; target.h = fh * 0.8;
+              // (hunting, it stays on the screen)
+              target.x = Math.min(Math.max(hx - fw * 0.4, 8), W - target.w - 8); target.y = Math.min(Math.max(hy - fh * 0.4, 8), Hh - target.h - 8);
+            }
           }
           if (rect.x < -900) Object.assign(rect, target);
           const e = 1 - Math.exp(-dt * (snapped ? 11 : 7));
@@ -339,6 +354,8 @@ export default {
           cueCrop.show(!!rest && n1 > 0.8 && drove <= 1.2);
         }
       }
+      if (n1 > 0.8 && arrived1 < 0) arrived1 = t;
+      if (n1 < 0.2) arrived1 = -1;
       if (!on1) { cueCrop.show(false); rect.x = -999; }
       frame.style.opacity = on1.toFixed(2);
 
@@ -354,7 +371,7 @@ export default {
         stage.project(v, P);
         if (P[2] <= 0.3) continue;
         const ppm = stage.pxPerMetre(P[2]) * f.scale.x, w = 0.24 * ppm, h = 0.24 * ppm;
-        const intro = since >= 0 && (since < 3 || !live || !stage.wide) ? (since > i * 0.18 ? 1 : 0) : 0;
+        const intro = since >= 0 && (since < 3 || !stage.wide) ? (since > i * 0.18 ? 1 : 0) : 0;
         const nr = live ? 1 - Math.min(1, Math.max(0, (Math.hypot(hand[0] - P[0], hand[1] - P[1]) - Hh * 0.18) / (Hh * 0.12))) : 0;
         const a = Math.max(intro, nr) * n2;
         if (nr > 0.6 && n2 > 0.8 && live) found = true;
@@ -383,12 +400,13 @@ export default {
           const key = Math.round(P[0] - d / 2) + ',' + Math.round(P[1] - d * 0.45) + ',' + Math.round(d) + ',' + k.toFixed(2);
           if (key !== lastLens) { lastLens = key; css(lens, P[0] - d / 2, P[1] - d * 0.45, d, d * 0.9); lens.style.opacity = k.toFixed(2); }
           if (on3 && blurAt < 0 && live && dh < Hh * 0.2) blurAt = t;
-          ring.at(P[0], P[1] - 0.32 * ppm);
-          cueCuttle.at(P[0], P[1] - 0.32 * ppm - 23);
+          // (its ring on its mantle, the cue tied above)
+          ring.at(P[0], P[1] - 0.05 * ppm);
+          cueCuttle.at(P[0], P[1] - 0.05 * ppm - 23);
         }
       }
       if (n3 < 0.2) arrived3 = -1;
-      const blurred = blurAt >= 0, ringOn = on3 && !(blurred && t - blurAt > 2.6);
+      const blurred = blurAt >= 0, ringOn = on3 && !(blurred && t - blurAt > 4);
       ring.show(ringOn).done(blurred);
       cueCuttle.show(ringOn && stage.wide).done(blurred);
       if (!on3 && lens.style.opacity !== '0') { lens.style.opacity = '0'; lastLens = ''; }
@@ -409,16 +427,17 @@ export default {
           cueCan.at(hx + 40, hy);
         }
       }
-      const shown4 = live4 && !(S.erased && t - goneAt > 2.6);
+      const shown4 = live4 && !(S.erased && t - goneAt > 4);
       hint.classList.toggle('on', shown4 && fits && !start);
       hint.classList.toggle('done', S.erased);
       cueCan.show(shown4 && stage.wide).done(S.erased);
       drag.classList.toggle('live', live4 && !S.erased);
+      if (S.erased !== btnErased) { btnErased = S.erased; removeBtn.textContent = S.erased ? 'Put the can back' : 'Remove the can'; }
       if (!S.erased && n4 < 0.3 && p < ST.can[0] && removeChip.textContent !== DEFAULT) removeChip.innerHTML = DEFAULT.replace(/,/g, ',<wbr>');
 
       // (narrow screens: the same two asks, in the dock)
       if (!stage.wide) {
-        const want = shown4 ? 'can' : on3 && !(blurred && t - blurAt > 2.6) ? 'cuttle' : null;
+        const want = shown4 ? 'can' : on3 && !(blurred && t - blurAt > 4) ? 'cuttle' : null;
         if (want === 'can') stage.dock.ask('can').done(S.erased);
         if (want === 'cuttle') stage.dock.ask('cuttle').done(blurred);
         if (want) stage.dock.show(want);

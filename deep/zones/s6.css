@@ -40,8 +40,6 @@
 @media (scripting: enabled) and (prefers-reduced-motion: no-preference) {
   :root:not(.page) .vt-mcp li { opacity: 0; }
   :root:not(.page) .vt-card.in .vt-mcp li { opacity: 1; animation: vt-line .4s ease-out backwards; animation-delay: calc(var(--i) * .5s + .3s); }
-  /* the print's story is told when the pincer lifts it (a note); as a page, here */
-  :root:not(.page) .vt-tale { visibility: hidden; }
 }
 @media (max-width: 760px) {
   .vt-spec { padding: 8px 10px 9px; }

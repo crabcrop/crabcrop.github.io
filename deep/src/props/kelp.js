@@ -97,7 +97,9 @@ export function buildCurtains(scene, { centre, along, facing, high = 11, drop = 
       // the one the hand is over glows a little
       const h = select(c.lessThan(0.5), hover.x, select(c.lessThan(1.5), hover.y, hover.z));
       s.emis = s.emis.add(s.albedo.mul(h).mul(0.6)).add(vec3(0.25, 0.22, 0.16).mul(h).mul(0.3));
-      s.alpha = mix(float(0.76), float(1.0), max(hem, top));
+      // (and it thins away when the eye comes close, as it passes under the hems, so a hem
+      // never hangs across the top of a phone's view as a solid block)
+      s.alpha = mix(float(0.76), float(1.0), max(hem, top)).mul(smoothstep(1.6, 4.2, f.dist));
       s.caustic = float(0.6);
     },
   });

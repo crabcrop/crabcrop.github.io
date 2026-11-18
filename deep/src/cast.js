@@ -234,8 +234,10 @@ export function buildCast(ctx) {
         // (on a phone he moves aside for the turtle in the reef's crop frame, which sits in the
         // middle of the view above the words: to the right and lower, as on a wide screen)
         // (and for the wreck as it comes into view below him: to the right and a little up)
+        // (and in the cabin for the octopus at its desk, in the middle of the view: to its right)
         const reef = smooth(3.05, 3.11, p) * (1 - smooth(3.36, 3.42, p)), wreck = smooth(4.08, 4.16, p) * (1 - smooth(4.3, 4.38, p));
-        DRIFT_AT[0] = 0; DRIFT_AT[1] = 0.42 * reef + 0.5 * wreck; DRIFT_AT[2] = -0.75 * cabin - 0.3 * reef + 0.12 * wreck;
+        const room = smooth(4.47, 4.53, p) * (1 - smooth(4.68, 4.74, p));
+        DRIFT_AT[0] = 0; DRIFT_AT[1] = 0.42 * reef + 0.5 * wreck + 0.42 * room; DRIFT_AT[2] = -0.75 * cabin - 0.3 * reef + 0.12 * wreck + 0.55 * cabin * room;
       }
       M.set(o.snap[0] * (1 - 0.1 * cabin) + DRIFT_AT[0], o.snap[1] * (1 - 0.25 * cabin) + DRIFT_AT[1], o.snap[2] + DRIFT_AT[2]);
       slot(M.toArray(SNAP_AT), A);

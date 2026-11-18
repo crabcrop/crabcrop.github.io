@@ -83,31 +83,38 @@ keeps its code examples and the finale's picture following the visitor's choices
   `src/feltprint.js`: the little felt picture that stands in until the photo has loaded.
 - `src/pace.js`: keeps the frame rate by trading resolution first, in small steps, and
   remembers where it settled. `src/app.js`: builds the world and runs the loop.
-- `src/ui.js`, `src/audio.js`, `template.html`: the page around the scene (each choice with
-  "Your turn" and "Your URL so far", the loop back to the top); all of its sound is
-  synthesized.
+- `src/ui.js`, `src/audio.js`, `template.html`: the page around the scene (the bar that says it is
+  "Your URL" and lights the part a choice changes, each choice with "Your turn" and "Your URL so
+  far", one line of it on a phone, the loop back to the top); all of its sound is synthesized.
 - The hands-on layer, the painted dive's interactions on the 3D scene: `src/stage.js` projects
   things of the scene onto the screen every frame and keeps the painted dive's rules for the
   visitor's hand (a cursor counts for 2.5 s after it moves, a tap for 1.4 s); its cues (a verb on
-  a sun badge, tied to things by yarn), rings, the dock and Snap's story notes look as they did
-  there (`zones/core.css`). Each zone has a module, `src/zones/<id>.js`, with its scene pieces and
+  a sun badge, tied to things by yarn, turning into a tick that says what happened for 4 s once
+  the visitor has done it), rings, the dock and Snap's story notes look as they did there
+  (`zones/core.css`); a note tells only what happened (who freed the fish, whether the light
+  found the lost one). Each zone has a module, `src/zones/<id>.js`, with its scene pieces and
   page pieces, its words in `zones/<id>.html` and its styles in `zones/<id>.css`, which the build
   puts into the page; bigger 3D pieces are in `src/props/`. The shallows: six schools of format
   fish (the picked one gathers by Snap's claw; Auto races AVIF, JPEG XL and WebP to it), the cargo
-  of sources with their rings, and the sun's glint on the sand under the hand. The kelp: three
+  of sources with their rings (a tip stays open while the cursor rests on one; the Sources card's
+  chips open the same ones), and the sun's glint on the sand under the hand. The kelp: three
   silk curtains that try a look on the whole forest and keep it on a click, and a little fish
-  tangled in fishing line to cut free. The reef: the crop frame on the turtle, face boxes on the
-  school, the cuttlefish's blur, the can to erase; the Clam Studio, where Snap poses in front of
+  tangled in fishing line to cut free. The reef: the crop frame on the turtle (it hunts for a
+  moment as its card comes up, then stays), face boxes on the school, the cuttlefish's blur, the
+  can to erase (and its button puts it back); the Clam Studio, where Snap poses in front of
   the open shell while its jellyfish lamps come on one by one, a before/after to cut him out
   (`src/snapshots.js` draws him once for the cards) and the pearl rebuilt from a mosaic by
-  `upscale(2)`. The cabin: the chest that seals the visitor's own URL into a token (the card's and
-  the cabin's show the bar's), the wax seal on the desk, the octopus's letter, the lantern that
-  leans with the hand, and the dust; the cabin's loose things are made in `src/props/cabin.js`, so
-  they move. The twilight: the submarine's lamp follows the hand (or a tap) and names what it
-  finds (tags with scores, the meta answer and its alt text), a lost fish follows the beam home,
+  `upscale(2)`. The wreck: the chest on the Sealed URLs card, which is Choice 5 itself (shut, the
+  URL in the bar is sealed, and the chest in the cabin shuts with it), the wax seal on the desk
+  (Choice 5 too), the octopus's letter that Snap seals for him as the camera looks in (a story,
+  not a thing to do), the lantern that leans with the hand, and the dust; the cabin's loose things are made in `src/props/cabin.js`, so
+  they move. The twilight: the submarine's lamp follows the hand (or a tap), its beam always out
+  into the sea, never back at the eye, and names what it finds (tags with scores, the meta answer
+  and its alt text), a lost fish follows the beam home,
   the bottle's message is read line by line. The vents: the install typed out, the SDK tabs, an
   agent's little submarine calling the MCP tools about the visitor's URL, and the print picked up
-  at the geode: the submarine nudges forward for it and it rises into the pincer. The way up: the
+  at the geode: the submarine nudges forward for it and it rises into the pincer, while the card
+  under it says it is the last part of the URL. The way up: the
   print on the pincer and its ticket.
 - `src/amigurumi.js`: the crochet kit every creature is made with, as Snap is: rows of stitches
   worked round each body, felt, big bead eyes in white rings, a sewn smile.

@@ -17,7 +17,11 @@
 .blur-lens { position: absolute; left: 0; top: 0; border-radius: 50%; -webkit-backdrop-filter: blur(9px) saturate(.9); backdrop-filter: blur(9px) saturate(.9); opacity: 0; pointer-events: none; -webkit-mask-image: radial-gradient(closest-side, #000 62%, transparent); mask-image: radial-gradient(closest-side, #000 62%, transparent); }
 /* station 4: where a box can be dragged, stitched in; the box being dragged */
 .can-hint { position: absolute; left: 0; top: 0; border: 2.5px dashed #fff; border-radius: 10px; filter: drop-shadow(0 1px 2px rgba(13, 32, 46, .5)); opacity: 0; transition: opacity .3s; pointer-events: none; }
-.can-hint.on { opacity: .92; }
+/* (it draws itself out from its corner again and again: the drag the cue asks for) */
+.can-hint.on { opacity: .92; animation: can-ghost 2.8s ease-in-out infinite; }
+.can-hint.done { animation: none; }
+@keyframes can-ghost { 0%, 8% { clip-path: inset(-12px calc(100% + 12px) calc(100% + 12px) -12px); } 50%, 86% { clip-path: inset(-12px); opacity: .92; } 100% { clip-path: inset(-12px); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .can-hint.on { animation: none; } }
 .can-hint::after { content: ""; position: absolute; right: -9px; bottom: -9px; width: 16px; height: 16px; border-radius: 50%; background: var(--sun); border: 2px solid var(--ink); }
 .can-hint.done { border-color: transparent; }
 .can-hint.done::after { display: none; }

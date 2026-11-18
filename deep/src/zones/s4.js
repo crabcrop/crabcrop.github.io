@@ -3,15 +3,18 @@
 // hull (p 4.5 to 4.63). Things in the scene are projected onto the screen every frame and the
 // page's pieces follow them. Its words are in zones/s4.html, its styles in zones/s4.css; the
 // cabin's loose things (chest, stamp, wax, lantern, dust) are built in props/cabin.js.
-//   the chest     on the Sealed URLs card (a button: a click, Enter or Space, or a drag on its lid)
-//                 and in the cabin by the desk (a ring; a click or a drag): shut the lid and the
-//                 visitor's own URL scrambles into a sealed token (a real one: content.js seal())
+//   the chest     on the Sealed URLs card (a button: a click, Enter or Space, or a drag on its lid):
+//                 Choice 5 itself. Shut the lid and the visitor's own URL scrambles into its sealed
+//                 token (a real one: content.js seal()), in the card and in the bar; open it and the
+//                 URL is readable again. The lid follows Choice 5 however it is made, and the chest
+//                 in the cabin by the desk shuts and opens with it
 //   the wax seal  on the captain's desk (wide screens): a ring, its tip, a tied cue; a click flips
-//                 Choice 5; the stamp presses its wax when the URL is sealed. Put away while the
+//                 Choice 5 too; the stamp presses its wax when the URL is sealed. Put away while the
 //                 octopus is busy with its letter (one seal on screen at a time)
-//   the letter    the octopus at its desk holds a letter: "Click (Tap) the letter to seal it"; Snap
-//                 snaps his claw, red wax is pressed onto it, sparkles, the octopus wiggles, and
-//                 Snap's story; sealed by itself 72 % of the way through the cabin
+//   the letter    the octopus at its desk holds a letter, and as the camera looks in Snap seals it
+//                 for him: he snaps his claw, red wax is pressed onto it, sparkles, the octopus
+//                 wiggles, and Snap's story says so (a story, not a thing to do: the visitor's
+//                 own seal is Choice 5)
 //   the lantern   swings toward the hand and with the scroll, flickering; the dust rises through
 //                 its light, glinting warm near it, and swirls away from the hand
 //   the cards     the ship's log written from the choices, line by line; the ledger stamped
@@ -28,7 +31,7 @@ const SEATED = 4.655;                                      // the octopus gets u
 const RESET = 4.42;                                        // back out before the cabin: the letter waits again
 const BOARDS = 4.84, BOARDED = 4.93;                       // Snap climbs into the submarine (cast.js)
 const HAPPY = 2.4;                                         // the octopus's happy wiggle, seconds
-const LETTER_NOTE = 'A little octopus has a letter only its friend should read. Snap presses his claw to the wax, and now nobody else can open it.';
+const LETTER_NOTE = 'A little octopus has a letter only its friend should read. Snap presses his claw to its wax, and now nobody else can open it. Your URL is next.';
 const BOARD_NOTE = 'Past the wreck the sea floor drops away, far too deep for a crab to walk. The octopus returns the favor: its little submarine is waiting outside, and Snap climbs in.';
 const B64URL = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
 
@@ -104,23 +107,19 @@ export default {
       seal(rem).then((tk) => { if (n === minting && !token) { token = tk || ''; chestText(true); } });
     };
 
-    // ---- the chest: open 1, shut 0; where the lid is heading
-    const chestBtn = doc.getElementById('chest'), chestLabel = doc.getElementById('chest-label'), restEl = doc.getElementById('sealed-rest'), verbEl = doc.getElementById('chest-verb');
-    const ch = { open: 1, target: 1, drag: null, dragged: false, locked: false, pressed: false, thunkAt: -1e9, poked: -1e9, tickT: 0, text: '', sealedShown: null, openShown: '', tip: '' };
-    const LABEL = ['Close the chest to seal the URL', 'Open the chest: the URL is sealed'];
-    // (the place on the chest that takes the pointer, under its ring)
-    const hit = stage.el('div', 'chest-hit'); hit.setAttribute('aria-hidden', 'true');
-    const chestRing = stage.ring({ label: LABEL[0] });
-    const chestTip = stage.el('div', 'tip s4-tip'); chestTip.setAttribute('aria-hidden', 'true');
-    chestTip.innerHTML = '<code></code><span></span>';
-    const tipCode = chestTip.firstChild, tipWords = chestTip.lastChild;
-    let overChest = false;
-    const go = (to) => { ch.target = to; ch.poked = ch.tickT = performance.now() / 1000; };
-    // the card's chest and the one in the cabin: a click (or Enter, Space) opens or shuts it; a
-    // drag moves the lid with the pointer (down shuts it, up opens it, 70 px for the whole way)
-    const dragOn = (el, touchDrags) => {
+    // ---- the chest: open 1, shut 0; where the lid is heading. It is Choice 5: shut is sealed
+    const chestBtn = doc.getElementById('chest'), chestLabel = doc.getElementById('chest-label'), restEl = doc.getElementById('sealed-rest');
+    const hintEl = doc.getElementById('chest-hint'), verbEls = [...doc.querySelectorAll('#s4 .chest-verb')];
+    const shutNow = stage.choices.seal ? 0 : 1;
+    const ch = { open: shutNow, target: shutNow, drag: null, dragged: false, locked: false, pressed: null, thunkAt: -1e9, tickT: 0, text: '', sealedShown: null, openShown: '' };
+    const LABEL = ['Close the chest to seal your URL', 'Open the chest to make your URL readable again'];
+    const go = (to) => { ch.target = to; ch.tickT = performance.now() / 1000; };
+    // (the visitor's hand on the lid: the lid goes there, and Choice 5 with it)
+    const put = (to) => { go(to); const want = to < 0.5 ? 1 : 0; if (stage.choices.seal !== want) stage.choose('seal', want); };
+    // a click (or Enter, Space) opens or shuts it; a drag moves the lid with the pointer (down
+    // shuts it, up opens it, 70 px for the whole way)
+    const dragOn = (el) => {
       el.addEventListener('pointerdown', (e) => {
-        if (e.pointerType === 'touch' && !touchDrags) return;
         ch.drag = { y: e.clientY, open: ch.open, moved: false, id: e.pointerId };
         try { el.setPointerCapture(e.pointerId); } catch (err) { /* (a pointer that is gone) */ }
       });
@@ -129,33 +128,23 @@ export default {
         if (!d || e.pointerId !== d.id) return;
         const dy = e.clientY - d.y;
         if (Math.abs(dy) > 4) d.moved = true;
-        if (d.moved) { ch.open = clamp(d.open - dy / 70, 0, 1); ch.target = ch.open; ch.poked = stage.t; }
+        if (d.moved) { ch.open = clamp(d.open - dy / 70, 0, 1); ch.target = ch.open; }
       });
-      const end = () => { const d = ch.drag; if (!d) return; ch.drag = null; if (d.moved) { go(ch.open > 0.5 ? 1 : 0); ch.dragged = true; } };
+      const end = () => { const d = ch.drag; if (!d) return; ch.drag = null; if (d.moved) { put(ch.open > 0.5 ? 1 : 0); ch.dragged = true; } };
       el.addEventListener('pointerup', end);
       el.addEventListener('pointercancel', end);
-      el.addEventListener('click', () => { if (ch.dragged) { ch.dragged = false; return; } go(ch.target > 0.5 ? 0 : 1); });
+      el.addEventListener('click', () => { if (ch.dragged) { ch.dragged = false; return; } put(ch.target > 0.5 ? 0 : 1); });
     };
-    dragOn(chestBtn, true);
-    dragOn(hit, false);
-    chestRing.el.addEventListener('click', () => go(ch.target > 0.5 ? 0 : 1));
-    for (const el of [hit, chestRing.el]) {
-      el.addEventListener('pointerenter', (e) => { if (e.pointerType !== 'touch') overChest = true; });
-      el.addEventListener('pointerleave', () => { overChest = false; });
-    }
-    chestRing.el.addEventListener('focus', () => { overChest = true; });
-    chestRing.el.addEventListener('blur', () => { overChest = false; });
+    dragOn(chestBtn);
     // the URL beside the card's chest: readable while it is open, sealed once it is shut, and
     // scrambling from one to the other as the lid moves
     const chestText = (settled) => {
-      const shut = 1 - ch.open, readable = sig8 + '…/' + rem, sealed = (token || 's1.…') + '/' + NAME;
+      // (on phones the token is cut short, as the bar cuts it, so the card keeps its size)
+      const shut = 1 - ch.open, readable = sig8 + '…/' + rem, sealed = (token ? (stage.wide ? token : token.slice(0, 22) + '…') : 's1.…') + '/' + NAME;
       const text = settled || shut <= 0 || shut >= 1 ? (shut >= 0.5 ? sealed : readable) : scramble(readable, sealed, shut);
       if (text !== ch.text) { ch.text = text; restEl.innerHTML = soft(text); }
       const isSealed = shut >= 0.5;
       if (isSealed !== ch.sealedShown) { ch.sealedShown = isSealed; restEl.classList.toggle('sealed', isSealed); }
-      // (and the tip by the chest in the cabin: the same, shortened as the bar shortens it)
-      const short = settled || shut <= 0 || shut >= 1 ? (isSealed ? (token ? token.slice(0, 14) + '…' : 's1.…') + '/' + NAME : readable) : scramble(readable, (token ? token.slice(0, 14) + '…' : 's1.…') + '/' + NAME, shut);
-      if (short !== ch.tip) { ch.tip = short; tipCode.textContent = short; tipCode.classList.toggle('sealed', isSealed); tipWords.textContent = isSealed ? LABEL[1] : LABEL[0]; tipW = 0; }
     };
     const chestState = () => {
       const o = ch.open.toFixed(3);
@@ -166,7 +155,8 @@ export default {
         ch.pressed = pressed;
         chestBtn.setAttribute('aria-pressed', String(pressed));
         chestLabel.textContent = LABEL[pressed ? 1 : 0];
-        chestRing.el.setAttribute('aria-label', LABEL[pressed ? 1 : 0]);
+        // (the hint under it says what the visitor's hand did: their URL, sealed)
+        if (hintEl) hintEl.classList.toggle('done', pressed);
       }
       const locked = ch.open <= 0.001;
       if (locked !== ch.locked) {
@@ -175,7 +165,7 @@ export default {
         if (locked) { ch.thunkAt = stage.t; say('lock'); }
       }
     };
-    let tipW = 0, tipH = 0, sealW = 0, ringTab = { chest: -2, seal: -2 };
+    let sealW = 0, ringTab = { seal: -2 };
     refresh();
     chestText(true);
 
@@ -194,19 +184,14 @@ export default {
     // the stamp presses its wax when the URL is sealed; the wax goes when it is readable again
     const desk = { sealAt: -1e9, unsealAt: -1e9, k: stage.choices.seal ? 1 : 0 };
 
-    // ---- the octopus's letter: its button (wide: hung under the letter; narrow: in the dock)
+    // ---- the octopus's letter: Snap seals it for him as the camera looks in
     const letter = { state: 'wait', pressAt: -1, sealedAt: -1e9 };
-    const letterCue = stage.cue({ verb: 'Click', text: 'the letter to seal it', button: true, under: true, cls: 'letter-cue', knot: 44, yarn: 26 });
-    letterCue.el.style.setProperty('--yarn', '26px');
-    const dockLetter = stage.dock.ask('letter', { verb: 'Tap', text: 'the letter to seal it', button: true });
     const sealLetter = () => {
       if (letter.state !== 'wait') return;
       // his pincer shuts on the letter a moment into the snap
       letter.state = 'pressing'; letter.pressAt = stage.t + 0.1;
       if (cast) cast.react('snap');
     };
-    letterCue.el.addEventListener('click', sealLetter);
-    dockLetter.el.addEventListener('click', sealLetter);
 
     // ---- the choices: Snap answers Choice 5 (a snap of his claw for sealed, a wave for
     // readable); the stamp; the chest's URL and the ship's log follow every choice
@@ -221,6 +206,9 @@ export default {
       if (key === 'seal') {
         if (i) { desk.sealAt = stage.t; sealSeen = true; } else desk.unsealAt = stage.t;
         if (cast && stage.p > 4.3 && stage.p < 5) cast.react(i ? 'snap' : 'wave');
+        // (the chest's lid follows Choice 5, however it was made: at once away from the wreck)
+        if (!ch.drag && (ch.target <= 0.5) !== !!i) go(i ? 0 : 1);
+        if (stage.p < 4.15 || stage.p > 5.05) { ch.open = ch.target; chestState(); }
       }
       refresh();
       chestText(true);
@@ -239,15 +227,14 @@ export default {
     const behindSnap = (x, y, d) => d > snapOn.d && (Math.hypot(x - snapOn.x, y - snapOn.y) < snapOn.r || Math.hypot(x - snapOn.cx, y - snapOn.cy) < snapOn.cr);
     // the words, the bar, the gauge or a note over a point (checked every few frames)
     const covered = (x, y) => { const e = doc.elementFromPoint(x, y); return !!(e && e.closest('.beat, .bar, .gauge, .note, .dock')); };
-    const cover = { chest: false, seal: false, letter: false };
+    const cover = { seal: false };
 
     // ---- the lantern: a damped pendulum about its hook
     const lamp = { a: 0, v: 0, lastP: -1, rest: true };
     const restGlow = () => { G.glowPos.array[0].set(cab ? cab.at.lantern.x : 0, cab ? cab.at.lantern.y : -1000, cab ? cab.at.lantern.z : 0, 6.5); G.glowCol.array[0].set(1.6, 0.8, 0.3, 0); };
     let wasBoarding = false, boardedAt = -1, lastP = stage.p, verbWide = null, frameNo = 0;
 
-    const css = (e, x, y, w, h) => { e.style.transform = 'translate(' + Math.round(x) + 'px,' + Math.round(y) + 'px)'; e.style.width = Math.round(w) + 'px'; e.style.height = Math.round(h) + 'px'; };
-    let lastHit = '', lastChestTip = '', lastSealTip = '';
+    let lastSealTip = '';
 
     let wasHere = true;
     // (dev builds only: the zone's state, for probes)
@@ -255,14 +242,13 @@ export default {
     this.tick = () => {
       const p = stage.p, t = stage.t, dt = Math.min(stage.dt || 0, 0.05), W = stage.W, Hh = stage.H, wide = stage.wide;
       frameNo++;
-      if (wide !== verbWide) { verbWide = wide; verbEl.textContent = wide ? 'Click' : 'Tap'; }
+      if (wide !== verbWide) { verbWide = wide; verbEls.forEach((e) => { e.textContent = e.classList.contains('lc') ? (wide ? 'click' : 'tap') : (wide ? 'Click' : 'Tap'); }); }
       if (p < RESET && letter.state !== 'wait') { letter.state = 'wait'; letter.sealedAt = -1e9; }
       // (away from the wreck: nothing of it on the screen, the lantern's light at rest)
       if (p < 4.15 || p > 5.05) {
         if (wasHere) {
           wasHere = false;
-          chestRing.show(false); hit.classList.remove('on'); chestTip.classList.remove('on'); sealRing.show(false); sealTip.classList.remove('on'); sealCue.show(false); letterCue.show(false);
-          if (stage.dock.current === 'letter') stage.dock.show(null);
+          sealRing.show(false); sealTip.classList.remove('on'); sealCue.show(false);
           lamp.rest = true; lamp.a = lamp.v = 0; lamp.lastP = -1;
           if (cab && cab.own) cab.setLantern(0, AX.set(0, 0, 1), 1);
           restGlow();
@@ -300,39 +286,6 @@ export default {
       }
       const check = frameNo % 4 === 0;
 
-      // ---- the chest in the cabin: its ring, the place that takes the pointer, its tip
-      let chestOn = false;
-      if (cab && cab.own && inCabin > 0.5) {
-        stage.project(cab.at.lock, P);
-        const rx = P[0], ry = P[1] - 0.2 * stage.pxPerMetre(Math.max(P[2], 0.1)), d = P[2];
-        if (d > 0.3 && stage.onScreen(rx, ry, -24)) {
-          if (check) cover.chest = covered(rx, ry);
-          chestOn = !cover.chest && !behindSnap(rx, ry, d);
-          if (chestOn) {
-            chestRing.at(rx, ry);
-            // (the box on the screen, shut and with the lid up)
-            let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
-            const box = cab.at.box, n = ch.open > 0.3 ? box.length : 8;
-            for (let i = 0; i < n; i++) { stage.project(box[i], Q); x0 = Math.min(x0, Q[0]); y0 = Math.min(y0, Q[1]); x1 = Math.max(x1, Q[0]); y1 = Math.max(y1, Q[1]); }
-            const key = Math.round(x0) + ',' + Math.round(y0) + ',' + Math.round(x1 - x0) + ',' + Math.round(y1 - y0);
-            if (key !== lastHit) { lastHit = key; css(hit, x0, y0, x1 - x0, y1 - y0); }
-            // the tip: while the hand is on it, and for a moment after it moved
-            const showTip = wide && (overChest || t - ch.poked < 2.5);
-            if (showTip) {
-              if (!tipW) { tipW = chestTip.offsetWidth || 220; tipH = chestTip.offsetHeight || 60; lastChestTip = ''; }
-              const tx = Math.min(Math.max(12, x0 + (x1 - x0) / 2 - tipW / 2), W - 64 - tipW), ty = Math.max(74, y0 - tipH - 10);
-              const k2 = Math.round(tx) + ',' + Math.round(ty);
-              if (k2 !== lastChestTip) { lastChestTip = k2; chestTip.style.transform = 'translate(' + Math.round(tx) + 'px,' + Math.round(ty) + 'px)'; }
-            }
-            chestTip.classList.toggle('on', showTip);
-          }
-        }
-      }
-      chestRing.show(chestOn).done(ch.open <= 0.001);
-      hit.classList.toggle('on', chestOn);
-      if (!chestOn) { chestTip.classList.remove('on'); if (!ch.drag) overChest = false; }
-      if (ringTab.chest !== +chestOn) { ringTab.chest = +chestOn; chestRing.el.tabIndex = chestOn ? 0 : -1; }
-
       // ---- the octopus's letter
       if (letter.state === 'wait' && p >= AUTO && p < 4.72) sealLetter();
       if (letter.state === 'pressing' && t >= letter.pressAt) {
@@ -345,20 +298,6 @@ export default {
       const sa = t - letter.sealedAt, press = clamp(sa / 0.18, 0, 1);
       const letterK = letter.state === 'sealed' ? (1 + (1 - press) * 0.9) * (1 + 0.12 * Math.sin(clamp(sa / 0.5, 0, 1) * Math.PI) * press) : 0;
       const waiting = letter.state === 'wait' && p >= CABIN[0] && p < SEATED;
-      let letterOn = false;
-      if (cab && waiting && inCabin > 0.6) {
-        stage.project(cab.at.letter, P);
-        if (P[2] > 0.3 && stage.onScreen(P[0], P[1], -30)) {
-          if (check) cover.letter = covered(P[0], P[1]);
-          letterOn = !cover.letter && !behindSnap(P[0], P[1], P[2]);
-          if (letterOn && wide) letterCue.at(P[0], P[1] + 6);
-        }
-      }
-      letterCue.show(letterOn && wide);
-      if (!wide) {
-        if (waiting && inCabin > 0.6) stage.dock.show('letter');
-        else if (stage.dock.current === 'letter') stage.dock.show(null);
-      } else if (stage.dock.current === 'letter') stage.dock.show(null);
       // (the octopus is busy with its letter until it has wiggled with joy)
       const busy = (waiting && inCabin > 0.6) || letter.state === 'pressing' || (letter.state === 'sealed' && sa < HAPPY);
 

@@ -1,6 +1,6 @@
 <section class="zone" id="s5" aria-labelledby="h5">
   <div class="slot s-intro"><div class="beat intro">
-    <p class="eyebrow"><span class="d">−500 m</span> · The Twilight Zone</p>
+    <p class="eyebrow"><span class="d">−500 m · </span>The Twilight Zone</p>
     <h2 id="h5" tabindex="-1">It reads <span class="hi">the picture.</span></h2>
     <p class="lede">Down here the light is yours: <span class="tw-desk">it follows your cursor.</span><span class="tw-phone">tap to shine it.</span> What it finds, a meta answer names: tags with their scores, a line of alt text, the words in a bottle. And the URL can explain itself.</p>
     <div class="can js-only tw-can">
@@ -13,11 +13,11 @@
   </div></div>
   <div class="slot"><article class="beat card tw-card">
     <div class="tw-spec">
-      <p class="spec-note meta-note">This scene, as a meta answer would describe it.</p>
+      <p class="spec-note meta-note">This scene so far, as a meta answer would describe it. Light more creatures to add their tags.</p>
       <pre class="tw-json" id="tw-json"><span class="ln" style="--in: 0">{</span><span class="ln" style="--in: 2">"width": 1200, "height": 630, "format": "jpeg",</span><span class="ln" style="--in: 2">"tags": [</span><span class="ln" style="--in: 4">{ "label": "jellyfish", "score": 0.97 },</span><span class="ln" style="--in: 4">{ "label": "message in a bottle", "score": 0.96 },</span><span class="ln" style="--in: 4">{ "label": "anglerfish", "score": 0.93 },</span><span class="ln" style="--in: 4">{ "label": "glowing worm", "score": 0.84 }</span><span class="ln" style="--in: 2">],</span><span class="ln" style="--in: 2">"alt_text": "Glowing jellyfish, a glowing worm, a message in a bottle and an anglerfish in the dark of the deep sea."</span><span class="ln" style="--in: 0">}</span></pre>
     </div>
     <h3>Metadata that describes the picture</h3>
-    <p>JSON meta for any render, once meta mode is on (<code>CRABCROP_META_MODE=1</code>; it is off by default): size, format, provenance. Models you supply add more: CLIP tags, alt text and an aesthetic score on every answer; detections, moderation, embeddings and OCR text as opt-ins.</p>
+    <p>Ask for JSON instead of the picture and crabcrop describes it: size, format, provenance (meta mode, off by default: <code>CRABCROP_META_MODE=1</code>). Models you install add tags, alt text, and an aesthetic score; detections, moderation, embeddings, and OCR on request.</p>
     <p class="ex"><code>Accept: application/json; detections=1</code></p>
     <a class="more" href="https://crabcrop.org/docs.html#meta">Read the docs<span class="sr"> on metadata</span></a>
   </article></div>

@@ -50,10 +50,17 @@ export const NOTES = {
     'The background removed: only the subject stays, on transparency, so it needs a format that carries alpha. Browsers ask for one; for curl, name format(webp).',
   ],
   seal: [
-    'Readable: the recipe stays in plain sight. It is the right default for most links.',
+    'Readable: the recipe stays in plain sight.',
     'Sealed: the whole recipe is one opaque token. The server opens it and serves the same render.',
   ],
 };
+
+// The line under a choice once it is picked: its note, but Cut out's says what the format
+// already chosen does with the transparency, when one is named.
+export function noteFor(key, c) {
+  if (key === 'finish' && c.finish === 2 && c.format) return 'The background removed: only the subject stays, on transparency, and ' + ['', 'AVIF', 'JPEG XL', 'WebP'][c.format] + ' keeps it.';
+  return NOTES[key][c[key]];
+}
 
 // Everything after the signature: the size, then the filters in the order the server runs
 // them (the look, the finish, the format, written last), then the source.
