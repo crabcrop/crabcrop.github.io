@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Make the home preview's own pictures and films: preview/home/media/.
+"""Make the home page's own pictures and films: media/.
 
   python3 design/home/tools/make-media.py            everything
   python3 design/home/tools/make-media.py snap       Snap: the two films with their first frames, and the sleeper
@@ -46,7 +46,7 @@ from PIL import Image
 HOME = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ROOT = os.path.dirname(os.path.dirname(HOME))
 CACHE = os.path.join(HOME, '.cache')
-OUT = os.path.join(ROOT, 'preview', 'home', 'media')
+OUT = os.path.join(ROOT, 'media')
 ICONS = os.path.join(ROOT, 'experience', '.cache', 'sources', 'icons.png')
 
 # kind, source (sources.json), output, height, the ground it is laid over, the box (x0, y0, x1, y1 in the source).

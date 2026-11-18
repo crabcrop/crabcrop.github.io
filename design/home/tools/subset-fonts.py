@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
-"""Cut the home preview's three fonts down to what an English page needs.
+"""Cut the home page's three fonts down to what an English page needs.
 
 The full files (design/home/fonts-full, the Latin variable files from
 Fontsource 5.3.0) carry weights the page never asks for and a few hundred
 glyphs for accented letters. This keeps printable ASCII, the Latin-1
 punctuation and symbols, the dashes, quotes, ellipsis and arrows, and
 whatever else the page itself contains, narrows each weight axis to the
-weights the page uses, and writes preview/home/fonts/*.woff2 with the
-licence of each font beside it.
+weights the page uses, and writes fonts/*.woff2 with the licence of each
+font beside it (fonts/ also holds the docs page's Fraunces, which this
+leaves alone).
 
 The set is wider than the page on purpose: there is no build step to catch
 a new character, so an edit to the copy should not be able to fall out of
@@ -28,7 +29,7 @@ from fontTools.varLib import instancer
 HOME = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ROOT = os.path.dirname(os.path.dirname(HOME))
 FULL = os.path.join(HOME, 'fonts-full')
-PAGE = os.path.join(ROOT, 'preview', 'home')
+PAGE = ROOT                      # the home page: index.html and home.js at the site's root
 OUT = os.path.join(PAGE, 'fonts')
 # out name: (full file, the weights the page uses, its licence)
 FONTS = {

@@ -178,12 +178,12 @@ Use these as the reference stack for every generation, in this priority:
 
 | Priority | File | Why |
 | --- | --- | --- |
-| 1 | `crabcrop-mascot-still.webp` | Cleanest front view on white: the master reference |
+| 1 | `crabcrop-mascot-still.webp` | Cleanest front view on white: the master reference. No longer published (the old home page's, replaced in November 2026): `git show a72fe3f:crabcrop-mascot-still.webp` |
 | 2 | `scene-camera.jpg` | Real-world light and scale, full body, all six legs visible |
 | 3 | `scene-surf.jpg` | Both claws raised, water, motion energy |
 | 4 | `ai-skate-before.jpg` | Daylight detail of stitches, print and claw pads |
 | - | `crabcrop-mascot.webp` | Blink cycle (coral eyelids) |
-| - | `snap-ai.webp`, `snap-anatomy.webp`, `snap-sign.webp`, `snap-features.webp`, `snap-toy.webp`, `crabcrop-mascot-magician.webp` | Props and acting |
+| - | `snap-ai.webp`, `snap-anatomy.webp`, `snap-sign.webp`, `snap-features.webp`, `snap-toy.webp`, `crabcrop-mascot-magician.webp` | Props and acting. No longer published (the old home page's, replaced in November 2026): `git show a72fe3f:<file>` |
 | - | `snap-playground.webp` | Props and acting. No longer published (dayvson/crabcrop#474): `git show 747c316:snap-playground.webp` |
 
 Known drift in older assets; don't copy these details:

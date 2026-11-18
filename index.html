@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.googletagmanager.com 'sha256-JOJJSXuPIsj/UiWkC5Tba1DCiOuf7Zmi212F4r+CtKs=' 'sha256-0DRRmjg8O7GB0x6qDAvm7vWyV/A36S0asqtWX4X3BAA='; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://images.crabcrop.org https://*.google-analytics.com https://*.googletagmanager.com; connect-src 'self' https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com; object-src 'none'; base-uri 'none'; form-action 'none'">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.googletagmanager.com 'sha256-JOJJSXuPIsj/UiWkC5Tba1DCiOuf7Zmi212F4r+CtKs='; style-src 'self' 'unsafe-inline'; img-src 'self' https://*.google-analytics.com https://*.googletagmanager.com; connect-src 'self' https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>crabcrop: Blazing Fast On-Demand Image Service</title>
 <meta name="description" content="Crabcrop is a Rust-built, lightning-fast on-demand image API supporting all major formats in and out, with over 50 filters and AI features like background removal. It resizes, crops, converts, and filters your images straight from a signed URL. One binary, no pre-generated thumbnails, no build step.">
 <link rel="canonical" href="https://crabcrop.org/">
@@ -17,34 +17,14 @@
 <meta name="twitter:title" content="crabcrop: Blazing Fast On-Demand Image Service">
 <meta name="twitter:description" content="Resize, crop, convert, and filter straight from a signed URL. All major formats in and out, over 50 filters, AI features.">
 <meta name="twitter:image" content="https://crabcrop.org/crabcrop-mascot.webp">
-<meta name="theme-color" content="#FBF0D9">
+<meta name="theme-color" content="#0C1A22">
 <link rel="icon" href="/favicon.ico" sizes="any">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
-<link rel="stylesheet" href="site.css">
-<style>
-section{padding:56px 0}
-.hero-b{padding:44px 0 30px}
-.strip-scroll{display:flex;gap:18px;overflow-x:auto;padding:8px 4px 20px;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch}
-.strip-card{scroll-snap-align:start;flex:0 0 300px;background:var(--foam);border:2px solid var(--ink);border-radius:var(--shell);box-shadow:var(--shadow);overflow:hidden}
-.strip-card picture{display:block}
-.strip-card img{width:100%;height:170px;object-fit:cover;display:block}
-.strip-card .sc-body{padding:16px 18px 18px}
-.strip-card p{font-size:16px;color:var(--ink-2)}
-.strip-card .opname{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;font-weight:700;color:var(--tide);display:block;margin-top:10px}
-a.strip-card{color:inherit;transition:transform .15s var(--snap)}
-a.strip-card:hover{text-decoration:none;transform:translateX(-2px)}
-a.strip-card:hover h3{text-decoration:underline}
-a.strip-card:focus-visible{outline:3px solid var(--sun);outline-offset:2px}
-.fmt-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:30px}
-@media(max-width:900px){.fmt-grid{grid-template-columns:1fr 1fr}}
-@media(max-width:520px){.fmt-grid{grid-template-columns:1fr}}
-.fmt-cell{background:var(--foam);border:1.5px solid var(--ink);border-radius:var(--shell);box-shadow:var(--shadow);padding:18px}
-.badges{display:flex;gap:6px;margin:8px 0}
-.bdg{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:3px 9px;border-radius:999px;border:1.5px solid var(--ink)}
-.bdg.in{background:var(--sea-glass)} .bdg.out{background:var(--sun-soft)} .bdg.off{background:var(--sand-200);color:var(--ink-2);border-color:var(--sand-300)}
-.fmt-cell p{font-size:14px;color:var(--ink-2)}
-</style>
+<link rel="preload" as="font" type="font/woff2" href="fonts/bricolage-grotesque.woff2" crossorigin>
+<link rel="preload" as="font" type="font/woff2" href="fonts/inter.woff2" crossorigin>
+<link rel="preload" as="font" type="font/woff2" href="fonts/jetbrains-mono.woff2" crossorigin>
+<link rel="preload" as="image" type="image/webp" href="media/snap-cheer.webp" fetchpriority="high">
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-56Q9ZPMWLX"></script>
 <script>
   window.dataLayer = window.dataLayer || [];
@@ -52,251 +32,925 @@ a.strip-card:focus-visible{outline:3px solid var(--sun);outline-offset:2px}
   gtag('js', new Date());
   gtag('config', 'G-56Q9ZPMWLX');
 </script>
+<script src="home.js" defer></script>
 <style>
-/* Feature cards preview: grid layout for the features section only.
-   Scoped under #features so the strip elsewhere (AI gallery) is untouched.
-   Cards carry no hidden start state: they are fully visible with or
-   without JavaScript, and nothing here animates them.
-   The max-width:640px strip block is last in this block on purpose:
-   at equal specificity it must come after the grid rules to win the
-   cascade on small screens. */
-#features .strip-scroll{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;overflow:visible;padding:8px 4px 20px;scroll-snap-type:none;-webkit-overflow-scrolling:auto}
-#features .strip-card{flex:none;scroll-snap-align:none;display:flex;flex-direction:column}
-#features .strip-card .sc-body{padding:20px;display:flex;flex-direction:column;flex:1}
-#features .strip-card .opname{margin-top:auto;padding-top:10px}
-@media(max-width:1023px){#features .strip-scroll{grid-template-columns:repeat(2,1fr)}}
-@media(max-width:640px){#features .strip-scroll{display:flex;gap:18px;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch}#features .strip-card{flex:0 0 300px;scroll-snap-align:start}}
+/* The three faces, cut down and served from here (design/home/tools/subset-fonts.py). Bricolage Grotesque keeps its
+   optical-size axis: the browser sets it from the font size. */
+@font-face { font-family: "Bricolage Grotesque"; src: url(fonts/bricolage-grotesque.woff2) format("woff2"); font-weight: 600 800; font-display: swap; }
+@font-face { font-family: "Inter"; src: url(fonts/inter.woff2) format("woff2"); font-weight: 400 700; font-display: swap; }
+@font-face { font-family: "JetBrains Mono"; src: url(fonts/jetbrains-mono.woff2) format("woff2"); font-weight: 400 700; font-display: swap; }
+/* Layout: a dark workbench. One address bar is the instrument; under it, aligned panels on a twelve-column grid.
+   Colour has a job: wherever a URL appears, coral is the signature, sun is the operations, sea glass is the source. */
+:root {
+  color-scheme: dark;
+  --bg: #0C1A22;
+  --bg-2: #0F2029;
+  --panel: #122730;
+  --panel-2: #17313B;
+  --line: #27464F;
+  --line-soft: #1B3741;
+  --text: #EEF2EC;
+  --muted: #A6BABD;
+  --dim: #839CA1;
+  --sig: #FF8D76;
+  --ops: #FFCB5C;
+  --src: #80E2D3;
+  --sig-wash: rgba(255, 141, 118, .13);
+  --ops-wash: rgba(255, 203, 92, .12);
+  --src-wash: rgba(128, 226, 211, .12);
+  --ops-line: rgba(255, 203, 92, .55);
+  --on-accent: #0C1A22;
+  --brand: #E8482F;
+  --brand-eye: #FBF2DF;
+  --header: rgba(12, 26, 34, .86);
+  --check-a: #1B333C;
+  --check-b: #24424C;
+  --shadow: rgba(0, 0, 0, .5);
+  --display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --body: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 400 16.5px/1.6 var(--body); -webkit-font-smoothing: antialiased; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 30; background: var(--bg); }
+img { display: block; max-width: 100%; height: auto; }
+[hidden] { display: none !important; }
+a { color: inherit; }
+h1, h2, h3 { font-family: var(--display); margin: 0; text-wrap: balance; }
+p { margin: 0; }
+p code, li code, dd code { overflow-wrap: anywhere; }
+code, pre, kbd { font-family: var(--mono); }
+:focus-visible { outline: 2px solid var(--text); outline-offset: 3px; border-radius: 6px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+.wrap { max-width: 1200px; margin-inline: auto; padding-left: max(20px, env(safe-area-inset-left, 0px)); padding-right: max(20px, env(safe-area-inset-right, 0px)); }
+section { padding-block: clamp(52px, 6.6vw, 92px); border-top: 1px solid var(--line-soft); }
+.band { background: var(--bg-2); }
+
+/* The three parts, as a mark and as text colours */
+.tri { display: inline-flex; gap: 3px; vertical-align: middle; }
+.tri i { display: block; height: 4px; border-radius: 2px; }
+.tri i:nth-child(1) { width: 10px; background: var(--sig); }
+.tri i:nth-child(2) { width: 22px; background: var(--ops); }
+.tri i:nth-child(3) { width: 14px; background: var(--src); }
+.t-sig { color: var(--sig); }
+.t-ops { color: var(--ops); }
+.t-src { color: var(--src); }
+
+/* Header */
+.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; background: var(--header); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); border-bottom: 1px solid var(--line-soft); }
+.top .wrap { display: flex; align-items: center; gap: 28px; height: 64px; }
+.logo { display: inline-flex; align-items: center; gap: 10px; font: 700 21px/1 var(--display); letter-spacing: -.02em; text-decoration: none; }
+.mk { fill: var(--brand); }
+.mk-eye { fill: var(--brand-eye); }
+.top nav { display: flex; gap: 26px; margin-left: auto; font-size: 15px; font-weight: 500; }
+.top nav a { color: var(--muted); text-decoration: none; padding-block: 12px; }
+.top nav a:hover { color: var(--text); }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 0 18px; border-radius: 12px; border: 1px solid transparent; font: 600 15px/1 var(--body); text-decoration: none; cursor: pointer; }
+.btn.go { background: var(--ops); color: var(--on-accent); }
+.btn.go:hover { background: var(--text); }
+.btn.quiet { background: var(--panel); border-color: var(--line); color: var(--text); }
+.btn.quiet:hover { border-color: var(--muted); }
+.top .btn { min-height: 40px; }
+
+/* Hero */
+.hero { background: var(--bg); }
+/* (the first section sits right under the header: no rule above it, and less room) */
+main > section:first-child { border-top: 0; padding-top: clamp(28px, 3.4vw, 48px); }
+.eyebrow { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; font: 500 12.5px/1.4 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--dim); }
+/* (the second line of the headline is the long one: the size keeps it on one line beside Snap) */
+h1 { margin-top: 18px; font-size: clamp(30px, min(4.9vw, 9.4vh), 64px); font-weight: 750; line-height: .96; letter-spacing: -.026em; }
+h1 .keep { white-space: nowrap; }
+.lede { margin-top: 24px; max-width: 54ch; font-size: clamp(17px, 1.45vw, 20px); line-height: 1.55; color: var(--muted); text-wrap: pretty; }
+.lede strong { color: var(--text); font-weight: 500; }
+/* (the claim in the headline, with its two numbers and the way to the rest) */
+.proof { margin-top: 16px; font: 500 13px/1.6 var(--mono); color: var(--dim); }
+.proof b { font-weight: 700; color: var(--text); }
+.proof i { font-style: normal; margin-inline: .5em; }
+.proof a { color: var(--muted); text-underline-offset: 4px; text-decoration-color: var(--line); white-space: nowrap; }
+.proof a:hover { color: var(--text); text-decoration-color: var(--muted); }
+.cta { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 22px; }
+
+/* Snap stands at the right end of a bar, just behind its top edge: on the address bar here, pointing down at the
+   URL, and on the install command at the foot of the page. The words sit beside him and stop a little above the bar. */
+.lead { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; column-gap: 24px; }
+.say { min-width: 0; padding-bottom: clamp(24px, 2.8vw, 38px); }
+.hero .lead { --snap-h: clamp(210px, min(29vw, 44vh), 420px); }
+.snap { height: var(--snap-h); margin-bottom: -10px; }
+/* He is filmed on black. `lighten` lets the page show wherever the film is dark, and each film is laid over a shade
+   just under the ground it sits on, so no box shows even where a browser will not blend a video. The soft edge is
+   for the same case. Nothing between him and that ground may form a stacking context, or the blend has nothing to
+   blend with. */
+.snap video { display: block; height: 100%; width: auto; mix-blend-mode: lighten;
+  --soft: linear-gradient(to right, transparent, #000 3%, #000 97%, transparent), linear-gradient(to bottom, transparent, #000 3%);
+  -webkit-mask-image: var(--soft); mask-image: var(--soft); -webkit-mask-composite: source-in; mask-composite: intersect; }
+#snap-point { aspect-ratio: 956 / 720; }
+#snap-cheer { aspect-ratio: 850 / 640; }
+
+.bench { position: relative; z-index: 1; }
+/* (the bar keeps room for two lines of URL, so the picture below does not jump as the operations change) */
+.bar { display: flex; align-items: center; min-height: calc(2 * 1.8 * clamp(15px, 1.36vw, 19.5px) + 30px); padding: 15px 22px; background: var(--panel); border: 1px solid var(--line); border-radius: 18px; box-shadow: 0 30px 60px -36px var(--shadow); }
+.url { min-width: 0; font: 500 clamp(15px, 1.36vw, 19.5px)/1.8 var(--mono); color: var(--dim); overflow-wrap: normal; word-break: normal; }
+.seg { padding: .14em .4em; border-radius: 7px; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
+.seg.sig { color: var(--sig); background: var(--sig-wash); }
+.seg.op { color: var(--ops); background: var(--ops-wash); }
+.seg.src { color: var(--src); background: var(--src-wash); }
+.under { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 20px; margin-top: 12px; }
+.legend { list-style: none; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 22px; margin: 0; padding: 0; font: 500 12.5px/1.5 var(--mono); }
+.legend li { display: flex; align-items: center; gap: 8px; }
+.legend li::before { content: ""; width: 9px; height: 9px; border-radius: 3px; background: currentColor; }
+.under .btn { min-height: 40px; padding: 0 14px; font-size: 14px; }
+
+.work { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 28px; margin-top: 26px; align-items: start; }
+.controls { display: grid; gap: 20px; margin: 0; }
+.group { border: 0; margin: 0; padding: 0; min-width: 0; }
+.group legend { display: flex; align-items: baseline; gap: 10px; padding: 0; margin-bottom: 10px; font: 700 12px/1.4 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--text); }
+.group legend span { font-weight: 400; letter-spacing: 0; text-transform: none; color: var(--dim); }
+.opts { display: grid; gap: 6px; }
+.opt { position: relative; display: grid; grid-template-columns: 16px auto minmax(0, 1fr); align-items: center; gap: 12px; min-height: 42px; padding: 7px 14px; background: var(--panel); border: 1px solid var(--line-soft); border-radius: 11px; cursor: pointer; transition: border-color .15s, background .15s; }
+.opt::before { content: ""; width: 16px; height: 16px; box-sizing: border-box; border-radius: 50%; border: 1.5px solid var(--dim); }
+.opt input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+.opt b { font: 600 14.5px/1.25 var(--body); }
+.opt code { justify-self: end; text-align: right; font-size: 12.5px; line-height: 1.35; color: var(--dim); }
+.opt:hover { border-color: var(--muted); }
+.opt.on { border-color: var(--ops); background: var(--ops-wash); }
+.opt.on::before { border-color: var(--ops); background: radial-gradient(circle, var(--ops) 0 4px, transparent 4.6px); }
+.opt.on code { color: var(--ops); }
+.opt:has(input:focus-visible) { outline: 2px solid var(--text); outline-offset: 3px; }
+
+.preview { margin: 0; min-width: 0; }
+.stage { --h: clamp(210px, 29vw, 400px); display: grid; place-items: center; height: calc(var(--h) + 40px); padding: 20px; background: var(--bg-2); border: 1px solid var(--line-soft); border-radius: 18px; }
+.frame { width: min(100%, calc(var(--h) * var(--ar))); aspect-ratio: var(--ar); outline: 1.5px dashed var(--ops-line); outline-offset: 7px; border-radius: 9px; transition: width .45s cubic-bezier(.2, .8, .2, 1); }
+.frame img { width: 100%; height: 100%; object-fit: cover; object-position: var(--pos); border-radius: 9px; transition: object-position .45s cubic-bezier(.2, .8, .2, 1), filter .3s; }
+.preview figcaption { display: grid; gap: 8px; margin-top: 14px; }
+.readout { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 20px; font: 500 13px/1.5 var(--mono); color: var(--muted); }
+.readout b { font-weight: 700; color: var(--ops); }
+.honest { font-size: 13.5px; line-height: 1.5; color: var(--dim); }
+.honest code { font-size: 12.5px; color: var(--muted); }
+
+/* Section heads */
+.head { display: grid; gap: 14px; max-width: 760px; margin-bottom: clamp(26px, 3.4vw, 42px); }
+.kicker { display: flex; align-items: center; gap: 12px; font: 500 12.5px/1.4 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--dim); }
+h2 { font-size: clamp(31px, 3.8vw, 50px); font-weight: 700; line-height: 1.04; letter-spacing: -.028em; }
+.head p { font-size: 18px; color: var(--muted); max-width: 62ch; }
+h3 { font-size: 20px; font-weight: 700; line-height: 1.2; letter-spacing: -.012em; }
+
+/* Chips: one kind of thing each. Coloured when they are a part of a URL. */
+.chips { display: flex; flex-wrap: wrap; gap: 7px; margin-top: auto; padding-top: 4px; }
+.chip { display: inline-block; max-width: 100%; padding: 5px 9px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg-2); font: 500 12.5px/1.45 var(--mono); color: var(--muted); overflow-wrap: anywhere; }
+.chip.op { color: var(--ops); border-color: transparent; background: var(--ops-wash); }
+.chip.src { color: var(--src); border-color: transparent; background: var(--src-wash); }
+.chip.sig { color: var(--sig); border-color: transparent; background: var(--sig-wash); }
+
+/* Speed: a first request, the figure and the table by operation against the other two, and how it was measured.
+   No cached repeats: every figure is a first request, which does the whole job. Figures are set in the body face;
+   text stays in text colours. */
+.stat .label { font-size: 15px; font-weight: 600; color: var(--text); }
+.stat .value { font: 600 clamp(42px, 4.3vw, 54px)/1 var(--body); letter-spacing: -.035em; color: var(--text); }
+.stat .value span { margin-left: 7px; font-size: .37em; font-weight: 500; letter-spacing: 0; color: var(--muted); }
+.fig-head { display: grid; gap: 4px; }
+.tile .fig-head p { font-size: 14px; color: var(--dim); }
+.tile figure, figure.tile { margin: 0; }
+.nums { width: 100%; border-collapse: collapse; font-size: 14.5px; }
+.nums th, .nums td { padding: 9px 0 9px 12px; border-top: 1px solid var(--line-soft); text-align: right; font-variant-numeric: tabular-nums; }
+.nums th:first-child { padding-left: 0; text-align: left; }
+.nums thead th { padding-top: 0; border-top: 0; font: 500 12px/1.5 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--dim); }
+.nums thead th.us { color: var(--text); }
+.nums tbody th { font-weight: 500; color: var(--text); }
+.nums td { color: var(--muted); }
+.nums td.us { font-weight: 600; color: var(--text); }
+.nums td.na { color: var(--dim); }
+.tile .note { font-size: 13.5px; line-height: 1.5; color: var(--dim); }
+.how .kv dd { color: var(--muted); }
+.how .links { display: flex; flex-wrap: wrap; gap: 6px 20px; margin-top: auto; padding-top: 4px; }
+
+/* Three parts */
+.anatomy { margin: 0 0 22px; padding: 18px 22px; background: var(--panel); border: 1px solid var(--line-soft); border-radius: 16px; font: 500 clamp(13.5px, 1.3vw, 16.5px)/1.9 var(--mono); color: var(--dim); }
+.parts { list-style: none; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin: 0; padding: 0; }
+.part { display: flex; flex-direction: column; gap: 14px; padding: 24px; background: var(--panel); border: 1px solid var(--line-soft); border-radius: 18px; border-top: 3px solid var(--c); }
+.part .name { display: flex; align-items: baseline; gap: 12px; font: 700 13px/1 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--c); }
+.part .name span { font-weight: 400; color: var(--dim); }
+.part p { color: var(--muted); }
+.part .also { font-size: 14.5px; color: var(--dim); }
+
+/* What it does */
+.bento { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 16px; }
+.tile { grid-column: span 4; display: flex; flex-direction: column; gap: 14px; min-width: 0; padding: 24px; background: var(--panel); border: 1px solid var(--line-soft); border-radius: 18px; }
+.tile.s3 { grid-column: span 3; }
+.tile.s5 { grid-column: span 5; }
+.tile.s6 { grid-column: span 6; }
+.tile.s7 { grid-column: span 7; }
+.tile.s12 { grid-column: span 12; }
+/* (the table runs beside the figure and how it was measured, stacked) */
+.tile.tall { grid-row: span 2; }
+.tile p { color: var(--muted); font-size: 15.5px; }
+.tile .patch { width: 52px; height: 52px; margin-bottom: 2px; }
+.tile a.more { align-self: flex-start; font-size: 14px; font-weight: 500; color: var(--muted); text-underline-offset: 4px; text-decoration-color: var(--line); }
+.tile a.more:hover { color: var(--text); text-decoration-color: var(--muted); }
+.shots { display: grid; gap: 10px; margin: 2px 0; }
+.shots.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.shots.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+/* (the two squares of the smart crop stay a comfortable size, so its tile and the one beside it end up the same height) */
+.tile.s7 .shots.two { max-width: 540px; }
+.shots figure { margin: 0; display: grid; gap: 7px; min-width: 0; }
+.shots img { width: 100%; height: 100%; object-fit: cover; border-radius: 10px; }
+.shots .pic { border-radius: 10px; overflow: hidden; aspect-ratio: 3 / 2; background: var(--bg-2); }
+.shots .pic.sq { aspect-ratio: 1; }
+.shots .pic.alpha { background-color: var(--check-a); background-image: conic-gradient(var(--check-b) 25%, transparent 0 50%, var(--check-b) 0 75%, transparent 0); background-size: 18px 18px; }
+.shots figcaption { font: 500 12px/1.4 var(--mono); color: var(--dim); }
+.kv { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 8px 16px; margin: 0; font-size: 14.5px; }
+.kv dt { font: 500 12px/1.9 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--dim); white-space: nowrap; }
+.kv dd { margin: 0; color: var(--text); }
+.meta { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 28px; align-items: center; }
+.meta > div:first-child { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.meta pre { font-size: 12.5px; }
+
+/* Code */
+.code { min-width: 0; background: var(--bg); border: 1px solid var(--line-soft); border-radius: 14px; overflow: hidden; }
+.code .bar2 { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 8px 8px 16px; border-bottom: 1px solid var(--line-soft); font: 500 12px/1.4 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--dim); }
+pre { margin: 0; padding: 18px 20px; overflow-x: auto; font-size: 13.5px; line-height: 1.7; color: var(--text); tab-size: 2; }
+.c { color: var(--dim); }
+.k { color: var(--muted); }
+.copy { min-height: 36px; padding: 0 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 9px; color: var(--text); font: 600 13px/1 var(--body); cursor: pointer; white-space: nowrap; }
+.copy:hover { border-color: var(--muted); }
+
+/* Sign */
+.sign { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; }
+.tabbar { display: flex; align-items: center; gap: 8px; padding: 8px; border-bottom: 1px solid var(--line-soft); }
+.tabs { flex: 1; display: flex; flex-wrap: wrap; gap: 4px; }
+.tab { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 14px; background: none; border: 1px solid transparent; border-radius: 10px; color: var(--muted); font: 600 14px/1 var(--body); cursor: pointer; }
+.tab svg, .stack svg { width: 17px; height: 17px; flex: none; fill: currentColor; }
+.tab:hover { color: var(--text); }
+.tab[aria-selected="true"] { background: var(--panel); border-color: var(--line); color: var(--text); }
+.sign-note { margin-top: 14px; font-size: 14.5px; color: var(--dim); }
+.stack { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 16px; align-items: start; }
+.box { padding: 22px; background: var(--panel); border: 1px solid var(--line-soft); border-radius: 18px; display: grid; gap: 14px; min-width: 0; }
+.box > p { font-size: 15px; color: var(--muted); }
+.rows { list-style: none; display: grid; gap: 8px; margin: 0; padding: 0; }
+.rows li { display: grid; grid-template-columns: 112px minmax(0, 1fr) auto; align-items: center; gap: 10px; }
+.rows .who { display: inline-flex; align-items: center; gap: 8px; font-size: 14.5px; font-weight: 600; }
+.rows code { min-width: 0; padding: 7px 10px; background: var(--bg); border: 1px solid var(--line-soft); border-radius: 9px; font-size: 12.5px; color: var(--text); overflow-x: auto; white-space: nowrap; }
+.marks { list-style: none; display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; }
+.marks li { display: inline-flex; align-items: center; gap: 8px; padding: 7px 12px 7px 10px; background: var(--bg); border: 1px solid var(--line-soft); border-radius: 10px; font-size: 14px; font-weight: 500; }
+.mcp { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 24px; margin-top: 20px; padding: 26px; background: var(--panel); border: 1px solid var(--line-soft); border-radius: 18px; align-items: start; }
+.mcp > div:first-child { display: grid; gap: 14px; min-width: 0; }
+.mcp p { font-size: 15.5px; color: var(--muted); }
+.tools { list-style: none; display: grid; gap: 10px; margin: 0; padding: 0; font-size: 14.5px; color: var(--muted); }
+.tools code { display: inline-block; margin-right: 8px; font-size: 13px; color: var(--text); }
+
+/* Ship it */
+.ship { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; align-items: start; }
+.list { padding: 24px; background: var(--panel); border: 1px solid var(--line-soft); border-radius: 18px; }
+.list h3 { margin-bottom: 4px; }
+.list > p { font-size: 14.5px; color: var(--dim); }
+.list ul { list-style: none; margin: 14px 0 0; padding: 0; }
+.list li { padding: 11px 0; border-top: 1px solid var(--line-soft); font-size: 14.5px; line-height: 1.5; color: var(--muted); }
+.list li b { display: block; color: var(--text); font-weight: 600; font-size: 15px; }
+.list li code { font-size: 13px; color: var(--text); }
+.nap { display: flex; flex-wrap: wrap; align-items: center; gap: 14px 26px; margin-top: 16px; padding: 14px 24px 14px 22px; background: var(--panel); border: 1px solid var(--line-soft); border-radius: 18px; }
+/* (asleep, and breathing: the picture swells a touch from the feet up) */
+.nap img { flex: none; width: auto; height: 124px; mix-blend-mode: lighten; transform-origin: 50% 100%; animation: doze 4.8s ease-in-out infinite; }
+@keyframes doze { 50% { transform: scale(1.012, 1.034); } }
+.nap p { flex: 1 1 320px; min-width: 0; font-size: 15.5px; color: var(--muted); }
+.nap code { font-size: 13.5px; color: var(--text); overflow-wrap: anywhere; }
+
+/* Coming from */
+.from { list-style: none; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 0; padding: 0; }
+.from li { padding: 18px 20px; border: 1px solid var(--line-soft); border-radius: 14px; background: var(--panel); font-size: 14.5px; line-height: 1.5; color: var(--muted); }
+.from b { display: block; margin-bottom: 4px; font: 700 17px/1.2 var(--display); color: var(--text); }
+.from li.all { display: flex; align-items: center; background: none; border-style: dashed; border-color: var(--line); }
+.from li.all a { font-weight: 600; color: var(--text); text-underline-offset: 4px; }
+
+/* Install */
+#install .lead { --snap-h: clamp(150px, 19vw, 244px); }
+#install h2 { margin-top: 14px; font-size: clamp(34px, 5vw, 64px); }
+.sub { margin-top: 14px; font-size: 17px; color: var(--muted); }
+.cmd { position: relative; z-index: 1; display: flex; align-items: center; gap: 12px; padding: 10px 10px 10px 18px; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 30px 60px -36px var(--shadow); }
+.cmd code { flex: 1; min-width: 0; overflow-x: auto; white-space: nowrap; font-size: 13.5px; color: var(--text); padding-block: 8px; }
+.cmd code::before { content: "$ "; color: var(--dim); }
+.after { display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 4fr); gap: 28px 40px; align-items: start; margin-top: 30px; }
+.ways .kv { gap: 12px 16px; }
+.ways code { font-size: 12.5px; color: var(--text); }
+.nw { white-space: nowrap; }
+.ways a { color: var(--text); text-underline-offset: 4px; text-decoration-color: var(--line); }
+.ways a:hover { text-decoration-color: var(--muted); }
+.steps { list-style: none; counter-reset: s; display: grid; gap: 14px; margin: 0; padding: 0; }
+.steps li { counter-increment: s; display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: 6px 14px; }
+.steps li::before { content: counter(s); grid-row: span 2; display: grid; place-items: center; width: 34px; height: 34px; border: 1px solid var(--line); border-radius: 10px; font: 700 14px/1 var(--mono); color: var(--ops); }
+.steps b { font-weight: 600; align-self: center; }
+.steps pre { grid-column: 2; padding: 12px 16px; background: var(--panel); border: 1px solid var(--line-soft); border-radius: 12px; font-size: 13px; }
+
+/* Footer */
+footer { border-top: 1px solid var(--line-soft); padding-block: 36px 44px; font-size: 14.5px; color: var(--dim); }
+footer .wrap { display: grid; gap: 22px; }
+.foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px 32px; }
+.foot nav { display: flex; flex-wrap: wrap; gap: 6px 24px; }
+.foot nav a { color: var(--muted); text-decoration: none; padding-block: 10px; }
+.foot nav a:hover { color: var(--text); }
+.fine { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 24px; padding-top: 20px; border-top: 1px solid var(--line-soft); font: 400 12.5px/1.6 var(--mono); }
+.fine a { color: var(--muted); text-underline-offset: 3px; text-decoration-color: var(--line); }
+.fine a:hover { color: var(--text); text-decoration-color: var(--muted); }
+.privacy { max-width: 72ch; font-size: 13px; line-height: 1.6; color: var(--dim); }
+.privacy code { font: 12px/1 var(--mono); }
+
+@media (max-width: 1000px) {
+  .work, .stack, .mcp, .after, .meta { grid-template-columns: minmax(0, 1fr); }
+  .preview { order: -1; }
+  .parts, .ship { grid-template-columns: minmax(0, 1fr); }
+  .tile, .tile.s3, .tile.s5, .tile.s7 { grid-column: span 6; }
+  .tile.s6, .tile.s12 { grid-column: span 12; }
+  .from { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 640px) {
+  body { font-size: 16px; }
+  .top nav a.far { display: none; }
+  .top .wrap { gap: 18px; }
+  /* (the words run the full width; their last piece, the buttons or the one line, sits beside Snap on the bar) */
+  .lead { column-gap: 12px; }
+  .say { display: contents; }
+  .say > * { grid-column: 1 / -1; }
+  .say > :last-child { grid-column: 1; align-self: end; padding-bottom: 18px; }
+  .lead .snap { grid-column: 2; }
+  .hero .lead { --snap-h: 140px; }
+  #install .lead { --snap-h: 128px; }
+  h1 { font-size: clamp(30px, 9.5vw, 44px); }
+  .nums { font-size: 13.5px; }
+  .nums th, .nums td { padding-left: 8px; }
+  .cta { flex-direction: column; align-items: stretch; }
+  .sub { font-size: 15.5px; }
+  .ways .kv { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+  .ways dd { margin-bottom: 10px; }
+  .ways dd:last-child { margin-bottom: 0; }
+  .bar { min-height: calc(4 * 1.95 * 15px + 28px); padding: 14px 16px; }
+  .url { line-height: 1.95; }
+  .opt { min-height: 46px; }
+  .tile, .tile.s3, .tile.s5, .tile.s7 { grid-column: span 12; }
+  .tile.tall { grid-row: auto; }
+  .tile, .part, .list, .box, .mcp { padding: 20px; }
+  .rows li { grid-template-columns: minmax(0, 1fr) auto; }
+  .rows .who { grid-column: 1 / -1; }
+  .from { grid-template-columns: minmax(0, 1fr); }
+  .nap img { height: 104px; }
+}
+@media (max-width: 380px) {
+  .hero .lead { --snap-h: 122px; }
+  .cta .btn { padding: 0 12px; font-size: 14px; }
+  .nw { white-space: normal; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+}
 </style>
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
-<symbol id="clawmark" viewBox="0 0 24 24"><path d="M10 3C6.5 7 6.5 13 10 17l2 4 2-4c3.5-4 3.5-10 0-14"/></symbol>
+<symbol id="m-ts" viewBox="0 0 24 24"><path d="M1.125 0C.502 0 0 .502 0 1.125v21.75C0 23.498.502 24 1.125 24h21.75c.623 0 1.125-.502 1.125-1.125V1.125C24 .502 23.498 0 22.875 0zm17.363 9.75c.612 0 1.154.037 1.627.111a6.38 6.38 0 0 1 1.306.34v2.458a3.95 3.95 0 0 0-.643-.361 5.093 5.093 0 0 0-.717-.26 5.453 5.453 0 0 0-1.426-.2c-.3 0-.573.028-.819.086a2.1 2.1 0 0 0-.623.242c-.17.104-.3.229-.393.374a.888.888 0 0 0-.14.49c0 .196.053.373.156.529.104.156.252.304.443.444s.423.276.696.41c.273.135.582.274.926.416.47.197.892.407 1.266.628.374.222.695.473.963.753.268.279.472.598.614.957.142.359.214.776.214 1.253 0 .657-.125 1.21-.373 1.656a3.033 3.033 0 0 1-1.012 1.085 4.38 4.38 0 0 1-1.487.596c-.566.12-1.163.18-1.79.18a9.916 9.916 0 0 1-1.84-.164 5.544 5.544 0 0 1-1.512-.493v-2.63a5.033 5.033 0 0 0 3.237 1.2c.333 0 .624-.03.872-.09.249-.06.456-.144.623-.25.166-.108.29-.234.373-.38a1.023 1.023 0 0 0-.074-1.089 2.12 2.12 0 0 0-.537-.5 5.597 5.597 0 0 0-.807-.444 27.72 27.72 0 0 0-1.007-.436c-.918-.383-1.602-.852-2.053-1.405-.45-.553-.676-1.222-.676-2.005 0-.614.123-1.141.369-1.582.246-.441.58-.804 1.004-1.089a4.494 4.494 0 0 1 1.47-.629 7.536 7.536 0 0 1 1.77-.201zm-15.113.188h9.563v2.166H9.506v9.646H6.789v-9.646H3.375z"/></symbol>
+<symbol id="m-py" viewBox="0 0 24 24"><path d="M14.25.18l.9.2.73.26.59.3.45.32.34.34.25.34.16.33.1.3.04.26.02.2-.01.13V8.5l-.05.63-.13.55-.21.46-.26.38-.3.31-.33.25-.35.19-.35.14-.33.1-.3.07-.26.04-.21.02H8.77l-.69.05-.59.14-.5.22-.41.27-.33.32-.27.35-.2.36-.15.37-.1.35-.07.32-.04.27-.02.21v3.06H3.17l-.21-.03-.28-.07-.32-.12-.35-.18-.36-.26-.36-.36-.35-.46-.32-.59-.28-.73-.21-.88-.14-1.05-.05-1.23.06-1.22.16-1.04.24-.87.32-.71.36-.57.4-.44.42-.33.42-.24.4-.16.36-.1.32-.05.24-.01h.16l.06.01h8.16v-.83H6.18l-.01-2.75-.02-.37.05-.34.11-.31.17-.28.25-.26.31-.23.38-.2.44-.18.51-.15.58-.12.64-.1.71-.06.77-.04.84-.02 1.27.05zm-6.3 1.98l-.23.33-.08.41.08.41.23.34.33.22.41.09.41-.09.33-.22.23-.34.08-.41-.08-.41-.23-.33-.33-.22-.41-.09-.41.09zm13.09 3.95l.28.06.32.12.35.18.36.27.36.35.35.47.32.59.28.73.21.88.14 1.04.05 1.23-.06 1.23-.16 1.04-.24.86-.32.71-.36.57-.4.45-.42.33-.42.24-.4.16-.36.09-.32.05-.24.02-.16-.01h-8.22v.82h5.84l.01 2.76.02.36-.05.34-.11.31-.17.29-.25.25-.31.24-.38.2-.44.17-.51.15-.58.13-.64.09-.71.07-.77.04-.84.01-1.27-.04-1.07-.14-.9-.2-.73-.25-.59-.3-.45-.33-.34-.34-.25-.34-.16-.33-.1-.3-.04-.25-.02-.2.01-.13v-5.34l.05-.64.13-.54.21-.46.26-.38.3-.32.33-.24.35-.2.35-.14.33-.1.3-.06.26-.04.21-.02.13-.01h5.84l.69-.05.59-.14.5-.21.41-.28.33-.32.27-.35.2-.36.15-.36.1-.35.07-.32.04-.28.02-.21V6.07h2.09l.14.01zm-6.47 14.25l-.23.33-.08.41.08.41.23.33.33.23.41.08.41-.08.33-.23.23-.33.08-.41-.08-.41-.23-.33-.33-.23-.41-.08-.41.08z"/></symbol>
+<symbol id="m-rs" viewBox="0 0 24 24"><path d="M23.8346 11.7033l-1.0073-.6236a13.7268 13.7268 0 00-.0283-.2936l.8656-.8069a.3483.3483 0 00-.1154-.578l-1.1066-.414a8.4958 8.4958 0 00-.087-.2856l.6904-.9587a.3462.3462 0 00-.2257-.5446l-1.1663-.1894a9.3574 9.3574 0 00-.1407-.2622l.49-1.0761a.3437.3437 0 00-.0274-.3361.3486.3486 0 00-.3006-.154l-1.1845.0416a6.7444 6.7444 0 00-.1873-.2268l.2723-1.153a.3472.3472 0 00-.417-.4172l-1.1532.2724a14.0183 14.0183 0 00-.2278-.1873l.0415-1.1845a.3442.3442 0 00-.49-.328l-1.076.491c-.0872-.0476-.1742-.0952-.2623-.1407l-.1903-1.1673A.3483.3483 0 0016.256.955l-.9597.6905a8.4867 8.4867 0 00-.2855-.086l-.414-1.1066a.3483.3483 0 00-.5781-.1154l-.8069.8666a9.2936 9.2936 0 00-.2936-.0284L12.2946.1683a.3462.3462 0 00-.5892 0l-.6236 1.0073a13.7383 13.7383 0 00-.2936.0284L9.9803.3374a.3462.3462 0 00-.578.1154l-.4141 1.1065c-.0962.0274-.1903.0567-.2855.086L7.744.955a.3483.3483 0 00-.5447.2258L7.009 2.348a9.3574 9.3574 0 00-.2622.1407l-1.0762-.491a.3462.3462 0 00-.49.328l.0416 1.1845a7.9826 7.9826 0 00-.2278.1873L3.8413 3.425a.3472.3472 0 00-.4171.4171l.2713 1.1531c-.0628.075-.1255.1509-.1863.2268l-1.1845-.0415a.3462.3462 0 00-.328.49l.491 1.0761a9.167 9.167 0 00-.1407.2622l-1.1662.1894a.3483.3483 0 00-.2258.5446l.6904.9587a13.303 13.303 0 00-.087.2855l-1.1065.414a.3483.3483 0 00-.1155.5781l.8656.807a9.2936 9.2936 0 00-.0283.2935l-1.0073.6236a.3442.3442 0 000 .5892l1.0073.6236c.008.0982.0182.1964.0283.2936l-.8656.8079a.3462.3462 0 00.1155.578l1.1065.4141c.0273.0962.0567.1914.087.2855l-.6904.9587a.3452.3452 0 00.2268.5447l1.1662.1893c.0456.088.0922.1751.1408.2622l-.491 1.0762a.3462.3462 0 00.328.49l1.1834-.0415c.0618.0769.1235.1528.1873.2277l-.2713 1.1541a.3462.3462 0 00.4171.4161l1.153-.2713c.075.0638.151.1255.2279.1863l-.0415 1.1845a.3442.3442 0 00.49.327l1.0761-.49c.087.0486.1741.0951.2622.1407l.1903 1.1662a.3483.3483 0 00.5447.2268l.9587-.6904a9.299 9.299 0 00.2855.087l.414 1.1066a.3452.3452 0 00.5781.1154l.8079-.8656c.0972.0111.1954.0203.2936.0294l.6236 1.0073a.3472.3472 0 00.5892 0l.6236-1.0073c.0982-.0091.1964-.0183.2936-.0294l.8069.8656a.3483.3483 0 00.578-.1154l.4141-1.1066a8.4626 8.4626 0 00.2855-.087l.9587.6904a.3452.3452 0 00.5447-.2268l.1903-1.1662c.088-.0456.1751-.0931.2622-.1407l1.0762.49a.3472.3472 0 00.49-.327l-.0415-1.1845a6.7267 6.7267 0 00.2267-.1863l1.1531.2713a.3472.3472 0 00.4171-.416l-.2713-1.1542c.0628-.0749.1255-.1508.1863-.2278l1.1845.0415a.3442.3442 0 00.328-.49l-.49-1.076c.0475-.0872.0951-.1742.1407-.2623l1.1662-.1893a.3483.3483 0 00.2258-.5447l-.6904-.9587.087-.2855 1.1066-.414a.3462.3462 0 00.1154-.5781l-.8656-.8079c.0101-.0972.0202-.1954.0283-.2936l1.0073-.6236a.3442.3442 0 000-.5892zm-6.7413 8.3551a.7138.7138 0 01.2986-1.396.714.714 0 11-.2997 1.396zm-.3422-2.3142a.649.649 0 00-.7715.5l-.3573 1.6685c-1.1035.501-2.3285.7795-3.6193.7795a8.7368 8.7368 0 01-3.6951-.814l-.3574-1.6684a.648.648 0 00-.7714-.499l-1.473.3158a8.7216 8.7216 0 01-.7613-.898h7.1676c.081 0 .1356-.0141.1356-.088v-2.536c0-.074-.0536-.0881-.1356-.0881h-2.0966v-1.6077h2.2677c.2065 0 1.1065.0587 1.394 1.2088.0901.3533.2875 1.5044.4232 1.8729.1346.413.6833 1.2381 1.2685 1.2381h3.5716a.7492.7492 0 00.1296-.0131 8.7874 8.7874 0 01-.8119.9526zM6.8369 20.024a.714.714 0 11-.2997-1.396.714.714 0 01.2997 1.396zM4.1177 8.9972a.7137.7137 0 11-1.304.5791.7137.7137 0 011.304-.579zm-.8352 1.9813l1.5347-.6824a.65.65 0 00.33-.8585l-.3158-.7147h1.2432v5.6025H3.5669a8.7753 8.7753 0 01-.2834-3.348zm6.7343-.5437V8.7836h2.9601c.153 0 1.0792.1772 1.0792.8697 0 .575-.7107.7815-1.2948.7815zm10.7574 1.4862c0 .2187-.008.4363-.0243.651h-.9c-.09 0-.1265.0586-.1265.1477v.413c0 .973-.5487 1.1846-1.0296 1.2382-.4576.0517-.9648-.1913-1.0275-.4717-.2704-1.5186-.7198-1.8436-1.4305-2.4034.8817-.5599 1.799-1.386 1.799-2.4915 0-1.1936-.819-1.9458-1.3769-2.3153-.7825-.5163-1.6491-.6195-1.883-.6195H5.4682a8.7651 8.7651 0 014.907-2.7699l1.0974 1.151a.648.648 0 00.9182.0213l1.227-1.1743a8.7753 8.7753 0 016.0044 4.2762l-.8403 1.8982a.652.652 0 00.33.8585l1.6178.7188c.0283.2875.0425.577.0425.8717zm-9.3006-9.5993a.7128.7128 0 11.984 1.0316.7137.7137 0 01-.984-1.0316zm8.3389 6.71a.7107.7107 0 01.9395-.3625.7137.7137 0 11-.9405.3635z"/></symbol>
+<symbol id="m-curl" viewBox="0 0 24 24"><path d="M.803 14.8169c0-.5342.433-.9665.9665-.9665.5335 0 .9665.4323.9665.9665 0 .5335-.433.9657-.9665.9657-.5335 0-.9666-.4322-.9666-.9657m2.736 0c0-.1963-.0532-.376-.1119-.5525-.2344-.7024-.876-1.2169-1.6575-1.2169-.1249 0-.2344.0465-.3524.0708C.6149 13.2865 0 13.9646 0 14.817c0 .9764.7923 1.7694 1.7695 1.7694.9772 0 1.7694-.793 1.7694-1.7694m-1.7694-7.149c.5335 0 .9665.433.9665.9665 0 .5335-.433.9665-.9665.9665-.5343 0-.9666-.433-.9666-.9665 0-.5335.4323-.9665.9666-.9665m0 2.7359c.9772 0 1.7694-.7923 1.7694-1.7694 0-.1956-.0532-.376-.1119-.5525-.2344-.7024-.8767-1.2169-1.6575-1.2169-.1249 0-.2344.0465-.3524.0716C.6149 7.104 0 7.782 0 8.6344c0 .9771.7923 1.7694 1.7695 1.7694m13.221-5.694c-.5342 0-.9665-.433-.9665-.9664a.966.966 0 01.9666-.9665c.5335 0 .9658.4322.9658.9665 0 .5334-.4323.9664-.9658.9664m-9.6 16.5133c-.5335 0-.9666-.433-.9666-.9665 0-.5342.433-.9665.9666-.9665a.966.966 0 01.9665.9665c0 .5335-.4323.9665-.9665.9665m9.6-19.2491c-.978 0-1.7695.7922-1.7695 1.7694 0 .2085.0525.4025.1187.5882L5.039 18.5581c-.803.1681-1.4179.8462-1.4179 1.6985 0 .9772.7923 1.7694 1.7695 1.7694.9772 0 1.7694-.7922 1.7694-1.7694 0-.1963-.0525-.3759-.111-.5525l8.3427-14.2728c.7778-.1865 1.3683-.8531 1.3683-1.688 0-.977-.793-1.7693-1.7694-1.7693m7.24 2.7359c-.5343 0-.9666-.433-.9666-.9665a.966.966 0 01.9665-.9665c.5335 0 .9666.4322.9666.9665 0 .5334-.433.9665-.9666.9665M12.6313 21.223c-.5343 0-.9665-.433-.9665-.9665a.966.966 0 01.9665-.9665c.5335 0 .9658.4323.9658.9665 0 .5335-.4323.9665-.9658.9665M22.2305 1.974c-.9772 0-1.7694.7922-1.7694 1.7694 0 .2085.0525.4025.1187.5882l-8.3009 14.2265c-.8021.1681-1.417.8462-1.417 1.6985 0 .9772.7922 1.7694 1.7694 1.7694.9764 0 1.7687-.7922 1.7687-1.7694 0-.1963-.0525-.3759-.1111-.5525l8.3427-14.2728C23.4094 5.2448 24 4.5782 24 3.7433c0-.977-.7923-1.7693-1.7695-1.7693"/></symbol>
+<symbol id="m-next" viewBox="0 0 24 24"><path d="M18.665 21.978C16.758 23.255 14.465 24 12 24 5.377 24 0 18.623 0 12S5.377 0 12 0s12 5.377 12 12c0 3.583-1.574 6.801-4.067 9.001L9.219 7.2H7.2v9.596h1.615V9.251l9.85 12.727Zm-3.332-8.533 1.6 2.061V7.2h-1.6v6.245Z"/></symbol>
+<symbol id="m-nuxt" viewBox="0 0 24 24"><path d="M13.4642 19.8295h8.9218c.2834 0 .5618-.0723.8072-.2098a1.5899 1.5899 0 0 0 .5908-.5732 1.5293 1.5293 0 0 0 .216-.783 1.529 1.529 0 0 0-.2167-.7828L17.7916 7.4142a1.5904 1.5904 0 0 0-.5907-.573 1.6524 1.6524 0 0 0-.807-.2099c-.2833 0-.5616.0724-.807.2098a1.5904 1.5904 0 0 0-.5907.5731L13.4642 9.99l-2.9954-5.0366a1.5913 1.5913 0 0 0-.591-.573 1.6533 1.6533 0 0 0-.8071-.2098c-.2834 0-.5617.0723-.8072.2097a1.5913 1.5913 0 0 0-.591.573L.2168 17.4808A1.5292 1.5292 0 0 0 0 18.2635c-.0001.2749.0744.545.216.783a1.59 1.59 0 0 0 .5908.5732c.2454.1375.5238.2098.8072.2098h5.6003c2.219 0 3.8554-.9454 4.9813-2.7899l2.7337-4.5922L16.3935 9.99l4.3944 7.382h-5.8586ZM7.123 17.3694l-3.9083-.0009 5.8586-9.8421 2.9232 4.921-1.9572 3.2892c-.7478 1.1967-1.5972 1.6328-2.9163 1.6328z"/></symbol>
+<symbol id="m-astro" viewBox="0 0 24 24"><path d="M8.358 20.162c-1.186-1.07-1.532-3.316-1.038-4.944.856 1.026 2.043 1.352 3.272 1.535 1.897.283 3.76.177 5.522-.678.202-.098.388-.229.608-.36.166.473.209.95.151 1.437-.14 1.185-.738 2.1-1.688 2.794-.38.277-.782.525-1.175.787-1.205.804-1.531 1.747-1.078 3.119l.044.148a3.158 3.158 0 0 1-1.407-1.188 3.31 3.31 0 0 1-.544-1.815c-.004-.32-.004-.642-.048-.958-.106-.769-.472-1.113-1.161-1.133-.707-.02-1.267.411-1.415 1.09-.012.053-.028.104-.045.165h.002zm-5.961-4.445s3.24-1.575 6.49-1.575l2.451-7.565c.092-.366.36-.614.662-.614.302 0 .57.248.662.614l2.45 7.565c3.85 0 6.491 1.575 6.491 1.575L16.088.727C15.93.285 15.663 0 15.303 0H8.697c-.36 0-.615.285-.784.727l-5.516 14.99z"/></symbol>
+<symbol id="m-svelte" viewBox="0 0 24 24"><path d="M10.354 21.125a4.44 4.44 0 0 1-4.765-1.767 4.109 4.109 0 0 1-.703-3.107 3.898 3.898 0 0 1 .134-.522l.105-.321.287.21a7.21 7.21 0 0 0 2.186 1.092l.208.063-.02.208a1.253 1.253 0 0 0 .226.83 1.337 1.337 0 0 0 1.435.533 1.231 1.231 0 0 0 .343-.15l5.59-3.562a1.164 1.164 0 0 0 .524-.778 1.242 1.242 0 0 0-.211-.937 1.338 1.338 0 0 0-1.435-.533 1.23 1.23 0 0 0-.343.15l-2.133 1.36a4.078 4.078 0 0 1-1.135.499 4.44 4.44 0 0 1-4.765-1.766 4.108 4.108 0 0 1-.702-3.108 3.855 3.855 0 0 1 1.742-2.582l5.589-3.563a4.072 4.072 0 0 1 1.135-.499 4.44 4.44 0 0 1 4.765 1.767 4.109 4.109 0 0 1 .703 3.107 3.943 3.943 0 0 1-.134.522l-.105.321-.286-.21a7.204 7.204 0 0 0-2.187-1.093l-.208-.063.02-.207a1.255 1.255 0 0 0-.226-.831 1.337 1.337 0 0 0-1.435-.532 1.231 1.231 0 0 0-.343.15L8.62 9.368a1.162 1.162 0 0 0-.524.778 1.24 1.24 0 0 0 .211.937 1.338 1.338 0 0 0 1.435.533 1.235 1.235 0 0 0 .344-.151l2.132-1.36a4.067 4.067 0 0 1 1.135-.498 4.44 4.44 0 0 1 4.765 1.766 4.108 4.108 0 0 1 .702 3.108 3.857 3.857 0 0 1-1.742 2.583l-5.589 3.562a4.072 4.072 0 0 1-1.135.499m10.358-17.95C18.484-.015 14.082-.96 10.9 1.068L5.31 4.63a6.412 6.412 0 0 0-2.896 4.295 6.753 6.753 0 0 0 .666 4.336 6.43 6.43 0 0 0-.96 2.396 6.833 6.833 0 0 0 1.168 5.167c2.229 3.19 6.63 4.135 9.812 2.108l5.59-3.562a6.41 6.41 0 0 0 2.896-4.295 6.756 6.756 0 0 0-.665-4.336 6.429 6.429 0 0 0 .958-2.396 6.831 6.831 0 0 0-1.167-5.168Z"/></symbol>
+<symbol id="m-hydrogen" viewBox="0 0 24 24"><path d="M15.337 23.979l7.216-1.561s-2.604-17.613-2.625-17.73c-.018-.116-.114-.192-.211-.192s-1.929-.136-1.929-.136-1.275-1.274-1.439-1.411c-.045-.037-.075-.057-.121-.074l-.914 21.104h.023zM11.71 11.305s-.81-.424-1.774-.424c-1.447 0-1.504.906-1.504 1.141 0 1.232 3.24 1.715 3.24 4.629 0 2.295-1.44 3.76-3.406 3.76-2.354 0-3.54-1.465-3.54-1.465l.646-2.086s1.245 1.066 2.28 1.066c.675 0 .975-.545.975-.932 0-1.619-2.654-1.694-2.654-4.359-.034-2.237 1.571-4.416 4.827-4.416 1.257 0 1.875.361 1.875.361l-.945 2.715-.02.01zM11.17.83c.136 0 .271.038.405.135-.984.465-2.064 1.639-2.508 3.992-.656.213-1.293.405-1.889.578C7.697 3.75 8.951.84 11.17.84V.83zm1.235 2.949v.135c-.754.232-1.583.484-2.394.736.466-1.777 1.333-2.645 2.085-2.971.193.501.309 1.176.309 2.1zm.539-2.234c.694.074 1.141.867 1.429 1.755-.349.114-.735.231-1.158.366v-.252c0-.752-.096-1.371-.271-1.871v.002zm2.992 1.289c-.02 0-.06.021-.078.021s-.289.075-.714.21c-.423-1.233-1.176-2.37-2.508-2.37h-.115C12.135.209 11.669 0 11.265 0 8.159 0 6.675 3.877 6.21 5.846c-1.194.365-2.063.636-2.16.674-.675.213-.694.232-.772.87-.075.462-1.83 14.063-1.83 14.063L15.009 24l.927-21.166z"/></symbol>
 </defs></svg>
 
-<header>
-  <div class="wrap nav">
-    <a class="logo" href="#top" style="font-family:'Fraunces',Georgia,'Times New Roman',serif;font-size:24px;letter-spacing:-0.01em;gap:10px"><svg width="30" height="30" viewBox="0 0 32 32" aria-hidden="true" style="flex:none"><circle cx="16" cy="18" r="11" fill="#E8482F"/><circle cx="11" cy="13" r="4.5" fill="#FBF2DF"/><circle cx="24" cy="6" r="3.4" fill="#E8482F"/><circle cx="8" cy="6" r="3" fill="#E8482F"/></svg> crabcrop</a>
-    <nav class="nav-links" aria-label="Sections">
-      <a href="#install">Install</a><a href="#features">Features</a>
-      <a href="docs.html">Docs</a><a href="https://play.crabcrop.org">Playground</a>
+<header class="top">
+  <div class="wrap">
+    <a class="logo" href="#top" aria-label="crabcrop, top of page"><svg width="28" height="28" viewBox="0 0 32 32" aria-hidden="true"><circle class="mk" cx="16" cy="18" r="11"/><circle class="mk-eye" cx="11" cy="13" r="4.5"/><circle class="mk" cx="24" cy="6" r="3.4"/><circle class="mk" cx="8" cy="6" r="3"/></svg>crabcrop</a>
+    <nav aria-label="Site">
+      <a href="https://crabcrop.org/docs.html">Docs</a>
+      <a class="far" href="https://play.crabcrop.org">Playground</a>
+      <a class="far" href="https://github.com/dayvson/crabcrop">GitHub</a>
     </nav>
-    <div class="nav-icons"><a href="https://github.com/dayvson/crabcrop" target="_blank" rel="noopener" aria-label="crabcrop on GitHub"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg></a><a href="https://crates.io/crates/crabcrop" target="_blank" rel="noopener" aria-label="crabcrop on crates.io"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path opacity=".45" d="M12 2.5 21.5 7 12 11.5 2.5 7Z"/><path opacity=".7" d="M2.5 7 12 11.5v10L2.5 17Z"/><path d="M21.5 7 12 11.5v10L21.5 17Z"/></svg></a></div>
+    <a class="btn go" href="#install">Install</a>
   </div>
-  <div class="foam" aria-hidden="true"></div>
 </header>
 
 <main id="top">
-<!-- HERO -->
-<section class="hero-b">
+
+<section id="install" class="band">
   <div class="wrap">
-    <h1>Blazing fast,<br><span class="coral">on-demand images.</span></h1>
-    <p class="lede" style="margin-top:20px">Crabcrop is a Rust-built, lightning-fast on-demand image API supporting all major formats in and out, with over 50 filters and AI features like background removal. It resizes, crops, converts, and filters your images straight from a signed URL. One binary, no pre-generated thumbnails, no build step.</p>
-    <div class="hero-ctas">
-      <a class="btn" href="#install">Get it running</a>
-      <a class="mono-link" href="docs.html"><svg class="claw" width="16" height="16" aria-hidden="true"><use href="#clawmark"/></svg> Full documentation</a>
+    <div class="lead">
+      <div class="say">
+        <p class="kicker"><span class="tri" aria-hidden="true"><i></i><i></i><i></i></span>Install</p>
+        <h2>Running in a minute.</h2>
+        <p class="sub">Prebuilt for macOS and Linux, on x86_64 and arm64.</p>
+      </div>
+      <div class="snap" role="img" aria-label="Snap standing on the install command, cheering with both claws in the air">
+        <video id="snap-cheer" muted playsinline preload="none" poster="media/snap-cheer.webp" width="850" height="640" aria-hidden="true">
+          <source src="media/snap-cheer.av1.mp4" type="video/mp4; codecs=av01.0.05M.08">
+          <source src="media/snap-cheer.mp4" type="video/mp4">
+        </video>
+      </div>
+    </div>
+    <div class="cmd">
+      <code id="install-cmd">curl --proto '=https' --tlsv1.2 -LsSf https://github.com/dayvson/crabcrop/releases/latest/download/crabcrop-installer.sh | sh</code>
+      <button class="copy" type="button" data-select="install-cmd">Copy</button>
+    </div>
+    <div class="after">
+      <ol class="steps">
+        <li><b>Start the server with a new secret.</b>
+<pre>export CRABCROP_SECRET="$(openssl rand -hex 16)"
+CRABCROP_ALLOW_UNSAFE=1 crabcrop
+<span class="c"># crabcrop listening on port 3000</span></pre></li>
+        <li><b>Request an image: a source photo at 300 by 200.</b>
+<pre>curl "http://localhost:3000/unsafe/<span class="t-ops">300x200</span>/<span class="t-src">https://example.com/photo.jpg</span>" \
+  --output photo.jpg</pre></li>
+        <li><b>In production, drop the unsafe switch and sign the URL.</b>
+<pre>curl "$(crabcrop sign <span class="t-ops">300x200</span>/<span class="t-src">https://example.com/photo.jpg</span>)" --output photo.jpg</pre></li>
+      </ol>
+      <div class="box ways">
+        <h3>Other routes</h3>
+        <dl class="kv">
+          <dt>Docker</dt><dd><code>docker pull <span class="nw">ghcr.io/dayvson/crabcrop:0.13.0</span></code></dd>
+          <dt>With AI</dt><dd><code>docker pull <span class="nw">ghcr.io/dayvson/crabcrop-ai:0.13.0</span></code></dd>
+          <dt>Cargo</dt><dd><code>cargo install crabcrop</code></dd>
+          <dt>Binaries</dt><dd><a href="https://github.com/dayvson/crabcrop/releases">Release tarballs on GitHub</a></dd>
+        </dl>
+      </div>
     </div>
   </div>
 </section>
 
-<!-- INSTALL -->
-<section id="install">
+<section class="hero">
   <div class="wrap">
-    <div class="tidemark"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg> Install</div>
-    <h2>Running in <span class="coral">a minute.</span></h2>
-    <div class="cmdstrip" style="display:flex;align-items:center;gap:12px">
-      <code style="flex:1">curl --proto '=https' --tlsv1.2 -LsSf https://github.com/dayvson/crabcrop/releases/latest/download/crabcrop-installer.sh | sh</code>
-      <button class="copybtn" type="button" data-copy="curl --proto '=https' --tlsv1.2 -LsSf https://github.com/dayvson/crabcrop/releases/latest/download/crabcrop-installer.sh | sh">Copy</button>
+    <div class="lead">
+      <div class="say">
+        <p class="eyebrow"><span class="tri" aria-hidden="true"><i></i><i></i><i></i></span>Written in Rust · MIT licensed</p>
+        <h1>Blazing fast,<br><span class="keep">on-demand</span> images.</h1>
+        <p class="lede"><strong>The URL is the API.</strong> Write the operations into it, sign it, and crabcrop answers with the picture. A Rust-built image server in one binary: no pre-generated thumbnails, no build step.</p>
+        <p class="proof">First resize in <b>22.6&nbsp;ms</b><i>·</i><a href="#speed">How it was measured</a></p>
+        <p class="cta"><a class="btn go" href="#install">Get it running</a><a class="btn quiet" href="https://crabcrop.org/docs.html">Read the docs</a></p>
+      </div>
+      <div class="snap" role="img" aria-label="Snap, a crochet crab, standing on the address bar and pointing down at the URL">
+        <video id="snap-point" muted playsinline preload="auto" poster="media/snap-point.webp" width="956" height="720" aria-hidden="true">
+          <source src="media/snap-point.av1.mp4" type="video/mp4; codecs=av01.0.05M.08">
+          <source src="media/snap-point.mp4" type="video/mp4">
+        </video>
+      </div>
     </div>
-    <div style="margin-top:14px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13.5px;font-weight:700">
-      Other routes:
-      <a href="https://github.com/dayvson/crabcrop/pkgs/container/crabcrop-ai" target="_blank" rel="noopener">AI image</a> ·
-      <a href="https://github.com/dayvson/crabcrop/releases" target="_blank" rel="noopener">Release binaries</a> ·
-      <a href="https://crates.io/crates/crabcrop" target="_blank" rel="noopener">cargo install crabcrop</a>
+
+    <div class="bench">
+      <div class="bar">
+        <code class="url" id="url" aria-live="polite">https://<wbr>img.example.com/<wbr><span class="seg sig" title="The signature, shortened here">aa63fb72…</span>/<wbr><span class="seg op">crop:<wbr>1200x630:<wbr>smart</span>/<wbr><span class="seg src">root:<wbr>photos/<wbr>print.jpg</span></code>
+      </div>
+      <div class="under">
+        <ul class="legend" aria-label="What the colours mean">
+          <li class="t-sig">signature</li>
+          <li class="t-ops">operations</li>
+          <li class="t-src">source</li>
+        </ul>
+        <button type="button" class="btn quiet" id="copy-url">Copy URL</button>
+      </div>
+
+      <div class="work">
+        <form class="controls" id="controls" aria-label="Change the operations">
+          <fieldset class="group">
+            <legend>Size <span>its own path segment</span></legend>
+            <div class="opts">
+              <label class="opt on"><input type="radio" name="size" id="size-wide" value="crop:1200x630:smart" checked><b>Wide card</b><code>crop:1200x630:smart</code></label>
+              <label class="opt"><input type="radio" name="size" id="size-square" value="crop:760x760:smart"><b>Square</b><code>crop:760x760:smart</code></label>
+              <label class="opt"><input type="radio" name="size" id="size-whole" value="fit-in:1200x630"><b>Whole picture</b><code>fit-in:1200x630</code></label>
+            </div>
+          </fieldset>
+          <fieldset class="group">
+            <legend>Look <span>a filter</span></legend>
+            <div class="opts">
+              <label class="opt on"><input type="radio" name="look" id="look-none" value="" checked><b>As shot</b><code>no filter</code></label>
+              <label class="opt"><input type="radio" name="look" id="look-sepia" value="sepia"><b>Sepia</b><code>sepia</code></label>
+              <label class="opt"><input type="radio" name="look" id="look-gray" value="grayscale"><b>Grayscale</b><code>grayscale</code></label>
+              <label class="opt"><input type="radio" name="look" id="look-crisp" value="sharpen(1.2):saturation(1.1)"><b>Crisp</b><code>sharpen(1.2):<wbr>saturation(1.1)</code></label>
+            </div>
+          </fieldset>
+          <fieldset class="group">
+            <legend>Format <span>a filter too, written last</span></legend>
+            <div class="opts">
+              <label class="opt on"><input type="radio" name="fmt" id="fmt-auto" value="" checked><b>Browser decides</b><code>no format named</code></label>
+              <label class="opt"><input type="radio" name="fmt" id="fmt-avif" value="format(avif)"><b>AVIF</b><code>format(avif)</code></label>
+              <label class="opt"><input type="radio" name="fmt" id="fmt-webp" value="format(webp)"><b>WebP</b><code>format(webp)</code></label>
+              <label class="opt"><input type="radio" name="fmt" id="fmt-jxl" value="format(jxl)"><b>JPEG XL</b><code>format(jxl)</code></label>
+            </div>
+          </fieldset>
+        </form>
+
+        <figure class="preview">
+          <div class="stage">
+            <div class="frame" id="frame" style="--ar: 1.905; --pos: 50% 56%"><img id="shot" src="/scene-camera.jpg" alt="Snap on a beach beside a film camera on a tripod" width="1200" height="800"></div>
+          </div>
+          <figcaption>
+            <span class="readout"><span>Output <b id="out-size">1200 × 630</b></span><span id="out-fmt">No format named: the Accept header decides</span></span>
+            <span class="honest">This preview is drawn in your browser from a sample photo. The real image comes from your server. The signatures are real: HMAC-SHA256 with the sample secret <code>demo-secret</code>.</span>
+          </figcaption>
+        </figure>
+      </div>
     </div>
   </div>
 </section>
 
-<!-- FEATURES STRIP -->
-<section id="features" style="padding-top:26px">
+<section id="speed" class="band">
   <div class="wrap">
-    <div class="tidemark"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg> Major features</div>
-    <h2>Everything an image pipeline does, <span class="coral">in one signed URL.</span></h2>
-    <div class="strip-scroll">
-      <a class="strip-card" href="docs.html#format" id="formats" style="scroll-margin-top:96px"><picture><source media="(prefers-reduced-motion: reduce)" srcset="crabcrop-mascot-magician-still.webp" width="400" height="400"><img src="https://images.crabcrop.org/b6c61efe3275a8f72718286173ae5ab8379c33d3bb70e469befde6dc252cd177/preset:site-anim/root:site/crabcrop-mascot-magician.webp" data-thumbhash="KmkOHwj4pohoaZWLeJdpyXd4mkIJKZUA" alt="Snap the crab as a stage magician" loading="lazy" width="400" height="400"></picture><div class="sc-body"><h3>All major formats, in and out</h3><p>JPEG, PNG, WebP, GIF, AVIF, and JPEG XL, in and out. HEIC, HEIF, TIFF, BMP, and ICO decode only; SVG decodes, sanitized and rasterized in a worker process. Name no format and the <code>Accept</code> header decides: AVIF first, then JPEG XL, then WebP. An explicit <code>format(...)</code> always wins.</p><span class="opname">format(avif) · format(jxl) · format(webp) · frame:50% · page:2</span></div></a>
-      <a class="strip-card" href="docs.html#sources"><picture><source media="(prefers-reduced-motion: reduce)" srcset="crabcrop-mascot-still.webp" width="400" height="400"><img src="https://images.crabcrop.org/fb437bd6bd6cc199869ed6536a19823473d934846e093d62d334a36f5dc34e48/preset:site-anim/root:site/crabcrop-mascot.webp" data-thumbhash="LWkKFwj413dbd4aNdodqyZh3m1AKGZYA" alt="Snap waving while holding a photo print" loading="lazy" width="400" height="400"></picture><div class="sc-body"><h3>More than photos</h3><p>The source can be one frame of a video, one page of a PDF, an object in S3 or GCS, a local file, or a short <code>root:</code> reference the server expands against its own origins. Originals can also arrive through the signed upload endpoint, off by default.</p><span class="opname">frame:50% · page:2 · root:photos/cat.jpg · PUT /upload/&lt;name&gt;</span></div></a>
-      <a class="strip-card" href="docs.html#adjust"><picture><source media="(prefers-reduced-motion: reduce)" srcset="snap-features-still.webp" width="400" height="400"><img src="https://images.crabcrop.org/a0363c7d321d3c3fbb52ae16f9f559197426e15cc7dd22e96ce0c3e3afd50bcf/preset:site-anim/root:site/snap-features.webp" data-thumbhash="7VgKFwj2yZhdl4eeZUd46HeV2WIHPXcA" alt="Snap flipping photo prints on a grill" loading="lazy" width="400" height="400"></picture><div class="sc-body"><h3>51 filters, one chain</h3><p>Resize, crop, fit-in, and pad are their own path segments. The 51 filters chain inside one <code>filters:</code> segment, everything running in the order written.</p><span class="opname">filters:sharpen(1.2):saturation(1.1)</span></div></a>
-      <a class="strip-card" href="docs.html#size"><img src="https://images.crabcrop.org/26369293ce2c09a37dcb234195fa0edcc4072c19b0355c006c8d60eba339c29d/preset:site-photo/root:site/ai-crop-smart.jpg" data-thumbhash="4FgKFwhUmal6eYiGeAZa5oRXuzYJbJQA" alt="Smart crop keeping the whole crab in frame" loading="lazy" width="760" height="760"><div class="sc-body"><h3>Smart crop, face safe</h3><p>The crop window finds the subject, and keeps detected faces whole instead of clipping them at the edge.</p><span class="opname">crop:760x760:smart</span></div></a>
-      <a class="strip-card" href="docs.html#studio"><img src="https://images.crabcrop.org/d28338579a079406c54fa4107c3d4576d4e77d2da5a8abcc3344c56bcd074323/preset:site-photo/root:site/studio-brand.webp" data-thumbhash="V5cFLZQEnXOYWJagTJdlZwiHg3A4" alt="Snap composited onto a tide green brand backdrop" loading="lazy" width="1000" height="667"><div class="sc-body"><h3>Studio mode</h3><p>The listing shot in one filter: cut out, backdrop, contact shadow, margin. Backdrops resolve on the server, brand color included. Or keep the photo: <code>studio(scene)</code> reframes on the subject and corrects the light and color.</p><span class="opname">filters:studio(product,bg:brand) · filters:studio(scene)</span></div></a>
-      <a class="strip-card" href="docs.html#ai"><img src="https://images.crabcrop.org/02a88eff67e58390de62e61a0630ef0aed28eea51e050e2b2354d86da46093a8/preset:site-photo/root:site/ai-skate-removebg.webp" data-thumbhash="nKmCA4AkFPiqiYPqzLDfOx9xdolAmlc=" alt="Snap with the background removed, over transparency" loading="lazy" width="1000" height="667"><div class="sc-body"><h3>Background removal</h3><p>Your ONNX model, in process. The subject stays, the background becomes real alpha.</p><span class="opname">filters:removebg:format(webp)</span></div></a>
-      <a class="strip-card" href="docs.html#ai"><img src="https://images.crabcrop.org/cbc18b1bd3adc42da05cbdaa3ae97d06b5682e6545a47c4cc087dd52b0c567ae/preset:site-photo/root:site/ai-crop-center.jpg" data-thumbhash="4EgKFwhEh5d6eYiHiAdr5nRnuzgJjpQA" alt="Snap in a tight square crop" loading="lazy" width="760" height="760"><div class="sc-body"><h3>AI upscale</h3><p>Super-resolution from a model you supply: <code>upscale(2)</code> or <code>upscale(4)</code> rebuilds detail instead of stretching pixels, and source transparency carries across. It never falls back to a plain resize.</p><span class="opname">filters:upscale(2)</span></div></a>
-      <a class="strip-card" href="docs.html#ai"><img src="https://images.crabcrop.org/d8bf8371386c7863ff0324948746d31ced41c1723fa73fe38728b9ae44582b65/preset:site-photo/root:site/scene-bbq.jpg" data-thumbhash="IUkODYZpmXhvh4aKd4eIakw24FQG" alt="Snap beside a grill on the beach at sunset" loading="lazy" width="1200" height="800"><div class="sc-body"><h3>Object removal</h3><p>Name a rectangle and a LaMa family inpainting model fills it in from the surrounding pixels. Everything outside the rectangle comes back bit-identical.</p><span class="opname">filters:remove_region(40,120,300,200)</span></div></a>
-      <a class="strip-card" href="docs.html#ai"><img src="https://images.crabcrop.org/4385e3e78cd4ab80d6877d2136df815e22806187975d83315f31af86c0abce14/preset:site-photo/root:site/ai-friend-before.jpg" data-thumbhash="oSgKDYaRmJVgZnmliFaHdl1i4EUH" alt="Snap at the edge of a skate bowl with a skater riding in the background" loading="lazy" width="1100" height="733"><div class="sc-body"><h3>Face detection</h3><p>A YuNet model finds the faces in the frame. Smart crops center on them and keep them whole, <code>:face</code> crops to the largest face, and <code>blurfaces</code> or <code>pixelatefaces</code> redact every face found.</p><span class="opname">crop:760x760:face · filters:blurfaces</span></div></a>
-      <a class="strip-card" href="docs.html#ai"><img src="https://images.crabcrop.org/cbc36c21927ce18f7df135235c45a8b101dcab74d1aa5a5f06f6760fe44a1f51/preset:site-photo/root:site/ai-friend-redact.jpg" data-thumbhash="oSgKDYaRmJVgZnmliFeHdl1i4EUH" alt="A background skater blurred by class redaction" loading="lazy" width="1100" height="733"><div class="sc-body"><h3>Redaction</h3><p>Blur or pixelate faces, or every detected object of a class. Redaction never guesses: a detection failure fails the request. With a segmentation model, class redaction follows the object's silhouette instead of its box, and <code>recolorclass</code> paints it a solid color.</p><span class="opname">filters:blurclass(person) · filters:recolorclass(car,ff0000)</span></div></a>
-      <a class="strip-card" href="docs.html#meta"><picture><source media="(prefers-reduced-motion: reduce)" srcset="snap-ai-still.webp" width="400" height="400"><img src="https://images.crabcrop.org/c5195cb939ac7a139e1a0e3cd7d7f4e5a9dca033ae25766cd09136f998f6b36e/preset:site-anim/root:site/snap-ai.webp" data-thumbhash="q1gKDwTo1pZbd4aPh3ZpuIiICmFNFMYA" alt="Snap scanning a photo with a magnifying glass" loading="lazy" width="400" height="400"></picture><div class="sc-body"><h3>Metadata that describes the picture</h3><p>JSON meta for any render, once you turn meta mode on (<code>CRABCROP_META_MODE=1</code>; it is off by default): dimensions, format, byte size, provenance. Richer answers are opt-ins with their own model sets: CLIP tags and alt text, detections, moderation verdicts, embeddings, an aesthetic score, OCR text.</p><span class="opname">Accept: application/json; detections=1</span></div></a>
-      <a class="strip-card" href="docs.html#meta"><img src="https://images.crabcrop.org/d6ef00b818934ffc2b2469f37890ff27d65781e92a4bb23c1089730212bcaefe/preset:site-photo/root:site/scene-surf.jpg" data-thumbhash="4gcGJYrCGESod4pyZPaGjAaFc3A4" alt="A surfer scene at the beach" loading="lazy" width="1200" height="800"><div class="sc-body"><h3>Reads the text in the picture</h3><p>Opt a meta request in and the answer reads the picture: the text lines in reading order, each with its box and a confidence score, from a PP-OCR model pair you supply. The annotation never touches the image bytes.</p><span class="opname">Accept: application/json; ocr=1</span></div></a>
-      <a class="strip-card" href="docs.html#provenance"><img src="https://images.crabcrop.org/7a31b3720248619d7de81676fd2e0535cc67d8f3c9b24d7649be9c6cc24f14de/preset:site-photo/root:site/scene-camera.jpg" data-thumbhash="pDgOFYamiFiPd4h7d7d3eQiCoUAY" alt="Snap on the beach beside a film camera on a tripod" loading="lazy" width="1200" height="800"><div class="sc-body"><h3>Provenance, checked and signed</h3><p>Meta reports the C2PA Content Credentials a source carries: manifest present, whether it validates, who signed it. With your own certificate, still JPEG, PNG, WebP, and AVIF outputs are signed as served, the source recorded as the parent ingredient with how its own credentials validated. The source's manifest store never rides into an output, so the output's manifest carries none of the source's metadata.</p><span class="opname">CRABCROP_C2PA_CERT · CRABCROP_C2PA_KEY</span></div></a>
-      <a class="strip-card" href="docs.html#sealed"><img src="https://images.crabcrop.org/d206865beef4b3d2a66b9f87de423fe50327cf6f96e611573820dabf3b9aba04/preset:site-photo/root:site/snap-sealed.webp" data-thumbhash="L1kKFwb6uIVseXV6h4dHmneHakAoBnUB" alt="Snap holding a photo tucked inside an envelope closed with a wax seal" loading="lazy" width="400" height="400"><div class="sc-body"><h3>Sealed URLs</h3><p>For links that stay public but unreadable: the whole recipe, operations and source, encrypted into one opaque token in the signature slot. Only the server opens it, and it serves the same render as the readable spelling.</p><span class="opname">s1.&lt;token&gt;/photo.jpg</span></div></a>
-      <a class="strip-card" href="docs.html#presets"><picture><source media="(prefers-reduced-motion: reduce)" srcset="snap-sign-still.webp" width="400" height="400"><img src="https://images.crabcrop.org/05aadcb06552bdda28ebeef1612b54acb05047154fdcd9f2cfa2e7553fb75d6b/preset:site-anim/root:site/snap-sign.webp" data-thumbhash="7FgOHwjop3h/h3Z4hZhod4h5hQFYCHMC" alt="Snap stamping a wax seal onto a scroll" loading="lazy" width="400" height="400"></picture><div class="sc-body"><h3>Presets and purge</h3><p>Server-side preset names keep templates short. Purge one result, or a whole preset group, with signatures from their own subkey.</p><span class="opname">preset:og-card · POST /purge-group</span></div></a>
-      <a class="strip-card" href="docs.html#explain"><picture><source media="(prefers-reduced-motion: reduce)" srcset="snap-anatomy-still.webp" width="400" height="400"><img src="https://images.crabcrop.org/4d806b18e025233c4b8ade389a134a62ae755c8ba3f75b718a8ec4845f25bbb3/preset:site-anim/root:site/snap-anatomy.webp" data-thumbhash="7VgKJwr1qHmLeHd9hYZ6t4pmelA5CJcB" alt="Snap clicking colored blocks into a row at a workbench" loading="lazy" width="400" height="400"></picture><div class="sc-body"><h3>URLs that explain themselves</h3><p>Put <code>explain/</code> in front of any signed URL and the server reports on it instead of serving the image.</p><span class="opname">GET /explain/&lt;signature&gt;/...</span></div></a>
-      <a class="strip-card" href="docs.html#sdks"><picture><source media="(prefers-reduced-motion: reduce)" srcset="snap-toy-still.webp" width="400" height="400"><img src="https://images.crabcrop.org/5c79651d4c39d9f0c7caa40a1ce282a6ca5e9c479be6da40b604d95fa3b787de/preset:site-anim/root:site/snap-toy.webp" data-thumbhash="bxgKFwj7s5iLeYaMh3Zm2VeDafQVR18E" alt="Snap peeking over a picture, half sketch and half finished color" loading="lazy" width="400" height="400"></picture><div class="sc-body"><h3>SDKs and loaders</h3><p>Build and sign URLs from code: TypeScript and Python SDKs, the <code>crabcrop-url</code> Rust crate, an MCP server that lets coding agents sign, explain, and inspect URLs, and loaders for Next.js, Nuxt, Hydrogen, Astro, and SvelteKit.</p><span class="opname">@crabcrop/url · crabcrop_url · crabcrop-url · @crabcrop/mcp</span></div></a>
+    <div class="head">
+      <p class="kicker"><span class="tri" aria-hidden="true"><i></i><i></i><i></i></span>Speed</p>
+      <h2>Blazing fast, in numbers.</h2>
+      <p>A first request does the whole job: fetch the source, decode it, transform it, encode the answer. These are medians from the benchmark kept in the repo.</p>
+    </div>
+    <div class="bento">
+      <div class="tile s5 stat">
+        <p class="label">A first request</p>
+        <p class="value">22.6<span>ms</span></p>
+        <p>Fetch a 2400 by 1600 JPEG, decode it, resize it to 800 wide, encode it.</p>
+      </div>
+      <figure class="tile s7 tall">
+        <figcaption class="fig-head">
+          <h3>A first request, by operation</h3>
+          <p>Median milliseconds. Output is 800 wide unless said. Lower is better.</p>
+        </figcaption>
+        <table class="nums">
+          <thead>
+            <tr><th scope="col">Operation</th><th scope="col" class="us">crabcrop</th><th scope="col">Thumbor</th><th scope="col">imgproxy</th></tr>
+          </thead>
+          <tbody>
+            <tr><th scope="row">Resize, JPEG</th><td class="us">22.6</td><td>38.4</td><td>18.0</td></tr>
+            <tr><th scope="row">Crop to 400 by 300, JPEG</th><td class="us">58.5</td><td>71.0</td><td>12.1</td></tr>
+            <tr><th scope="row">Resize, WebP</th><td class="us">64.4</td><td>82.0</td><td>62.3</td></tr>
+            <tr><th scope="row">Resize and grayscale, JPEG</th><td class="us">25.3</td><td>38.2</td><td class="na"><span aria-hidden="true">—</span><span class="sr">not supported</span></td></tr>
+            <tr><th scope="row">Resize, AVIF</th><td class="us">112.4</td><td class="na"><span aria-hidden="true">—</span><span class="sr">not supported</span></td><td class="na"><span aria-hidden="true">—</span><span class="sr">not available on the benchmark host</span></td></tr>
+            <tr><th scope="row">Resize, JPEG XL</th><td class="us">34.0</td><td class="na"><span aria-hidden="true">—</span><span class="sr">not supported</span></td><td>43.8</td></tr>
+          </tbody>
+        </table>
+        <p class="note">A dash is an operation that server could not run. Thumbor 7.8.0 has no AVIF or JPEG XL encoder. Open-source imgproxy has no grayscale option, and its AVIF needs an encoder the benchmark host did not have: a limit of the host, not of imgproxy.</p>
+      </figure>
+
+      <div class="tile s5 how">
+        <h3>How it was measured</h3>
+        <dl class="kv">
+          <dt>Servers</dt><dd>crabcrop 0.9.9, Thumbor 7.8.0 and imgproxy 3.31.4, one at a time. Their configurations are in the repo.</dd>
+          <dt>Host</dt><dd>One shared VM with 4 cores and 7.7 GiB of memory. Client, origin and server on the same machine.</dd>
+          <dt>Sources</dt><dd>25 JPEGs, 2400 by 1600, about 205 KB each.</dd>
+          <dt>Timing</dt><dd>A fresh connection per request, signature checks off, medians across repeated runs.</dd>
+          <dt>Date</dt><dd>6 November 2026.</dd>
+        </dl>
+        <p class="links"><a class="more" href="https://github.com/dayvson/crabcrop/tree/main/benchmark">The harness</a><a class="more" href="https://github.com/dayvson/crabcrop/blob/main/benchmark/results/2026-11-06.md">Full results and raw data</a></p>
+      </div>
     </div>
   </div>
 </section>
 
-<!-- SIGNING SAMPLES -->
+<section id="parts">
+  <div class="wrap">
+    <div class="head">
+      <p class="kicker"><span class="tri" aria-hidden="true"><i></i><i></i><i></i></span>Anatomy</p>
+      <h2>Three parts, always in this order.</h2>
+      <p>Every image request is <code>GET /&lt;signature&gt;/<wbr>&lt;operations&gt;/<wbr>&lt;source&gt;</code>. That strip is the whole grammar.</p>
+    </div>
+    <p class="anatomy" aria-label="An example URL with its three parts coloured">https://<wbr>img.example.com/<wbr><span class="seg sig">5b9fc0ad…</span>/<wbr><span class="seg op">crop:<wbr>1200x630:<wbr>smart</span>/<wbr><span class="seg op">filters:<wbr>grayscale</span>/<wbr><span class="seg src">https://<wbr>example.com/<wbr>photo.jpg</span></p>
+    <ol class="parts">
+      <li class="part" style="--c: var(--sig)">
+        <p class="name">Signature <span>1 of 3</span></p>
+        <p>Proof the URL came from you. The server recomputes the HMAC-SHA256 over the operations and the source exactly as they appear. A match serves the image. A miss gets a 403.</p>
+        <p class="also">A sealed URL keeps its whole recipe in this slot, as one opaque token.</p>
+        <p class="chips"><code class="chip sig">5b9fc0ad…</code><code class="chip sig">s1.&lt;token&gt;</code></p>
+      </li>
+      <li class="part" style="--c: var(--ops)">
+        <p class="name">Operations <span>2 of 3</span></p>
+        <p>Zero or more segments, applied in path order. Resize, crop, fit-in, and pad are their own segments. Filters chain inside one <code>filters:</code> segment.</p>
+        <p class="also">An expiry and a server-side preset are segments too.</p>
+        <p class="chips"><code class="chip op">300x200</code><code class="chip op">crop:1200x630:smart</code><code class="chip op">filters:grayscale:format(webp)</code><code class="chip op">exp:1893456000</code><code class="chip op">preset:og-card</code></p>
+      </li>
+      <li class="part" style="--c: var(--src)">
+        <p class="name">Source <span>3 of 3</span></p>
+        <p>It starts at the first segment that is not an operation and may contain slashes. A full URL works, and so does a short <code>root:</code> reference the server expands against its own origins.</p>
+        <p class="also">A video or a PDF works as a source. A segment picks the frame or the page.</p>
+        <p class="chips"><code class="chip src">https://example.com/photo.jpg</code><code class="chip src">root:photos/print.jpg</code><code class="chip op">frame:50%</code><code class="chip op">page:2</code></p>
+      </li>
+    </ol>
+  </div>
+</section>
+
+<section id="features" class="band">
+  <div class="wrap">
+    <div class="head">
+      <p class="kicker"><span class="tri" aria-hidden="true"><i></i><i></i><i></i></span>What it does</p>
+      <h2>Everything an image pipeline does, in one signed URL.</h2>
+      <p>Each tile shows the segment that asks for it. The pictures are the examples from crabcrop.org.</p>
+    </div>
+    <div class="bento">
+
+      <article class="tile s7">
+        <h3>Smart crop, face safe</h3>
+        <p>The crop window finds the subject and keeps detected faces whole instead of clipping them at the edge. A YuNet model finds the faces, and <code>:face</code> crops to the largest one.</p>
+        <div class="shots two">
+          <figure><div class="pic sq"><img src="/ai-crop-center.jpg" alt="A square centre crop that clips Snap's raised claw at the edge" width="760" height="760" loading="lazy"></div><figcaption>A centre crop clips his claw</figcaption></figure>
+          <figure><div class="pic sq"><img src="/ai-crop-smart.jpg" alt="A square smart crop with the whole of Snap in frame" width="760" height="760" loading="lazy"></div><figcaption>The smart crop keeps him whole</figcaption></figure>
+        </div>
+        <p class="chips"><code class="chip op">crop:760x760:smart</code><code class="chip op">crop:760x760:face</code></p>
+      </article>
+
+      <article class="tile s5">
+        <h3>Studio mode</h3>
+        <p>The listing shot in one filter: cut out, backdrop, contact shadow, margin. Backdrops resolve on the server: your brand color by default, or white, or none.</p>
+        <div class="shots three">
+          <figure><div class="pic sq"><img src="/studio-white.webp" alt="Snap on a white backdrop with a soft shadow" width="1000" height="667" loading="lazy"></div><figcaption>white</figcaption></figure>
+          <figure><div class="pic sq"><img src="/studio-brand.webp" alt="Snap on a tide green brand backdrop" width="1000" height="667" loading="lazy"></div><figcaption>brand</figcaption></figure>
+          <figure><div class="pic sq alpha"><img src="/studio-none.webp" alt="Snap with no backdrop, over transparency" width="1000" height="667" loading="lazy"></div><figcaption>no backdrop</figcaption></figure>
+        </div>
+        <p>Or keep the photo: scene mode reframes on the subject and corrects the light and color.</p>
+        <p class="chips"><code class="chip op">filters:studio(product)</code><code class="chip op">filters:studio(scene)</code></p>
+      </article>
+
+      <article class="tile s6">
+        <h3>Background removal</h3>
+        <p>Your ONNX model, in process. The subject stays and the background becomes real alpha.</p>
+        <div class="shots two">
+          <figure><div class="pic"><img src="/ai-skate-before.jpg" alt="Snap at a skate park, holding a photo print" width="1000" height="667" loading="lazy"></div><figcaption>source</figcaption></figure>
+          <figure><div class="pic alpha"><img src="/ai-skate-removebg.webp" alt="The same Snap with the skate park removed, over transparency" width="1000" height="667" loading="lazy"></div><figcaption>background removed</figcaption></figure>
+        </div>
+        <p class="chips"><code class="chip op">filters:removebg:format(webp)</code></p>
+      </article>
+
+      <article class="tile s6">
+        <h3>Redaction</h3>
+        <p>Blur or pixelate faces, or every detected object of a class. Redaction never guesses: a detection failure fails the request.</p>
+        <div class="shots two">
+          <figure><div class="pic"><img src="/ai-friend-before.jpg" alt="Snap at the edge of a skate bowl with a skater riding behind him" width="1100" height="733" loading="lazy"></div><figcaption>source</figcaption></figure>
+          <figure><div class="pic"><img src="/ai-friend-redact.jpg" alt="The same scene with the skater blurred" width="1100" height="733" loading="lazy"></div><figcaption>the person blurred</figcaption></figure>
+        </div>
+        <p class="chips"><code class="chip op">filters:blurclass(person)</code><code class="chip op">filters:blurfaces</code></p>
+      </article>
+
+      <article class="tile">
+        <img class="patch" src="media/patch-fish.webp" alt="" width="384" height="384" loading="lazy">
+        <h3>All major formats, in and out</h3>
+        <dl class="kv">
+          <dt>In and out</dt><dd>JPEG, PNG, WebP, GIF, AVIF, JPEG XL</dd>
+          <dt>Decode only</dt><dd>HEIC, HEIF, TIFF, BMP, ICO, SVG</dd>
+        </dl>
+        <p>Name no format and the <code>Accept</code> header decides: AVIF first, then JPEG XL, then WebP. An explicit format always wins.</p>
+        <p class="chips"><code class="chip op">filters:format(avif)</code></p>
+      </article>
+
+      <article class="tile">
+        <img class="patch" src="media/patch-drops.webp" alt="" width="384" height="384" loading="lazy">
+        <h3>51 filters, one chain</h3>
+        <p>Resize, crop, fit-in, and pad are their own path segments. The 51 filters chain inside one <code>filters:</code> segment and run in the order written.</p>
+        <p class="chips"><code class="chip op">filters:sharpen(1.2):saturation(1.1)</code></p>
+      </article>
+
+      <article class="tile">
+        <img class="patch" src="media/patch-reel.webp" alt="" width="384" height="384" loading="lazy">
+        <h3>More than photos</h3>
+        <p>The source can be one frame of a video, one page of a PDF, an object in S3 or GCS, a local file, or a short <code>root:</code> reference.</p>
+        <p class="chips"><code class="chip op">frame:50%</code><code class="chip op">page:2</code><code class="chip src">root:photos/print.jpg</code></p>
+      </article>
+
+      <article class="tile s12">
+        <div class="meta">
+          <div>
+            <img class="patch" src="media/patch-glass.webp" alt="" width="384" height="384" loading="lazy">
+            <h3>Metadata that describes the picture</h3>
+            <p>Send <code>Accept: application/json</code> with any image URL and the answer is JSON about the render instead of its bytes. Meta mode is off by default.</p>
+            <p>Opt-ins add CLIP tags and alt text, detections, moderation verdicts, embeddings, an aesthetic score, and OCR text.</p>
+            <p class="chips"><code class="chip">CRABCROP_META_MODE=1</code><code class="chip">Accept: application/json; ocr=1</code></p>
+          </div>
+          <div class="code">
+            <p class="bar2"><span>The example from the docs</span></p>
+<pre><span class="c"># With CRABCROP_META_MODE=1 on the server</span>
+curl -H "Accept: application/json" \
+  "http://localhost:3000/unsafe/<span class="t-ops">300x200</span>/<span class="t-src">https://example.com/photo.jpg</span>"
+
+{
+  "width": 300, "height": 200, "format": "jpeg", "bytes": 18234,
+  "source_width": 1200, "source_height": 800
+}</pre>
+          </div>
+        </div>
+      </article>
+
+      <article class="tile s3">
+        <img class="patch" src="media/patch-seal.webp" alt="" width="384" height="384" loading="lazy">
+        <h3>Sealed URLs</h3>
+        <p>For links that stay public but unreadable. The whole recipe, operations and source, is encrypted into one opaque token in the signature slot. Only the server opens it.</p>
+        <p class="chips"><code class="chip"><span class="t-sig">s1.&lt;token&gt;</span>/photo.jpg</code></p>
+      </article>
+
+      <article class="tile s3">
+        <img class="patch" src="media/patch-gear.webp" alt="" width="384" height="384" loading="lazy">
+        <h3>Presets and purge</h3>
+        <p>Server-side preset names keep templates short. Purge one result, or a whole preset group, with signatures from their own subkey.</p>
+        <p class="chips"><code class="chip op">preset:og-card</code><code class="chip">POST /purge-group</code></p>
+      </article>
+
+      <article class="tile s3">
+        <img class="patch" src="media/patch-lantern.webp" alt="" width="384" height="384" loading="lazy">
+        <h3>Provenance, checked and signed</h3>
+        <p>Meta reports the C2PA Content Credentials a source carries. With your own certificate, still JPEG, PNG, WebP, and AVIF outputs are signed as served.</p>
+        <p class="chips"><code class="chip">CRABCROP_C2PA_CERT</code><code class="chip">CRABCROP_C2PA_KEY</code></p>
+      </article>
+
+      <article class="tile s3">
+        <img class="patch" src="media/patch-link.webp" alt="" width="384" height="384" loading="lazy">
+        <h3>URLs that explain themselves</h3>
+        <p>Put <code>explain/</code> in front of any signed URL and the server reports on it, segment by segment, instead of serving the image.</p>
+        <p class="chips"><code class="chip">GET /explain/<span class="t-sig">&lt;signature&gt;</span>/...</code></p>
+      </article>
+
+    </div>
+  </div>
+</section>
+
 <section id="sign">
   <div class="wrap">
-    <div class="tidemark"><svg class="claw" aria-hidden="true"><use href="#clawmark"/></svg> Signing</div>
-    <h2>Sign a URL, <span class="coral">from any stack.</span></h2>
-    <p class="lede">Every URL carries an HMAC-SHA256 signature over the operations and the source, lowercase hex. Sign with the TypeScript or Python SDK, the crabcrop-url Rust crate, or plain curl: same inputs, same URL.</p>
-  </div>
-
-  <div class="wrap" style="margin-top:28px">
-    <div class="tabs" role="tablist" aria-label="Signing examples by language">
-      <button class="tab active" data-pane="curl" type="button" role="tab" id="sign-tab-curl" aria-controls="sign-pane-curl" aria-selected="true" tabindex="0">curl</button>
-      <button class="tab" data-pane="ts" type="button" role="tab" id="sign-tab-ts" aria-controls="sign-pane-ts" aria-selected="false" tabindex="-1">TypeScript</button>
-      <button class="tab" data-pane="py" type="button" role="tab" id="sign-tab-py" aria-controls="sign-pane-py" aria-selected="false" tabindex="-1">Python</button>
-      <button class="tab" data-pane="rs" type="button" role="tab" id="sign-tab-rs" aria-controls="sign-pane-rs" aria-selected="false" tabindex="-1">Rust</button>
+    <div class="head">
+      <p class="kicker"><span class="tri" aria-hidden="true"><i></i><i></i><i></i></span>Signing</p>
+      <h2>Sign a URL from any stack.</h2>
+      <p>Every URL carries an HMAC-SHA256 signature over the operations and the source, in lowercase hex. Same inputs, same URL, whichever of these you use.</p>
     </div>
-    <div class="code-window">
-      <button class="copy-btn" type="button" data-copytarget>Copy snippet</button>
-      <div class="code-scroll">
-      <div class="code-pane active" data-pane="curl" role="tabpanel" id="sign-pane-curl" aria-labelledby="sign-tab-curl" tabindex="0"><pre>printf <span class="s">'%s'</span> <span class="s">'crop:1200x630:smart/filters:format(webp):quality(80)/https://example.com/photo.jpg'</span> \
-  | openssl dgst -sha256 -hmac <span class="s">'demo-secret'</span>
-<span class="c"># SHA2-256(stdin)= ca3d1f22f4cc3860926608df02383f46dcf74af9a4e1bc26b1a00c644f55f300</span></pre></div>
-      <div class="code-pane" data-pane="ts" role="tabpanel" id="sign-pane-ts" aria-labelledby="sign-tab-ts" tabindex="0"><pre><span class="k">import</span> { buildURL } <span class="k">from</span> <span class="s">"@crabcrop/url"</span>;
+    <div class="sign">
+      <div>
+        <div class="code">
+          <div class="tabbar"><div class="tabs" role="tablist" aria-label="Signing examples">
+            <button class="tab" type="button" role="tab" id="tab-curl" aria-controls="pane-curl" aria-selected="true"><svg aria-hidden="true"><use href="#m-curl"/></svg>curl</button>
+            <button class="tab" type="button" role="tab" id="tab-ts" aria-controls="pane-ts" aria-selected="false" tabindex="-1"><svg aria-hidden="true"><use href="#m-ts"/></svg>TypeScript</button>
+            <button class="tab" type="button" role="tab" id="tab-py" aria-controls="pane-py" aria-selected="false" tabindex="-1"><svg aria-hidden="true"><use href="#m-py"/></svg>Python</button>
+            <button class="tab" type="button" role="tab" id="tab-rs" aria-controls="pane-rs" aria-selected="false" tabindex="-1"><svg aria-hidden="true"><use href="#m-rs"/></svg>Rust</button>
+          </div><button class="copy" type="button" id="copy-snippet">Copy snippet</button></div>
+<div class="code-pane" data-pane="curl" role="tabpanel" id="pane-curl" aria-labelledby="tab-curl" tabindex="0"><pre>printf '%s' '<span class="t-ops">crop:1200x630:smart/filters:grayscale</span>/<span class="t-src">https://example.com/photo.jpg</span>' \
+  | openssl dgst -sha256 -hmac 'demo-secret'
+<span class="c"># SHA2-256(stdin)= </span><span class="t-sig">5b9fc0ad8492552ef2c0c8af53d26851f958a213d95b1024754a311f48443e05</span></pre></div>
+<div class="code-pane" data-pane="ts" role="tabpanel" id="pane-ts" aria-labelledby="tab-ts" tabindex="0" hidden><pre><span class="k">import</span> { buildURL } <span class="k">from</span> "@crabcrop/url";
 
-<span class="c">// buildURL(base, secret, operations, source, options?)</span>
 <span class="k">const</span> url = buildURL(
-  <span class="s">"https://img.example.com"</span>,
-  <span class="s">"demo-secret"</span>,
-  <span class="s">"crop:1200x630:smart/filters:format(webp):quality(80)"</span>,
-  <span class="s">"https://example.com/photo.jpg"</span>,
+  "https://img.example.com",
+  "demo-secret",
+  "<span class="t-ops">crop:1200x630:smart/filters:grayscale</span>",
+  "<span class="t-src">https://example.com/photo.jpg</span>",
 );</pre></div>
-      <div class="code-pane" data-pane="py" role="tabpanel" id="sign-pane-py" aria-labelledby="sign-tab-py" tabindex="0"><pre><span class="k">from</span> crabcrop_url <span class="k">import</span> build_url
+<div class="code-pane" data-pane="py" role="tabpanel" id="pane-py" aria-labelledby="tab-py" tabindex="0" hidden><pre><span class="k">from</span> crabcrop_url <span class="k">import</span> build_url
 
 url = build_url(
-    base=<span class="s">"https://img.example.com"</span>,
-    secret=<span class="s">"demo-secret"</span>,
-    operations=<span class="s">"crop:1200x630:smart/filters:format(webp):quality(80)"</span>,
-    source=<span class="s">"https://example.com/photo.jpg"</span>,
+    "https://img.example.com",
+    "demo-secret",
+    "<span class="t-ops">crop:1200x630:smart/filters:grayscale</span>",
+    "<span class="t-src">https://example.com/photo.jpg</span>",
 )</pre></div>
-      <div class="code-pane" data-pane="rs" role="tabpanel" id="sign-pane-rs" aria-labelledby="sign-tab-rs" tabindex="0"><pre><span class="k">use</span> crabcrop_url::{build_url, sign};
+<div class="code-pane" data-pane="rs" role="tabpanel" id="pane-rs" aria-labelledby="tab-rs" tabindex="0" hidden><pre><span class="k">use</span> crabcrop_url::build_url;
 
-<span class="k">let</span> secret: &amp;[u8] = <span class="s">b"demo-secret"</span>;
-<span class="k">let</span> signature = sign(secret, <span class="s">"crop:1200x630:smart/filters:format(webp):quality(80)/https://example.com/photo.jpg"</span>)?;
-
-<span class="c">// build_url(base, secret, operations, source, expires)</span>
 <span class="k">let</span> url = build_url(
-    <span class="s">"https://img.example.com"</span>,
-    Some(secret),
-    <span class="s">"crop:1200x630:smart/filters:format(webp):quality(80)"</span>,
-    <span class="s">"https://example.com/photo.jpg"</span>,
+    "https://img.example.com",
+    Some(b"demo-secret"),
+    "<span class="t-ops">crop:1200x630:smart/filters:grayscale</span>",
+    "<span class="t-src">https://example.com/photo.jpg</span>",
     None,
 )?;</pre></div>
+        </div>
+        <p class="sign-note">Each snippet signs the same example with the sample secret <code>demo-secret</code>. Swap in your base, your secret, and your operations.</p>
+      </div>
+
+      <div class="stack">
+        <div class="box">
+          <h3>The SDKs</h3>
+          <ul class="rows">
+            <li><span class="who"><svg aria-hidden="true"><use href="#m-ts"/></svg>TypeScript</span><code id="i-ts">npm install @crabcrop/url</code><button class="copy" type="button" data-select="i-ts" aria-label="Copy the TypeScript install command">Copy</button></li>
+            <li><span class="who"><svg aria-hidden="true"><use href="#m-py"/></svg>Python</span><code id="i-py">pip install crabcrop_url</code><button class="copy" type="button" data-select="i-py" aria-label="Copy the Python install command">Copy</button></li>
+            <li><span class="who"><svg aria-hidden="true"><use href="#m-rs"/></svg>Rust</span><code id="i-rs">cargo add crabcrop-url</code><button class="copy" type="button" data-select="i-rs" aria-label="Copy the Rust install command">Copy</button></li>
+          </ul>
+        </div>
+        <div class="box">
+          <h3>Framework loaders</h3>
+          <ul class="marks">
+            <li><svg aria-hidden="true"><use href="#m-next"/></svg>Next.js</li>
+            <li><svg aria-hidden="true"><use href="#m-nuxt"/></svg>Nuxt</li>
+            <li><svg aria-hidden="true"><use href="#m-hydrogen"/></svg>Hydrogen</li>
+            <li><svg aria-hidden="true"><use href="#m-astro"/></svg>Astro</li>
+            <li><svg aria-hidden="true"><use href="#m-svelte"/></svg>SvelteKit</li>
+          </ul>
+          <p>Each loader is one file in the repo's <code>frameworks/</code> directory. Copy it into your project, next to <code>@crabcrop/url</code>.</p>
+        </div>
       </div>
     </div>
-    <p class="honest" style="margin-top:14px">Each snippet signs the same example with the sample secret <code>demo-secret</code>. Swap in your base, your secret, and your operations.</p>
-    <p class="honest" style="margin-top:10px">The source can be a short root reference instead of a full URL, like <code>root:photos/cat.jpg</code>: the server expands it against an origin configured on the server, so the origin itself never appears in the URL.</p>
-    <p class="honest" style="margin-top:10px">A URL can also be sealed: the whole recipe, operations and source, encrypted into one opaque token in the signature slot, for links that have to stay public but unreadable. The readable form stays the default. See <a href="docs.html#sealed">sealed URLs in the docs</a>.</p>
+
+    <div class="mcp">
+      <div>
+        <h3>An MCP server for coding agents</h3>
+        <p>The repo ships a first-party MCP server over the same SDK and HTTP surface. It runs on stdio and needs nothing else installed.</p>
+        <ul class="tools">
+          <li><code>sign_url</code>Build a signed URL, checked against the server grammar.</li>
+          <li><code>explain_url</code>Explain a URL segment by segment and verify its signature.</li>
+          <li><code>fetch_meta</code>Fetch the meta JSON for an image URL.</li>
+          <li><code>purge_result</code>Purge one cached result by its path.</li>
+        </ul>
+      </div>
+      <div class="code">
+        <p class="bar2"><span>MCP config</span><button class="copy" type="button" data-select="mcp-json">Copy</button></p>
+<pre id="mcp-json">{
+  "mcpServers": {
+    "crabcrop": {
+      "command": "npx",
+      "args": ["-y", "@crabcrop/mcp"],
+      "env": {
+        "CRABCROP_BASE": "https://img.example.com",
+        "CRABCROP_SECRET": "your-secret"
+      }
+    }
+  }
+}</pre>
+      </div>
+    </div>
   </div>
 </section>
 
-<!-- DOCUMENTATION -->
-<section>
+<section id="ship" class="band">
   <div class="wrap">
-    <div style="margin-top:0;background:var(--tide-deep);border-radius:var(--shell);padding:34px 32px;color:#fff;display:flex;gap:24px;align-items:center;flex-wrap:wrap">
-      <div style="flex:1 1 380px;min-width:min(380px,100%)">
-        <h2 style="color:#fff;margin:0">The full documentation.</h2>
-        <p style="color:var(--sea-glass);font-size:16px;margin-top:8px">Every operation with examples and interactive demos, section by section.</p>
+    <div class="head">
+      <p class="kicker"><span class="tri" aria-hidden="true"><i></i><i></i><i></i></span>Production</p>
+      <h2>Ship it where you already run.</h2>
+      <p>One recipe per platform and one per CDN, each a complete walkthrough in the repo. Every recipe follows the same flow: create the signing secret, deploy, run the smoke checklist.</p>
+    </div>
+    <div class="ship">
+      <div class="list">
+        <h3>Platforms</h3>
+        <p>Run crabcrop behind a reverse proxy or a CDN.</p>
+        <ul>
+          <li><b>Kubernetes, Helm chart</b>One replica by default. A multi-replica values file ships with the chart.</li>
+          <li><b>Kubernetes, kustomize</b>A base, with components for presets, result storage, and the AI variant.</li>
+          <li><b>AWS, ECS Fargate</b>A Fargate service behind an Application Load Balancer.</li>
+          <li><b>GCP, Cloud Run</b>A Cloud Run service, with one instance kept warm.</li>
+          <li><b>Azure, Container Apps</b>An app with ingress, with one replica kept warm.</li>
+          <li><b>Docker Compose</b>A one-command evaluation run on a single host.</li>
+          <li><b>A VM</b>The release binary and a systemd unit, behind a reverse proxy.</li>
+        </ul>
       </div>
-      <a class="btn btn-foam" href="docs.html">Read the documentation</a>
+      <div class="list">
+        <h3>CDNs</h3>
+        <p>Optional, after any platform.</p>
+        <ul>
+          <li><b>Cloudflare</b>Cache rules, and purges mapped to cache tags.</li>
+          <li><b>CloudFront</b>A cache policy that respects origin headers, and an edge function that normalizes Accept.</li>
+          <li><b>Fastly</b>Cache groups bridged to surrogate keys for group purges.</li>
+          <li><b>BunnyCDN</b>Cache groups bridged to CDN tags by a middleware script.</li>
+          <li><b>Akamai</b>Cache groups bridged to cache tags by per-preset rules.</li>
+        </ul>
+      </div>
+      <div class="list">
+        <h3>Built to say no</h3>
+        <p>The server bounds its own work.</p>
+        <ul>
+          <li><b>A size cap</b>Outputs stop at 16383 px per axis and 100 megapixels. A request past either bound fails with 400 before anything is allocated.</li>
+          <li><b>An operation cap</b>A request runs at most 100 operations.</li>
+          <li><b>Overload is shed</b>The processing, slow-lane, AI, video, and animation gates shed overload with 503.</li>
+          <li><b>Private addresses are refused</b>A source that is, or resolves to, a non-public address gets <code>403 source_forbidden</code>. On by default.</li>
+          <li><b>A bad signature is a 403</b>So is a signed URL past its <code>exp:</code> second.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="nap">
+      <img src="media/snap-asleep.webp" alt="Snap fast asleep" width="383" height="420" loading="lazy">
+      <p>A signed URL's bytes never change, so image responses carry <code>Cache-Control: public, max-age=31536000, immutable</code>. A CDN in front can hold on to them for a year.</p>
     </div>
   </div>
 </section>
+
+<section id="from">
+  <div class="wrap">
+    <div class="head">
+      <p class="kicker"><span class="tri" aria-hidden="true"><i></i><i></i><i></i></span>Migrating</p>
+      <h2>Coming from another service?</h2>
+      <p>The docs carry a mapping guide for each of these.</p>
+    </div>
+    <ul class="from">
+      <li><b>Thumbor</b>Concept and operation mapping, plus the <code>convert-thumbor</code> verb that rewrites and re-signs a URL.</li>
+      <li><b>imgproxy</b>Option-by-option mapping tables.</li>
+      <li><b>Cloudinary</b>Transformation mapping, and what changes when assets become origin URLs.</li>
+      <li><b>imgix</b>Parameter-by-parameter tables, including the adjustment scales that change meaning.</li>
+      <li><b>Cloudflare Images</b>Delivery-model and option mapping.</li>
+      <li><b>ImageKit</b>Transformation-chain and parameter mapping.</li>
+      <li><b>Gumlet</b>Parameter-by-parameter mapping tables.</li>
+      <li class="all"><a href="https://crabcrop.org/docs.html#migrating">Open the migration guides</a></li>
+    </ul>
+  </div>
+</section>
+
 
 </main>
 
 <footer>
-  <div class="foam" style="--fc:#084F57" aria-hidden="true"></div>
   <div class="wrap">
-    <div class="fbrand">
-      <span class="pebble" aria-hidden="true"><svg class="claw"><use href="#clawmark"/></svg></span>
-      <div>
-        <div class="wordmark">crabcrop</div>
-      </div>
+    <div class="foot">
+      <a class="logo" href="#top" aria-label="crabcrop, top of page"><svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true"><circle class="mk" cx="16" cy="18" r="11"/><circle class="mk-eye" cx="11" cy="13" r="4.5"/><circle class="mk" cx="24" cy="6" r="3.4"/><circle class="mk" cx="8" cy="6" r="3"/></svg>crabcrop</a>
+      <nav aria-label="Footer">
+        <a href="https://crabcrop.org/docs.html">Documentation</a>
+        <a href="https://play.crabcrop.org">Playground</a>
+        <a href="https://github.com/dayvson/crabcrop">GitHub</a>
+        <a href="https://crates.io/crates/crabcrop">crates.io</a>
+      </nav>
     </div>
-    <div style="display:flex;gap:24px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:14px;font-weight:700;flex-wrap:wrap">
-      <a href="docs.html">Documentation</a>
-      <a href="https://github.com/dayvson/crabcrop" target="_blank" rel="noopener">github.com/dayvson/crabcrop</a>
-      <span>v0.13.0</span>
-      <a href="https://github.com/crabcrop" target="_blank" rel="noopener">github.com/crabcrop</a>
-      <a href="#top">Back to the surface</a>
-    </div>
+    <p class="fine"><span>v0.13.0 · MIT licensed · Snapped, not generated.</span></p>
+    <p class="privacy" id="privacy">Privacy: this site uses Google Analytics to count visits. Google Analytics sets the cookies <code>_ga</code> and <code>_ga_56Q9ZPMWLX</code>. GitHub Pages serves the pages, and images.crabcrop.org, a crabcrop server, renders the photos. Google, GitHub Pages and images.crabcrop.org all see your IP address and browser details, as any web server does.</p>
   </div>
-  <p class="signoff">Built on the shore, in Rust. MIT licensed.<br>Snapped, not generated. See you at low tide. 🦀</p>
-<p class="signoff" id="privacy" style="max-width:640px;margin:12px auto 0;padding:0 20px">Privacy: this site uses Google Analytics to count visits. Google Analytics sets the cookies <code>_ga</code> and <code>_ga_56Q9ZPMWLX</code>. GitHub Pages serves the pages, and images.crabcrop.org, a crabcrop server, renders the photos. Google, GitHub Pages and images.crabcrop.org all see your IP address and browser details, as any web server does.</p>
 </footer>
-
-<script>
-"use strict";
-const $ = s => document.querySelector(s);
-const $$ = s => Array.from(document.querySelectorAll(s));
-
-/* copy buttons: say "Copied" only when the clipboard took the text */
-function copyText(btn, text){
-  const label = btn.dataset.label || (btn.dataset.label = btn.textContent);
-  const show = ok=>{
-    btn.textContent = ok ? "Copied" : "Copy failed";
-    btn.classList.toggle("ok", ok);
-    clearTimeout(btn.copyTimer);
-    btn.copyTimer = setTimeout(()=>{ btn.textContent = label; btn.classList.remove("ok"); }, 1400);
-  };
-  if(!text || !navigator.clipboard || !navigator.clipboard.writeText){ show(false); return; }
-  navigator.clipboard.writeText(text).then(()=>show(true), ()=>show(false));
-}
-$$("[data-copy]").forEach(b=>b.addEventListener("click", ()=>copyText(b, b.dataset.copy)));
-/* a tabbed code window copies its active pane; a plain code block copies its own pre */
-$$("[data-copytarget]").forEach(b=>b.addEventListener("click", ()=>{
-  const win = b.closest(".code-window"), block = b.closest(".cb");
-  const pre = win ? win.querySelector(".code-pane.active pre") : block && block.querySelector("pre");
-  copyText(b, pre && pre.innerText);
-}));
-
-/* signing tabs: WAI-ARIA tabs, arrow keys and Home/End move a roving tabindex */
-$$(".tabs").forEach(tabs=>{
-  const list = Array.from(tabs.querySelectorAll(".tab"));
-  const win = tabs.nextElementSibling;
-  const select = (tab, focus)=>{
-    list.forEach(t=>{ const on = t===tab; t.classList.toggle("active", on); t.setAttribute("aria-selected", String(on)); t.tabIndex = on ? 0 : -1; });
-    win.querySelectorAll(".code-pane").forEach(p=>p.classList.toggle("active", p.dataset.pane===tab.dataset.pane));
-    if(focus) tab.focus();
-  };
-  tabs.addEventListener("click", e=>{ const tab = e.target.closest(".tab"); if(tab) select(tab, false); });
-  tabs.addEventListener("keydown", e=>{
-    const i = list.indexOf(document.activeElement); if(i<0) return;
-    const next = {ArrowRight:i+1, ArrowLeft:i-1, Home:0, End:list.length-1}[e.key];
-    if(next===undefined) return;
-    e.preventDefault();
-    select(list[(next+list.length)%list.length], true);
-  });
-});
-
-/* animated cards: while a card is off-screen, its <picture> shows the still
-   frame of its reduced-motion <source>, so the animation stops. Near the
-   screen the source asks for reduced motion again: a visitor who asked for
-   it sees the still as before, everyone else the animation. Every card
-   starts on its still, so lazy loading fetches the animations only of the
-   cards that come near the screen */
-const REDUCED = "(prefers-reduced-motion: reduce)";
-const stills = new Map($$(`picture > source[media="${REDUCED}"]`).map(s=>[s.parentElement, s]));
-if(stills.size && "IntersectionObserver" in window){
-  const seen = new IntersectionObserver(entries=>entries.forEach(e=>{
-    stills.get(e.target).media = e.isIntersecting ? REDUCED : "all";
-  }), {rootMargin: "200px"});
-  stills.forEach((source, picture)=>{ source.media = "all"; seen.observe(picture); });
-}
-</script>
-<script src="thumbhash.js"></script>
 </body>
 </html>

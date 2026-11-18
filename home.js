@@ -59,8 +59,8 @@
   }
 
   // Snap moves when there is a reason to. Each film ends on the frame it began with, so it plays once and he is
-  // at rest again: in the hero now and then and whenever the URL changes, at the foot of the page when he comes
-  // into view and when the install command is copied. A tap on him plays it too. With reduced motion he stays still.
+  // at rest again: on the install command at the top of the page when he comes into view and when the command is
+  // copied, and in the hero now and then and whenever the URL changes. A tap on him plays it too. With reduced motion he stays still.
   const calm = matchMedia('(prefers-reduced-motion: reduce)');
   const point = $('snap-point'), cheer = $('snap-cheer');
   function act(film) {
@@ -77,7 +77,7 @@
   $('install-cmd').nextElementSibling.addEventListener('click', () => act(cheer));
   if ('IntersectionObserver' in window) {
     new IntersectionObserver(([e]) => { inView = e.isIntersecting; }, { threshold: .4 }).observe(point);
-    // (his film is fetched as the foot of the page nears, and played the first time most of him is in view)
+    // (his film is fetched as he nears the screen, and played the first time most of him is in view)
     const near = new IntersectionObserver(([e]) => { if (e.isIntersecting) { cheer.preload = 'auto'; near.disconnect(); } }, { rootMargin: '900px 0px' });
     near.observe(cheer);
     const arrive = new IntersectionObserver(([e]) => { if (e.isIntersecting) { act(cheer); arrive.disconnect(); } }, { threshold: .7 });
