@@ -59,8 +59,9 @@
   }
 
   // Snap moves when there is a reason to. Each film ends on the frame it began with, so it plays once and he is
-  // at rest again: in the hero now and then and whenever the URL changes, on the install command just below it when
-  // he comes into view and when the command is copied. A tap on him plays it too. With reduced motion he stays still.
+  // at rest again: in the hero now and then, whenever the URL changes, and as a pointer comes to him (there he is
+  // the link down to his world, so a tap takes the visitor there); on the install command just below it when he
+  // comes into view, when the command is copied, and on a tap. With reduced motion he stays still.
   const calm = matchMedia('(prefers-reduced-motion: reduce)');
   const point = $('snap-point'), cheer = $('snap-cheer');
   function act(film) {
@@ -68,7 +69,9 @@
     const p = film.play();
     if (p) p.catch(() => {});
   }
-  for (const film of [point, cheer]) film.parentNode.addEventListener('click', () => act(film));
+  cheer.parentNode.addEventListener('click', () => act(cheer));
+  point.parentNode.addEventListener('pointerenter', (e) => { if (e.pointerType !== 'touch') act(point); });
+  point.parentNode.addEventListener('focus', () => act(point));
 
   let inView = true, rest = 0;
   const later = () => { clearTimeout(rest); rest = setTimeout(() => { if (inView && !document.hidden) act(point); else later(); }, 5200); };

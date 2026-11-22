@@ -15,8 +15,9 @@ own cut-out of it (`media/`). The scenes follow the current dive's pictures (see
 kelp, the reef and its Clam Studio, the wreck and its cabin, the twilight, the vents and the
 geode, and the marina again.
 
-Published at `/preview/dive-gpu/` (not linked from the site, `noindex`). The brief it is held to
-is [PROMPT.md](PROMPT.md).
+Published at [crabcrop.org/under-the-sea/](https://crabcrop.org/under-the-sea/), where the home
+page's Snap invites visitors down (its old preview address, `/preview/dive-gpu/`, now sends them
+there). The brief it is held to is [PROMPT.md](PROMPT.md).
 
 | | The painted dive (`preview/dive/`) | This dive |
 |---|---|---|
@@ -27,7 +28,7 @@ is [PROMPT.md](PROMPT.md).
 
 ```
 npm ci
-node build.mjs --publish     # ../preview/dive-gpu/index.html, and Snap's files beside it
+node build.mjs --publish     # ../under-the-sea/index.html, and Snap's files beside it
 node build.mjs               # the same into out/ (not tracked), to look at locally
 node build.mjs --dev         # out/dev.html: with the tools below
 ```
