@@ -1,12 +1,13 @@
 // Check that the site publishes no image its pages do not use, no file
 // of the dive that the dive does not use, no preview but the dive, the
-// dive made in code and the home preview and no notes, and that its
-// pages and the dive's scripts use no local file the site does not have.
+// old address of the dive made in code and the home preview and no
+// notes, and that its pages and the dive's scripts use no local file the
+// site does not have.
 //
 // GitHub Pages serves every tracked file that Jekyll does not exclude,
 // so a file nothing loads is dead weight anyone can fetch. The check
 // fails when
-//   - a published image outside preview/dive/ and preview/dive-gpu/ is
+//   - a published image outside preview/dive/ and under-the-sea/ is
 //     referenced by no page,
 //   - a published file under preview/dive/, of any type, is used by
 //     neither the dive's page, its stylesheets nor its scripts,
@@ -21,11 +22,14 @@
 // rule as the site's pages: each image referenced). preview/dive/ is
 // the "All the Way Down" dive, built from experience/: its page, the
 // bundles the build writes next to it, and the media its scripts load.
-// Every file there has to be used, whatever its type. preview/dive-gpu/
-// is the same dive drawn in real time by code, built from deep/: its one
-// script loads Snap's model and texture, so its images need no page
-// reference. The index.html of each preview is scanned like a page, so
-// the site files it uses count as used and must exist.
+// Every file there has to be used, whatever its type. under-the-sea/ is
+// the same dive drawn in real time by code, built from deep/, published
+// as a page of the site: its one script loads Snap's model and texture
+// and the photo, so its images need no page reference. Its preview,
+// preview/dive-gpu/, is now a page that sends visitors on to it, so an
+// image there needs a reference like any other. The index.html of each
+// preview, and of under-the-sea/, is scanned like a page, so the site
+// files it uses count as used and must exist.
 //
 // Published means tracked (git ls-files) and not left out by Jekyll:
 // no path segment starts with ".", "_", "#" or ends with "~", and no
@@ -81,16 +85,19 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 const PAGES = ["index.html", "docs.html"];
+// The dive made in code, a page of the site in a folder of its own: its
+// one script loads its pictures, which need no page reference.
+const SEA = "under-the-sea/";
 // The previews the site publishes. Nothing else may sit under preview/.
 // Every file of the dive has to be used by its page or its scripts.
 const DIVE = "preview/dive/";
 const DIVE_PAGE = `${DIVE}index.html`;
-// The dive made in code: its one script loads its pictures, which need
-// no page reference.
+// The old address of the dive made in code: a page that sends visitors
+// on to under-the-sea/.
 const DEEP = "preview/dive-gpu/";
 const PREVIEWS = [DIVE, DEEP, "preview/home/"];
-// The previews whose own scripts load their pictures.
-const SCRIPTED = [DIVE, DEEP];
+// The folders whose own scripts load their pictures.
+const SCRIPTED = [DIVE, SEA];
 // A list for a message: "a and b", "a, b and c".
 const listed = (items) => (items.length < 3 ? items.join(" and ") : `${items.slice(0, -1).join(", ")} and ${items.at(-1)}`);
 const ORIGIN = "https://crabcrop.org/";
@@ -358,7 +365,7 @@ const stem = (name) => name.replace(/^((?:.*\/)?[^./]*)\..*$/, "$1");
 // size of a file.
 export function findProblems(files, read, size = () => 0) {
   const published = new Set(files);
-  const pages = PAGES.concat(PREVIEWS.map((p) => `${p}index.html`).filter((p) => published.has(p)));
+  const pages = PAGES.concat([...PREVIEWS, SEA].map((p) => `${p}index.html`).filter((p) => published.has(p)));
   const problems = PAGES.filter((p) => !published.has(p)).map((p) => `${p} is not a published page`);
 
   // Every reference: { from, line, ref, path }, path null when off-site.
@@ -647,10 +654,12 @@ function fixtureSite() {
     "preview/home/index.html": '<!doctype html><title>Home</title><img src="media/patch.webp" alt="">\n',
     "preview/home/media/patch.webp": "",
     "preview/home/fonts/OFL.txt": "",
-    "preview/dive-gpu/index.html": '<!doctype html><title>Dive in code</title><script>fetch(new URL("snap.bin", document.baseURI)); load(["snap.avif", "snap.webp"]);</script>\n',
-    "preview/dive-gpu/snap.bin": "",
-    "preview/dive-gpu/snap.avif": "",
-    "preview/dive-gpu/snap.webp": "",
+    "under-the-sea/index.html": '<!doctype html><title>Dive in code</title><meta property="og:image" content="https://crabcrop.org/under-the-sea/card.jpg"><script>fetch(new URL("snap.bin", document.baseURI)); load(["snap.avif", "snap.webp"]);</script>\n',
+    "under-the-sea/card.jpg": "",
+    "under-the-sea/snap.bin": "",
+    "under-the-sea/snap.avif": "",
+    "under-the-sea/snap.webp": "",
+    "preview/dive-gpu/index.html": '<!doctype html><title>Moved</title><meta http-equiv="refresh" content="0; url=/under-the-sea/"><a href="/under-the-sea/">The dive</a>\n',
     [DIVE_PAGE]: DIVE_HTML,
     "preview/dive/assets/index-Aa1.js": DIVE_INDEX,
     "preview/dive/assets/world-Bb2.js": DIVE_WORLD,
@@ -741,6 +750,12 @@ const SELF_TESTS = [
   ["an image no page references", (f) => {
     f["unused.png"] = "";
   }, "unused.png (0 B) is published but no page references it"],
+  ["a picture left at the dive made in code's old address", (f) => {
+    f["preview/dive-gpu/snap.webp"] = "";
+  }, "preview/dive-gpu/snap.webp (0 B) is published but no page references it"],
+  ["the dive made in code without the share card its page names", (f) => {
+    delete f["under-the-sea/card.jpg"];
+  }, "under-the-sea/index.html:1 references under-the-sea/card.jpg, which is not a published file (https://crabcrop.org/under-the-sea/card.jpg)"],
   ["a page that references a file that is not published", (f) => {
     edit(f, "docs.html", "</body>", '<img src="missing.webp" alt="">\n</body>');
   }, "docs.html:17 references missing.webp, which is not a published file"],

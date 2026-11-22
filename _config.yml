@@ -2,7 +2,8 @@
 # the source of the dive made in code (deep/) and the design notes and tools
 # (design/) live in the repo but are not part of the site: of the dive, only
 # its build, preview/dive/, is published; of the dive made in code, only its
-# build, preview/dive-gpu/. The home page (index.html, home.js, fonts/ and
+# build, under-the-sea/ (its old preview, preview/dive-gpu/, is a page that
+# sends visitors there). The home page (index.html, home.js, fonts/ and
 # media/) is written by hand; its notes and tools are in design/home/. The
 # rest keeps Jekyll's own exclusions. The dive's media
 # manifest stays next to the media it describes, where its build reads it,

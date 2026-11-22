@@ -133,17 +133,25 @@ the three pictures are short films.
 
 | Where | File | What he does |
 | --- | --- | --- |
-| On the address bar | `snap-point` | Points down at the URL. The film: he taps twice, looks up, blinks, nods, and points again |
+| On the address bar | `snap-point` | Points down at the URL. The film: he taps twice, looks up, blinks, nods, and points again. He is also the link down to his world, the dive at `/under-the-sea/`, and says so in a bubble beside his head |
 | On the install command | `snap-cheer` | Both claws up. The film: he bounces and claps |
 | In the cache note | `snap-asleep.webp` | Asleep. A slow CSS swell from the feet up is his breathing |
 
 **He moves when there is a reason to.** Each film ends on the frame it
 began with, so it plays once and he is at rest again. The first plays
 shortly after the page opens, every few seconds while he is in view, and
-whenever a choice changes the URL. The second plays the first time he
-comes into view and when the install command is copied. A tap on him
-plays his film too. With reduced motion he stays still: the films are
-never started, and the sleeper does not breathe.
+whenever a choice changes the URL, and when a pointer comes to him or the
+keyboard reaches his link (a tap on him there follows the link). The
+second plays the first time he comes into view, when the install command
+is copied, and on a tap. With reduced motion he stays still: the films
+are never started, and the sleeper does not breathe.
+
+**His invitation.** In the hero the link is Snap himself, with his bubble
+("Come dive with me", "under the sea, in 3D") as its visible label: beside
+his head on wide screens, above it where the words come close (960 px and
+narrower), the row beside him a little taller for it on phones. The
+footer lists the same page as "Under the sea". The bubble may form a
+stacking context (it lifts on hover); the link around the film may not.
 
 **How he sits in the page.** A film has no transparency, so he is filmed
 on black and blended with `mix-blend-mode: lighten`: the page shows

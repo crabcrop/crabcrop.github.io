@@ -141,6 +141,25 @@ h1 .keep { white-space: nowrap; }
   --soft: linear-gradient(to right, transparent, #000 3%, #000 97%, transparent), linear-gradient(to bottom, transparent, #000 3%);
   -webkit-mask-image: var(--soft); mask-image: var(--soft); -webkit-mask-composite: source-in; mask-composite: intersect; }
 #snap-point { aspect-ratio: 956 / 720; }
+/* In the hero Snap is also the way down to his world, the dive at /under-the-sea/: the link is him, and he
+   says so in a bubble beside his head. The link must not form a stacking context (the blend above needs
+   the ground); the bubble can, being beside the film and not around it. */
+a.snap { position: relative; color: inherit; text-decoration: none; -webkit-tap-highlight-color: transparent; }
+.bubble { position: absolute; z-index: 1; top: 4%; right: 68%; display: grid; gap: 3px; width: max-content; max-width: 220px; padding: 10px 15px 11px; background: var(--panel); border: 1px solid var(--line); border-radius: 16px 16px 4px 16px; box-shadow: 0 20px 40px -24px var(--shadow); transition: border-color .2s, transform .25s; }
+/* (its tail, toward him) */
+.bubble::after { content: ""; position: absolute; right: -8px; bottom: 12px; width: 14px; height: 14px; background: var(--panel); border: solid var(--line); border-width: 1px 1px 0 0; transform: rotate(45deg); transition: border-color .2s; }
+.bubble b { font: 600 17px/1.2 var(--display); color: var(--text); }
+.bubble .where { font: 500 12.5px/1.3 var(--mono); color: var(--src); }
+.bubble i { font-style: normal; }
+a.snap:hover .bubble, a.snap:focus-visible .bubble { border-color: var(--src); transform: translateY(-2px); }
+a.snap:hover .bubble::after, a.snap:focus-visible .bubble::after { border-color: var(--src); }
+a.snap:focus-visible { outline: none; }
+a.snap:focus-visible .bubble { outline: 2px solid var(--text); outline-offset: 3px; }
+/* (where the words beside him come close, the bubble goes above his head, its tail pointing down) */
+@media (max-width: 960px) {
+  .bubble { top: auto; bottom: 100%; right: 0; margin-bottom: 6px; border-radius: 14px 14px 4px 14px; }
+  .bubble::after { right: 26px; bottom: -8px; border-width: 0 1px 1px 0; }
+}
 #snap-cheer { aspect-ratio: 850 / 640; }
 
 .bench { position: relative; z-index: 1; }
@@ -370,6 +389,11 @@ footer .wrap { display: grid; gap: 22px; }
   .lead .snap { grid-column: 2; }
   .hero .lead { --snap-h: 140px; }
   #install .lead { --snap-h: 128px; }
+  /* (the row beside him a little taller, for his bubble) */
+  .hero a.snap { margin-top: 58px; }
+  .bubble { padding: 8px 12px 9px; }
+  .bubble b { font-size: 15px; }
+  .bubble .where { font-size: 11.5px; }
   h1 { font-size: clamp(30px, 9.5vw, 44px); }
   .nums { font-size: 13.5px; }
   .nums th, .nums td { padding-left: 8px; }
@@ -435,12 +459,13 @@ footer .wrap { display: grid; gap: 22px; }
         <p class="lede"><strong>The URL is the API.</strong> Write the operations into it, sign it, and crabcrop answers with the picture. A Rust-built image server in one binary: no pre-generated thumbnails, no build step.</p>
         <p class="cta"><a class="btn go" href="#install">Get it running</a><a class="btn quiet" href="https://crabcrop.org/docs.html">Read the docs</a></p>
       </div>
-      <div class="snap" role="img" aria-label="Snap, a crochet crab, standing on the address bar and pointing down at the URL">
+      <a class="snap dive" href="under-the-sea/">
+        <span class="bubble"><span class="sr">Snap, the crochet crab, says: </span><b>Come dive with me</b> <span class="where">under the sea, in 3D <i aria-hidden="true">→</i></span></span>
         <video id="snap-point" muted playsinline preload="auto" poster="media/snap-point.webp" width="956" height="720" aria-hidden="true">
           <source src="media/snap-point.av1.mp4" type="video/mp4; codecs=av01.0.05M.08">
           <source src="media/snap-point.mp4" type="video/mp4">
         </video>
-      </div>
+      </a>
     </div>
 
     <div class="bench">
@@ -949,6 +974,7 @@ url = build_url(
         <a href="https://crabcrop.org/docs.html">Docs</a>
         <a href="https://play.crabcrop.org">Playground</a>
         <a href="https://github.com/dayvson/crabcrop">GitHub</a>
+        <a href="under-the-sea/">Under the sea</a>
         <a href="#install">Install</a>
       </nav>
     </div>

@@ -1,6 +1,8 @@
-# crabcrop.org is two pages, / (index.html) and /docs.html, plus the
-# files they load, and two previews, /preview/dive/ and /preview/dive-gpu/,
-# each carrying its own noindex. Crawlers may read all of it.
+# crabcrop.org is three pages, / (index.html), /docs.html and
+# /under-the-sea/ (the dive with Snap), plus the files they load, and two
+# previews, /preview/dive/ and /preview/dive-gpu/ (which now sends
+# visitors on to /under-the-sea/), each carrying its own noindex.
+# Crawlers may read all of it.
 #
 # The old /preview/ design experiments were deleted, and so was
 # /preview/home/ when that page became the home page. They are not listed
