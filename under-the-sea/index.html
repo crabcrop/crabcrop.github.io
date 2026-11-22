@@ -266,6 +266,12 @@ p { text-wrap: pretty; }
     :root:not(.page) .ib { width: 36px; padding: 0; }
   }
   @media (max-width: 900px) and (min-width: 761px) { :root:not(.page) .lab { display: none; } }
+  /* phones and middling widths, where the finale is a narrow column: its links are set as small
+     as the Settings panel's, so the five keep to one line, and its sign-off line goes */
+  @media (max-width: 1100px) {
+    :root:not(.page) .fin .links { gap: 4px 14px; font-size: 13.5px; }
+    :root:not(.page) .fin .foot { display: none; }
+  }
   /* short windows (a small laptop, a phone on its side): tighter words, and below 520 px a
      wider column, so a beat still fits without scrolling inside */
   @media (max-height: 620px) and (min-width: 761px) {
