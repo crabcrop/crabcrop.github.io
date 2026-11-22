@@ -93,10 +93,17 @@ The rest of what it says has to be kept in step by hand:
 | On the page | Comes from | When it changes |
 | --- | --- | --- |
 | The four signing snippets | The simplest call in each SDK, all four signing the anatomy strip's example, `crop:1200x630:smart/filters:grayscale/https://example.com/photo.jpg`, with `demo-secret` (`5b9fc0ad…`). The builders take the same four arguments in the same order: base, secret, operations, source; Rust adds the expiry, `None` | When a builder changes: the snippets check fails |
-| `v0.13.1` in the footer, and the two `docker pull` tags | The release, as `docs.html` names it | At each release |
+| `v0.14.0` in the footer, and the two `docker pull` tags | The release, as `docs.html` names it | At each release |
 | The benchmark figures | `benchmark/results/2026-11-06.md` in `dayvson/crabcrop`: crabcrop 0.9.9, Thumbor 7.8.0, imgproxy 3.31.4 | When a newer run is published there |
-| Formats, filters, limits, error codes, recipes, guides | `docs.html` as of 0.13.1 | When it changes |
+| Formats, filters, limits, error codes, recipes, guides | `docs.html` as of 0.14.0 | When it changes |
 | The signatures in the address bar | Real ones, for all 48 states: HMAC-SHA256 with the sample secret `demo-secret` over `<operations>/root:photos/print.jpg`, in `home.js` | When a choice is added or renamed |
+
+At a release, change the footer version and the `docker pull` tags, here
+and on `docs.html`, one by one. Never replace the old version number across
+a page: the notes on `docs.html` ("Since 0.11.0 ...") name the release that
+made each change, and the page-wide replacements of the v0.12.0 and v0.13.0
+releases moved every one of them from 0.11.0 to 0.13.0 until they were set
+back.
 
 The benchmark figures, as they are on the page:
 
