@@ -23,10 +23,12 @@
 //     handler or javascript: URL would be blocked; an image host is not
 //     in img-src; a page that loads GA_LOADER lacks a source of GA_CSP;
 //     or object-src or base-uri is not 'none';
-//   - or, while a published page loads GA_LOADER, the privacy note
+//   - while a published page loads GA_LOADER, the privacy note
 //     (id="privacy") on index.html or docs.html is missing or hidden,
 //     does not say the site uses Google Analytics, or says it does not,
-//     or says the site uses no analytics or sets no cookies.
+//     or says the site uses no analytics or sets no cookies;
+//   - or another page that loads GA_LOADER (the dive, under-the-sea/)
+//     has no link to one of those notes (/#privacy, /docs.html#privacy).
 //
 // After an edit to an inline script, the failure prints the hash the
 // CSP needs.
@@ -349,8 +351,25 @@ export function findProblems(files, read) {
       }
     }
   }
+  // Another page that loads it links to one of those notes.
+  let linked = 0;
+  for (const page of gaPages.filter((p) => !CSP_PAGES.includes(p))) {
+    const toNote = parsed.get(page).tags.some((t) => {
+      if (t.name !== "a" || !t.attrs.href) return false;
+      let url;
+      try {
+        url = new URL(t.attrs.href.trim(), ORIGIN + page);
+      } catch {
+        return false;
+      }
+      const file = url.pathname === "/" ? "index.html" : url.pathname.slice(1);
+      return /^https?:$/.test(url.protocol) && SITE_HOSTS.has(url.hostname) && url.hash === "#privacy" && CSP_PAGES.includes(file);
+    });
+    if (toNote) linked += 1;
+    else problems.push(`${page} loads Google Analytics but has no link to the privacy note: link to ${ORIGIN}#privacy`);
+  }
 
-  return { problems, pages: pages.length, gaPages: gaPages.length, cspPages, inline };
+  return { problems, pages: pages.length, gaPages: gaPages.length, cspPages, inline, linked };
 }
 
 // Self-tests: a fixture site that must pass, and edits to it, each of
@@ -398,7 +417,7 @@ ${ga ? GA_TAGS : ""}<script src="thumbhash.js"></script>
 
 const PREVIEW = `<!doctype html>
 <html><head><meta charset="utf-8"><title>Old preview</title>
-${GA_TAGS}</head><body><p>Old preview</p></body></html>
+${GA_TAGS}</head><body><p>Old preview. <a href="/#privacy">Privacy</a></p></body></html>
 `;
 const GTM_SNIPPET = `<script>(function(w,d,s,l,i){w[l]=w[l]||[];var f=d.getElementsByTagName(s)[0],j=d.createElement(s);j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','GTM-ABC1234');</script>`;
 
@@ -483,6 +502,10 @@ const SELF_TESTS = [
   ["a hidden privacy note", {}, (f) => edit(f, "docs.html", ' id="privacy"', ' id="privacy" hidden'), "the privacy note is hidden"],
   ["a privacy note styled out of sight", {}, (f) => edit(f, "index.html", ' id="privacy"', ' id="privacy" style="display: none"'), "the privacy note is hidden"],
   ["no privacy note while GA runs", {}, (f) => edit(f, "index.html", ' id="privacy"', ""), 'index.html has no privacy note (id="privacy"), but the page loads Google Analytics'],
+  ["a link to the privacy note by its full URL", {}, (f) => edit(f, "preview/old/index.html", 'href="/#privacy"', 'href="https://crabcrop.org/#privacy"'), null],
+  ["a link to the privacy note on docs.html, by a relative path", {}, (f) => edit(f, "preview/old/index.html", 'href="/#privacy"', 'href="../../docs.html#privacy"'), null],
+  ["a page that loads GA with no link to the privacy note", {}, (f) => edit(f, "preview/old/index.html", ' <a href="/#privacy">Privacy</a>', ""), "preview/old/index.html loads Google Analytics but has no link to the privacy note"],
+  ["a link to #privacy on the page itself, which has no note", {}, (f) => edit(f, "preview/old/index.html", 'href="/#privacy"', 'href="#privacy"'), "preview/old/index.html loads Google Analytics but has no link to the privacy note"],
   ["GA only on an old preview, and notes that say no analytics", { ga: false }, (f) => {
     f["preview/old/index.html"] = PREVIEW;
   }, "the privacy note does not say the site uses Google Analytics, but preview/old/index.html loads Google Analytics"],
@@ -524,6 +547,7 @@ export function checkScripts(site) {
   console.log(`ok   ${r.pages} published pages load no script from another host but the Google Analytics loader (${r.gaPages} load it)`);
   console.log(`ok   ${r.cspPages} pages carry a CSP right after <meta charset> that lists their ${r.inline} inline scripts and every script and image host, and allows no other source`);
   if (r.gaPages) console.log(`ok   the privacy notes on ${CSP_PAGES.join(" and ")} say the site uses Google Analytics`);
+  if (r.linked) console.log(`ok   ${r.linked === 1 ? "the other page that loads it links" : `the ${r.linked} other pages that load it link`} to the privacy note`);
   return tests.failures.length === 0;
 }
 

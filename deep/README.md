@@ -22,7 +22,7 @@ there). The brief it is held to is [PROMPT.md](PROMPT.md).
 | | The painted dive (`preview/dive/`) | This dive |
 |---|---|---|
 | Files | about 270 images and videos, 44 MB | one HTML file, Snap's model (214 KB) and texture (79 to 186 KB), the photo (63 KB) and its mask (8 KB) |
-| A visit downloads | 9.6 MB on desktop, 5.5 to 7.2 MB on a phone | about 0.8 to 0.9 MB (the page is 438 KB compressed) |
+| A visit downloads | 9.6 MB on desktop, 5.5 to 7.2 MB on a phone | about 0.8 to 0.9 MB (the page is 438 KB compressed), and Google Analytics' script |
 
 ## Build
 
@@ -36,6 +36,14 @@ node build.mjs --dev         # out/dev.html: with the tools below
 The build bundles three.js and `src/` with esbuild into one inline script, strips the
 comments and spare space from the shader code, writes a Content-Security-Policy that allows
 that script by its hash and nothing else, and copies `media/` beside the page.
+
+`--publish` also adds the site's Google Analytics tag, the same two tags as the home page
+(Google's loader and its config, inline), and widens the policy for them: the loader's host,
+the config by its hash, and the hosts Google lists for GA4. The site's privacy note,
+[crabcrop.org/#privacy](https://crabcrop.org/#privacy), says the site uses it, and the page
+links to the note from the finale and the Settings panel; the scripts site check
+(`node ../.github/site-checks/scripts.mjs`) fails if the page has no such link. Builds into `out/` leave
+the tag out, so working on the dive counts no visits.
 
 ## How it draws
 

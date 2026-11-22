@@ -2,7 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-nLbtS0/GnSUkSqTaJAZ53k0irswkJ1ChmMHuX1hMG1M='; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src https://www.googletagmanager.com 'sha256-JOJJSXuPIsj/UiWkC5Tba1DCiOuf7Zmi212F4r+CtKs=' 'sha256-nLbtS0/GnSUkSqTaJAZ53k0irswkJ1ChmMHuX1hMG1M='; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://*.google-analytics.com https://*.googletagmanager.com; connect-src 'self' https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-56Q9ZPMWLX"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-56Q9ZPMWLX');
+</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>crabcrop · Under the sea with Snap</title>
 <meta name="description" content="Dive with Snap the crab through crabcrop, the Rust image API: from the marina to the vents and back up, building an image URL on the way.">
@@ -1045,7 +1052,7 @@ h1 .hi, h2 .hi, h3 .hi { color: var(--coral); }
       <p class="fine">Auto picks from what your device says about itself. Lower detail draws less, for a steadier dive.</p>
       <p><a href="?page">Read it as a page</a></p>
       <p class="fine">Keys: <b>M</b> sound, <b>H</b> frame statistics</p>
-      <nav class="site" aria-label="crabcrop"><a href="https://crabcrop.org/#install">Install</a><a href="https://crabcrop.org/docs.html">Docs</a><a href="https://play.crabcrop.org">Playground</a><a href="https://github.com/dayvson/crabcrop">GitHub</a><a href="https://crabcrop.org/">Skip the dive</a></nav>
+      <nav class="site" aria-label="crabcrop"><a href="https://crabcrop.org/#install">Install</a><a href="https://crabcrop.org/docs.html">Docs</a><a href="https://play.crabcrop.org">Playground</a><a href="https://github.com/dayvson/crabcrop">GitHub</a><a href="https://crabcrop.org/#privacy">Privacy</a><a href="https://crabcrop.org/">Skip the dive</a></nav>
     </div>
   </div>
 </header>
@@ -1528,7 +1535,7 @@ h1 .hi, h2 .hi, h3 .hi { color: var(--coral); }
     <p class="again-note dive-only">Your URL comes along<span class="wide-only">, so you can try other choices. Or keep scrolling: the sea starts over</span>.</p>
     <p class="fine" id="final-note">Signed in your browser with the sample secret <code>demo-secret</code>, on a stand-in host. Sign the same path with your own secret, on a server with a <code>photos</code> source root (and a background-removal model for a finish), and it serves the picture.</p>
     <div class="cmd"><code id="install-cmd">curl --proto '=https' --tlsv1.2 -LsSf https://<wbr>github.com/<wbr>dayvson/<wbr>crabcrop/<wbr>releases/<wbr>latest/<wbr>download/<wbr>crabcrop-installer.sh | sh</code><button class="ib js-only" id="copy-install" type="button" aria-label="Copy the install command"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="5.5" y="5.5" width="8" height="8" rx="1.6"/><path d="M10.5 3.2v-.1a1.6 1.6 0 0 0-1.6-1.6H4.1a1.6 1.6 0 0 0-1.6 1.6v4.8a1.6 1.6 0 0 0 1.6 1.6h.1"/></svg><span>Copy</span></button></div>
-    <p class="links"><a href="https://crabcrop.org/#install">Install</a><a href="https://crabcrop.org/docs.html">Docs</a><a href="https://play.crabcrop.org">Playground</a><a href="https://github.com/dayvson/crabcrop">GitHub</a></p>
+    <p class="links"><a href="https://crabcrop.org/#install">Install</a><a href="https://crabcrop.org/docs.html">Docs</a><a href="https://play.crabcrop.org">Playground</a><a href="https://github.com/dayvson/crabcrop">GitHub</a><a href="https://crabcrop.org/#privacy">Privacy</a></p>
     <p class="foot">Built on the shore, in Rust. MIT licensed. See you at low tide.</p>
   </div></div>
   <!-- past the finale, a little more sea: at its foot the dive starts over, the URL kept -->
