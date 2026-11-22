@@ -258,6 +258,12 @@ p { text-wrap: pretty; }
     :root:not(.page) .ib { width: 36px; padding: 0; }
   }
   @media (max-width: 900px) and (min-width: 761px) { :root:not(.page) .lab { display: none; } }
+  /* phones and middling widths, where the finale is a narrow column: its links are set as small
+     as the Settings panel's, so the five keep to one line, and its sign-off line goes */
+  @media (max-width: 1100px) {
+    :root:not(.page) .fin .links { gap: 4px 14px; font-size: 13.5px; }
+    :root:not(.page) .fin .foot { display: none; }
+  }
   /* short windows (a small laptop, a phone on its side): tighter words, and below 520 px a
      wider column, so a beat still fits without scrolling inside */
   @media (max-height: 620px) and (min-width: 761px) {
@@ -397,7 +403,7 @@ p { text-wrap: pretty; }
       <p class="fine">Auto picks from what your device says about itself. Lower detail draws less, for a steadier dive.</p>
       <p><a href="?page">Read it as a page</a></p>
       <p class="fine">Keys: <b>M</b> sound, <b>H</b> frame statistics</p>
-      <nav class="site" aria-label="crabcrop"><a href="https://crabcrop.org/#install">Install</a><a href="https://crabcrop.org/docs.html">Docs</a><a href="https://play.crabcrop.org">Playground</a><a href="https://github.com/dayvson/crabcrop">GitHub</a><a href="https://crabcrop.org/">Skip the dive</a></nav>
+      <nav class="site" aria-label="crabcrop"><a href="https://crabcrop.org/#install">Install</a><a href="https://crabcrop.org/docs.html">Docs</a><a href="https://play.crabcrop.org">Playground</a><a href="https://github.com/dayvson/crabcrop">GitHub</a><a href="https://crabcrop.org/#privacy">Privacy</a><a href="https://crabcrop.org/">Skip the dive</a></nav>
     </div>
   </div>
 </header>

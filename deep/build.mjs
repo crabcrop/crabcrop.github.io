@@ -13,8 +13,10 @@
 //                               one part by itself
 //
 // three.js and the dive's own code are bundled by esbuild and written into template.html
-// in place of its <!--SCRIPT--> marker. Nothing else is loaded at run time: no texture,
-// model, sound or font file exists. GLSL sits in the source as template strings tagged
+// in place of its <!--SCRIPT--> marker. Besides the page, the dive loads only the files in
+// media/ (Snap's model and texture, the photo and its mask), copied beside it: no sound or
+// font file exists. The published page also loads Google Analytics, as the rest of the site
+// does (see the CSP below). GLSL sits in the source as template strings tagged
 // /* glsl */; their comments and spare whitespace are stripped here.
 import { build } from 'esbuild';
 import { copyFileSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
@@ -80,16 +82,36 @@ if (template.includes('/*ZONES*/')) {
   template = template.replace('/*ZONES*/', () => css.map((f) => readFileSync(join(here, 'zones', f), 'utf8').trim()).join('\n'));
 }
 if (!template.includes('<!--SCRIPT-->')) throw new Error('template.html has no <!--SCRIPT--> marker');
-// The page's one script goes in by hash: a Content-Security-Policy, as the first tag after
-// <meta charset>, that allows that script and nothing else to run, Snap's files to be
-// fetched from the page's own folder, and no plugins, base changes or form posts.
-const hash = createHash('sha256').update(js).digest('base64');
-const csp = `<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-${hash}'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">`;
+// The published page counts visits with the site's Google Analytics property, by the same two
+// tags as the home page: Google's loader, and the config inline. The site's privacy note
+// (crabcrop.org/#privacy) says so, and the page links to it. Builds into out/ leave them out,
+// so working on the dive counts no visits.
+const GA_ID = 'G-56Q9ZPMWLX';
+const gaConfig = `\n  window.dataLayer = window.dataLayer || [];\n  function gtag(){dataLayer.push(arguments);}\n  gtag('js', new Date());\n  gtag('config', '${GA_ID}');\n`;
+const ga = publish ? `<script async src="https://www.googletagmanager.com/gtag/js?id=${GA_ID}"></script>\n<script>${gaConfig}</script>\n` : '';
+// The page's scripts go in by hash: a Content-Security-Policy, as the first tag after
+// <meta charset>, that allows the dive's script and nothing else to run, Snap's files to be
+// fetched from the page's own folder, and no plugins, base changes or form posts; on the
+// published page, also Google Analytics: its loader by host, its config by hash, and the hosts
+// it sends visits to (Google's CSP for GA4, as .github/site-checks/scripts.mjs holds it).
+const sha256 = (s) => `'sha256-${createHash('sha256').update(s).digest('base64')}'`;
+const gaSources = (...hosts) => (publish ? hosts.map((h) => ` https://${h}`).join('') : '');
+const csp = `<meta http-equiv="Content-Security-Policy" content="${[
+  "default-src 'self'",
+  `script-src${gaSources('www.googletagmanager.com')}${publish ? ` ${sha256(gaConfig)}` : ''} ${sha256(js)}`,
+  "style-src 'self' 'unsafe-inline'",
+  `img-src 'self' data:${gaSources('*.google-analytics.com', '*.googletagmanager.com')}`,
+  `connect-src 'self'${gaSources('*.google-analytics.com', '*.analytics.google.com', '*.googletagmanager.com')}`,
+  "object-src 'none'",
+  "base-uri 'none'",
+  "form-action 'none'",
+].join('; ')}">`;
 if (/http-equiv="Content-Security-Policy"/i.test(template)) throw new Error('template.html has its own CSP: the build writes it');
+if (/googletagmanager|gtag\(/i.test(template)) throw new Error('template.html has a Google tag of its own: the build writes it, on the published page only');
 let html = template.replace('<!--SCRIPT-->', () => `<script>${js}</script>`);
 const charset = html.match(/<meta charset="utf-8">\n?/i);
 if (!charset) throw new Error('template.html has no <meta charset="utf-8">');
-html = html.replace(charset[0], (m) => `${m.trimEnd()}\n${csp}\n`);
+html = html.replace(charset[0], (m) => `${m.trimEnd()}\n${csp}\n${ga}`);
 mkdirSync(outDir, { recursive: true });
 writeFileSync(outFile, html);
 // Snap's model and its texture, and the visitor's photo and its mask: the only files besides

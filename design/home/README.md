@@ -64,7 +64,8 @@ node .github/site-checks/scripts.mjs   # the page's Content-Security-Policy hold
   Another `<script>` block would be blocked until its hash is in the
   policy; the scripts check prints the hash it needs. Styles may be
   inline. The privacy note in the footer (`id="privacy"`) has to stay
-  while the page loads Google Analytics.
+  while the page loads Google Analytics, and the dive (`under-the-sea/`),
+  which loads it too, links to it there.
 - **Pictures.** Every published picture has to be referenced by a page,
   so one the page stops using is deleted (git history keeps it), as the
   old home page's were. The dive is held to more: every file under
